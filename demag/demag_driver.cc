@@ -1,5 +1,7 @@
 // Driver code for demag field finite element calculation using charges
 
+// ??ds replace all capital M magnetisations with small m (for compliance with oomph-lib rules - capital means member data)
+
 // Generic oomph-lib routines
 #include "generic.h"
 
@@ -24,7 +26,7 @@ private:
 public:
 
   // CONSTRUCTORS ETC.
-  /// Constructor (must initialise the Source_fct_pt to null), sets flag to not use ALE formulation of equations ?? change to use ALE once I understand it
+  /// Constructor (must initialise the Source_fct_pt to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
   MicromagEquations() : Source_fct_pt(0), ALE_is_disabled(true) {}
  
   /// Broken copy constructor
@@ -40,45 +42,37 @@ public:
   }
 
   /// Self-test: Return 0 for OK
-  unsigned self_test(){return 0;} //?? write a real test sometime
+  unsigned self_test(){return 0;} //??ds write a real test sometime
 
 
-  // SET PARAMETERS
-  // Specify the number of nodal values required at each node.
-  // unsigned required_nvalue(const unsigned &n) const
-  // {
-  //   // Remember to change this when adding new fields.
-  //   return 4;
-  // } // commented out because defined in Qmicromagelement
-  
+  // SET PARAMETERS  
   // Specify nodal index of value of phi
-  unsigned phi_index_micromag() const
-  {
-    return 0;
-  }
+  unsigned phi_index_micromag() const {return 0;}
 
   // Specify nodal index of nth component of M
-  unsigned M_index_micromag(const unsigned &n) const
-  {
-    return 1 + n;
-  }
+  unsigned M_index_micromag(const unsigned &n) const {return 1 + n;}
 
-  // Get coefficients used in the LLG equation (at node n - could end up not constant)
-  double get_LLG_damping_coeff(const unsigned &n=0) const
-  { return 1;} //?? temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
- 
-  double get_LLG_precession_coeff(const unsigned &n=0) const
-  { return 1;} //?? temporary  gamma/(1 + alpha^2); }
+  // Get coefficient of the precession term (M x H) of the LLG equation
+  double get_llg_precession_coeff() const
+  { return 1;} //??ds temporary  gamma/(1 + alpha^2); }
 
+  // Get coefficient of the damping term (M x (M x H)) of the LLG equation (at position x - could end up not constant if saturisation magnetisation changes)
+  double get_llg_damping_coeff(const Vector<double>& x=0) const
+  { return 1;} //??ds temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
   void enable_ALE(){ALE_is_disabled=false;}
 
-  // GET VALUES
-  /// Return the i-th value stored at local node n but do NOT take hanging nodes into account
-  double raw_nodal_value(const unsigned &n, const unsigned &i)
-  {return node_pt(n)->raw_value(i);}
+
+  // // GET VALUES ??ds don't think I need these functions at all?
+  // /// Return the i-th value stored at local node n, DO take hanging nodes into account
+  // double nodal_value(const unsigned &n, const unsigned &i) const
+  // {return node_pt(n)->value(i);}
+
+  // /// Return the i-th value at time t stored at local node n, DO take hanging nodes into account
+  // double nodal_value(const unsigned &t, const unsigned &n, const unsigned &i) const
+  // {return node_pt(n)->value(t,i);}
   
 
   // SOURCE FUNCTION
@@ -112,38 +106,38 @@ public:
 
   // OPERATIONS ON RESULTS
   /// Get demagnetising field = - grad(phi(s)) = - phi(s) * d_psi/dx (s)
-  void get_demag(const Vector<double>& s, Vector<double>& flux) const
+  void get_demag(const Vector<double>& s, Vector<double>& demag_field) const
   {
     //Find out how many nodes there are in the element
     const unsigned n_node = nnode();
-
+    
     //Get the index at which the unknown is stored
     const unsigned phi_nodal_index = phi_index_micromag();
-
+    
     //Set up memory for the shape and test functions
     Shape psi(n_node);
     DShape dpsidx(n_node,3);
- 
+    
     //Call the derivatives of the shape and test functions
     dshape_eulerian(s,psi,dpsidx);
      
     //Initialise to zero
     for(unsigned j=0;j<3;j++)
       {
-	flux[j] = 0.0;
+	demag_field[j] = 0.0;
       }
-   
+    
     // Loop over nodes
     for(unsigned l=0;l<n_node;l++) 
       {
 	//Loop over derivative directions
 	for(unsigned j=0;j<3;j++)
 	  {                               
-	    flux[j] += -1*this->nodal_value(l,phi_nodal_index)*dpsidx(l,j);
+	    demag_field[j] -= this->nodal_value(l,phi_nodal_index)*dpsidx(l,j);
 	  }
       }
   }
-
+  
   /// Get divergence: divergence(M[i]) = dM_i/dx_i at local coordinate s
   double divergence_M(const Vector<double>& s) const
   {
@@ -165,7 +159,6 @@ public:
     for(unsigned l=0;l<n_node;l++) 
       {
 	// Loop over M directions and derivative directions (take sum over directions
-	// ?? unsure how to handle dimensions here - M is always 3D but spatial variations only occur over DIM dimensions. For now will only calculate for DIM dimensions
 	for(unsigned j=0;j<DIM;j++)
 	  {                               
 	    div_M += this->nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
@@ -178,7 +171,6 @@ public:
   // Calculate the cross product of vectors A and B, store the result in vector output. NOTE: the cross product is only valid for 3-dimensional vectors
   void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output) const
   {
-    //?? #IFDEF PARANOID - check that vectors have length 3
     output[0] = A[1]*B[2] - A[2]*B[1];
     output[1] = A[2]*B[0] - A[0]*B[2];
     output[2] = A[0]*B[1] - A[1]*B[0];
@@ -235,7 +227,7 @@ public:
 
 
 
-  //?? MISSING COMPUTE ERROR FUNCTIONS - not sure how this can be done with no exact solution
+  //??ds MISSING COMPUTE ERROR FUNCTIONS - not sure how this can be done with no exact solution
 
 
 
@@ -247,18 +239,46 @@ public:
     fill_in_generic_residual_contribution_micromag(residuals,GeneralisedElement::Dummy_matrix,0);
   }
 
-  /// Add the element's contribution to its residual vector and element Jacobian matrix (wrapper)
-  void fill_in_contribution_to_jacobian(Vector<double> &residuals, DenseMatrix<double> &jacobian)
-  {
-    //Call the generic routine with the flag set to 1
-    fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-  }
+  // hierher re-activate this when you're confident that the Jacobian is correct!
+  // /// Add the element's contribution to its residual vector and element Jacobian matrix (wrapper)
+  // void fill_in_contribution_to_jacobian(Vector<double> &residuals, DenseMatrix<double> &jacobian)
+  // {
+  //   //Call the generic routine with the flag set to 1
+  //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+  // }
 
   // Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
   void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) ;
 
-  /// Compute derivatives of elemental residual vector with respect to nodal coordinates. Overwrites default implementation in FiniteElement base class. dresidual_dnodal_coordinates(l,i,j) = d res(l) / dX_{ij}
-  //  virtual void get_dresidual_dnodal_coordinates(RankThreeTensor<double>&dresidual_dnodal_coordinates);
+  /// Get dM/dt at local node n (using timestepper and history values).
+  void dM_dt_micromag(const unsigned &n, Vector<double>& dMdt) const
+  {
+    // Get the data's timestepper
+    TimeStepper* time_stepper_pt= this->node_pt(n)->time_stepper_pt();
+
+    //Initialise dMdt to zero
+    for (unsigned j=0; j<3; j++) {dMdt[j] = 0.0;}
+   
+    //Loop over the timesteps, if there is a non Steady timestepper
+    if (!time_stepper_pt->is_steady())
+      {
+	// Loop over the directions
+	for (unsigned j=0; j<3; j++)
+	  {
+	    // Get number of timsteps to use (past & present)
+	    const unsigned n_time = time_stepper_pt->ntstorage();
+     
+	    // Loop over past and present times and add the contributions to the time derivative
+	    for(unsigned t=0;t<n_time;t++)
+	      {
+		// ??ds The one in weights is the derrivative order (i.e. 1: dM/dt, 2: d^2M/dt^2) I think...
+		dMdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,M_index_micromag(j));
+	      }
+	  }
+
+      }
+
+  } // end of dM_dt_micromag
 
 protected:
 
@@ -266,14 +286,13 @@ protected:
   PoissonSourceFctPt Source_fct_pt;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-  //  virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
-
+  virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
   virtual double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
 
   /// Boolean flag to indicate if ALE formulation is disabled when time-derivatives are computed. Only set to true if you're sure that the mesh is stationary.
-  // ?? not actually implemented and ALE stuff yet...
+  // ??ds not actually implemented and ALE stuff yet...
   bool ALE_is_disabled;
 
 
@@ -293,7 +312,9 @@ protected:
 /// Pure version without hanging nodes
 //======================================================================
 template<unsigned DIM>
-void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) 
+void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
+									    Vector<double> &residuals, DenseMatrix<double> &jacobian, 
+									    const unsigned& flag) 
 {
 
   //Find out how many nodes there are
@@ -309,9 +330,6 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
   //Index at which the poisson unknown is stored
   const unsigned phi_nodal_index = phi_index_micromag();
 
-  // Index at which the first direction of the magnetisation is stored
-  const unsigned M_nodal_index = M_index_micromag(0);
- 
   //Set the value of n_intpt
   const unsigned n_intpt = integral_pt()->nweight();
 
@@ -334,43 +352,68 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
       //Allocate memory for local quantities and initialise to zero
-      double interpolated_phi=0.0,  LLG_damping_coeff=0.0, LLG_precession_coeff=0.0;
+      double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0;
       Vector<double> interpolated_x(DIM,0.0);
       Vector<double> interpolated_dphidx(DIM,0.0);
-      Vector<double> dMdt(3,0.0); // M must be 3D for LLG equation to make sense
-      Vector<double> H_eff(3,0.0), M_cross_H(3,0.0), M_cross_M_cross_H(3,0.0);
+      Vector<double> dMdt(3,0.0), interpolated_dMdt(3,0.0);
+      Vector<double> H_demag(3,0.0), H_eff(3,0.0);
+      Vector<double> interpolated_m(3,0.0), M_cross_H(3,0.0), M_cross_M_cross_H(3,0.0);
    
       //Calculate function value and derivatives:
       //-----------------------------------------
       // Loop over nodes
       for(unsigned l=0;l<n_node;l++) 
 	{
-	  //Get the nodal value of the poisson unknown (phi)
-	  double phi_value = raw_nodal_value(l,phi_nodal_index);
+	  //Get the nodal value of phi (the poisson unknown)
+	  double phi_value = nodal_value(l,phi_nodal_index);
 	  interpolated_phi += phi_value*psi(l);
-	  dMdt += dM_dt_micromag(l)*psi(l);
+
+	  // Get the nodal values of dM/dt
+	  dM_dt_micromag(l,dMdt);
+	  for(unsigned j=0; j<3; j++)
+	    {
+	      interpolated_dMdt[j] += dMdt[j]*psi(l);
+	    }
 
 	  // Loop over spatial directions
 	  for(unsigned j=0;j<DIM;j++)
 	    {
-	      interpolated_x[j] += raw_nodal_position(l,j)*psi(l);
+	      interpolated_x[j] += nodal_position(l,j)*psi(l);
 	      interpolated_dphidx[j] += phi_value*dpsidx(l,j);
+	      interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
 	    }
 
-	} // end of calculating function values + derivatives
+	} // end of calculating values + derivatives
 
-      // Get mesh velocity if needed
-      if (!ALE_is_disabled)
-	{
-	  // ?? ALE section
-	}
-
-      // Get source function      
-      double source;
-      get_source_poisson(ipt,interpolated_x,source);
+      // // Get source function  ??ds causes a seg fault - not entirely sure why but don't need it really anyway    
+      // double source;
+      // get_source_poisson(ipt,interpolated_x,source);
 
       //Get divergence of M
-      double div_M  =  divergence_M(s);
+      //--------------------------------------------------
+      double div_M = 0;
+      // Loop over nodes (to get contribution from each node)
+      for(unsigned l=0;l<n_node;l++) 
+	{
+	  // Loop over magnetisation directions (and derivative directions)
+	  for(unsigned j=0;j<DIM;j++)
+	    {                               
+	      div_M += this->nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
+	    }
+	} // end of divergence of M
+
+      // Get the demagnetising field (and put in H_eff)
+      get_demag(s,H_demag);
+      H_eff = H_demag;
+      
+      // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
+      llg_damping_coeff = get_llg_damping_coeff(interpolated_x);
+      llg_precession_coeff = get_llg_precession_coeff();
+      
+      // Get the cross products for the LLG equation
+      cross(interpolated_m,H_eff,M_cross_H);
+      cross(interpolated_m,M_cross_H,M_cross_M_cross_H);
+      
 
       // Assemble residuals and Jacobian
       //--------------------------------
@@ -388,7 +431,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  if(phi_local_eqn >= 0)	  // If it's not a boundary condition:
 	    {
 	      // Add source term and 4*pi*divergence(M) 
-	      residuals[phi_local_eqn] += (source + 4*MathematicalConstants::Pi*div_M)*test(l)*W;
+	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_M)*test(l)*W;
 
 	      // The Poisson bit
 	      for(unsigned k=0;k<DIM;k++)
@@ -423,46 +466,38 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  //----------------------------------------
 	  // dM/dt = -gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ]
 
-	  // Get the local equation number for the M_x part
-	  M_local_eqn = nodal_local_eqn(l,M_nodal_index);
-	  if(M_local_eqn >= 0)  // If it's not a boundary condition
+	  // Add the contributions to the residuals from the LLG equation
+	  for(unsigned k=0; k<3; k++)
 	    {
-	      // Get the demagnetising field (and put in H_eff)
-	      get_demag(s,H_eff);
-	      
-	      // Get the coefficients for the LLG equation
-	      LLG_damping_coeff = get_LLG_damping_coeff(l);
-	      LLG_precession_coeff = get_LLG_precession_coeff(l);
 
-	      // Get the cross products for the LLG equation
-	      cross(M,H_eff,M_cross_H);
-	      cross(M,M_cross_H,M_cross_M_cross_H);
-	      
-	      // Add the contributions to the residuals from the LLG equation
-	      for(unsigned k=0; k<3; k++)
+	      // Get the local equation number for the M_x part
+	      M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
+
+	      if(M_local_eqn >= 0)  // If it's not a boundary condition
 		{
-		  residuals[M_local_eqn + k] += (dMdt[k] + LLG_precession_coeff*M_cross_H[k] + LLG_damping_coeff*M_cross_cross_H[k])*test(l)*W;
+		  residuals[M_local_eqn] += (interpolated_dMdt[k] + llg_precession_coeff*M_cross_H[k] + llg_damping_coeff*M_cross_M_cross_H[k])*test(l)*W;
 		}
 
 	      // Calculate the jacobian
 	      if(flag)
 		{
-		  //Loop over the velocity shape functions again
-		  for(unsigned l2=0;l2<n_node;l2++)
-		    { 
-		      local_unknown = nodal_local_eqn(l2,phi_nodal_index);
-		      //If it's not a boundary condition:
-		      if(local_unknown >= 0)
-		  	{
-		  	  //Add contribution to Elemental Matrix
-		  	  // for(unsigned i=0;i<DIM;i++)
-		  	  //   {
-		  	  //     jacobian(local_eqn,local_unknown) 
-		  	  // 	+= dpsidx(l2,i)*dtestdx(l,i)*W;
-		  	  //   }
-		  	}
-		  }
-		}
+		  // ??ds Fill in later when finished playing with different equations, oomph-lib should automatically FD it for now
+		  OomphLibError("Jacobian calculation not yet implemented for micromag elements", "fill_in_generic_residual_contribution_micromag", OOMPH_EXCEPTION_LOCATION);
+		  // //Loop over the velocity shape functions again
+		  // for(unsigned l2=0;l2<n_node;l2++)
+		  //   { 
+		  //     local_unknown = nodal_local_eqn(l2,phi_nodal_index);
+		  //     //If it's not a boundary condition:
+		  //     if(local_unknown >= 0)
+		  // 	{
+		  // 	  //Add contribution to Elemental Matrix
+		  // 	  // for(unsigned i=0;i<DIM;i++)
+		  // 	  //   {
+		  // 	  //     jacobian(local_eqn,local_unknown) 
+		  // 	  // 	+= dpsidx(l2,i)*dtestdx(l,i)*W;
+		  // 	  //   }
+		  // 	}
+		} // end of jacobian calculation
 	    }
 	}
 
@@ -705,7 +740,7 @@ private:
   /// Pointer to source function
   MicromagEquations<1>::PoissonSourceFctPt Source_fct_pt;
 
-  /// Pointer to control node at which the solution is documented ?? - not sure what this is
+  /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
 
   // Doc info object
@@ -806,7 +841,7 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 {
 
   // Get pointer to (0th) element - exact element doesn't matter for this use, hopefully!
-  //?? this will break if number of nodal data values changes in different elements, don't think it does change though
+  //??ds this will break if number of nodal data values changes in different elements, don't think it does change though
   ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
 
   // Get index at which phi is stored (in nodal data)
@@ -854,7 +889,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   unsigned num_nod = mesh_pt()->nnode();
 
   // Get index at which M first component is stored (in node data)
-  // ?? this wil break if M index changes in difference elements - don't think it does
+  // ??ds this wil break if M index changes in difference elements - don't think it does
   ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0)); // First get pointer to (0th) element
   unsigned M_nodal_index = elem_pt->M_index_micromag(0); // then use elem_pt to call the function to find the index
 
@@ -891,8 +926,8 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	    }
      
 	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
-	  // ?? presumably this is where the ALE formulation would/will/should come in
-	  for (unsigned i=0;i<2;i++)
+	  // ??ds presumably this is where the ALE formulation would/will/should come in
+	  for (unsigned i=0;i<1;i++)
 	    {
 	      mesh_pt()->node_pt(n)->x(t,i)=x[i];
 	    }
@@ -929,19 +964,21 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   //-----------------
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
 	  doc_info.number());
+
   some_file.open(filename);
   mesh_pt()->output(some_file,npts);
 
-  // Write file as a tecplot text object
-  some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = " 
-	    << time_pt()->time() << "\"";
-  // ...and draw a horizontal line whose length is proportional
-  // to the elapsed time
-  some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
-  some_file << "1" << std::endl;
-  some_file << "2" << std::endl;
-  some_file << " 0 0" << std::endl;
-  some_file << time_pt()->time()*20.0 << " 0" << std::endl;
+  // // Write file as a tecplot text object
+  // some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = " 
+  // 	    << time_pt()->time() << "\"";
+  // // ...and draw a horizontal line whose length is proportional
+  // // to the elapsed time
+  // some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
+  // some_file << "1" << std::endl;
+  // some_file << "2" << std::endl;
+  // some_file << " 0 0" << std::endl;
+  // some_file << time_pt()->time()*20.0 << " 0" << std::endl;
+
   some_file.close();
 } // end of doc
 
@@ -960,9 +997,8 @@ int main()
 {
 
   // Set up the problem:
-  unsigned n_element=20; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> >
-    problem(n_element);
+  unsigned n_element=40; //Number of elements
+  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element);
 
 
   // SET UP OUTPUT
@@ -1021,7 +1057,7 @@ int main()
   // Timestepping loop
   for (unsigned istep=0;istep<nstep;istep++)
     {
-      cout << " Timestep " << istep << std::endl;
+      cout << "Timestep " << istep << std::endl;
    
       // Take timestep
       problem.unsteady_newton_solve(dt);
@@ -1035,5 +1071,7 @@ int main()
  
   // Close trace file
   trace_file.close();
+
+  return 0;
   
 } // end of main

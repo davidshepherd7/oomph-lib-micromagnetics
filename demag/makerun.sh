@@ -2,22 +2,21 @@
 
 # Script to build, run and plot results
 
-# make and run code if make was succesful
+# move old results
+mv RESLT/* RESLT_old
+
+# make and run other code if make was succesful
 if make
 then
+    
+    # Run program
+    ./demag_driver > runtrace
 
-    ./demag_driver # > runinfo
+    # Convert to .vtu format (using oomph-convert python script)
+    oomph-convert RESLT/soln*
 
-
-# # Combine solutions into single files
-#     cat soln[0-9].dat > soln.dat
-#     cat exact_soln[0-9].dat > exact_soln.dat
-#     cat error[0-9].dat > error.dat
-#     rm soln[0-9].dat exact_soln[0-9].dat error[0-9].dat # Delete old files
-
-
-# Plot results using gnuplot script
-    ./plot.sh
+    # Open with Paraview
+    paraview --data="RESLT/soln..vtu"
     
 else
     # If make failed then announce and exit
