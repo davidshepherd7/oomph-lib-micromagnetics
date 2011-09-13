@@ -54,11 +54,25 @@ public:
 
   // Get coefficient of the precession term (M x H) of the LLG equation
   double get_llg_precession_coeff() const
-  { return 1;} //??ds temporary  gamma/(1 + alpha^2); }
+  { 
+    double alpha = 0.7;
+    double gamma = 0.01;
+    return gamma/(alpha*alpha);
+  } //??ds temporary  gamma/(1 + alpha^2); }
 
   // Get coefficient of the damping term (M x (M x H)) of the LLG equation (at position x - could end up not constant if saturisation magnetisation changes)
   double get_llg_damping_coeff(const Vector<double>& x=0) const
-  { return 1;} //??ds temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
+  { 
+    double alpha = 0.7;
+    double gamma = 0.01;
+    double M_s = 1.0;
+    return (gamma/(alpha*alpha) )* alpha/M_s;
+  } //??ds temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
+
+  void get_applied_field(const Vector<double> &x, Vector<double> &H_applied) const
+  {
+    H_applied[0] = -20; //??ds temporary - later use a pointer as in poisson source
+  }
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
@@ -203,7 +217,30 @@ public:
     return(interpolated_phi);
   }
 
+  /// Return FE representation of M[j] at local coordinate s
+  inline double interpolated_m_micromag(const Vector<double> &s,const unsigned &j) const
+  {
+    //Find number of nodes
+    const unsigned n_node = nnode();
+   
+    //Local shape function
+    Shape psi(n_node);
 
+    //Find values of shape function
+    shape(s,psi);
+    
+    // Initialise m
+    double interpolated_m = 0;
+	
+    //Loop over the local nodes and sum
+    for(unsigned l=0;l<n_node;l++) 
+      {
+	interpolated_m += this->nodal_value(l,M_index_micromag(j))*psi[l];
+      }
+
+    return interpolated_m;
+  }
+  
   // OUTPUT FUNCTIONS
   /// Output with default number of plot points
   void output(std::ostream &outfile) 
@@ -215,15 +252,15 @@ public:
   /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
   void output(std::ostream &outfile, const unsigned &n_plot);
 
-  /// C_style output with default number of plot points
-  void output(FILE* file_pt)
-  {
-    const unsigned n_plot=5;
-    output(file_pt,n_plot);
-  }
+  // /// C_style output with default number of plot points
+  // void output(FILE* file_pt)
+  // {
+  //   const unsigned n_plot=5;
+  //   output(file_pt,n_plot);
+  // }
 
-  /// C-style output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
-  void output(FILE* file_pt, const unsigned &n_plot);
+  // /// C-style output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
+  // void output(FILE* file_pt, const unsigned &n_plot);
 
 
 
@@ -312,9 +349,7 @@ protected:
 /// Pure version without hanging nodes
 //======================================================================
 template<unsigned DIM>
-void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
-									    Vector<double> &residuals, DenseMatrix<double> &jacobian, 
-									    const unsigned& flag) 
+void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) 
 {
 
   //Find out how many nodes there are
@@ -334,7 +369,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
   const unsigned n_intpt = integral_pt()->nweight();
 
   //Integers to store the local equation and unknown numbers
-  int phi_local_eqn=0, M_local_eqn=0, local_unknown=0;
+  int phi_local_eqn=0, M_local_eqn=0;
 
   //Loop over the integration points
   for(unsigned ipt=0;ipt<n_intpt;ipt++)
@@ -352,12 +387,11 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
       for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
       //Allocate memory for local quantities and initialise to zero
-      double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0;
-      Vector<double> interpolated_x(DIM,0.0);
-      Vector<double> interpolated_dphidx(DIM,0.0);
-      Vector<double> dMdt(3,0.0), interpolated_dMdt(3,0.0);
-      Vector<double> H_demag(3,0.0), H_eff(3,0.0);
-      Vector<double> interpolated_m(3,0.0), M_cross_H(3,0.0), M_cross_M_cross_H(3,0.0);
+      double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0, div_m=0.0;
+      Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(DIM,0.0);
+      Vector<double> H_total(3,0.0), H_demag(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
+      Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
+      Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
    
       //Calculate function value and derivatives:
       //-----------------------------------------
@@ -369,10 +403,11 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
 	  interpolated_phi += phi_value*psi(l);
 
 	  // Get the nodal values of dM/dt
-	  dM_dt_micromag(l,dMdt);
+	  dM_dt_micromag(l,dmdt);
 	  for(unsigned j=0; j<3; j++)
 	    {
-	      interpolated_dMdt[j] += dMdt[j]*psi(l);
+	      interpolated_dmdt[j] += dmdt[j]*psi(l);
+	      interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
 	    }
 
 	  // Loop over spatial directions
@@ -380,7 +415,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
 	    {
 	      interpolated_x[j] += nodal_position(l,j)*psi(l);
 	      interpolated_dphidx[j] += phi_value*dpsidx(l,j);
-	      interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
+	      div_m += nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
 	    }
 
 	} // end of calculating values + derivatives
@@ -389,31 +424,31 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
       // double source;
       // get_source_poisson(ipt,interpolated_x,source);
 
-      //Get divergence of M
-      //--------------------------------------------------
-      double div_M = 0;
-      // Loop over nodes (to get contribution from each node)
-      for(unsigned l=0;l<n_node;l++) 
-	{
-	  // Loop over magnetisation directions (and derivative directions)
-	  for(unsigned j=0;j<DIM;j++)
-	    {                               
-	      div_M += this->nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
-	    }
-	} // end of divergence of M
+      // Get the demagnetising field (and put in H_total)
+      //get_demag(s,H_demag);
 
-      // Get the demagnetising field (and put in H_eff)
-      get_demag(s,H_demag);
-      H_eff = H_demag;
+      // Get applied field at this position
+      get_applied_field(interpolated_x, H_applied);
+
+      // Get crystalline anisotropy effective field ??ds for now just set to [0.5,0,0]
+      // use dot products in real implementation
+      if( interpolated_m[0] > 0) H_cryst_anis[0] = 0.5;
+      else H_cryst_anis[0] = -0.5;
       
+      // Take total of all fields used ??ds pass this entire section out to a function eventuall if possible?
+      // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
+      for(unsigned j=0; j<3; j++)
+	{
+	  H_total[j] = H_cryst_anis[j] + H_applied[j] - 1;
+	}
+            
       // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
       llg_damping_coeff = get_llg_damping_coeff(interpolated_x);
       llg_precession_coeff = get_llg_precession_coeff();
       
       // Get the cross products for the LLG equation
-      cross(interpolated_m,H_eff,M_cross_H);
-      cross(interpolated_m,M_cross_H,M_cross_M_cross_H);
-      
+      cross(interpolated_m, H_total, interpolated_mxH);
+      cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);    
 
       // Assemble residuals and Jacobian
       //--------------------------------
@@ -431,77 +466,37 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
 	  if(phi_local_eqn >= 0)	  // If it's not a boundary condition:
 	    {
 	      // Add source term and 4*pi*divergence(M) 
-	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_M)*test(l)*W;
+	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_m)*test(l)*W;
 
 	      // The Poisson bit
 	      for(unsigned k=0;k<DIM;k++)
 		{
 		  residuals[phi_local_eqn] += interpolated_dphidx[k]*dtestdx(l,k)*W;
 		}
-
-	      // Calculate the jacobian
-	      if(flag)
-		{
-		  //Loop over the velocity shape functions again
-		  for(unsigned l2=0;l2<n_node;l2++)
-		    { 
-		      local_unknown = nodal_local_eqn(l2,phi_nodal_index);
-		      //If at a non-zero degree of freedom add in the entry
-		      if(local_unknown >= 0)
-			{
-			  //Add contribution to Elemental Matrix
-			  for(unsigned i=0;i<DIM;i++)
-			    {
-			      jacobian(phi_local_eqn,local_unknown) 
-				+= dpsidx(l2,i)*dtestdx(l,i)*W;
-			    }
-			}
-		    }
-		}
-	    } // end of phi calculations
-
-
+	      // ??ds add in residuals calculation eventually
+	    }
 
 	  // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
 	  //----------------------------------------
 	  // dM/dt = -gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ]
 
-	  // Add the contributions to the residuals from the LLG equation
+	  // Add the contributions to the residuals from the LLG equation      
+	  // loop over M directions
 	  for(unsigned k=0; k<3; k++)
 	    {
-
 	      // Get the local equation number for the M_x part
 	      M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
 
 	      if(M_local_eqn >= 0)  // If it's not a boundary condition
 		{
-		  residuals[M_local_eqn] += (interpolated_dMdt[k] + llg_precession_coeff*M_cross_H[k] + llg_damping_coeff*M_cross_M_cross_H[k])*test(l)*W;
+		  residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k])*test(l)*W;
 		}
 
-	      // Calculate the jacobian
-	      if(flag)
-		{
-		  // ??ds Fill in later when finished playing with different equations, oomph-lib should automatically FD it for now
-		  OomphLibError("Jacobian calculation not yet implemented for micromag elements", "fill_in_generic_residual_contribution_micromag", OOMPH_EXCEPTION_LOCATION);
-		  // //Loop over the velocity shape functions again
-		  // for(unsigned l2=0;l2<n_node;l2++)
-		  //   { 
-		  //     local_unknown = nodal_local_eqn(l2,phi_nodal_index);
-		  //     //If it's not a boundary condition:
-		  //     if(local_unknown >= 0)
-		  // 	{
-		  // 	  //Add contribution to Elemental Matrix
-		  // 	  // for(unsigned i=0;i<DIM;i++)
-		  // 	  //   {
-		  // 	  //     jacobian(local_eqn,local_unknown) 
-		  // 	  // 	+= dpsidx(l2,i)*dtestdx(l,i)*W;
-		  // 	  //   }
-		  // 	}
-		} // end of jacobian calculation
 	    }
+
 	}
 
-    } // End of loop over integration points
+    }// End of loop over integration points
 
 } // End of fill in residuals function 
 
@@ -509,9 +504,9 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(
 //======================================================================
 /// Output function:
 ///
-///   x,y,u   or    x,y,z,u
+///   x,phi,M_x,M_y,M_z
 ///
-/// nplot points in each coordinate direction
+/// nplot points
 //======================================================================
 template <unsigned DIM>
 void  MicromagEquations<DIM>::output(std::ostream &outfile, 
@@ -532,12 +527,26 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
       // Get local coordinates of plot point
       get_s_plot(iplot,nplot,s);
    
+      // Output position
       for(unsigned i=0;i<DIM;i++) 
 	{
 	  outfile << interpolated_x(s,i) << " ";
 	}
-      outfile << interpolated_phi_micromag(s) << std::endl;   
+
+      // Output phi value at position
+      outfile << interpolated_phi_micromag(s) << " ";   
+
+      // Output all M values at position
+      for(unsigned i=0; i<3; i++)
+	{
+	  outfile << interpolated_m_micromag(s,i) << " ";
+	}
+
+      // Output div(M) as position
+      outfile << divergence_M(s) << " ";
    
+      // End the line ready for next point
+      outfile << std::endl;
     }
 
   // Write tecplot footer (e.g. FE connectivity lists)
@@ -546,40 +555,40 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
 }
 
 
-//======================================================================
-/// C-style output function:
-///
-///   x,y,u   or    x,y,z,u
-///
-/// nplot points in each coordinate direction
-//======================================================================
-template <unsigned DIM>
-void  MicromagEquations<DIM>::output(FILE* file_pt,
-				     const unsigned &nplot)
-{
-  //Vector of local coordinates
-  Vector<double> s(DIM);
+// //======================================================================
+// /// C-style output function:
+// ///
+// ///   x,y,u   or    x,y,z,u
+// ///
+// /// nplot points in each coordinate direction
+// //======================================================================
+// template <unsigned DIM>
+// void  MicromagEquations<DIM>::output(FILE* file_pt,
+// 				     const unsigned &nplot)
+// {
+//   //Vector of local coordinates
+//   Vector<double> s(DIM);
  
-  // Tecplot header info
-  fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
+//   // Tecplot header info
+//   fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
 
-  // Loop over plot points
-  unsigned num_plot_points=nplot_points(nplot);
-  for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-    {
-      // Get local coordinates of plot point
-      get_s_plot(iplot,nplot,s);
+//   // Loop over plot points
+//   unsigned num_plot_points=nplot_points(nplot);
+//   for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+//     {
+//       // Get local coordinates of plot point
+//       get_s_plot(iplot,nplot,s);
    
-      for(unsigned i=0;i<DIM;i++) 
-	{
-	  fprintf(file_pt,"%g ",interpolated_x(s,i));
-	}
-      fprintf(file_pt,"%g \n",interpolated_phi_micromag(s));
-    }
+//       for(unsigned i=0;i<DIM;i++) 
+// 	{
+// 	  fprintf(file_pt,"%g ",interpolated_x(s,i));
+// 	}
+//       fprintf(file_pt,"%g \n",interpolated_phi_micromag(s));
+//     }
 
-  // Write tecplot footer (e.g. FE connectivity lists)
-  write_tecplot_zone_footer(file_pt,nplot);
-}
+//   // Write tecplot footer (e.g. FE connectivity lists)
+//   write_tecplot_zone_footer(file_pt,nplot);
+// }
 
 //=================================================================
 /// A class combining the micromag equations with a QElement geometry
@@ -626,14 +635,14 @@ public:
   {MicromagEquations<DIM>::output(outfile,n_plot);}
 
 
-  /// C-style output function: x,y,u or x,y,z,u
-  void output(FILE* file_pt)
-  {MicromagEquations<DIM>::output(file_pt);}
+  // /// C-style output function: x,y,u or x,y,z,u
+  // void output(FILE* file_pt)
+  // {MicromagEquations<DIM>::output(file_pt);}
 
 
-  /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-  void output(FILE* file_pt, const unsigned &n_plot)
-  {MicromagEquations<DIM>::output(file_pt,n_plot);}
+  // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+  // void output(FILE* file_pt, const unsigned &n_plot)
+  // {MicromagEquations<DIM>::output(file_pt,n_plot);}
 
 
 protected:
@@ -708,13 +717,15 @@ namespace OneDMicromagSetup
 
   void get_initial_M(const Vector<double>& x, Vector<double>& M)
   {
-    // Initialise x and y components of M to zero
-    M[0] = 0;
-    M[1] = 0;
-
-    // Start with step change in M_z from 1 to -1 at x = 0.5
+    // Start with step change in M_x from 1 to -1 at x = 0.5
     // Should create a domain wall type structure
-    M[2] = tanh(500*(x[0] - 0.5));
+    M[0] = 1; //tanh(5*(x[0] - 0.5));
+
+    // Initialise y and z components of M to zero
+    M[1] = 0;
+    M[2] = 0;
+
+
 
   }
 
@@ -888,10 +899,8 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   //Find number of nodes in mesh
   unsigned num_nod = mesh_pt()->nnode();
 
-  // Get index at which M first component is stored (in node data)
-  // ??ds this wil break if M index changes in difference elements - don't think it does
-  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0)); // First get pointer to (0th) element
-  unsigned M_nodal_index = elem_pt->M_index_micromag(0); // then use elem_pt to call the function to find the index
+  // Get pointer to an element (any will do so take 0th)
+  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0)); 
 
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
@@ -922,7 +931,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  for(unsigned i=0; i<3; i++)
 	    {
 	      // Set ith direction of M on node n at time t to be M[i]
-	      mesh_pt()->node_pt(n)->set_value(t,M_nodal_index+i,M[i]);
+	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),M[i]);
 	    }
      
 	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
@@ -938,7 +947,6 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   time_pt()->time()=backed_up_time;
 
 } // end of set_initial_condition
-
 
 
 //===start_of_doc=========================================================
@@ -1023,8 +1031,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=0.5;
-  double dt=0.01;
+  double t_max=10;
+  double dt=0.1;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.

@@ -10,13 +10,22 @@ if make
 then
     
     # Run program
-    ./demag_driver > runtrace
+    ./demag_driver > demag_driver_trace
 
-    # Convert to .vtu format (using oomph-convert python script)
-    oomph-convert RESLT/soln*
+    # # Print a solution file
+    # cat RESLT/soln0.dat
 
-    # Open with Paraview
-    paraview --data="RESLT/soln..vtu"
+    # # Convert to .vtu format (using oomph-convert python script)
+    # oomph-convert RESLT/soln* > RESLT/oomph-convert_trace
+
+    # # Open with Paraview
+    # paraview --data="RESLT/soln..vtu"
+
+    # zero pad files (to increase length of zero padding change the 3 in "%03d"
+    rename 's/\d+/sprintf("%03d",$&)/e' RESLT/soln*
+
+    # plot results using plotting script
+    ./plot.sh RESLT/soln*.dat
     
 else
     # If make failed then announce and exit
