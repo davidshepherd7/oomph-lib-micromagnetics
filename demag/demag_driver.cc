@@ -276,7 +276,7 @@ public:
     fill_in_generic_residual_contribution_micromag(residuals,GeneralisedElement::Dummy_matrix,0);
   }
 
-  // hierher re-activate this when you're confident that the Jacobian is correct!
+  // ??ds re-activate this when you're confident that the Jacobian is correct!
   // /// Add the element's contribution to its residual vector and element Jacobian matrix (wrapper)
   // void fill_in_contribution_to_jacobian(Vector<double> &residuals, DenseMatrix<double> &jacobian)
   // {
@@ -1031,7 +1031,7 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=10;
+  double t_max=30;
   double dt=0.1;
 
   // Initialise timestep -- also sets the weights for all timesteppers
