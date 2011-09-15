@@ -1,5 +1,5 @@
 
-# include "micromagnetics_element.h"
+# include "../micromagnetics_element.h"
 
 using namespace std;
 
