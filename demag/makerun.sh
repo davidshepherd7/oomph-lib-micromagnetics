@@ -10,7 +10,7 @@ if make
 then
     
     # Run program
-    ./demag_driver > demag_driver_trace
+    ./one_d_micromag_driver > one_d_micromag_driver_trace
 
     # # Print a solution file
     # cat RESLT/soln0.dat

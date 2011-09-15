@@ -1,13 +1,13 @@
 # Name of executables 
-noinst_PROGRAMS=demag_driver
+noinst_PROGRAMS=one_d_micromag_driver
 
 
 # Sources for first executable
-demag_driver_SOURCES = demag_driver.cc
+one_d_micromag_driver_SOURCES = one_d_micromag_driver.cc
 
 # Required libraries:
 # $(FLIBS) is included in case the solver involves fortran sources.
-demag_driver_LDADD = -L@libdir@ -lpoisson -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
+one_d_micromag_driver_LDADD = -L@libdir@ -lpoisson -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 
 INCLUDES = -I@includedir@

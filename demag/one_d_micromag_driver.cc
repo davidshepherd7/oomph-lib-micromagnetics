@@ -25,7 +25,7 @@ namespace OneDMicromagSetup
     M[2] = 0.0;
   }
 
-  void applied_field(const Vector<double>& x, Vector<double>& H_applied)
+  void get_applied_field(const Vector<double>& x, Vector<double>& H_applied)
   {
     H_applied[0] = -1.0;
     H_applied[1] = 0.0;
@@ -41,11 +41,22 @@ namespace OneDMicromagSetup
   double get_llg_damping_coeff()
   {
     //??ds fill in here and pass pointers out like with source
+    return 1;
   }
 
   double get_llg_precession_coeff()
   {
     //??ds fill in here and pass pointers out like with source
+    return 0.5;
+  }
+
+  void get_cryst_anis_field(const Vector<double>& x, Vector<double>& H_cryst_anis)
+  {
+    H_cryst_anis[0] = 0.5;
+    
+    H_cryst_anis[1] = 0;
+
+    H_cryst_anis[2] = 0;
   }
 
 }; // End of namespace
@@ -67,6 +78,9 @@ private:
   /// Pointer to applied field function
   MicromagEquations<1>::AppliedFieldFctPt Applied_field_fct_pt;
 
+  /// Pointer to crystalline anisotropy effective field function
+  MicromagEquations<1>::CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
+
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
 
@@ -79,7 +93,7 @@ private:
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
-  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt);
+  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
   ~OneDMicromagProblem(){};
@@ -117,8 +131,9 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
 template<class ELEMENT> 
 OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 						  MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
-						  MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt) :
-  Source_fct_pt(source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt)
+						  MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
+						  MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt) :
+  Source_fct_pt(source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt)
 {  
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
   add_time_stepper_pt(new BDF<2>);
@@ -151,6 +166,9 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 
       // Set the applied field function pointer
       elem_pt->applied_field_fct_pt() = Applied_field_fct_pt;
+
+      // Set the crystalline anisotropy effective field pointer
+      elem_pt->cryst_anis_field_fct_pt() = Cryst_anis_field_fct_pt;
 
       // Set pointer to continous time
       elem_pt->time_pt() = time_pt();
@@ -327,7 +345,7 @@ int main()
 
   // Set up the problem:
   unsigned n_element=40; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::applied_field);
+  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::get_applied_field, OneDMicromagSetup::get_cryst_anis_field);
 
 
   // SET UP OUTPUT

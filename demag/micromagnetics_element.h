@@ -21,8 +21,8 @@ private:
 public:
 
   // CONSTRUCTORS ETC.
-  /// Constructor (must initialise the Source_fct_pt to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
-  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), ALE_is_disabled(true) {}
+  /// Constructor (must initialise the various function pointers to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
+  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), ALE_is_disabled(true) {}
  
   /// Broken copy constructor
   MicromagEquations(const MicromagEquations& dummy) 
@@ -125,9 +125,32 @@ public:
     else
       {
 	// Otherwise get applied field strength
-	(Applied_field_fct_pt)(x,H_applied);
+	(*Applied_field_fct_pt)(x,H_applied);
       }
   }
+  
+  // EFFECTIVE ANISOTROPY FIELD
+  /// Function pointer to crystalline anisotropy field function
+  typedef void (*CrystAnisFieldFctPt)(const Vector<double>& x,Vector<double>& H_cryst_anis);
+
+  /// Access function: Pointer to crystalline anisotropy field function
+  CrystAnisFieldFctPt& cryst_anis_field_fct_pt() {return Cryst_anis_field_fct_pt;}
+
+  /// Access function: Pointer to crystalline anisotropy field function. Const version
+  CrystAnisFieldFctPt cryst_anis_field_fct_pt() const {return Cryst_anis_field_fct_pt;}
+
+  /// Get the crystalline anisotropy field at Eulerian position x.
+  inline virtual void get_H_cryst_anis_field(const Vector<double> &x, Vector<double> &H_cryst_anis) const
+  {
+    //If no crystalline anisotropy function has been set, return zero vector
+    if(Cryst_anis_field_fct_pt==0) {for(unsigned j=0;j<3;j++) H_cryst_anis[j] = 0.0;}
+    else
+      {
+	// Otherwise get crystalline anisotropy field strength
+	(*Cryst_anis_field_fct_pt)(x,H_cryst_anis);
+      }
+  }
+
   
 
   // OPERATIONS ON RESULTS
@@ -337,6 +360,10 @@ protected:
   /// Pointer to function giving applied field.
   AppliedFieldFctPt Applied_field_fct_pt;
 
+  /// Pointer to function giving effective field due to the crystalline anisotropy
+  CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
+
+
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
   virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
 
@@ -410,6 +437,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
    
       //Calculate function value and derivatives:
       //-----------------------------------------
+      // Interpolate x, m, phi, derrivatives:
       // Loop over nodes
       for(unsigned l=0;l<n_node;l++) 
 	{
@@ -433,21 +461,19 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	      div_m += nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
 	    }
 
-	} // end of calculating values + derivatives
+	}
 
       // Get source function   
       double source;
       get_source_poisson(ipt,interpolated_x,source);
 
-      // // Get applied field at this position
+      // Get applied field at this position
       get_applied_field(interpolated_x, H_applied);
       
-      // Get crystalline anisotropy effective field ??ds for now just set to [0.5,0,0]
-      // use dot products in real implementation
-      if( interpolated_m[0] > 0) H_cryst_anis[0] = 0.5;
-      else H_cryst_anis[0] = -0.5;
-      
-      // Take total of all fields used ??ds pass this entire section out to a function eventuall if possible?
+      // Get crystalline anisotropy effective field
+      get_H_cryst_anis_field(interpolated_x, H_cryst_anis);
+       
+      // Take total of all fields used ??ds pass this entire section out to a function eventually if possible?
       // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
       for(unsigned j=0; j<3; j++)
 	{
@@ -460,7 +486,8 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       
       // Get the cross products for the LLG equation
       cross(interpolated_m, H_total, interpolated_mxH);
-      cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);    
+      cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);   
+
 
       // Assemble residuals and Jacobian
       //--------------------------------
@@ -487,6 +514,8 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 		}
 	      // ??ds add in jacobian calculation eventually
 	    }
+
+	  // Calculate residual for 
 
 	  // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
 	  //----------------------------------------
