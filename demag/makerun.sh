@@ -25,7 +25,7 @@ then
     rename 's/\d+/sprintf("%03d",$&)/e' RESLT/soln*
 
     # plot results using plotting script
-    ./plot.sh RESLT/soln*.dat
+    ./plot-gif.sh RESLT/soln*.dat
     
 else
     # If make failed then announce and exit

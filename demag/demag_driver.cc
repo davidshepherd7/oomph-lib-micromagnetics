@@ -27,7 +27,7 @@ public:
 
   // CONSTRUCTORS ETC.
   /// Constructor (must initialise the Source_fct_pt to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
-  MicromagEquations() : Source_fct_pt(0), ALE_is_disabled(true) {}
+  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), ALE_is_disabled(true) {}
  
   /// Broken copy constructor
   MicromagEquations(const MicromagEquations& dummy) 
@@ -56,7 +56,7 @@ public:
   double get_llg_precession_coeff() const
   { 
     double alpha = 0.7;
-    double gamma = 0.01;
+    double gamma = 0.1;
     return gamma/(alpha*alpha);
   } //??ds temporary  gamma/(1 + alpha^2); }
 
@@ -64,15 +64,10 @@ public:
   double get_llg_damping_coeff(const Vector<double>& x=0) const
   { 
     double alpha = 0.7;
-    double gamma = 0.01;
+    double gamma = 0.1;
     double M_s = 1.0;
     return (gamma/(alpha*alpha) )* alpha/M_s;
   } //??ds temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
-
-  void get_applied_field(const Vector<double> &x, Vector<double> &H_applied) const
-  {
-    H_applied[0] = -20; //??ds temporary - later use a pointer as in poisson source
-  }
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
@@ -117,6 +112,28 @@ public:
       }
   }
 
+  // APPLIED FIELD
+  /// Function pointer to applied field function
+  typedef void (*AppliedFieldFctPt)(const Vector<double>& x,Vector<double>& H_applied);
+
+  /// Access function: Pointer to applied field function
+  AppliedFieldFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
+
+  /// Access function: Pointer to applied field function. Const version
+  AppliedFieldFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
+
+  /// Get the applied field at Eulerian position x.
+  inline virtual void get_applied_field(const Vector<double> &x, Vector<double> &H_applied) const
+  {
+    //If no applied field has been set, return zero vector
+    if(Applied_field_fct_pt==0) {for(unsigned j=0;j<3;j++) H_applied[j] = 0.0;}
+    else
+      {
+	// Otherwise get applied field strength
+	(Applied_field_fct_pt)(x,H_applied);
+      }
+  }
+  
 
   // OPERATIONS ON RESULTS
   /// Get demagnetising field = - grad(phi(s)) = - phi(s) * d_psi/dx (s)
@@ -319,8 +336,11 @@ public:
 
 protected:
 
-  // Pointer to source function - only for testing purposes since div(M) is our source function in calculation of the demagnetising potential
+  /// Pointer to poisson source function - only for testing purposes since div(M) is our source function in calculation of the demagnetising potential.
   PoissonSourceFctPt Source_fct_pt;
+  
+  /// Pointer to function giving applied field.
+  AppliedFieldFctPt Applied_field_fct_pt;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
   virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
@@ -420,16 +440,13 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	} // end of calculating values + derivatives
 
-      // // Get source function  ??ds causes a seg fault - not entirely sure why but don't need it really anyway    
-      // double source;
-      // get_source_poisson(ipt,interpolated_x,source);
+      // Get source function   
+      double source;
+      get_source_poisson(ipt,interpolated_x,source);
 
-      // Get the demagnetising field (and put in H_total)
-      //get_demag(s,H_demag);
-
-      // Get applied field at this position
+      // // Get applied field at this position
       get_applied_field(interpolated_x, H_applied);
-
+      
       // Get crystalline anisotropy effective field ??ds for now just set to [0.5,0,0]
       // use dot products in real implementation
       if( interpolated_m[0] > 0) H_cryst_anis[0] = 0.5;
@@ -439,7 +456,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
       for(unsigned j=0; j<3; j++)
 	{
-	  H_total[j] = H_cryst_anis[j] + H_applied[j] - 1;
+	  H_total[j] = H_cryst_anis[j] + H_applied[j] - 0.1;
 	}
             
       // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
@@ -457,7 +474,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       for(unsigned l=0;l<n_node;l++)
 	{
 	  
-	  // Calculate residual for poisson equation (phi):
+	  // Calculate residual for poisson equation (to find phi):
 	  //----------------------------------------
 
 	  // Get the local equation number for the poisson part
@@ -473,7 +490,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 		{
 		  residuals[phi_local_eqn] += interpolated_dphidx[k]*dtestdx(l,k)*W;
 		}
-	      // ??ds add in residuals calculation eventually
+	      // ??ds add in jacobian calculation eventually
 	    }
 
 	  // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
@@ -491,13 +508,13 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 		{
 		  residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k])*test(l)*W;
 		}
+	      //??ds put in jacobian calculation eventually
 
-	    }
+	    } // End of micromagnetics section
 
-	}
+	} // End of calculating residuals and jacobians
 
     }// End of loop over integration points
-
 } // End of fill in residuals function 
 
 
@@ -703,39 +720,47 @@ double QMicromagElement<DIM,NNODE_1D>::dshape_and_dtest_eulerian_at_knot_microma
 //====================================================================
 namespace OneDMicromagSetup
 {
-  // void source_function(const Vector<double>& x, double& source)
-  // {
-  //   // Initially try with M_x = x so source fn = -div(M) == -1
-  //   // source = -1;
-
-  //   // Try with M_x  like:  _/\_ (i.e. up to one then back down), then source fn is step fn with step at x = 0.5, source = -1 at x = 0, source = 0 at x = 1.
-  //   // source = -1*tanh(500*(x[0] - 0.5));
-
-  //   // unfortunately source_function is fn of x but divergence is function of s (local coord)
-  //   source = MicromagEquations<DIM>::divergence_M(s);
-  // }
+  void source_function(const Vector<double>& x, double& source)
+  {
+    // Just set to zero unless needed for testing
+    source = 0.0;
+  }
 
   void get_initial_M(const Vector<double>& x, Vector<double>& M)
   {
     // Start with step change in M_x from 1 to -1 at x = 0.5
     // Should create a domain wall type structure
-    M[0] = 1; //tanh(5*(x[0] - 0.5));
+    M[0] = 1.0; //tanh(5*(x[0] - 0.5));
 
     // Initialise y and z components of M to zero
-    M[1] = 0;
-    M[2] = 0;
-
-
-
+    M[1] = 0.0;
+    M[2] = 0.0;
   }
 
+  void applied_field(const Vector<double>& x, Vector<double>& H_applied)
+  {
+    H_applied[0] = -1.0;
+    H_applied[1] = 0.0;
+    H_applied[2] = 0.0;
+  }
 
   double get_boundary_phi(const Vector<double>& x)
   {
     // Set all boundaries to zero for now
-    return 0;
+    return 0.0;
   }
-};
+
+  double get_llg_damping_coeff()
+  {
+    //??ds fill in here and pass pointers out like with source
+  }
+
+  double get_llg_precession_coeff()
+  {
+    //??ds fill in here and pass pointers out like with source
+  }
+
+}; // End of namespace
 
 
 
@@ -751,6 +776,9 @@ private:
   /// Pointer to source function
   MicromagEquations<1>::PoissonSourceFctPt Source_fct_pt;
 
+  /// Pointer to applied field function
+  MicromagEquations<1>::AppliedFieldFctPt Applied_field_fct_pt;
+
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
 
@@ -763,7 +791,7 @@ private:
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
-  OneDMicromagProblem(const unsigned& n_element);
+  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
   ~OneDMicromagProblem(){};
@@ -789,18 +817,20 @@ public:
 
 }; // end of problem class
 
+/// Set number of values stored at each node (4: phi, M_x, M_y, M_z)
 template<unsigned DIM, unsigned NNODE_1D>
 const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
 
 
 
 //=====start_of_constructor===============================================
-/// \short Constructor for 1D Micromag problem in unit interval.
-/// Discretise the 1D domain with n_element elements of type ELEMENT.
-/// Specify function pointer to source function. 
+/// ??ds
 //========================================================================
-template<class ELEMENT>
-OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element)
+template<class ELEMENT> 
+OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
+						  MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
+						  MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt) :
+  Source_fct_pt(source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt)
 {  
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
   add_time_stepper_pt(new BDF<2>);
@@ -822,7 +852,7 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element)
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
 
-  // Loop over elements to set pointers to source function and time
+  // Loop over elements to set pointers to source function, applied field and time
   for(unsigned i=0;i<n_element;i++)
     {
       // Upcast from GeneralisedElement to the present element
@@ -830,6 +860,9 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element)
    
       //Set the source function pointer
       elem_pt->source_fct_pt() = Source_fct_pt;
+
+      // Set the applied field function pointer
+      elem_pt->applied_field_fct_pt() = Applied_field_fct_pt;
 
       // Set pointer to continous time
       elem_pt->time_pt() = time_pt();
@@ -1006,7 +1039,7 @@ int main()
 
   // Set up the problem:
   unsigned n_element=40; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element);
+  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::applied_field);
 
 
   // SET UP OUTPUT
@@ -1031,8 +1064,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=30;
-  double dt=0.1;
+  double t_max=60;
+  double dt=1;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
