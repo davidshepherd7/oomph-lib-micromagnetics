@@ -14,20 +14,33 @@ namespace OneDMicromagSetup
     source = 0.0;
   }
 
+  //??ds incorporate properly?
+  // double get_ms(const Vector<double>& x)
+  // {
+  //   if (x[0] > 0.75 || x[0] < 0.25)
+  //     {
+  // 	return 0.0;
+  //     }
+  //   else
+  //     {
+  // 	return 1.0;
+  //     }
+  // }
+
   void get_initial_M(const Vector<double>& x, Vector<double>& M)
   {
     // Start with step change in M_x from 1 to -1 at x = 0.5
     // Should create a domain wall type structure
-    M[0] = 1.0; //tanh(5*(x[0] - 0.5));
+    M[0] = cos(MathematicalConstants::Pi*x[0]);
 
     // Initialise y and z components of M to zero
-    M[1] = 0.0;
+    M[1] = sin(MathematicalConstants::Pi*x[0]);
     M[2] = 0.0;
   }
 
   void get_applied_field(const Vector<double>& x, Vector<double>& H_applied)
   {
-    H_applied[0] = -1.0;
+    H_applied[0] = 0.0;
     H_applied[1] = 0.0;
     H_applied[2] = 0.0;
   }
@@ -41,7 +54,7 @@ namespace OneDMicromagSetup
   double get_llg_damping_coeff()
   {
     //??ds fill in here and pass pointers out like with source
-    return 1;
+    return 1.0;
   }
 
   double get_llg_precession_coeff()
@@ -52,7 +65,7 @@ namespace OneDMicromagSetup
 
   void get_cryst_anis_field(const Vector<double>& x, Vector<double>& H_cryst_anis)
   {
-    H_cryst_anis[0] = 0.5;
+    H_cryst_anis[0] = 0;
     
     H_cryst_anis[1] = 0;
 
@@ -344,7 +357,7 @@ int main()
 {
 
   // Set up the problem:
-  unsigned n_element=40; //Number of elements
+  unsigned n_element=10; //Number of elements
   OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::get_applied_field, OneDMicromagSetup::get_cryst_anis_field);
 
 
@@ -370,8 +383,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=60;
-  double dt=1;
+  double t_max=30;
+  double dt=0.1;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.

@@ -429,8 +429,9 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
       //Allocate memory for local quantities and initialise to zero
+      // dphidx is also H_demag so we need all 3 components initialised - even if they are zero.
       double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0, div_m=0.0;
-      Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(DIM,0.0);
+      Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(3,0.0);
       Vector<double> H_total(3,0.0), H_demag(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
       Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
       Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
@@ -471,13 +472,13 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       get_applied_field(interpolated_x, H_applied);
       
       // Get crystalline anisotropy effective field
-      get_H_cryst_anis_field(interpolated_x, H_cryst_anis);
+      //get_H_cryst_anis_field(interpolated_x, H_cryst_anis);
        
       // Take total of all fields used ??ds pass this entire section out to a function eventually if possible?
       // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
       for(unsigned j=0; j<3; j++)
 	{
-	  H_total[j] = H_cryst_anis[j] + H_applied[j] - 0.1;
+	  H_total[j] = H_applied[j] + interpolated_dphidx[j];
 	}
             
       // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
@@ -506,6 +507,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	      // Add source term and 4*pi*divergence(M) 
 	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_m)*test(l)*W;
+	      std::cout<< "div_m = " << div_m << std::endl;
 
 	      // The Poisson bit
 	      for(unsigned k=0;k<DIM;k++)

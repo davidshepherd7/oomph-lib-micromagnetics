@@ -27,15 +27,14 @@ mkdir $NEWFOLDER
 mkdir $NEWFOLDER/RESLT $NEWFOLDER/RESLT_old
 
 # Add to oomph-lib user_src directory list (if not already added)
-# Check if already added (options: ignore case, only match entire lines, quiet - no output and exit with 0 status if match is found)
+# Check if already added (options: ignore regex characters, only match entire lines, quiet - no output and exit with 0 status if match is found)
 if ! grep -Fxq "user_drivers/$USERDIRNAME/$1" $OOMPHPATH/config/configure.ac_scripts/user_drivers.dir_list
 then
-    #echo "user_drivers/$USERDIRNAME/$1" >> $OOMPHPATH/config/configure.ac_scripts/user_drivers.dir_list
-    echo "Wrote: user_drivers/$USERDIRNAME/$1 into user_drivers list"
+    echo "user_drivers/$USERDIRNAME/$1" >> $OOMPHPATH/config/configure.ac_scripts/user_drivers.dir_list
 fi
 
-# Copy makerun.sh and plot.sh ??ds should probably make these work more generally and add to path
-cp $OOMPHPATH/user_drivers/$USERDIRNAME/demag/makerun.sh $OOMPHPATH/user_drivers/$USERDIRNAME/demag/plot.sh $NEWFOLDER
+# Copy makerun.sh and plot-gif.sh ??ds should probably make these work more generally and add to path
+cp $OOMPHPATH/user_drivers/$USERDIRNAME/demag/makerun.sh $OOMPHPATH/user_drivers/$USERDIRNAME/demag/plot-gif.sh $NEWFOLDER
 
 # Copy over closest existing code and rename
 cp $OLDFOLDER/$OLDDRIVER.cc $NEWFOLDER/$1_driver.cc
@@ -47,15 +46,15 @@ sed s/$OLDDRIVER/$1_driver/ $NEWFOLDER/Makefile.am > $NEWFOLDER/Makefile.am
 
 # Run quickautogen.sh (or autogen.sh if does not exist) to generate Makefile
 # (the script requires us to be in it's directory to run properly)
-# cd $OOMPHPATH
-# if [ -e quickautogen.sh ]; then
-#     $OOMPHPATH/quickautogen.sh
-# else
-#     $OOMPHPATH/autogen.sh
-# fi
+cd $OOMPHPATH
+if [ -e quickautogen.sh ]; then
+    $OOMPHPATH/quickautogen.sh
+else
+    $OOMPHPATH/autogen.sh
+fi
 
 # Add new folder to git and push (cd back to new folder first)
 cd $NEWFOLDER
-git add $1_driver.cc Makefile.am #--dry-run
-git commit --message="Added new folder: $1" #--dry-run
+git add $1_driver.cc Makefile.am
+git commit --message="Added new folder: $1"
 git push

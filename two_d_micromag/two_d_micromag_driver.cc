@@ -1,12 +1,19 @@
 
-# include "../micromagnetics_element.h"
+// Include the generic routines
+#include "generic.h"
+
+// Include the micromagnetics equations
+#include "../micromagnetics_element.h"
+
+// Include the mesh
+#include "meshes/simple_rectangular_quadmesh.h"
 
 using namespace std;
 
 //==start_of_namespace================================================
 /// Namespace for various functions
 //====================================================================
-namespace OneDMicromagSetup
+namespace TwoDMicromagSetup
 {
   void source_function(const Vector<double>& x, double& source)
   {
@@ -67,19 +74,22 @@ namespace OneDMicromagSetup
 /// 1D Micromag problem in unit interval.
 //====================================================================
 template<class ELEMENT> 
-class OneDMicromagProblem : public Problem
+class TwoDMicromagProblem : public Problem
 {
 
 private:
 
+  /// Dimension
+  unsigned const static Element_dim = 2;
+
   /// Pointer to source function
-  MicromagEquations<1>::PoissonSourceFctPt Source_fct_pt;
+  MicromagEquations<2>::PoissonSourceFctPt Source_fct_pt;
 
   /// Pointer to applied field function
-  MicromagEquations<1>::AppliedFieldFctPt Applied_field_fct_pt;
+  MicromagEquations<2>::AppliedFieldFctPt Applied_field_fct_pt;
 
   /// Pointer to crystalline anisotropy effective field function
-  MicromagEquations<1>::CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
+  MicromagEquations<2>::CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
 
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
@@ -92,17 +102,21 @@ private:
 
 public:
 
-  /// Constructor: Pass number of elements and pointer to source function
-  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt);
+  /// Constructor: Pass number of elements and pointer to source functions
+  TwoDMicromagProblem(const unsigned& n__x,
+		      const unsigned& n__y,
+		      MicromagEquations<Element_dim>::PoissonSourceFctPt source_fct_pt,
+		      MicromagEquations<Element_dim>::AppliedFieldFctPt applied_field_fct_pt,
+		      MicromagEquations<Element_dim>::CrystAnisFieldFctPt cryst_anis_field_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
-  ~OneDMicromagProblem(){};
+  ~TwoDMicromagProblem(){};
 
   /// Update the problem specs before solve: Set boundary conditions
   void actions_before_newton_solve(){};
 
   /// Update the problem specs after solve (calculate demag field)
-  void actions_after_newton_solve(const unsigned n_element);
+  void actions_after_newton_solve(const unsigned n_element_x, const unsigned n_element_y);
 
   /// Doc the solution
   void doc_solution(DocInfo& doc_info, std::ofstream& trace_file);
@@ -129,49 +143,62 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
 /// ??ds
 //========================================================================
 template<class ELEMENT> 
-OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
-						  MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
-						  MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
-						  MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt) :
+TwoDMicromagProblem<ELEMENT>::TwoDMicromagProblem(const unsigned& n_x,
+						  const unsigned& n_y,
+						  MicromagEquations<Element_dim>::PoissonSourceFctPt source_fct_pt,
+						  MicromagEquations<Element_dim>::AppliedFieldFctPt applied_field_fct_pt,
+						  MicromagEquations<Element_dim>::CrystAnisFieldFctPt cryst_anis_field_fct_pt) :
   Source_fct_pt(source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt)
 {  
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
   add_time_stepper_pt(new BDF<2>);
 
   // Set domain length 
-  double L=1.0;
+  double l_x = 1.0;
+  double l_y = 1.0;
 
   // Build mesh and store pointer in Problem
-  Problem::mesh_pt() = new OneDMesh<ELEMENT>(n_element,L,time_stepper_pt());
-
+  Problem::mesh_pt() = new SimpleRectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y);
+ 
   // Choose a control node at which the solution is documented
-  unsigned control_el = unsigned(n_element/2); // Pick a control element in the middle
+  unsigned control_el = unsigned(n_x/2); // Pick a control element in the middle
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);  // Choose its first node as the control node
   cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
 
 
-  // Set up the boundary conditions for this problem: pin the nodes at either end
-  mesh_pt()->boundary_node_pt(0,0)->pin(0);
-  mesh_pt()->boundary_node_pt(1,0)->pin(0);
+  // Set up the boundary conditions for this problem: pin the nodes at edges
+  // Loop over boundarys then over nodes within each boundary
+  unsigned n_bound = mesh_pt()->nboundary();
+  for(unsigned i=0; i<n_bound; i++)
+    {
+      unsigned n_node = mesh_pt()->nboundary_node(i);
+      for(unsigned j=0; j<n_node; j++)
+	{
+	  // Pin the jth node on the ith boundary
+	  mesh_pt()->boundary_node_pt(i,j)->pin(0);
+	}
+    }
 
 
   // Loop over elements to set pointers to source function, applied field and time
+  // (does not need extra loops for extra dimension since we loop over a list of all elements).
+  unsigned n_element = mesh_pt()->nelement();
   for(unsigned i=0;i<n_element;i++)
     {
-      // Upcast from GeneralisedElement to the present element
-      ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
+	  // Upcast from GeneralisedElement to the present element
+	  ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
    
-      //Set the source function pointer
-      elem_pt->source_fct_pt() = Source_fct_pt;
+	  //Set the source function pointer
+	  elem_pt->source_fct_pt() = Source_fct_pt;
 
-      // Set the applied field function pointer
-      elem_pt->applied_field_fct_pt() = Applied_field_fct_pt;
+	  // Set the applied field function pointer
+	  elem_pt->applied_field_fct_pt() = Applied_field_fct_pt;
 
-      // Set the crystalline anisotropy effective field pointer
-      elem_pt->cryst_anis_field_fct_pt() = Cryst_anis_field_fct_pt;
+	  // Set the crystalline anisotropy effective field pointer
+	  elem_pt->cryst_anis_field_fct_pt() = Cryst_anis_field_fct_pt;
 
-      // Set pointer to continous time
-      elem_pt->time_pt() = time_pt();
+	  // Set pointer to continous time
+	  elem_pt->time_pt() = time_pt();
     }
 
  
@@ -187,7 +214,7 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 /// boundary conditions for the current time.
 //========================================================================
 template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
+void TwoDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 {
 
   // Get pointer to (0th) element - exact element doesn't matter for this use, hopefully!
@@ -206,10 +233,14 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
       unsigned num_nod=mesh_pt()->nboundary_node(ibound);
       for (unsigned inod=0;inod<num_nod;inod++)
 	{
-	  // Set boundary conditions at this node
+	  // Get pointer to this node
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
-	  Vector<double> x(1,nod_pt->x(0));
-	  double phi_value = OneDMicromagSetup::get_boundary_phi(x);
+	  // Get the Eulerian position of this node
+	  Vector<double> x_node(Element_dim,0.0);
+	  for(unsigned i=0;  i<Element_dim; i++){x_node[i] = nod_pt->x(i);}
+	  // Get the boundary value for this position
+	  double phi_value = TwoDMicromagSetup::get_boundary_phi(x_node);
+	  // Set the boundary value
 	  nod_pt->set_value(phi_nodal_index,phi_value);
 	}
     }
@@ -222,7 +253,7 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 /// from exact solution.
 //========================================================================
 template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::set_initial_condition()
+void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
 { 
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
@@ -233,7 +264,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
  
   // Vector of exact solution value
   Vector<double> M(3);
-  Vector<double> x(1);
+  Vector<double> x(Element_dim);
 
   //Find number of nodes in mesh
   unsigned num_nod = mesh_pt()->nnode();
@@ -251,7 +282,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
     } 
 
   // Loop over current & previous timesteps
-  for (int t=nprev_steps;t>=0;t--)
+  for (int t=nprev_steps; t>=0; t--)
     {
       // Continuous time
       double time = prev_time[t];
@@ -260,25 +291,25 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
       // Loop over the nodes to set initial values everywhere
       for (unsigned n=0;n<num_nod;n++)
 	{
-	  // Get nodal coordinate
-	  x[0]=mesh_pt()->node_pt(n)->x(0);
+	  // Get Eulerian nodal position
+	  for(unsigned i=0; i<Element_dim; i++) {x[i]=mesh_pt()->node_pt(n)->x(t,i);}
 
 	  // Get initial value of M
-	  OneDMicromagSetup::get_initial_M(x,M);
+	  TwoDMicromagSetup::get_initial_M(x,M);
      
-	  // Assign solution
+	  // Assign solution (loop over magnetisation directions)
 	  for(unsigned i=0; i<3; i++)
 	    {
 	      // Set ith direction of M on node n at time t to be M[i]
 	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),M[i]);
 	    }
      
-	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
-	  // ??ds presumably this is where the ALE formulation would/will/should come in
-	  for (unsigned i=0;i<1;i++)
-	    {
-	      mesh_pt()->node_pt(n)->x(t,i)=x[i];
-	    }
+	  // // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
+	  // // ??ds presumably this is where the ALE formulation would/will/should come in
+	  // for (unsigned i=0;i<Element_dim;i++)
+	  //   {
+	  //     mesh_pt()->node_pt(n)->x(t,i)=x[i];
+	  //   }
 	} 
     }
 
@@ -292,7 +323,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 /// Doc the solution in tecplot format. Label files with label.
 //========================================================================
 template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
+void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 { 
 
   ofstream some_file;
@@ -344,8 +375,11 @@ int main()
 {
 
   // Set up the problem:
-  unsigned n_element=40; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::get_applied_field, OneDMicromagSetup::get_cryst_anis_field);
+  unsigned n_element_x = 40; //Number of elements
+  unsigned n_element_y = 40;
+
+  TwoDMicromagProblem<QMicromagElement<2,2> > problem(n_element_x, n_element_y, TwoDMicromagSetup::source_function, TwoDMicromagSetup::get_applied_field, TwoDMicromagSetup::get_cryst_anis_field);
+  //??ds should pass these by reference??
 
 
   // SET UP OUTPUT
