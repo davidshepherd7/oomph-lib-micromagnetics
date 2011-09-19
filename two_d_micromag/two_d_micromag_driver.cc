@@ -28,8 +28,8 @@ namespace TwoDMicromagSetup
     M[0] = 1.0; //tanh(5*(x[0] - 0.5));
 
     // Initialise y and z components of M to zero
-    M[1] = 0.0;
-    M[2] = 0.0;
+    M[1] = 0.1;
+    M[2] = 0.1;
   }
 
   void get_applied_field(const Vector<double>& x, Vector<double>& H_applied)
@@ -155,7 +155,7 @@ TwoDMicromagProblem<ELEMENT>::TwoDMicromagProblem(const unsigned& n_x,
 
   // Set domain length 
   double l_x = 1.0;
-  double l_y = 1.0;
+  double l_y = 0.1;
 
   // Build mesh and store pointer in Problem
   Problem::mesh_pt() = new SimpleRectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y,time_stepper_pt());
@@ -339,7 +339,7 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
   // Number of plot points
   unsigned npts;
-  npts=5; 
+  npts=2; 
 
   cout << std::endl;
   cout << "=================================================" << std::endl;
@@ -384,7 +384,7 @@ int main()
 
   // Set up the problem:
   unsigned n_element_x = 20; //Number of elements
-  unsigned n_element_y = 5;
+  unsigned n_element_y = 20;
 
   TwoDMicromagProblem<QMicromagElement<2,2> > problem(n_element_x, n_element_y, TwoDMicromagSetup::source_function, TwoDMicromagSetup::get_applied_field, TwoDMicromagSetup::get_cryst_anis_field);
   //??ds should pass these by reference??
@@ -412,8 +412,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=60;
-  double dt=1;
+  double t_max=20;
+  double dt=0.2;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
