@@ -7,18 +7,18 @@
 ######################################################################
 
 # Change these to the path to your oomph-lib install and user_drivers directory name respectively
-OOMPHPATH=$HOME/oomph-lib/trunk
-USERDIRNAME=david_shepherd
+OOMPHPATH="$HOME/oomph-lib/trunk"
+USERDIRNAME="david_shepherd"
 
 # Change this to the folder containg the closest code to yours and the name of the driver code (without the extension!) respectively.
-OLDFOLDER=$OOMPHPATH/user_drivers/$USERDIRNAME/demag
-OLDDRIVER=one_d_micromag_driver
+OLDFOLDER="$OOMPHPATH/user_drivers/$USERDIRNAME/demag"
+OLDDRIVER="one_d_micromag_driver"
 
 
 
 # Main code:
 ######################################################################
-NEWFOLDER=$OOMPHPATH/user_drivers/$USERDIRNAME/$1
+NEWFOLDER="$OOMPHPATH/user_drivers/$USERDIRNAME/$1"
 
 # Create the folder
 mkdir $NEWFOLDER
