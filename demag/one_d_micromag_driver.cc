@@ -288,10 +288,10 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
      
 	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
 	  // ??ds presumably this is where the ALE formulation would/will/should come in
-	  for (unsigned i=0;i<1;i++)
-	    {
-	      mesh_pt()->node_pt(n)->x(t,i)=x[i];
-	    }
+	  // for (unsigned i=0;i<1;i++)
+	  //   {
+	  //     mesh_pt()->node_pt(n)->x(t,i)=x[i];
+	  //   }
 	} 
     }
 

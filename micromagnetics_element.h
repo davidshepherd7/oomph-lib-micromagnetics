@@ -507,7 +507,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	      // Add source term and 4*pi*divergence(M) 
 	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_m)*test(l)*W;
-	      std::cout<< "div_m = " << div_m << std::endl;
+	      //std::cout<< "div_m = " << div_m << std::endl;
 
 	      // The Poisson bit
 	      for(unsigned k=0;k<DIM;k++)

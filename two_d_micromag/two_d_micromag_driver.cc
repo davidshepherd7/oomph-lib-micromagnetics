@@ -158,7 +158,7 @@ TwoDMicromagProblem<ELEMENT>::TwoDMicromagProblem(const unsigned& n_x,
   double l_y = 1.0;
 
   // Build mesh and store pointer in Problem
-  Problem::mesh_pt() = new SimpleRectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y);
+  Problem::mesh_pt() = new SimpleRectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y,time_stepper_pt());
  
   // Choose a control node at which the solution is documented
   unsigned control_el = unsigned(n_x/2); // Pick a control element in the middle
@@ -275,33 +275,41 @@ void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
   int nprev_steps=time_stepper_pt()->nprev_values();
-  Vector<double> prev_time(nprev_steps+1);
-  for (int t=nprev_steps;t>=0;t--)
-    {
-      prev_time[t]=time_pt()->time(unsigned(t));
-    } 
+
+  //??ds why is this a seperate loop, why do we even need to store the time valuse at all?
+  // - moved time getting into other loop
+  // Vector<double> prev_time(nprev_steps+1);
+  // for (int t=nprev_steps;t>=0;t--)
+  //   {
+  //     prev_time[t]=time_pt()->time(unsigned(t));
+  //   }
+
+  cout << nprev_steps << endl;
 
   // Loop over current & previous timesteps
   for (int t=nprev_steps; t>=0; t--)
     {
       // Continuous time
-      double time = prev_time[t];
+      double time = time_pt()->time(unsigned(t));
       cout << "setting IC at time =" << time << std::endl;
    
       // Loop over the nodes to set initial values everywhere
       for (unsigned n=0;n<num_nod;n++)
 	{
 	  // Get Eulerian nodal position
-	  for(unsigned i=0; i<Element_dim; i++) {x[i]=mesh_pt()->node_pt(n)->x(t,i);}
+	  for(unsigned i=0; i<Element_dim; i++) 
+	    {
+	      x[i]=mesh_pt()->node_pt(n)->x(t,i);
+	    }
 
-	  // Get initial value of M
+	  // Get initial value of M at the nodal position x
 	  TwoDMicromagSetup::get_initial_M(x,M);
      
 	  // Assign solution (loop over magnetisation directions)
 	  for(unsigned i=0; i<3; i++)
 	    {
 	      // Set ith direction of M on node n at time t to be M[i]
-	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),M[i]);
+	      mesh_pt()->node_pt(n)->set_value(t, elem_pt->M_index_micromag(i), M[i]);
 	    }
      
 	  // // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
@@ -375,8 +383,8 @@ int main()
 {
 
   // Set up the problem:
-  unsigned n_element_x = 40; //Number of elements
-  unsigned n_element_y = 40;
+  unsigned n_element_x = 20; //Number of elements
+  unsigned n_element_y = 5;
 
   TwoDMicromagProblem<QMicromagElement<2,2> > problem(n_element_x, n_element_y, TwoDMicromagSetup::source_function, TwoDMicromagSetup::get_applied_field, TwoDMicromagSetup::get_cryst_anis_field);
   //??ds should pass these by reference??
