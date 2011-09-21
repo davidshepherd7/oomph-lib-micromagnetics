@@ -33,7 +33,7 @@ then
     echo "user_drivers/$USERDIRNAME/$1" >> $OOMPHPATH/config/configure.ac_scripts/user_drivers.dir_list
 fi
 
-# Copy makerun.sh and plot-gif.sh ??ds should probably make these work more generally and add to path
+# Copy makerun.sh and plot-gif.sh
 cp $OOMPHPATH/user_drivers/$USERDIRNAME/demag/makerun.sh $OOMPHPATH/user_drivers/$USERDIRNAME/demag/plot-gif.sh $NEWFOLDER
 
 # Copy over closest existing code and rename
@@ -42,7 +42,7 @@ cp $OLDFOLDER/$OLDDRIVER.cc $NEWFOLDER/$1_driver.cc
 # Create Makefile.am from file for old code
 cp $OLDFOLDER/Makefile.am $NEWFOLDER/Makefile.am
 # Find all references to the old driver name and replace with the new one
-sed s/$OLDDRIVER/$1_driver/ $NEWFOLDER/Makefile.am > $NEWFOLDER/Makefile.am
+sed s/$OLDDRIVER/$1_driver/ $OLDFOLDER/Makefile.am > $NEWFOLDER/Makefile.am
 
 # Run quickautogen.sh (or autogen.sh if does not exist) to generate Makefile
 # (the script requires us to be in it's directory to run properly)
