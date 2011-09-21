@@ -22,7 +22,7 @@ public:
 
   // CONSTRUCTORS ETC.
   /// Constructor (must initialise the various function pointers to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
-  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), ALE_is_disabled(true) {}
+  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), Sat_mag_fct_pt(0), Llg_damp_fct_pt(0), Llg_precess_fct_pt(0),ALE_is_disabled(true) {}
  
   /// Broken copy constructor
   MicromagEquations(const MicromagEquations& dummy) 
@@ -46,23 +46,6 @@ public:
 
   // Specify nodal index of nth component of M
   unsigned M_index_micromag(const unsigned &n) const {return 1 + n;}
-
-  // Get coefficient of the precession term (M x H) of the LLG equation
-  double get_llg_precession_coeff() const
-  { 
-    double alpha = 0.7;
-    double gamma = 0.1;
-    return gamma/(alpha*alpha);
-  } //??ds temporary  gamma/(1 + alpha^2); }
-
-  // Get coefficient of the damping term (M x (M x H)) of the LLG equation (at position x - could end up not constant if saturisation magnetisation changes)
-  double get_llg_damping_coeff(const Vector<double>& x=0) const
-  { 
-    double alpha = 0.7;
-    double gamma = 0.1;
-    double M_s = 1.0;
-    return (gamma/(alpha*alpha) )* alpha/M_s;
-  } //??ds temporary ( gamma/(1+alpha^2) ) * alpha/saturisation_magnetisation;
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
@@ -131,7 +114,7 @@ public:
   
   // EFFECTIVE ANISOTROPY FIELD
   /// Function pointer to crystalline anisotropy field function
-  typedef void (*CrystAnisFieldFctPt)(const Vector<double>& x,Vector<double>& H_cryst_anis);
+  typedef void (*CrystAnisFieldFctPt)(const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis);
 
   /// Access function: Pointer to crystalline anisotropy field function
   CrystAnisFieldFctPt& cryst_anis_field_fct_pt() {return Cryst_anis_field_fct_pt;}
@@ -140,18 +123,83 @@ public:
   CrystAnisFieldFctPt cryst_anis_field_fct_pt() const {return Cryst_anis_field_fct_pt;}
 
   /// Get the crystalline anisotropy field at Eulerian position x.
-  inline virtual void get_H_cryst_anis_field(const Vector<double> &x, Vector<double> &H_cryst_anis) const
+  inline virtual void get_H_cryst_anis_field(const Vector<double> &x, const Vector<double>& m, Vector<double> &H_cryst_anis) const
   {
     //If no crystalline anisotropy function has been set, return zero vector
     if(Cryst_anis_field_fct_pt==0) {for(unsigned j=0;j<3;j++) H_cryst_anis[j] = 0.0;}
     else
       {
 	// Otherwise get crystalline anisotropy field strength
-	(*Cryst_anis_field_fct_pt)(x,H_cryst_anis);
+	(*Cryst_anis_field_fct_pt)(x,m,H_cryst_anis);
       }
   }
 
+  // SATURISATION MAGNETISATION FUNCTION POINTER
+  /// Function pointer to saturisation magnetisation function fct(x,ms)
+  typedef double (*SatMagFctPt)(const Vector<double>& x);
+
+  /// Access function: Pointer to saturisation magnetisation function
+  SatMagFctPt& sat_mag_fct_pt() {return Sat_mag_fct_pt;}
+
+  /// Access function: Pointer to saturisation magnetisation function. Const version
+  SatMagFctPt sat_mag_fct_pt() const {return Sat_mag_fct_pt;}
+
+  /// Get saturisation magnetisation at eulerian postition x.
+  inline virtual double get_sat_mag(const Vector<double>& x) const
+  {
+    //If no source function has been set, return one
+    if(Sat_mag_fct_pt==0) {return 1.0;}
+    else
+      {
+	// Otherwise get the saturisation magnetisation at position x
+	return (*Sat_mag_fct_pt)(x);
+      }
+  }
+
+  // LLG DAMPING COEFF FUNCTION POINTER
+  /// Function pointer to LLG damping coefficient function fct(x)
+  typedef double (*LlgDampFctPt)(const Vector<double>& x);
+
+  /// Access function: Pointer to LLG damping coefficient function
+  LlgDampFctPt& llg_damp_fct_pt() {return Llg_damp_fct_pt;}
+
+  /// Access function: Pointer to LLG damping coefficient function. Const version
+  LlgDampFctPt llg_damp_fct_pt() const {return Llg_damp_fct_pt;}
+
+  /// Get LLG damping coefficient at eulerian postition x.
+  inline virtual double get_llg_damp(const Vector<double>& x) const
+  {
+    //If no LLg damping function has been set, return one
+    if(Llg_damp_fct_pt==0) {return 1.0;}
+    else
+      {
+	// Otherwise get the LLG damping coefficient at position x
+	return (*Llg_damp_fct_pt)(x);
+      }
+  } 
   
+  // LLG PRECESSION COEFF FUNCTION POINTER
+  /// Function pointer to LLG precession coefficient function fct(x)
+  typedef double (*LlgPrecessFctPt)(const Vector<double>& x);
+
+  /// Access function: Pointer to LLG precession coefficient function
+  LlgPrecessFctPt& llg_precess_fct_pt() {return Llg_precess_fct_pt;}
+
+  /// Access function: Pointer to LLG precession coefficient function. Const version
+  LlgPrecessFctPt llg_precess_fct_pt() const {return Llg_precess_fct_pt;}
+
+  /// Get LLG precession coefficient at eulerian postition x.
+  inline virtual double get_llg_precess(const Vector<double>& x) const
+  {
+    //If no LLg precession function has been set, return one
+    if(Llg_precess_fct_pt==0) {return 1.0;}
+    else
+      {
+	// Otherwise get the LLG precession coefficient at position x
+	return (*Llg_precess_fct_pt)(x);
+      }
+  } 
+
 
   // OPERATIONS ON RESULTS
   /// Get demagnetising field = - grad(phi(s)) = - phi(s) * d_psi/dx (s)
@@ -363,6 +411,14 @@ protected:
   /// Pointer to function giving effective field due to the crystalline anisotropy
   CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
 
+  /// Pointer to function giving saturisation magnetisation
+  SatMagFctPt Sat_mag_fct_pt;
+
+  /// Pointer to function giving LLG damping coefficient
+  LlgDampFctPt Llg_damp_fct_pt;
+
+  /// Pointer to function giving LLG precession coefficient
+  LlgDampFctPt Llg_precess_fct_pt;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
   virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
@@ -464,41 +520,19 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	}
 
+
+      // Poisson section (demagnetising field calculation)
+      //----------------------------------------------------
+     
       // Get source function   
       double source;
       get_source_poisson(ipt,interpolated_x,source);
 
-      // Get applied field at this position
-      get_applied_field(interpolated_x, H_applied);
-      
-      // Get crystalline anisotropy effective field
-      //get_H_cryst_anis_field(interpolated_x, H_cryst_anis);
-       
-      // Take total of all fields used ??ds pass this entire section out to a function eventually if possible?
-      // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
-      for(unsigned j=0; j<3; j++)
-	{
-	  H_total[j] = H_applied[j] + interpolated_dphidx[j];
-	}
-            
-      // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
-      llg_damping_coeff = get_llg_damping_coeff(interpolated_x);
-      llg_precession_coeff = get_llg_precession_coeff();
-      
-      // Get the cross products for the LLG equation
-      cross(interpolated_m, H_total, interpolated_mxH);
-      cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);   
-
-
-      // Assemble residuals and Jacobian
-      //--------------------------------
-       
       // Loop over the test functions
       for(unsigned l=0;l<n_node;l++)
 	{
 	  
 	  // Calculate residual for poisson equation (to find phi):
-	  //----------------------------------------
 
 	  // Get the local equation number for the poisson part
 	  phi_local_eqn = nodal_local_eqn(l,phi_nodal_index);
@@ -517,29 +551,60 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	      // ??ds add in jacobian calculation eventually
 	    }
 
-	  // Calculate residual for 
+	} // End of Poisson section
 
-	  // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
-	  //----------------------------------------
-	  // dM/dt = -gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ]
 
-	  // Add the contributions to the residuals from the LLG equation      
-	  // loop over M directions
-	  for(unsigned k=0; k<3; k++)
+      // LLG section (time evolution of magnetisation)
+      //----------------------------------------------------
+
+      // If saturisation magnetisation is non-zero (i.e. if the point we are integrating at is magnetic) then calculate all the LLG equation stuff, otherwise don't bother
+      //??ds No boundary conditions on M, for now... could there be?
+      if (get_sat_mag(interpolated_x) > 1.0e-8)
+	{
+	  // Get applied field at this position
+	  get_applied_field(interpolated_x, H_applied);
+      
+	  // Get crystalline anisotropy effective field
+	  get_H_cryst_anis_field(interpolated_x, interpolated_m,  H_cryst_anis);
+       
+	  // Take total of all fields used (-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field)
+	  // ??ds pass this entire section out to a function eventually if possible?
+	  // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
+	  for(unsigned j=0; j<3; j++)
 	    {
-	      // Get the local equation number for the M_x part
-	      M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
+	      H_total[j] = H_applied[j] + H_cryst_anis[j] + interpolated_dphidx[j];
+	    }
+            
+	  // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
+	  llg_damping_coeff = get_llg_damp(interpolated_x);
+	  llg_precession_coeff = get_llg_precess(interpolated_x);
+      
+	  // Get the cross products for the LLG equation
+	  cross(interpolated_m, H_total, interpolated_mxH);
+	  cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);    
 
-	      if(M_local_eqn >= 0)  // If it's not a boundary condition
+	  for (unsigned l=0; l<n_node; l++)
+	    {
+	
+	      // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
+	      // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] = 0
+
+	      // loop over M directions
+	      for(unsigned k=0; k<3; k++)
 		{
-		  residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k])*test(l)*W;
+		  // Get the local equation number for the M_x part
+		  M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
+
+		  if(M_local_eqn >= 0)  // If it's not a boundary condition
+		    {
+		      residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k])*test(l)*W;
+		    }
+		  //??ds put in jacobian calculation eventually
+
 		}
-	      //??ds put in jacobian calculation eventually
-
-	    } // End of micromagnetics section
-
-	} // End of calculating residuals and jacobians
-
+	    } // End of loop over test functions
+	} // End of if (magnetisation is non-zero)
+      
     }// End of loop over integration points
 } // End of fill in residuals function 
 
