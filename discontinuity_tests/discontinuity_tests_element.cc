@@ -36,9 +36,9 @@
 
 
 //OOMPH-LIB headers
-#include "nodes.h"
-#include "Qelements.h"
-#include "oomph_utilities.h"
+#include "generic/nodes.h"
+#include "generic/Qelements.h"
+#include "generic/oomph_utilities.h"
 
 
 namespace oomph
@@ -153,48 +153,6 @@ namespace oomph
     /// n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &nplot);
 
-    /// C_style output with default number of plot points
-    void output(FILE* file_pt)
-    {
-      unsigned n_plot=5;
-      output(file_pt,n_plot);
-    }
-
-
-    /// \short C-style output FE representation of soln: x,y,u or x,y,z,u at 
-    /// n_plot^DIM plot points
-    void output(FILE* file_pt, const unsigned &n_plot);
-
-
-    /// Output exact soln: x,y,u_exact or x,y,z,u_exact at nplot^DIM plot points
-    void output_fct(std::ostream &outfile, const unsigned &nplot, 
-		    FiniteElement::SteadyExactSolutionFctPt 
-		    exact_soln_pt);
-
-
-    /// \short Output exact soln: x,y,u_exact or x,y,z,u_exact at 
-    /// nplot^DIM plot points (time-dependent version)
-    virtual 
-    void output_fct(std::ostream &outfile, const unsigned &nplot,
-		    const double& time, 
-		    FiniteElement::UnsteadyExactSolutionFctPt 
-		    exact_soln_pt);
-
-
-    /// Get error against and norm of exact solution
-    void compute_error(std::ostream &outfile, 
-		       FiniteElement::SteadyExactSolutionFctPt 
-		       exact_soln_pt,
-		       double& error, double& norm);
-
-
-    /// Get error against and norm of exact solution
-    void compute_error(std::ostream &outfile, 
-		       FiniteElement::UnsteadyExactSolutionFctPt 
-		       exact_soln_pt,
-		       const double& time, double& error, double& norm);
-
-
     /// Access function: Pointer to source function
     UnsteadyHeatSourceFctPt& source_fct_pt() {return Source_fct_pt;}
 
@@ -260,15 +218,6 @@ namespace oomph
     }
 
 
-    /// Compute element residual Vector and element Jacobian matrix (wrapper)
-    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-					  DenseMatrix<double> &jacobian)
-    {
-      //Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_ust_heat(residuals,jacobian,1);
-    }
- 
-
     /// Return FE representation of function value u(s) at local coordinate s
     inline double interpolated_u_ust_heat(const Vector<double> &s) const
     {
@@ -297,7 +246,7 @@ namespace oomph
     }
 
     /// \short Self-test: Return 0 for OK
-    unsigned self_test();
+    unsigned self_test(){return 0;};
 
 
   protected:
@@ -398,38 +347,6 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot)
     {UnsteadyHeatEquations<DIM>::output(outfile,n_plot);}
 
-
-    /// \short C-style output function:  
-    ///  x,y,u   or    x,y,z,u
-    void output(FILE* file_pt)
-    {UnsteadyHeatEquations<DIM>::output(file_pt);}
-
-
-    ///  \short C-style output function:  
-    ///   x,y,u   or    x,y,z,u at n_plot^DIM plot points
-    void output(FILE* file_pt, const unsigned &n_plot)
-    {UnsteadyHeatEquations<DIM>::output(file_pt,n_plot);}
-
-
-    /// \short Output function for an exact solution:
-    ///  x,y,u_exact   or    x,y,z,u_exact at n_plot^DIM plot points
-    void output_fct(std::ostream &outfile, const unsigned &n_plot,
-		    FiniteElement::SteadyExactSolutionFctPt 
-		    exact_soln_pt)
-    {UnsteadyHeatEquations<DIM>::output_fct(outfile,n_plot,exact_soln_pt);}
-
-
-
-    /// \short Output function for a time-dependent exact solution.
-    ///  x,y,u_exact   or    x,y,z,u_exact at n_plot^DIM plot points
-    /// (Calls the steady version)
-    void output_fct(std::ostream &outfile, const unsigned &n_plot,
-		    const double& time,
-		    FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
-    {UnsteadyHeatEquations<DIM>::output_fct(outfile,n_plot,time,exact_soln_pt);}
-
-
-
   protected:
 
     /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
@@ -516,202 +433,144 @@ namespace oomph
   }
 
   //======================================================================
-// Set the data for the number of Variables at each node
-//======================================================================
-template<unsigned DIM, unsigned NNODE_1D>
-const unsigned QUnsteadyHeatElement<DIM,NNODE_1D>::Initial_Nvalue = 1;
+  // Set the data for the number of Variables at each node
+  //======================================================================
+  template<unsigned DIM, unsigned NNODE_1D>
+  const unsigned QUnsteadyHeatElement<DIM,NNODE_1D>::Initial_Nvalue = 1;
 
-//======================================================================
-/// Compute element residual Vector and/or element Jacobian matrix 
-/// 
-/// flag=1: compute both
-/// flag=0: compute only residual Vector
-///
-/// Pure version without hanging nodes
-//======================================================================
-template <unsigned DIM>
-void  UnsteadyHeatEquations<DIM>::
-fill_in_generic_residual_contribution_ust_heat(Vector<double> &residuals, 
-                                               DenseMatrix<double> &jacobian, 
-                                               unsigned flag) 
-{
- //Find out how many nodes there are
- unsigned n_node = nnode();
+  //======================================================================
+  /// Compute element residual Vector and/or element Jacobian matrix 
+  /// 
+  /// flag=1: compute both
+  /// flag=0: compute only residual Vector
+  ///
+  /// Pure version without hanging nodes
+  //======================================================================
+  template <unsigned DIM>
+  void  UnsteadyHeatEquations<DIM>::
+  fill_in_generic_residual_contribution_ust_heat(Vector<double> &residuals, 
+						 DenseMatrix<double> &jacobian, 
+						 unsigned flag) 
+  {
+    //Find out how many nodes there are
+    unsigned n_node = nnode();
   
- //Find the index at which the variable is stored
- unsigned u_nodal_index = u_index_ust_heat();
+    //Find the index at which the variable is stored
+    unsigned u_nodal_index = u_index_ust_heat();
 
- //Set up memory for the shape and test functions
- Shape psi(n_node), test(n_node);
- DShape dpsidx(n_node,DIM), dtestdx(n_node,DIM);
+    //Set up memory for the shape and test functions
+    Shape psi(n_node), test(n_node);
+    DShape dpsidx(n_node,DIM), dtestdx(n_node,DIM);
  
- //Set the value of n_intpt
- unsigned n_intpt = integral_pt()->nweight();
+    //Set the value of n_intpt
+    unsigned n_intpt = integral_pt()->nweight();
    
- //Set the Vector to hold local coordinates
- Vector<double> s(DIM);
+    //Set the Vector to hold local coordinates
+    Vector<double> s(DIM);
 
- //Integers to hold the local equation and unknowns
- int local_eqn=0, local_unknown=0;
+    //Integers to hold the local equation and unknowns
+    int local_eqn=0; //local_unknown=0;
 
- //Loop over the integration points
- for(unsigned ipt=0;ipt<n_intpt;ipt++)
-  {
-
-   //Assign values of s
-   for(unsigned i=0;i<DIM;i++) s[i] = integral_pt()->knot(ipt,i);
-
-   //Get the integral weight
-   double w = integral_pt()->weight(ipt);
-
-   //Call the derivatives of the shape and test functions
-   double J = 
-    dshape_and_dtest_eulerian_at_knot_ust_heat(ipt,psi,dpsidx,test,dtestdx);
-
-   //Premultiply the weights and the Jacobian
-   double W = w*J;
-
-   //Allocate memory for local quantities and initialise to zero
-   double interpolated_u=0.0;
-   double dudt=0.0;
-   Vector<double> interpolated_x(DIM,0.0);
-   Vector<double> interpolated_dudx(DIM,0.0);
-   Vector<double> mesh_velocity(DIM,0.0);
-
-   //Calculate function value and derivatives:
-   // Loop over nodes
-   for(unsigned l=0;l<n_node;l++) 
-    {
-     //Calculate the value at the nodes
-     double u_value = raw_nodal_value(l,u_nodal_index);
-     interpolated_u += u_value*psi(l);
-     dudt += du_dt_ust_heat(l)*psi(l);
-     // Loop over directions
-     for(unsigned j=0;j<DIM;j++)
+    //Loop over the integration points
+    for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
-       interpolated_x[j] += raw_nodal_position(l,j)*psi(l);
-       interpolated_dudx[j] += u_value*dpsidx(l,j);
-      }
-    }
+	//Assign values of s
+	for(unsigned i=0;i<DIM;i++) s[i] = integral_pt()->knot(ipt,i);
 
-   // Mesh velocity?
-   if (!ALE_is_disabled)
-    {
-     for(unsigned l=0;l<n_node;l++) 
-      {
-       for(unsigned j=0;j<DIM;j++)
-        {
-         mesh_velocity[j] += raw_dnodal_position_dt(l,j)*psi(l);
-        }
-      }
-    }
+	//Get the integral weight
+	double w = integral_pt()->weight(ipt);
 
-   //Get source function
-   //-------------------
-   double source;
-   get_source_ust_heat(time(),ipt,interpolated_x,source);
+	//Call the derivatives of the shape and test functions
+	double J = 
+	  dshape_and_dtest_eulerian_at_knot_ust_heat(ipt,psi,dpsidx,test,dtestdx);
 
-   // Assemble residuals and Jacobian
-   //--------------------------------
+	//Premultiply the weights and the Jacobian
+	double W = w*J;
+
+	//Allocate memory for local quantities and initialise to zero
+	double interpolated_u=0.0;
+	double dudt=0.0;
+	Vector<double> interpolated_x(DIM,0.0);
+	Vector<double> interpolated_dudx(DIM,0.0);
+	Vector<double> mesh_velocity(DIM,0.0);
+
+	//Calculate function value and derivatives:
+	// Loop over nodes
+	for(unsigned l=0;l<n_node;l++) 
+	  {
+	    //Calculate the value at the nodes
+	    double u_value = raw_nodal_value(l,u_nodal_index);
+	    interpolated_u += u_value*psi(l);
+	    dudt += du_dt_ust_heat(l)*psi(l);
+	    // Loop over directions
+	    for(unsigned j=0;j<DIM;j++)
+	      {
+		interpolated_x[j] += raw_nodal_position(l,j)*psi(l);
+		interpolated_dudx[j] += u_value*dpsidx(l,j);
+	      }
+	  }
+	
+	//Get source function
+	//-------------------
+	double source;
+	get_source_ust_heat(time(),ipt,interpolated_x,source);
+	
+	// Assemble residuals and Jacobian
+	//--------------------------------
        
-   // Loop over the test functions
-   for(unsigned l=0;l<n_node;l++)
-    {
-     local_eqn = nodal_local_eqn(l,u_nodal_index);
-     /*IF it's not a boundary condition*/
-     if(local_eqn >= 0)
-      {
+	// Loop over the test functions
+	for(unsigned l=0;l<n_node;l++)
+	  {
+	    local_eqn = nodal_local_eqn(l,u_nodal_index);
+	    /*IF it's not a boundary condition*/
+	    if(local_eqn >= 0)
+	      {
+		
+		// sign function with discontinous jump at u=0
+		double sign;
+		if (interpolated_u > 0.0) {sign = +1.0;}
+		else {sign = -1.0;}
+		
+		//For equation dudt = u*f(u) + source
+		// residuals[local_eqn] += (dudt - interpolated_u*sign - source)*test(l)*W;
 
-       // Add body force/source term and time derivative
-       residuals[local_eqn] += (dudt+source)*test(l)*W;
-           
-       // The mesh velocity bit
-       if (!ALE_is_disabled)
-       {
-        for(unsigned k=0;k<DIM;k++)
-         {
-          residuals[local_eqn] -= 
-           mesh_velocity[k]*interpolated_dudx[k]*test(l)*W;
-         }
-       }
-
-       // Laplace operator
-       for(unsigned k=0;k<DIM;k++)
-        {
-         residuals[local_eqn] += 
-          interpolated_dudx[k]*dtestdx(l,k)*W;
-        }
-
-
-       // Calculate the jacobian
-       //-----------------------
-       if(flag)
-        {
-         //Loop over the velocity shape functions again
-         for(unsigned l2=0;l2<n_node;l2++)
-          { 
-           local_unknown = nodal_local_eqn(l2,u_nodal_index);
-           //If at a non-zero degree of freedom add in the entry
-           if(local_unknown >= 0)
-            {
-             // Mass matrix
-             jacobian(local_eqn,local_unknown) 
-              += test(l)*psi(l2)*
-              node_pt(l2)->time_stepper_pt()->weight(1,0)*W;
-
-             // Laplace operator & mesh velocity bit
-             for(unsigned i=0;i<DIM;i++)
-              {
-               double tmp=dtestdx(l,i);
-               if (!ALE_is_disabled) tmp+=mesh_velocity[i]*test(l);
-               jacobian(local_eqn,local_unknown) += dpsidx(l2,i)*tmp*W;
-              }
-            }
-          }
-        }
+		// for equation dudt = f(u) + source
+		residuals[local_eqn] += (dudt + 10*sign - 0.3 - source)*test(l)*W;
+		
+	      }
+	  }
       }
-    }
 
-
-  } // End of loop over integration points
-}   
-
-
-//======================================================================
-/// Output function:
-///
-///   x,y,u   or    x,y,z,u
-///
-/// nplot points in each coordinate direction
-//======================================================================
-template <unsigned DIM>
-void  UnsteadyHeatEquations<DIM>::output(std::ostream &outfile, 
-                                         const unsigned &nplot)
-{
- //Vector of local coordinates
- Vector<double> s(DIM);
- 
- // Tecplot header info
- outfile << tecplot_zone_string(nplot);
- 
- // Loop over plot points
- unsigned num_plot_points=nplot_points(nplot);
- for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-  {
-   // Get local coordinates of plot point
-   get_s_plot(iplot,nplot,s);
-   
-   for(unsigned i=0;i<DIM;i++) 
-    {
-     outfile << interpolated_x(s,i) << " ";
-    }
-   outfile << interpolated_u_ust_heat(s) << std::endl;   
   }
+  // End of loop over integration points
+   
 
- // Write tecplot footer (e.g. FE connectivity lists)
- write_tecplot_zone_footer(outfile,nplot);
 
-}
+  //======================================================================
+  /// Output function:
+  ///
+  ///   
+  ///
+  /// nplot points in each coordinate direction
+  //======================================================================
+  template <unsigned DIM>
+  void  UnsteadyHeatEquations<DIM>::output(std::ostream &outfile, 
+					   const unsigned &nplot)
+  {
+    //Vector of local coordinates
+    Vector<double> s(DIM);
+
+    unsigned num_plot_points=nplot_points(nplot);
+    for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+      {
+	// Get local coordinates of plot point
+	get_s_plot(iplot,nplot,s);
+
+	// Output time and interpolated u
+	outfile << time_pt()->time() << " " << interpolated_u_ust_heat(s) << std::endl;   
+      }
+
+  }
 
 }
 
