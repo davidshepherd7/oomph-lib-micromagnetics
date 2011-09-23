@@ -22,7 +22,7 @@ public:
 
   // CONSTRUCTORS ETC.
   /// Constructor (must initialise the various function pointers to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
-  MicromagEquations() : Source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), Sat_mag_fct_pt(0), Llg_damp_fct_pt(0), Llg_precess_fct_pt(0),ALE_is_disabled(true) {}
+  MicromagEquations() : Source_fct_pt(0), Llg_source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), Sat_mag_fct_pt(0), Llg_damp_fct_pt(0), Llg_precess_fct_pt(0), Exact_m_fct_pt(0), Exact_phi_fct_pt(0), ALE_is_disabled(true) {}
  
   /// Broken copy constructor
   MicromagEquations(const MicromagEquations& dummy) 
@@ -65,7 +65,7 @@ public:
   // SOURCE FUNCTION
   /// \short Function pointer to source function fct(x,f(x)) -- 
   /// x is a Vector! 
-  typedef void (*PoissonSourceFctPt)(const Vector<double>& x, double& f);
+  typedef void (*PoissonSourceFctPt)(const double& t, const Vector<double>& x, double& f);
 
   /// Access function: Pointer to source function
   PoissonSourceFctPt& source_fct_pt() {return Source_fct_pt;}
@@ -77,7 +77,8 @@ public:
   /// virtual to allow overloading in multi-physics problems where
   /// the strength of the source function might be determined by
   /// another system of equations.
-  inline virtual void get_source_poisson(const unsigned& ipt,
+  inline virtual void get_source_poisson(const double& t,
+					 const unsigned& ipt,
 					 const Vector<double>& x,
 					 double& source) const
   {
@@ -86,13 +87,42 @@ public:
     else
       {
 	// Get source strength
-	(*Source_fct_pt)(x,source);
+	(*Source_fct_pt)(t,x,source);
       }
   }
 
+
+  // LLG SOURCE FUNCTION
+  /// \short Function pointer to source function fct(x,f(x)) -- 
+  /// x is a Vector! 
+  typedef void (*LlgSourceFctPt)(const double& t, const Vector<double>& x, Vector<double>& source);
+
+  /// Access function: Pointer to source function
+  LlgSourceFctPt& llg_source_fct_pt() {return Llg_source_fct_pt;}
+
+  /// Access function: Pointer to source function. Const version
+  LlgSourceFctPt llg_source_fct_pt() const {return Llg_source_fct_pt;}
+
+  /// Get source term at (Eulerian) position x. This function is
+  /// virtual to allow overloading in multi-physics problems where
+  /// the strength of the source function might be determined by
+  /// another system of equations.
+  inline virtual void get_source_llg(const double& t,
+				     const Vector<double>& x,
+				     Vector<double>& source) const
+  {
+    //If no source function has been set, return zero
+    if(Llg_source_fct_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
+    else
+      {
+	// Get source strength
+	(*Llg_source_fct_pt)(t,x,source);
+      }  }
+
+
   // APPLIED FIELD
   /// Function pointer to applied field function
-  typedef void (*AppliedFieldFctPt)(const Vector<double>& x,Vector<double>& H_applied);
+  typedef void (*AppliedFieldFctPt)(const double& t, const Vector<double>& x,Vector<double>& H_applied);
 
   /// Access function: Pointer to applied field function
   AppliedFieldFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
@@ -101,20 +131,20 @@ public:
   AppliedFieldFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
 
   /// Get the applied field at Eulerian position x.
-  inline virtual void get_applied_field(const Vector<double> &x, Vector<double> &H_applied) const
+  inline virtual void get_applied_field(const double& t, const Vector<double> &x, Vector<double>& H_applied) const
   {
     //If no applied field has been set, return zero vector
     if(Applied_field_fct_pt==0) {for(unsigned j=0;j<3;j++) H_applied[j] = 0.0;}
     else
       {
 	// Otherwise get applied field strength
-	(*Applied_field_fct_pt)(x,H_applied);
+	(*Applied_field_fct_pt)(t,x,H_applied);
       }
   }
   
   // EFFECTIVE ANISOTROPY FIELD
   /// Function pointer to crystalline anisotropy field function
-  typedef void (*CrystAnisFieldFctPt)(const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis);
+  typedef void (*CrystAnisFieldFctPt)(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis);
 
   /// Access function: Pointer to crystalline anisotropy field function
   CrystAnisFieldFctPt& cryst_anis_field_fct_pt() {return Cryst_anis_field_fct_pt;}
@@ -123,20 +153,20 @@ public:
   CrystAnisFieldFctPt cryst_anis_field_fct_pt() const {return Cryst_anis_field_fct_pt;}
 
   /// Get the crystalline anisotropy field at Eulerian position x.
-  inline virtual void get_H_cryst_anis_field(const Vector<double> &x, const Vector<double>& m, Vector<double> &H_cryst_anis) const
+  inline virtual void get_H_cryst_anis_field(const double& t, const Vector<double> &x, const Vector<double>& m, Vector<double>& H_cryst_anis) const
   {
     //If no crystalline anisotropy function has been set, return zero vector
     if(Cryst_anis_field_fct_pt==0) {for(unsigned j=0;j<3;j++) H_cryst_anis[j] = 0.0;}
     else
       {
 	// Otherwise get crystalline anisotropy field strength
-	(*Cryst_anis_field_fct_pt)(x,m,H_cryst_anis);
+	(*Cryst_anis_field_fct_pt)(t,x,m,H_cryst_anis);
       }
   }
 
   // SATURISATION MAGNETISATION FUNCTION POINTER
   /// Function pointer to saturisation magnetisation function fct(x,ms)
-  typedef double (*SatMagFctPt)(const Vector<double>& x);
+  typedef double (*SatMagFctPt)(const double& t, const Vector<double>& x);
 
   /// Access function: Pointer to saturisation magnetisation function
   SatMagFctPt& sat_mag_fct_pt() {return Sat_mag_fct_pt;}
@@ -145,20 +175,20 @@ public:
   SatMagFctPt sat_mag_fct_pt() const {return Sat_mag_fct_pt;}
 
   /// Get saturisation magnetisation at eulerian postition x.
-  inline virtual double get_sat_mag(const Vector<double>& x) const
+  inline virtual double get_sat_mag(const double& t, const Vector<double>& x) const
   {
     //If no source function has been set, return one
     if(Sat_mag_fct_pt==0) {return 1.0;}
     else
       {
 	// Otherwise get the saturisation magnetisation at position x
-	return (*Sat_mag_fct_pt)(x);
+	return (*Sat_mag_fct_pt)(t,x);
       }
   }
 
   // LLG DAMPING COEFF FUNCTION POINTER
   /// Function pointer to LLG damping coefficient function fct(x)
-  typedef double (*LlgDampFctPt)(const Vector<double>& x);
+  typedef double (*LlgDampFctPt)(const double& t, const Vector<double>& x);
 
   /// Access function: Pointer to LLG damping coefficient function
   LlgDampFctPt& llg_damp_fct_pt() {return Llg_damp_fct_pt;}
@@ -167,14 +197,14 @@ public:
   LlgDampFctPt llg_damp_fct_pt() const {return Llg_damp_fct_pt;}
 
   /// Get LLG damping coefficient at eulerian postition x.
-  inline virtual double get_llg_damp(const Vector<double>& x) const
+  inline virtual double get_llg_damp(const double& t, const Vector<double>& x) const
   {
     //If no LLg damping function has been set, return one
     if(Llg_damp_fct_pt==0) {return 1.0;}
     else
       {
 	// Otherwise get the LLG damping coefficient at position x
-	return (*Llg_damp_fct_pt)(x);
+	return (*Llg_damp_fct_pt)(t,x);
       }
   } 
   
@@ -197,6 +227,50 @@ public:
       {
 	// Otherwise get the LLG precession coefficient at position x
 	return (*Llg_precess_fct_pt)(x);
+      }
+  } 
+
+  // EXACT PHI FUNCTION POINTER
+  /// Function pointer to exact phi function fct(x)
+  typedef double (*ExactPhiFctPt)(const double& t, const Vector<double>& x);
+
+  /// Access function: Pointer to exact phi function
+  ExactPhiFctPt& exact_phi_fct_pt() {return exact_phi_fct_pt;}
+
+  /// Access function: Pointer to exact phi function. Const version
+  ExactPhiFctPt exact_phi_fct_pt() const {return exact_phi_fct_pt;}
+
+  /// Get exact phi at eulerian postition x.
+  inline virtual double get_exact_phi(const double& t, const Vector<double>& x) const
+  {
+    //If no exact phi function has been set, return something crazy
+    if(exact_phi_fct_pt==0) {return -1000.0;}
+    else
+      {
+	// Otherwise get the exact phi at position x
+	return (*exact_phi_fct_pt)(t,x);
+      }
+  } 
+
+  // EXACT M FUNCTION POINTER
+  /// Function pointer to exact M function fct(x)
+  typedef void (*ExactMFctPt)(const double& t, const Vector<double>& x, Vector<double>& exact_M);
+
+  /// Access function: Pointer to exact M function
+  ExactMFctPt& exact_m_fct_pt() {return Exact_m_fct_pt;}
+
+  /// Access function: Pointer to LLG exact M. Const version
+  ExactMFctPt exact_m_fct_pt() const {return Exact_m_fct_pt;}
+
+  /// Get exact M at eulerian postition x.
+  inline virtual double get_exact_m(const double& t, const Vector<double>& x, Vector<double>& M_exact) const
+  {
+    //If exact M function has been set, return something crazy
+    if(exact_m_fct_pt==0) {for(unsigned j=0;j<3;j++) M_exact[j] = -1000.0;}
+    else
+      {
+	// Otherwise get exact M coefficient at position x
+	return (*exact_m_fct_pt)(t,x,M_exact);
       }
   } 
 
@@ -404,6 +478,9 @@ protected:
 
   /// Pointer to poisson source function - only for testing purposes since div(M) is our source function in calculation of the demagnetising potential.
   PoissonSourceFctPt Source_fct_pt;
+
+  /// Pointer to LLG source function (for testing purposes)
+  LlgSourceFctPt Llg_source_fct_pt;
   
   /// Pointer to function giving applied field.
   AppliedFieldFctPt Applied_field_fct_pt;
@@ -418,7 +495,13 @@ protected:
   LlgDampFctPt Llg_damp_fct_pt;
 
   /// Pointer to function giving LLG precession coefficient
-  LlgDampFctPt Llg_precess_fct_pt;
+  LlgPrecessFctPt Llg_precess_fct_pt;
+
+  /// Pointer to the exact solution for M
+  ExactMFctPt Exact_m_fct_pt;
+
+  /// Pointer to the exact solution for phi
+  ExactPhiFctPt Exact_phi_fct_pt;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
   virtual double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
@@ -459,6 +542,9 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
   // Set up vector to store the local coordinates
   Vector<double> s(DIM);
+
+  // Get current time
+  double time = time_pt()->time();
 
   //Index at which the poisson unknown is stored
   const unsigned phi_nodal_index = phi_index_micromag();
@@ -526,7 +612,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
      
       // Get source function   
       double source;
-      get_source_poisson(ipt,interpolated_x,source);
+      get_source_poisson(time,ipt,interpolated_x,source);
 
       // Loop over the test functions
       for(unsigned l=0;l<n_node;l++)
@@ -559,13 +645,16 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
       // If saturisation magnetisation is non-zero (i.e. if the point we are integrating at is magnetic) then calculate all the LLG equation stuff, otherwise don't bother
       //??ds No boundary conditions on M, for now... could there be?
-      if (get_sat_mag(interpolated_x) > 1.0e-8)
-	{
+
 	  // Get applied field at this position
-	  get_applied_field(interpolated_x, H_applied);
+	  get_applied_field(time, interpolated_x, H_applied);
       
 	  // Get crystalline anisotropy effective field
-	  get_H_cryst_anis_field(interpolated_x, interpolated_m,  H_cryst_anis);
+	  get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
+
+	  // Get LLG source function
+	  Vector<double> llg_source(3);
+	  get_source_llg(time, interpolated_x, llg_source);
        
 	  // Take total of all fields used (-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field)
 	  // ??ds pass this entire section out to a function eventually if possible?
@@ -576,7 +665,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    }
             
 	  // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
-	  llg_damping_coeff = get_llg_damp(interpolated_x);
+	  llg_damping_coeff = get_llg_damp(time, interpolated_x);
 	  llg_precession_coeff = get_llg_precess(interpolated_x);
       
 	  // Get the cross products for the LLG equation
@@ -597,13 +686,12 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 		  if(M_local_eqn >= 0)  // If it's not a boundary condition
 		    {
-		      residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k])*test(l)*W;
+		      residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] + llg_source[k])*test(l)*W;
 		    }
 		  //??ds put in jacobian calculation eventually
 
 		}
 	    } // End of loop over test functions
-	} // End of if (magnetisation is non-zero)
       
     }// End of loop over integration points
 } // End of fill in residuals function 
@@ -612,17 +700,19 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 //======================================================================
 /// Output function:
 ///
-///   x,phi,M_x,M_y,M_z
+/// format is x, (y, z), phi, Mx, My, Mz, exact phi, exact Mx, exact My, exact Mz
 ///
-/// nplot points
+/// 
 //======================================================================
 template <unsigned DIM>
 void  MicromagEquations<DIM>::output(std::ostream &outfile, 
 				     const unsigned &nplot)
 {
-
   //Vector of local coordinates
   Vector<double> s(DIM);
+
+  // Get time
+  double t = time_pt()->time();
  
   // Tecplot header info
   outfile << tecplot_zone_string(nplot);
@@ -634,11 +724,18 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
    
       // Get local coordinates of plot point
       get_s_plot(iplot,nplot,s);
+
+      // Get eulerian coordinates of plot point
+      Vector<double> x(DIM,0.0);
+      for(unsigned i=0; i<DIM; i++)
+	{
+	  x[i] = interpolated_x(s,i);
+	}
    
       // Output position
       for(unsigned i=0;i<DIM;i++) 
 	{
-	  outfile << interpolated_x(s,i) << " ";
+	  outfile << x[i] << " ";
 	}
 
       // Output phi value at position
@@ -650,8 +747,19 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
 	  outfile << interpolated_m_micromag(s,i) << " ";
 	}
 
+      // Output exact value of phi at position
+      outfile << get_exact_phi(t,x) << " ";
+
+      // Output exact value of Mx, My and Mz at position
+      Vector<double> exact_M(3,0.0);
+      get_exact_m(t,x,exact_M);
+      for (unsigned i=0; i<3; i++)
+	{
+	  outfile << exact_M[i] << " ";
+	}
+
       // Output div(M) as position
-      outfile << divergence_M(s) << " ";
+      //outfile << divergence_M(s) << " ";
    
       // End the line ready for next point
       outfile << std::endl;

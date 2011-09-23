@@ -5,33 +5,6 @@
 # If any command fails then exit the script
 set -o errexit
 
-# move old results
-mv RESLT/* RESLT_old
-
-# The program name - by default this is the same as the folder name with _driver appended so get the name of the folder we are in:
-NAME=`basename $PWD`_driver
-
-# Build the code
-make
-
-# Run program and save output to trace file
-./${NAME} > RESLT/${NAME}_trace
-
-# # Print a solution file to stdout
-# print 0
-
-# # Convert to .vtu format (using oomph-convert python script)
-# convert-vtu
-
-# # Open with Paraview
-# paraview --data="RESLT/soln..vtu"
-
-# zero pad files (to increase length of zero padding change the 3 in "%03d") - this allows gnuplot to plot them in the correct order
-rename 's/\d+/sprintf("%03d",$&)/e' RESLT/soln*
-
-# plot results
-plot-animation RESLT/soln*.dat
-
 ################################################################################
 # Function definitions
 ################################################################################
@@ -109,3 +82,34 @@ function plot-time
     gnuplot -persist .plot.gpi
 
 }
+
+################################################################################
+# The actual script
+################################################################################
+
+# move old results
+mv RESLT/* RESLT_old
+
+# The program name - by default this is the same as the folder name with _driver appended so get the name of the folder we are in:
+NAME=`basename $PWD`_driver
+
+# Build the code
+make
+
+# Run program and save output to trace file
+./${NAME} > RESLT/${NAME}_trace
+
+# # Print a solution file to stdout
+# print 0
+
+# # Convert to .vtu format (using oomph-convert python script)
+# convert-vtu
+
+# # Open with Paraview
+# paraview --data="RESLT/soln..vtu"
+
+# zero pad files (to increase length of zero padding change the 3 in "%03d") - this allows gnuplot to plot them in the correct order
+rename 's/\d+/sprintf("%03d",$&)/e' RESLT/soln*
+
+# plot results
+plot-animation RESLT/soln*.dat

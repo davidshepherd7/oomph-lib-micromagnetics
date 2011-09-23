@@ -11,7 +11,7 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
   
   // Get the saturisation magnetisation at position x
-  double sat_mag(const Vector<double>& x)
+  double sat_mag(const double& t, const Vector<double>& x)
   {
     // if (x[0]>0.4 && x[0]<0.6) 
     //   {
@@ -23,7 +23,7 @@ namespace OneDMicromagSetup
     //   }
   }
 
-  void cryst_anis_field(const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
+  void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
     H_cryst_anis[0] = 0;
     
@@ -34,31 +34,38 @@ namespace OneDMicromagSetup
 
   void initial_M(const Vector<double>& x, Vector<double>& M)
   {
-    M[0] = 1.0*sat_mag(x);
+    //??ds assumes initial t=0
+    M[0] = 1.0*sat_mag(0,x);
 
     // Initialise y and z components of M to zero
     M[1] = 0.0;
     M[2] = 0.0;
   }
 
-  void applied_field(const Vector<double>& x, Vector<double>& H_applied)
+  void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)
   {
     H_applied[0] = 0.0;
     H_applied[1] = 0.1;
     H_applied[2] = 0.0;
   }
 
-  double boundary_phi(const Vector<double>& x)
+  double boundary_phi(const double& t, const Vector<double>& x)
   {
     // Set all boundaries to zero for now
     return 0.0;
   }
 
   
-  void source_function(const Vector<double>& x, double& source)
+  void source_function(const double& t, const Vector<double>& x, double& source)
   {
     // Just set to zero unless needed for testing
     source = 0.0;
+  }
+
+  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
+  {
+    // Just set to zero unless needed for testing
+    for(unsigned i=0; i<3; i++){ source[i] = 0.0;}
   }
 
   // Gibert damping constant
@@ -68,18 +75,16 @@ namespace OneDMicromagSetup
   double gamma = 0.221;
 
   // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
-  //??ds set to zero if no magnetisation in region to avoid calculating dMdt - not particularly good way to handle it I guess
-  double llg_damping_coeff(const Vector<double>& x)
+  double llg_damping_coeff(const double& t, const Vector<double>& x)
   {   
-    return 1/(1+alpha*alpha);
+    //??ds ifdef error checking then check ms is nonzero
+    return (1/(1+alpha*alpha)) * (gamma/sat_mag(t,x));
   }
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
-  //??ds set to zero if no magnetisation in region to avoid calculating dMdt - not particularly good way to handle it I guess
   double llg_precession_coeff(const Vector<double>& x)
   {
-    //??ds ifdef error checking then check ms is nonzero
-    return (1/(1+alpha*alpha)) * (gamma/sat_mag(x));
+    return 1/(1+alpha*alpha); 
   }
 
 }; // End of namespace
@@ -95,8 +100,11 @@ class OneDMicromagProblem : public Problem
 
 private:
 
-  /// Pointer to source function
+  /// Pointer to Poisson source function
   MicromagEquations<1>::PoissonSourceFctPt Source_fct_pt;
+
+  /// Pointer to LLg source function
+  MicromagEquations<1>::LlgSourceFctPt Llg_source_fct_pt;
 
   /// Pointer to applied field function
   MicromagEquations<1>::AppliedFieldFctPt Applied_field_fct_pt;
@@ -125,7 +133,7 @@ private:
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
-  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt, MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt, MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt, MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt);
+  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::LlgSourceFctPt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt, MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt, MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt, MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
   ~OneDMicromagProblem(){};
@@ -163,12 +171,13 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
 template<class ELEMENT> 
 OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 						  MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
+						  MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt,
 						  MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
 						  MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
 						  MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt,
 						  MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt,
 						  MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt) :
-  Source_fct_pt(source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt), Sat_mag_fct_pt(sat_mag_fct_pt), Llg_damp_fct_pt(llg_damp_fct_pt), Llg_precess_fct_pt(llg_precess_fct_pt)
+  Source_fct_pt(source_fct_pt), Llg_source_fct_pt(llg_source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt), Sat_mag_fct_pt(sat_mag_fct_pt), Llg_damp_fct_pt(llg_damp_fct_pt), Llg_precess_fct_pt(llg_precess_fct_pt)
 {  
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
   add_time_stepper_pt(new BDF<2>);
@@ -198,6 +207,9 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
    
       //Set the source function pointer
       elem_pt->source_fct_pt() = Source_fct_pt;
+
+      // Set the LLG source function pointer
+      elem_pt->llg_source_fct_pt() = Llg_source_fct_pt;
 
       // Set the applied field function pointer
       elem_pt->applied_field_fct_pt() = Applied_field_fct_pt;
@@ -233,6 +245,8 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 template<class ELEMENT>
 void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 {
+  // get current time
+  double t = time_pt()->time();
 
   // Get pointer to (0th) element - exact element doesn't matter for this use, hopefully!
   //??ds this will break if number of nodal data values changes in different elements, don't think it does change though
@@ -253,7 +267,7 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 	  // Set boundary conditions at this node
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
-	  double phi_value = OneDMicromagSetup::boundary_phi(x);
+	  double phi_value = OneDMicromagSetup::boundary_phi(t,x);
 	  nod_pt->set_value(phi_nodal_index,phi_value);
 	}
     }
@@ -389,7 +403,13 @@ int main()
 
   // Set up the problem:
   unsigned n_element=40; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function, OneDMicromagSetup::applied_field, OneDMicromagSetup::cryst_anis_field, OneDMicromagSetup::sat_mag, OneDMicromagSetup::llg_damping_coeff, OneDMicromagSetup::llg_precession_coeff);
+  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function,
+						      OneDMicromagSetup::llg_source_function,
+						      OneDMicromagSetup::applied_field, 
+						      OneDMicromagSetup::cryst_anis_field, 
+						      OneDMicromagSetup::sat_mag, 
+						      OneDMicromagSetup::llg_damping_coeff, 
+						      OneDMicromagSetup::llg_precession_coeff);
 
 
   // SET UP OUTPUT

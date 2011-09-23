@@ -3,6 +3,12 @@
 # Script for all the actions required when creating a new folder in user_drivers.
 # Input is the name of the new folder, a driver file will also be created with _driver.cc appended to the folder name.
 
+# Exit if any errors occur
+set -o errexit
+
+# Exit if any variables are undefined
+set -o nounset
+
 # Input Options
 ######################################################################
 
@@ -11,8 +17,8 @@ OOMPHPATH="$HOME/oomph-lib/trunk"
 USERDIRNAME="david_shepherd"
 
 # Change this to the folder containg the closest code to yours and the name of the driver code (without the extension!) respectively.
-OLDFOLDER="$OOMPHPATH/user_drivers/$USERDIRNAME/demag"
-OLDDRIVER="one_d_micromag_driver"
+OLDFOLDER="$OOMPHPATH/user_drivers/$USERDIRNAME/one_d_micromag"
+OLDDRIVER="one_d_micromag" # do not include _driver part
 
 
 
@@ -20,11 +26,11 @@ OLDDRIVER="one_d_micromag_driver"
 ######################################################################
 NEWFOLDER="$OOMPHPATH/user_drivers/$USERDIRNAME/$1"
 
-# Create the folder
-mkdir $NEWFOLDER
+# Create the folder (-p gives no error if already exists, creates parents if needed)
+mkdir -p $NEWFOLDER
 
 # Create sub-folders to hold results
-mkdir $NEWFOLDER/RESLT $NEWFOLDER/RESLT_old
+mkdir -p $NEWFOLDER/RESLT $NEWFOLDER/RESLT_old
 
 # Add to oomph-lib user_src directory list (if not already added)
 # Check if already added (options: ignore regex characters, only match entire lines, quiet - no output and exit with 0 status if match is found)
@@ -33,11 +39,12 @@ then
     echo "user_drivers/$USERDIRNAME/$1" >> $OOMPHPATH/config/configure.ac_scripts/user_drivers.dir_list
 fi
 
-# Copy makerun.sh and plot-gif.sh
-cp $OOMPHPATH/user_drivers/$USERDIRNAME/demag/makerun.sh $OOMPHPATH/user_drivers/$USERDIRNAME/demag/plot-gif.sh $NEWFOLDER
+# Copy makerun.sh and give it permisson to run as a script
+cp $OOMPHPATH/user_drivers/$USERDIRNAME/makerun-general.sh $NEWFOLDER/makerun.sh
+chmod +x $NEWFOLDER/makerun.sh
 
 # Copy over closest existing code and rename
-cp $OLDFOLDER/$OLDDRIVER.cc $NEWFOLDER/$1_driver.cc
+cp $OLDFOLDER/${OLDDRIVER}_driver.cc $NEWFOLDER/$1_driver.cc
 
 # Create Makefile.am from file for old code
 cp $OLDFOLDER/Makefile.am $NEWFOLDER/Makefile.am
