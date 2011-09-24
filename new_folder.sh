@@ -57,7 +57,7 @@ cd $OOMPHPATH
 if [ -e quickautogen.sh ]; then
     $OOMPHPATH/quickautogen.sh
 else
-    $OOMPHPATH/autogen.sh
+    $OOMPHPATH/autogen.sh --rebuild
 fi
 
 # Add new folder to git and push (cd back to new folder first)

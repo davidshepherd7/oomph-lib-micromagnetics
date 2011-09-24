@@ -235,20 +235,20 @@ public:
   typedef double (*ExactPhiFctPt)(const double& t, const Vector<double>& x);
 
   /// Access function: Pointer to exact phi function
-  ExactPhiFctPt& exact_phi_fct_pt() {return exact_phi_fct_pt;}
+  ExactPhiFctPt& exact_phi_fct_pt() {return Exact_phi_fct_pt;}
 
   /// Access function: Pointer to exact phi function. Const version
-  ExactPhiFctPt exact_phi_fct_pt() const {return exact_phi_fct_pt;}
+  ExactPhiFctPt exact_phi_fct_pt() const {return Exact_phi_fct_pt;}
 
   /// Get exact phi at eulerian postition x.
   inline virtual double get_exact_phi(const double& t, const Vector<double>& x) const
   {
     //If no exact phi function has been set, return something crazy
-    if(exact_phi_fct_pt==0) {return -1000.0;}
+    if(Exact_phi_fct_pt==0) {return -1000.0;}
     else
       {
 	// Otherwise get the exact phi at position x
-	return (*exact_phi_fct_pt)(t,x);
+	return (*Exact_phi_fct_pt)(t,x);
       }
   } 
 
@@ -263,14 +263,14 @@ public:
   ExactMFctPt exact_m_fct_pt() const {return Exact_m_fct_pt;}
 
   /// Get exact M at eulerian postition x.
-  inline virtual double get_exact_m(const double& t, const Vector<double>& x, Vector<double>& M_exact) const
+  inline virtual void get_exact_m(const double& t, const Vector<double>& x, Vector<double>& M_exact) const
   {
     //If exact M function has been set, return something crazy
-    if(exact_m_fct_pt==0) {for(unsigned j=0;j<3;j++) M_exact[j] = -1000.0;}
+    if(Exact_m_fct_pt==0) {for(unsigned j=0;j<3;j++) M_exact[j] = -1000.0;}
     else
       {
 	// Otherwise get exact M coefficient at position x
-	return (*exact_m_fct_pt)(t,x,M_exact);
+	(*Exact_m_fct_pt)(t,x,M_exact);
       }
   } 
 
