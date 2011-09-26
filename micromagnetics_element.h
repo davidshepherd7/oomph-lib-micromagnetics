@@ -751,12 +751,22 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
       outfile << get_exact_phi(t,x) << " ";
 
       // Output exact value of Mx, My and Mz at position
-      Vector<double> exact_M(3,0.0);
-      get_exact_m(t,x,exact_M);
+      Vector<double> exact_m(3,0.0);
+      get_exact_m(t,x,exact_m);
       for (unsigned i=0; i<3; i++)
 	{
-	  outfile << exact_M[i] << " ";
+	  outfile << exact_m[i] << " ";
 	}
+
+      // Output error in phi
+      outfile << abs(interpolated_phi_micromag(s) - get_exact_phi(t,x)) << " ";
+
+      // Output errors in M
+      for(unsigned i=0; i<3; i++)
+	{
+	  outfile << abs(interpolated_m_micromag(s,i) - exact_m[i]) << " ";
+	}
+      
 
       // Output div(M) as position
       //outfile << divergence_M(s) << " ";
