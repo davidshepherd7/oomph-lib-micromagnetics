@@ -725,16 +725,11 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
       // Get local coordinates of plot point
       get_s_plot(iplot,nplot,s);
 
-      // Get eulerian coordinates of plot point
+      // Get eulerian coordinates of plot point and output
       Vector<double> x(DIM,0.0);
       for(unsigned i=0; i<DIM; i++)
 	{
 	  x[i] = interpolated_x(s,i);
-	}
-   
-      // Output position
-      for(unsigned i=0;i<DIM;i++) 
-	{
 	  outfile << x[i] << " ";
 	}
 
