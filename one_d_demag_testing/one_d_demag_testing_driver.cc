@@ -1,6 +1,6 @@
 
 # include "../micromagnetics_element.h"
-# include "./parameters.cc"
+# include "./parameters3.cc"
 
 using namespace std;
 
@@ -329,7 +329,7 @@ int main()
 {
 
   // Set up the problem:
-  unsigned n_element=40; //Number of elements
+  unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
   OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function,
 						      OneDMicromagSetup::llg_source_function,
 						      OneDMicromagSetup::applied_field, 
@@ -363,8 +363,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=5;
-  double dt=0.05;
+  double t_max = OneDMicromagSetup::t_max;
+  double dt = OneDMicromagSetup::dt;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
