@@ -31,10 +31,8 @@ namespace OneDMicromagSetup
 
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
-    H_cryst_anis[0] = 0;
-    
+    H_cryst_anis[0] = 0;    
     H_cryst_anis[1] = 0;
-
     H_cryst_anis[2] = 0;
   }
 

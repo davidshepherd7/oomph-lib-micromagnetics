@@ -60,8 +60,8 @@ public:
   /// Update the problem specs before solve: Set boundary conditions
   void actions_before_newton_solve(){};
 
-  /// Update the problem specs after solve (calculate demag field)
-  void actions_after_newton_solve(const unsigned n_element);
+  /// Update the problem specs after solve
+  void actions_after_newton_solve(){};
 
   /// Doc the solution
   void doc_solution(DocInfo& doc_info, std::ofstream& trace_file);
@@ -330,7 +330,8 @@ int main()
 
   // Set up the problem:
   unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element, OneDMicromagSetup::source_function,
+  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element,
+						      OneDMicromagSetup::source_function,
 						      OneDMicromagSetup::llg_source_function,
 						      OneDMicromagSetup::applied_field, 
 						      OneDMicromagSetup::cryst_anis_field, 

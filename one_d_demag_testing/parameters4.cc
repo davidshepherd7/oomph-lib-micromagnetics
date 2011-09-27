@@ -1,6 +1,6 @@
-// parameters for the solution with [M = x cos(omega*t), (1-x) cos(omega*t), 0 ]
+// parameters for the solution with [M = 0, x cos(omega*t), 0 ]
 // 
-// See 27/11/11 (2) for details
+// See 27/11/11 (4) for details
 
 using namespace std;
 using namespace MathematicalConstants;
@@ -20,36 +20,30 @@ namespace OneDMicromagSetup
   // double alpha = 0.5;   // Gibert damping constant
   // double gamma = 0.221;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
+  double damping_const = 1;
+  double precession_const = 0;
  
   void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
   {
-    M[0] = x[0]*cos(omega*t);
-    M[1] = (1-x[0])*cos(omega*t);
+    M[0] = 0.0;
+    M[1] = x[0]*cos(omega*t);
     M[2] = 0.0;
   }
 
   double exact_phi_solution(const double& t, const Vector<double>& x)
   {
-    return 2*Pi*cos(omega*t)*x[0]*x[0];
+    return x[0];
   }
   
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
     // Source function to exactly cancel out contributions from not being a real exact solution
-    double p = -1*omega*sin(omega*t);
-    double q = 4*Pi*x[0]*(1-x[0])*cos(omega*t);
-
-    source[0] = p*x[0];
-    source[1] = p*(1-x[0]) + q*4*Pi*x[0]*cos(omega*t);
-    source[2] = q;
-
-    // source[0] = 0.0;
-    // source[1] = q*4*Pi*x[0]*cos(omega*t);
-    // source[2] = q;
-    
+    source[0] = damping_const* -cos(omega*t)*x[0]*x[0];
+    source[1] = -omega*sin(omega*t)*x[0];
+    source[2] = precession_const * -cos(omega*t)*x[0];
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   // Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
@@ -83,19 +77,19 @@ namespace OneDMicromagSetup
     source = 0.0;
   }
 
-  // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
-  double llg_damping_coeff(const double& t, const Vector<double>& x)
+  // The coefficient of the damping term (Mx(MxH)) of the Landau-Lifschitz-Gilbert equation
+  double llg_damping_coeff(const Vector<double>& x)
   {   
     //??ds ifdef error checking then check ms is nonzero
     //    return (1/(1+alpha*alpha)) * (gamma/sat_mag(t,x));
     // return (1/(1+alpha*alpha)) * (gamma);
-    return 1.0;
+    return damping_const;
   }
 
-  // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
+  // The coefficient of the precession term (MxH) of the Landau-Lifschitz-Gilbert equation
   double llg_precession_coeff(const Vector<double>& x)
   {
-    return 1.0; ///(1+alpha*alpha); 
+    return precession_const; ///(1+alpha*alpha); 
   }
 
 }; // End of namespace

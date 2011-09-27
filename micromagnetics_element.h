@@ -445,13 +445,13 @@ public:
   void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) ;
 
   /// Get dM/dt at local node n (using timestepper and history values).
-  void dM_dt_micromag(const unsigned &n, Vector<double>& dMdt) const
+  void dm_dt_micromag(const unsigned &n, Vector<double>& dmdt) const
   {
     // Get the data's timestepper
     TimeStepper* time_stepper_pt= this->node_pt(n)->time_stepper_pt();
 
-    //Initialise dMdt to zero
-    for (unsigned j=0; j<3; j++) {dMdt[j] = 0.0;}
+    //Initialise dM/dt to zero
+    for (unsigned j=0; j<3; j++) {dmdt[j] = 0.0;}
    
     //Loop over the timesteps, if there is a non Steady timestepper
     if (!time_stepper_pt->is_steady())
@@ -465,8 +465,8 @@ public:
 	    // Loop over past and present times and add the contributions to the time derivative
 	    for(unsigned t=0;t<n_time;t++)
 	      {
-		// ??ds The one in weights is the derrivative order (i.e. 1: dM/dt, 2: d^2M/dt^2) I think...
-		dMdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,M_index_micromag(j));
+		// ??ds The "1" in weights is the derrivative order (i.e. 1: dM/dt, 2: d^2M/dt^2) I think...
+		dmdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,M_index_micromag(j));
 	      }
 	  }
 
@@ -574,7 +574,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       // dphidx is also H_demag so we need all 3 components initialised - even if they are zero.
       double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0, div_m=0.0;
       Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(3,0.0);
-      Vector<double> H_total(3,0.0), H_demag(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
+      Vector<double> H_total(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
       Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
       Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
    
@@ -589,7 +589,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  interpolated_phi += phi_value*psi(l);
 
 	  // Get the nodal values of dM/dt
-	  dM_dt_micromag(l,dmdt);
+	  dm_dt_micromag(l,dmdt);
 	  for(unsigned j=0; j<3; j++)
 	    {
 	      interpolated_dmdt[j] += dmdt[j]*psi(l);
@@ -601,7 +601,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	      interpolated_x[j] += nodal_position(l,j)*psi(l);
 	      interpolated_dphidx[j] += phi_value*dpsidx(l,j);
-	      div_m += nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
+	      div_m += nodal_value(l,M_index_micromag(j)) *dpsidx(l,j);
 	    }
 
 	}
@@ -625,14 +625,15 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	      // Add source term and 4*pi*divergence(M) 
 	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_m)*test(l)*W;
-	      //std::cout<< "div_m = " << div_m << std::endl;
 
 	      // The Poisson bit
 	      for(unsigned k=0;k<DIM;k++)
 		{
 		  residuals[phi_local_eqn] += interpolated_dphidx[k]*dtestdx(l,k)*W;
 		}
+
 	      // ??ds add in jacobian calculation eventually
+
 	    }
 
 	} // End of Poisson section
@@ -645,21 +646,29 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       //??ds No boundary conditions on M, for now... could there be?
 
 	  // Get applied field at this position
-	  get_applied_field(time, interpolated_x, H_applied);
+	  // get_applied_field(time, interpolated_x, H_applied);
       
 	  // Get crystalline anisotropy effective field
-	  get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
+	  // get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
 
 	  // Get LLG source function
 	  Vector<double> llg_source(3,0.0);
 	  get_source_llg(time, interpolated_x, llg_source);
+
+	  //(-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field: H_demag = - grad(phi))
+	  Vector<double> H_magnetostatic(3,0.0);
+	  for(unsigned j=0; j<DIM; j++)
+	    {
+	      H_magnetostatic[j] = -1*interpolated_dphidx[j];
+	    }
+
        
-	  // Take total of all fields used (-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field)
+	  // Take total of all fields used
 	  // ??ds pass this entire section out to a function eventually if possible?
 	  // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
 	  for(unsigned j=0; j<3; j++)
 	    { 
-	      H_total[j] = H_applied[j]  + interpolated_dphidx[j]; //+ H_cryst_anis[j]
+	      H_total[j] = H_applied[j] + H_magnetostatic[j]; //+ H_cryst_anis[j]
 	    }
             
 	  // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
@@ -674,7 +683,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	
 	      // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
-	      // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] = 0
+	      // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] - llg_source = 0
 
 	      // loop over M directions
 	      for(unsigned k=0; k<3; k++)
