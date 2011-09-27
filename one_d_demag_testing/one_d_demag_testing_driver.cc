@@ -1,10 +1,8 @@
 
 # include "../micromagnetics_element.h"
-
 # include "./parameters.cc"
 
 using namespace std;
-
 
 //==start_of_problem_class============================================
 /// 1D Micromag problem in unit interval.
@@ -36,6 +34,12 @@ private:
   /// Pointer to LLG precession coefficient function
   MicromagEquations<1>::LlgPrecessFctPt Llg_precess_fct_pt;
 
+  /// Pointer to exact M solution function
+  MicromagEquations<1>::ExactMFctPt Exact_m_fct_pt;
+
+  /// Pointer to exact phi solution function
+  MicromagEquations<1>::ExactPhiFctPt Exact_phi_fct_pt;
+
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
 
@@ -48,7 +52,7 @@ private:
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
-  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::LlgSourceFctPt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt, MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt, MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt, MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt);
+  OneDMicromagProblem(const unsigned& n_element, MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, MicromagEquations<1>::LlgSourceFctPt, MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt, MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt, MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt, MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt, MicromagEquations<1>::ExactMFctPt exact_m_fct_pt, MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
   ~OneDMicromagProblem(){};
@@ -91,8 +95,10 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 						  MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
 						  MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt,
 						  MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt,
-						  MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt) :
-  Source_fct_pt(source_fct_pt), Llg_source_fct_pt(llg_source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt), Sat_mag_fct_pt(sat_mag_fct_pt), Llg_damp_fct_pt(llg_damp_fct_pt), Llg_precess_fct_pt(llg_precess_fct_pt)
+						  MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt,
+						  MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
+						  MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt) :
+  Source_fct_pt(source_fct_pt), Llg_source_fct_pt(llg_source_fct_pt), Applied_field_fct_pt(applied_field_fct_pt), Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt), Sat_mag_fct_pt(sat_mag_fct_pt), Llg_damp_fct_pt(llg_damp_fct_pt), Llg_precess_fct_pt(llg_precess_fct_pt), Exact_m_fct_pt(exact_m_fct_pt), Exact_phi_fct_pt(exact_phi_fct_pt)
 {  
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
   add_time_stepper_pt(new BDF<2>);
@@ -140,6 +146,12 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
 
       // Set the LLg precession coefficient function pointer
       elem_pt->llg_precess_fct_pt() = Llg_precess_fct_pt;
+
+      // Set the exact M solution function pointer
+      elem_pt->exact_m_fct_pt() = Exact_m_fct_pt;
+
+      // Set the exact phi function pointer
+      elem_pt->exact_phi_fct_pt() = Exact_phi_fct_pt;
 
       // Set pointer to continous time
       elem_pt->time_pt() = time_pt();
@@ -324,7 +336,9 @@ int main()
 						      OneDMicromagSetup::cryst_anis_field, 
 						      OneDMicromagSetup::sat_mag, 
 						      OneDMicromagSetup::llg_damping_coeff, 
-						      OneDMicromagSetup::llg_precession_coeff);
+						      OneDMicromagSetup::llg_precession_coeff,
+						      OneDMicromagSetup::exact_M_solution,
+						      OneDMicromagSetup::exact_phi_solution);
 
 
   // SET UP OUTPUT
@@ -349,8 +363,8 @@ int main()
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
-  double t_max=30;
-  double dt=0.1;
+  double t_max=5;
+  double dt=0.05;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.

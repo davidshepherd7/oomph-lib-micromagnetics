@@ -617,8 +617,6 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       // Loop over the test functions
       for(unsigned l=0;l<n_node;l++)
 	{
-	  
-	  // Calculate residual for poisson equation (to find phi):
 
 	  // Get the local equation number for the poisson part
 	  phi_local_eqn = nodal_local_eqn(l,phi_nodal_index);
@@ -653,15 +651,15 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
 
 	  // Get LLG source function
-	  Vector<double> llg_source(3);
+	  Vector<double> llg_source(3,0.0);
 	  get_source_llg(time, interpolated_x, llg_source);
        
 	  // Take total of all fields used (-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field)
 	  // ??ds pass this entire section out to a function eventually if possible?
 	  // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
 	  for(unsigned j=0; j<3; j++)
-	    {
-	      H_total[j] = H_applied[j] + H_cryst_anis[j] + interpolated_dphidx[j];
+	    { 
+	      H_total[j] = H_applied[j]  + interpolated_dphidx[j]; //+ H_cryst_anis[j]
 	    }
             
 	  // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
@@ -686,7 +684,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 		  if(M_local_eqn >= 0)  // If it's not a boundary condition
 		    {
-		      residuals[M_local_eqn] += (interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] + llg_source[k])*test(l)*W;
+		      residuals[M_local_eqn] += ( interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] - llg_source[k] )*test(l)*W;
 		    }
 		  //??ds put in jacobian calculation eventually
 
@@ -753,18 +751,14 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
 	  outfile << exact_m[i] << " ";
 	}
 
-      // Output error in phi
-      outfile << abs(interpolated_phi_micromag(s) - get_exact_phi(t,x)) << " ";
-
-      // Output errors in M
+      // Output LLg source
+      Vector<double> llg_source(3,0.0);
+      get_source_llg(t,x,llg_source);
       for(unsigned i=0; i<3; i++)
 	{
-	  outfile << abs(interpolated_m_micromag(s,i) - exact_m[i]) << " ";
+	  outfile << llg_source[i] << " ";
 	}
-      
 
-      // Output div(M) as position
-      //outfile << divergence_M(s) << " ";
    
       // End the line ready for next point
       outfile << std::endl;
