@@ -215,10 +215,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   // Past history needs to be established for t=time0-deltat, ...
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
- 
-  // Vector of exact solution value
-  Vector<double> M(3);
-  Vector<double> x(1);
+
 
   //Find number of nodes in mesh
   unsigned num_nod = mesh_pt()->nnode();
@@ -246,18 +243,24 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
       for (unsigned n=0;n<num_nod;n++)
 	{
 	  // Get nodal coordinate
+	  Vector<double> x(1,0.0);
 	  x[0]=mesh_pt()->node_pt(n)->x(0);
 
 	  // Get initial value of M
-	  OneDMicromagSetup::initial_M(time,x,M);
+	  Vector<double> initial_M(3,0.0);
+	  OneDMicromagSetup::exact_M_solution(time,x,initial_M);
+
+	  // Get initial value of phi
+	  double phi = OneDMicromagSetup::exact_phi_solution(time,x);
      
 	  // Assign solution
 	  for(unsigned i=0; i<3; i++)
 	    {
 	      // Set ith direction of M on node n at time t to be M[i]
-	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),M[i]);
+	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),initial_M[i]);
 	    }
-     
+	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
+	      
 	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
 	  // ??ds presumably this is where the ALE formulation would/will/should come in
 	  // for (unsigned i=0;i<1;i++)
@@ -391,6 +394,11 @@ int main()
 			  "main()",
 			  OOMPH_EXCEPTION_LOCATION);
     }
+
+  // //  ??dsbad testing stuff
+  // DoubleVector res;
+  // problem.get_residuals(res);
+  // exit(0);
 
   // SOLVE THE PROBLEM
   // Find number of steps

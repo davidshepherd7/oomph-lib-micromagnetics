@@ -8,6 +8,10 @@
 // Include mesh
 #include "meshes/one_d_mesh.h"
 
+//??dsbad
+#include <iostream>
+#include <fstream>
+
 using namespace oomph;
 
 //==================================================
@@ -699,7 +703,56 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 		}
 	    } // End of loop over test functions
-      
+     
+
+	  //??dsbad mass output for debugging
+	  std::ofstream debugfile;
+	  char debugfilename[100];
+	  sprintf(debugfilename,"debug/debug%f.dat",time);
+	  debugfile.open(debugfilename,std::ios::app);
+	  debugfile << interpolated_x[0] << " " << time << " ";
+	  debugfile << interpolated_phi << " ";
+	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_m[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {debugfile << H_total[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxH[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxmxH[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_dmdt[i] << " ";}
+	  debugfile << std::endl;
+	  debugfile.close();
+
+
+	  Vector<double> exact_m(3,0.0), exact_H_total(3,0.0), exact_mxH(3,0.0);
+	  Vector<double> exact_mxmxH(3,0.0), exact_dmdt(3,0.0), x(3,0.0);
+	  double exact_phi = get_exact_phi(time,interpolated_x);
+	  get_exact_m(time,interpolated_x,exact_m);
+
+	  //??dsbad exact solutions for parameters1
+	  using namespace MathematicalConstants;
+	  for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
+	  dmdt[0] = cos(2*Pi*interpolated_x[0])*-sin(time);
+	  dmdt[1] = cos(2*Pi*interpolated_x[0])*cos(time);
+	  exact_mxH[2] = -cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
+	  double p = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(time)*sin(time);
+	  exact_mxmxH[0] = p*sin(time);
+	  exact_mxmxH[1] = p*-cos(time);
+	  exact_H_total[0] = -4*Pi*cos(2*Pi*x[0])*cos(time);
+
+	  
+
+	  std::ofstream exactfile;
+	  char exactfilename[100];
+	  sprintf(exactfilename,"debug/exact%f.dat",time);
+	  exactfile.open(exactfilename,std::ios::app);
+	  exactfile << interpolated_x[0] << " " << time << " ";
+	  exactfile << exact_phi << " ";
+	  for(unsigned i=0; i<3; i++) {exactfile << exact_m[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {exactfile << exact_H_total[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {exactfile << exact_mxH[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {exactfile << exact_mxmxH[i] << " ";}
+	  for(unsigned i=0; i<3; i++) {exactfile << exact_dmdt[i] << " ";}
+	  exactfile << std::endl;
+	  exactfile.close();
+
     }// End of loop over integration points
 } // End of fill in residuals function 
 
