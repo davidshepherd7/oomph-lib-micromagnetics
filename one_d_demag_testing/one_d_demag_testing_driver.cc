@@ -1,6 +1,6 @@
 
 # include "../micromagnetics_element.h"
-# include "./parameters3.cc"
+# include "./parameters.cc"
 
 using namespace std;
 
@@ -249,7 +249,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  x[0]=mesh_pt()->node_pt(n)->x(0);
 
 	  // Get initial value of M
-	  OneDMicromagSetup::initial_M(x,M);
+	  OneDMicromagSetup::initial_M(time,x,M);
      
 	  // Assign solution
 	  for(unsigned i=0; i<3; i++)
@@ -329,6 +329,7 @@ int main()
 {
 
   // Set up the problem:
+
   unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
   OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element,
 						      OneDMicromagSetup::source_function,

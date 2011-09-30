@@ -55,6 +55,9 @@ namespace OneDMicromagSetup
 
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
+    H_cryst_anis[0] = 0.0;
+    H_cryst_anis[1] = 0.0;
+    H_cryst_anis[2] = 0.0;
   }
 
   void initial_M(const Vector<double>& x, Vector<double>& M)
@@ -64,6 +67,9 @@ namespace OneDMicromagSetup
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)
   {
+    H_applied[0] = 0.0;
+    H_applied[1] = 0.0;
+    H_applied[2] = 0.0;
   }
 
   double boundary_phi(const double& t, const Vector<double>& x)

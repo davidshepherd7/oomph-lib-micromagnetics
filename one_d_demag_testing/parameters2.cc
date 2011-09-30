@@ -1,4 +1,4 @@
-// parameters for the solution with M = x cos(omega*t)
+// parameters for the solution with M =[ x cos(omega*t), 0, 0 ]
 // 
 // See 27/11/11 (1) for details
 
@@ -23,10 +23,34 @@ namespace OneDMicromagSetup
   // double gamma = 0.221;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
 
+  void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
+  {
+    M[0] = x[0]*cos(omega*t);
+    M[1] = 0.0;
+    M[2] = 0.0;
+  }
+
+  double exact_phi_solution(const double& t, const Vector<double>& x)
+  {
+    return 2*Pi*cos(omega*t)*x[0]*x[0];
+  }
+
+  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
+  {
+    // Source function to exactly cancel out contributions from not being a real exact solution   
+    source[0] = -1*omega*x[0]*sin(omega*t);
+  }
+
+  // Derived quantities:
+  //==================================================
+
+
   // Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
   {
-    return x[0]*cos(omega*t);
+    Vector<double> M(3,0.0);
+    exact_M_solution(t,x,M);
+    return sqrt(M[0]*M[0] + M[1]*M[1] + M[2]*M[2]);
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
@@ -38,10 +62,7 @@ namespace OneDMicromagSetup
 
   void initial_M(const Vector<double>& x, Vector<double>& M)
   {
-    //??ds assumes initial t=0
-    M[0] = x[0]*cos(omega*0.0);
-    M[1] = 0.0;
-    M[2] = 0.0;
+    return exact_M_solution(t,x,M);
   }
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)
@@ -54,7 +75,7 @@ namespace OneDMicromagSetup
 
   double boundary_phi(const double& t, const Vector<double>& x)
   {
-    return x[0]*x[0]*2*Pi*cos(omega*t);
+    return exact_phi_solution(t,x);
   }
 
   
@@ -77,26 +98,6 @@ namespace OneDMicromagSetup
   double llg_precession_coeff(const Vector<double>& x)
   {
     return 1.0; ///(1+alpha*alpha); 
-  }
-
-  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
-  {
-    // Source function to exactly cancel out contributions from not being a real exact solution
-    
-    source[0] = -1*omega*x[0]*sin(omega*t);
-
-  }
-
-  void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
-  {
-    M[0] = x[0]*cos(omega*t);
-    M[1] = 0.0;
-    M[2] = 0.0;
-  }
-
-  double exact_phi_solution(const double& t, const Vector<double>& x)
-  {
-    return 2*Pi*cos(omega*t)*x[0]*x[0];
   }
 
 }; // End of namespace

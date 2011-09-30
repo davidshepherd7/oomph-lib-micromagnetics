@@ -1,6 +1,6 @@
-// parameters for the solution with [M = x cos(omega*t), (1-x) cos(omega*t), 0 ]
+// parameters for the solution with M = [ x cos(omega*t), (1-x) cos(omega*t), 0 ]
 // 
-// See 27/11/11 (2) for details
+// See 27/9/11 (2) for details
 
 using namespace std;
 using namespace MathematicalConstants;
@@ -43,9 +43,6 @@ namespace OneDMicromagSetup
     source[1] = p*(1-x[0]) + q*4*Pi*x[0]*cos(omega*t);
     source[2] = q;
 
-    // source[0] = 0.0;
-    // source[1] = q*4*Pi*x[0]*cos(omega*t);
-    // source[2] = q;
     
   }
 
@@ -61,6 +58,9 @@ namespace OneDMicromagSetup
 
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
+    H_cryst_anis[0] = 0.0;
+    H_cryst_anis[1] = 0.0;
+    H_cryst_anis[2] = 0.0;
   }
 
   void initial_M(const Vector<double>& x, Vector<double>& M)
@@ -70,6 +70,9 @@ namespace OneDMicromagSetup
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)
   {
+    H_applied[0] = 0.0;
+    H_applied[1] = 0.0;
+    H_applied[2] = 0.0;
   }
 
   double boundary_phi(const double& t, const Vector<double>& x)

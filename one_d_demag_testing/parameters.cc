@@ -1,4 +1,6 @@
+// parameters for the solution with M = cos(2*pi*x) [cos(omega*t), sin(omega*t), 0 ]
 
+// see 23/9/11 (1) for details
 using namespace std;
 using namespace MathematicalConstants;
 
@@ -19,28 +21,54 @@ namespace OneDMicromagSetup
   // double alpha = 0.5;   // Gibert damping constant
   // double gamma = 0.221;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
+
+  void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
+  {
+    double p = cos(2*Pi*x[0]);
+    
+    M[0] = p*cos(omega*t);
+    M[1] = p*sin(omega*t);
+    M[2] = 0.0;
+  }
+
+  double exact_phi_solution(const double& t, const Vector<double>& x)
+  {
+    return 2*sin(2*Pi*x[0])*cos(omega*t);
+  }
   
-  // Get the saturisation magnetisation at position x
+  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
+  {
+    // Source function to exactly cancel out contributions 
+    //??ds assumes llg constants are 1
+    double p = -4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
+
+    source[0] = (-omega*cos(omega*t)) + p*-cos(2*Pi*x[0])*sin(omega*t);
+    source[1] = (omega*sin(omega*t)) + p*-cos(2*Pi*x[0])*-cos(omega*t);
+    source[2] = p;
+  }
+
+
+  // Derived quantities:
+  //==================================================
+
+  //Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
   {
-    return cos(2*Pi*x[0]);
+    Vector<double> M(3,0.0);
+    exact_M_solution(t,x,M);
+    return sqrt(M[0]*M[0] + M[1]*M[1] + M[2]*M[2]);
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
-    H_cryst_anis[0] = 0;
-    
+    H_cryst_anis[0] = 0;    
     H_cryst_anis[1] = 0;
-
     H_cryst_anis[2] = 0;
   }
 
-  void initial_M(const Vector<double>& x, Vector<double>& M)
+  void initial_M(const double& t, const Vector<double>& x, Vector<double>& M)
   {
-    //??ds assumes initial t=0
-    M[0] = cos(2*Pi*x[0]);
-    M[1] = 0.0;
-    M[2] = 0.0;
+    return exact_M_solution(t,x,M);
   }
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)
@@ -53,7 +81,7 @@ namespace OneDMicromagSetup
 
   double boundary_phi(const double& t, const Vector<double>& x)
   {
-    return 2*sin(2*Pi*x[0])*cos(omega*t);
+    return exact_phi_solution(t,x);
   }
 
   
@@ -76,30 +104,6 @@ namespace OneDMicromagSetup
   double llg_precession_coeff(const Vector<double>& x)
   {
     return 1.0; ///(1+alpha*alpha); 
-  }
-
-  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
-  {
-    // Source function to exactly cancel out contributions 
-    double p = 4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
-
-    source[0] = p*llg_damping_coeff(t,x)*cos(2*Pi*x[0])*sin(omega*t);
-    source[1] = p*llg_damping_coeff(t,x)*-1*cos(2*Pi*x[0])*cos(omega*t);
-    source[2] = p*llg_precession_coeff(x);
-  }
-
-  void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
-  {
-    double p = cos(2*Pi*x[0]);
-    
-    M[0] = p*cos(omega*t);
-    M[1] = p*sin(omega*t);
-    M[2] = 0.0;
-  }
-
-  double exact_phi_solution(const double& t, const Vector<double>& x)
-  {
-    return 2*sin(2*Pi*x[0])*cos(omega*t);
   }
 
 }; // End of namespace
