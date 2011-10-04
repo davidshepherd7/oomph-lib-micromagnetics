@@ -40,11 +40,15 @@ namespace OneDMicromagSetup
   {
     // Source function to exactly cancel out contributions 
     //??ds assumes llg constants are 1
-    double p = -4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
+    // double p = -4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
 
-    source[0] = (-omega*cos(omega*t)) + p*-cos(2*Pi*x[0])*sin(omega*t);
-    source[1] = (omega*sin(omega*t)) + p*-cos(2*Pi*x[0])*-cos(omega*t);
-    source[2] = p;
+    // source[0] = (-omega*cos(omega*t)) + p*-cos(2*Pi*x[0])*sin(omega*t);
+    // source[1] = (omega*sin(omega*t)) + p*-cos(2*Pi*x[0])*-cos(omega*t);
+    // source[2] = p;
+
+    source[0] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t)*sin(t) - cos(2*Pi*x[0])*sin(t);
+    source[1] = cos(2*Pi*x[0])*cos(t) - 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*cos(t)*sin(t);
+    source[2] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t);
   }
 
 

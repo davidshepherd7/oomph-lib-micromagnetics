@@ -727,11 +727,15 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  get_exact_m(time,interpolated_x,exact_m);
 
 	  //??dsbad exact solutions for parameters1
+
+	  // use namespace with Pi in it, set x = interpolated_x
 	  using namespace MathematicalConstants;
 	  for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
-	  dmdt[0] = cos(2*Pi*interpolated_x[0])*-sin(time);
-	  dmdt[1] = cos(2*Pi*interpolated_x[0])*cos(time);
-	  exact_mxH[2] = -cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
+
+	  // Calculate values
+	  exact_dmdt[0] = cos(2*Pi*x[0])*-sin(time);
+	  exact_dmdt[1] = cos(2*Pi*x[0])*cos(time);
+	  exact_mxH[2] = cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
 	  double p = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(time)*sin(time);
 	  exact_mxmxH[0] = p*sin(time);
 	  exact_mxmxH[1] = p*-cos(time);
@@ -743,7 +747,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  char exactfilename[100];
 	  sprintf(exactfilename,"debug/exact%f.dat",time);
 	  exactfile.open(exactfilename,std::ios::app);
-	  exactfile << interpolated_x[0] << " " << time << " ";
+	  exactfile << x[0] << " " << time << " ";
 	  exactfile << exact_phi << " ";
 	  for(unsigned i=0; i<3; i++) {exactfile << exact_m[i] << " ";}
 	  for(unsigned i=0; i<3; i++) {exactfile << exact_H_total[i] << " ";}
