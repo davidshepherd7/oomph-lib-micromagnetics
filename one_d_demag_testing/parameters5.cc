@@ -1,6 +1,7 @@
-// parameters for the solution with M = cos(2*pi*x) [cos(omega*t), sin(omega*t), 0 ]
+// parameters for the solution with M constant in space: M = [ sin(omega*t), cos(omega*t), 0]
+// 
+// See 5/10/11 for details
 
-// see 23/9/11 (1) for details
 using namespace std;
 using namespace MathematicalConstants;
 
@@ -18,36 +19,27 @@ namespace OneDMicromagSetup
   // double alpha = 0.5;   // Gibert damping constant
   // double gamma = 0.221;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
-
+  double damping_const = 1;
+  double precession_const = 0;
+ 
   void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
   {
-    double p = cos(2*Pi*x[0]);
-    
-    M[0] = p*cos(omega*t);
-    M[1] = p*sin(omega*t);
+    M[0] = sin(omega*t);
+    M[1] = cos(omega*t);
     M[2] = 0.0;
   }
 
   double exact_phi_solution(const double& t, const Vector<double>& x)
   {
-    return 2*sin(2*Pi*x[0])*cos(omega*t);
+    return x[0];
   }
   
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
-    // Source function to exactly cancel out contributions 
-    //??ds assumes llg constants are 1
-    // double p = -4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
-
-    // source[0] = (-omega*cos(omega*t)) + p*-cos(2*Pi*x[0])*sin(omega*t);
-    // source[1] = (omega*sin(omega*t)) + p*-cos(2*Pi*x[0])*-cos(omega*t);
-    // source[2] = p;
-
-    source[0] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t)*sin(t) - cos(2*Pi*x[0])*sin(t);
-    source[1] = cos(2*Pi*x[0])*cos(t) - 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*cos(t)*sin(t);
-    source[2] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t);
+    source[0] = omega*cos(omega*t) + cos(omega*t)*cos(omega*t);
+    source[1] = -omega*sin(omega*t) - sin(omega*t)*cos(omega*t);
+    source[2] = cos(omega*t);
   }
-
 
   // Derived quantities:
   //==================================================
@@ -106,5 +98,6 @@ namespace OneDMicromagSetup
   {
     return 1.0; ///(1+alpha*alpha); 
   }
+
 
 }; // End of namespace

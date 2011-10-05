@@ -36,14 +36,17 @@ namespace OneDMicromagSetup
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
     // Source function to exactly cancel out contributions from not being a real exact solution
-    double p = -1*omega*sin(omega*t);
-    double q = 4*Pi*x[0]*(1-x[0])*cos(omega*t);
+    // double p = -1*omega*sin(omega*t);
+    // double q = 4*Pi*x[0]*(1-x[0])*cos(omega*t);
 
-    source[0] = p*x[0];
-    source[1] = p*(1-x[0]) + q*4*Pi*x[0]*cos(omega*t);
-    source[2] = q;
+    // source[0] = p*x[0];
+    // source[1] = p*(1-x[0]) + q*4*Pi*x[0]*cos(omega*t);
+    // source[2] = q;
 
-    
+    source[0] = 4*Pi*x[0]*cos(omega*t)*cos(omega*t)*cos(omega*t)*(x[0] - 1) - omega*x[0]*sin(omega*t);
+    source[1] = omega*sin(omega*t)*(x[0] - 1) + 4*Pi*x[0]*x[0]*cos(omega*t)*cos(omega*t)*cos(omega*t)*(x[0] - 1);
+    source[2] = -4*Pi*x[0]*cos(omega*t)*cos(omega*t)*(x[0] - 1);
+
   }
 
   ///////////////////////////////////////////////////////////////////////////////////

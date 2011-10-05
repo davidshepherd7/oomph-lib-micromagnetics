@@ -731,16 +731,32 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  // use namespace with Pi in it, set x = interpolated_x
 	  using namespace MathematicalConstants;
 	  for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
+	  double omega =1; //??dsbad - careful, no idea where omega is jsut set to one anyway...
 
-	  // Calculate values
-	  exact_dmdt[0] = cos(2*Pi*x[0])*-sin(time);
-	  exact_dmdt[1] = cos(2*Pi*x[0])*cos(time);
-	  exact_mxH[2] = cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
-	  double p = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(time)*sin(time);
-	  exact_mxmxH[0] = p*sin(time);
-	  exact_mxmxH[1] = p*-cos(time);
-	  exact_H_total[0] = -4*Pi*cos(2*Pi*x[0])*cos(time);
+	  // // Calculate exact values - parameters1
+	  // exact_dmdt[0] = cos(2*Pi*x[0])*-sin(time);
+	  // exact_dmdt[1] = cos(2*Pi*x[0])*cos(time);
+	  // exact_mxH[2] = cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
+	  // double p = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(time)*sin(time);
+	  // exact_mxmxH[0] = p*sin(time);
+	  // exact_mxmxH[1] = p*-cos(time);
+	  // exact_H_total[0] = -4*Pi*cos(2*Pi*x[0])*cos(time);
 
+	  // Calculate exact values - parameters3
+	  // exact_dmdt[0] = -omega*x[0]*sin(omega*time);
+	  // exact_dmdt[1] = omega*sin(omega*time)*(x[0] - 1);
+	  // exact_mxH[2] = -4*Pi*x[0]*cos(omega*time);
+	  // exact_mxmxH[0] = 4*Pi*x[0]*cos(omega*time)*cos(omega*time)*cos(omega*time)*(x[0] - 1)*(x[0] - 1);
+	  // exact_mxmxH[1] = 4*Pi*x[0]*x[0]*cos(omega*time)*cos(omega*time)*cos(omega*time)*(x[0] - 1);
+	  // exact_H_total[0] = -4*Pi*x[0]*cos(omega*time);
+
+	  // Calculate exact values - parameters5
+	  exact_dmdt[0] = omega*cos(omega*time);
+	  exact_dmdt[1] = -omega*sin(omega*time);
+	  exact_mxH[2] = cos(omega*time);
+	  exact_mxmxH[0] = cos(omega*time)*cos(omega*time);
+	  exact_mxmxH[1] = -cos(omega*time)*sin(omega*time);
+	  exact_H_total[0] = -1;
 	  
 
 	  std::ofstream exactfile;
