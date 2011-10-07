@@ -16,12 +16,19 @@ namespace OneDMicromagSetup
   // Number of elements
   double n_x_elements = 40;
 
-  // double alpha = 0.5;   // Gibert damping constant
-  // double gamma = 0.221;   // Electromagnetic ratio
+  double alpha = 0.7;   // Gibert damping constant
+  double gamma = 0.221E-8;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
-  double damping_const = 1;
-  double precession_const = 0;
- 
+
+  // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
+  //??ds ifdef error checking then check ms is nonzero?
+  double llg_damping_coeff(const double& t, const Vector<double>& x)    
+  {return (1/(1+alpha*alpha))*(alpha*gamma/1.0);}
+
+  // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
+  double llg_precession_coeff(const Vector<double>& x)
+  {return (1+alpha*alpha);}
+
   void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
   {
     M[0] = sin(omega*t);
@@ -83,21 +90,5 @@ namespace OneDMicromagSetup
     // Just set to zero unless needed for testing
     source = 0.0;
   }
-
-  // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
-  double llg_damping_coeff(const double& t, const Vector<double>& x)
-  {   
-    //??ds ifdef error checking then check ms is nonzero
-    //    return (1/(1+alpha*alpha)) * (gamma/sat_mag(t,x));
-    // return (1/(1+alpha*alpha)) * (gamma);
-    return 1.0;
-  }
-
-  // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
-  double llg_precession_coeff(const Vector<double>& x)
-  {
-    return 1.0; ///(1+alpha*alpha); 
-  }
-
 
 }; // End of namespace

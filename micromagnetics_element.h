@@ -615,8 +615,8 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       //----------------------------------------------------
      
       // Get source function   
-      double source;
-      get_source_poisson(time,ipt,interpolated_x,source);
+      double poisson_source = 0;
+      get_source_poisson(time,ipt,interpolated_x,poisson_source);
 
       // Loop over the test functions
       for(unsigned l=0;l<n_node;l++)
@@ -627,14 +627,21 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	  if(phi_local_eqn >= 0)	  // If it's not a boundary condition:
 	    {
-	      // Add source term and 4*pi*divergence(M) 
-	      residuals[phi_local_eqn] += (4.0*MathematicalConstants::Pi*div_m)*test(l)*W;
+	      // Add source term 
+	      //residuals[phi_local_eqn] -= poisson_source*test(l)*W; //??ds not sure on sign
 
-	      // The Poisson bit
+	      // standard residuals term - not "integrated by parts"
+	      residuals[phi_local_eqn] -= 4.0*MathematicalConstants::Pi*div_m;
+
+	      // The Poisson and divergence of M bits (after reducing the order of differentiation using integration by parts)
 	      for(unsigned k=0;k<DIM;k++)
 		{
-		  residuals[phi_local_eqn] += interpolated_dphidx[k]*dtestdx(l,k)*W;
+		  residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
+
+		  //residuals[phi_local_eqn] += 4.0*MathematicalConstants::Pi
+		  //*interpolated_m[k]*dtestdx(l,k)*W; // this rearrangement switches the sign, requires M_x = 0 at 0 and 1.
 		}
+	      
 
 	      // ??ds add in jacobian calculation eventually
 
@@ -705,33 +712,33 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    } // End of loop over test functions
      
 
-	  //??dsbad mass output for debugging
-	  std::ofstream debugfile;
-	  char debugfilename[100];
-	  sprintf(debugfilename,"debug/debug%f.dat",time);
-	  debugfile.open(debugfilename,std::ios::app);
-	  debugfile << interpolated_x[0] << " " << time << " ";
-	  debugfile << interpolated_phi << " ";
-	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_m[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {debugfile << H_total[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxH[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxmxH[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {debugfile << interpolated_dmdt[i] << " ";}
-	  debugfile << std::endl;
-	  debugfile.close();
+	  // //??dsbad mass output for debugging
+	  // std::ofstream debugfile;
+	  // char debugfilename[100];
+	  // sprintf(debugfilename,"debug/debug%f.dat",time);
+	  // debugfile.open(debugfilename,std::ios::app);
+	  // debugfile << interpolated_x[0] << " " << time << " ";
+	  // debugfile << interpolated_phi << " ";
+	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_m[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {debugfile << H_total[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxH[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxmxH[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_dmdt[i] << " ";}
+	  // debugfile << std::endl;
+	  // debugfile.close();
 
 
-	  Vector<double> exact_m(3,0.0), exact_H_total(3,0.0), exact_mxH(3,0.0);
-	  Vector<double> exact_mxmxH(3,0.0), exact_dmdt(3,0.0), x(3,0.0);
-	  double exact_phi = get_exact_phi(time,interpolated_x);
-	  get_exact_m(time,interpolated_x,exact_m);
+	  // Vector<double> exact_m(3,0.0), exact_H_total(3,0.0), exact_mxH(3,0.0);
+	  // Vector<double> exact_mxmxH(3,0.0), exact_dmdt(3,0.0), x(3,0.0);
+	  // double exact_phi = get_exact_phi(time,interpolated_x);
+	  // get_exact_m(time,interpolated_x,exact_m);
 
-	  //??dsbad exact solutions for parameters1
+	  // //??dsbad exact solutions for parameters1
 
-	  // use namespace with Pi in it, set x = interpolated_x
-	  using namespace MathematicalConstants;
-	  for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
-	  double omega =1; //??dsbad - careful, no idea where omega is jsut set to one anyway...
+	  // // use namespace with Pi in it, set x = interpolated_x
+	  // using namespace MathematicalConstants;
+	  // for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
+	  // double omega =1; //??dsbad - careful, no idea where omega is jsut set to one anyway...
 
 	  // // Calculate exact values - parameters1
 	  // exact_dmdt[0] = cos(2*Pi*x[0])*-sin(time);
@@ -750,28 +757,28 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	  // exact_mxmxH[1] = 4*Pi*x[0]*x[0]*cos(omega*time)*cos(omega*time)*cos(omega*time)*(x[0] - 1);
 	  // exact_H_total[0] = -4*Pi*x[0]*cos(omega*time);
 
-	  // Calculate exact values - parameters5
-	  exact_dmdt[0] = omega*cos(omega*time);
-	  exact_dmdt[1] = -omega*sin(omega*time);
-	  exact_mxH[2] = cos(omega*time);
-	  exact_mxmxH[0] = cos(omega*time)*cos(omega*time);
-	  exact_mxmxH[1] = -cos(omega*time)*sin(omega*time);
-	  exact_H_total[0] = -1;
+	  // // Calculate exact values - parameters5
+	  // exact_dmdt[0] = omega*cos(omega*time);
+	  // exact_dmdt[1] = -omega*sin(omega*time);
+	  // exact_mxH[2] = cos(omega*time);
+	  // exact_mxmxH[0] = cos(omega*time)*cos(omega*time);
+	  // exact_mxmxH[1] = -cos(omega*time)*sin(omega*time);
+	  // exact_H_total[0] = -1;
 	  
 
-	  std::ofstream exactfile;
-	  char exactfilename[100];
-	  sprintf(exactfilename,"debug/exact%f.dat",time);
-	  exactfile.open(exactfilename,std::ios::app);
-	  exactfile << x[0] << " " << time << " ";
-	  exactfile << exact_phi << " ";
-	  for(unsigned i=0; i<3; i++) {exactfile << exact_m[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {exactfile << exact_H_total[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {exactfile << exact_mxH[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {exactfile << exact_mxmxH[i] << " ";}
-	  for(unsigned i=0; i<3; i++) {exactfile << exact_dmdt[i] << " ";}
-	  exactfile << std::endl;
-	  exactfile.close();
+	  // std::ofstream exactfile;
+	  // char exactfilename[100];
+	  // sprintf(exactfilename,"debug/exact%f.dat",time);
+	  // exactfile.open(exactfilename,std::ios::app);
+	  // exactfile << x[0] << " " << time << " ";
+	  // exactfile << exact_phi << " ";
+	  // for(unsigned i=0; i<3; i++) {exactfile << exact_m[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {exactfile << exact_H_total[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {exactfile << exact_mxH[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {exactfile << exact_mxmxH[i] << " ";}
+	  // for(unsigned i=0; i<3; i++) {exactfile << exact_dmdt[i] << " ";}
+	  // exactfile << std::endl;
+	  // exactfile.close();
 
     }// End of loop over integration points
 } // End of fill in residuals function 

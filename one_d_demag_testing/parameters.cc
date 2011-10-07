@@ -1,6 +1,5 @@
-// parameters for the solution with M = cos(2*pi*x) [cos(omega*t), sin(omega*t), 0 ]
+// parameters for the solution M_x = 1
 
-// see 23/9/11 (1) for details
 using namespace std;
 using namespace MathematicalConstants;
 
@@ -9,15 +8,27 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
 
   // Time stepping parameters
-  double t_max = 5;
+  double t_max = 3;
   double dt = 0.05;
 
   // Number of elements
-  double n_x_elements = 40;
+  double n_x_elements = 41;
 
-  // double alpha = 0.5;   // Gibert damping constant
-  // double gamma = 0.221;   // Electromagnetic ratio
+  double alpha = 0.7;   // Gibert damping constant
+  double gamma = 0.221E-8;   // Electromagnetic ratio
   double omega = 1; // Time parameter in solution
+
+  // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
+  //??ds ifdef error checking then check ms is nonzero?
+  //??ds just set sat_mag = 1 for now since coeffs shouldn't matter at this point
+  double llg_damping_coeff(const double& t, const Vector<double>& x)    
+  {return 1.0; //(1/(1+alpha*alpha))*(alpha*gamma/1.0);
+  }
+
+  // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
+  double llg_precession_coeff(const Vector<double>& x)
+  {return 1.0; //(1+alpha*alpha);
+  }
 
   void exact_M_solution(const double& t, const Vector<double>& x, Vector<double>& M)
   {
@@ -35,16 +46,12 @@ namespace OneDMicromagSetup
   
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
-    // Source function to exactly cancel out contributions 
-    //??ds assumes llg constants are 1
-    // double p = -4*Pi*cos(2*Pi*x[0])*sin(omega*t)*cos(omega*t);
+    // Source function to exactly cancel out contributions from solution not being a real solution
 
-    // source[0] = (-omega*cos(omega*t)) + p*-cos(2*Pi*x[0])*sin(omega*t);
-    // source[1] = (omega*sin(omega*t)) + p*-cos(2*Pi*x[0])*-cos(omega*t);
-    // source[2] = p;
-
-    source[0] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t)*sin(t) - cos(2*Pi*x[0])*sin(t);
-    source[1] = cos(2*Pi*x[0])*cos(t) - 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*cos(t)*sin(t);
+    source[0] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t)*sin(t) 
+      - cos(2*Pi*x[0])*sin(t);
+    source[1] = cos(2*Pi*x[0])*cos(t) 
+      - 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*cos(t)*sin(t);
     source[2] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t);
   }
 
@@ -90,21 +97,6 @@ namespace OneDMicromagSetup
   {
     // Just set to zero unless needed for testing
     source = 0.0;
-  }
-
-  // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
-  double llg_damping_coeff(const double& t, const Vector<double>& x)
-  {   
-    //??ds ifdef error checking then check ms is nonzero
-    //    return (1/(1+alpha*alpha)) * (gamma/sat_mag(t,x));
-    // return (1/(1+alpha*alpha)) * (gamma);
-    return 1.0;
-  }
-
-  // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
-  double llg_precession_coeff(const Vector<double>& x)
-  {
-    return 1.0; ///(1+alpha*alpha); 
   }
 
 }; // End of namespace

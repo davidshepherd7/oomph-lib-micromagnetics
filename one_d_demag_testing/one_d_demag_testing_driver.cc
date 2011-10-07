@@ -1,6 +1,6 @@
 
 # include "../micromagnetics_element.h"
-# include "./parameters.cc"
+# include "./parameters7.cc"
 
 using namespace std;
 
@@ -288,7 +288,7 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
   // Number of plot points
   unsigned npts;
-  npts=5; 
+  npts=2; 
 
   cout << std::endl;
   cout << "=================================================" << std::endl;
