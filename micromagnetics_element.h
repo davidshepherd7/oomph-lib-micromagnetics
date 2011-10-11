@@ -5,9 +5,6 @@
 // Generic oomph-lib routines
 #include "generic.h"
 
-// Include mesh
-#include "meshes/one_d_mesh.h"
-
 //??dsbad
 #include <iostream>
 #include <fstream>
@@ -26,7 +23,7 @@ public:
 
   // CONSTRUCTORS ETC.
   /// Constructor (must initialise the various function pointers to null), sets flag to not use ALE formulation of equations ??ds change to use ALE once I understand it
-  MicromagEquations() : Source_fct_pt(0), Llg_source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), Sat_mag_fct_pt(0), Llg_damp_fct_pt(0), Llg_precess_fct_pt(0), Exact_m_fct_pt(0), Exact_phi_fct_pt(0), ALE_is_disabled(true) {}
+  MicromagEquations() : Source_fct_pt(0), Llg_source_fct_pt(0), Applied_field_fct_pt(0), Cryst_anis_field_fct_pt(0), Sat_mag_fct_pt(0), Llg_damp_fct_pt(0), Llg_precess_fct_pt(0), Exchange_coeff_fct_pt(0), Exact_m_fct_pt(0), Exact_phi_fct_pt(0), ALE_is_disabled(true) {}
  
   /// Broken copy constructor
   MicromagEquations(const MicromagEquations& dummy) 
@@ -45,11 +42,10 @@ public:
 
 
   // SET PARAMETERS  
-  // Specify nodal index of value of phi
-  unsigned phi_index_micromag() const {return 0;}
-
-  // Specify nodal index of nth component of M
-  unsigned M_index_micromag(const unsigned &n) const {return 1 + n;}
+  // Specify nodal index of value of phi, kth component of M and kth component of H_ex
+  unsigned phi_index_micromag() const {return 0;} // equation 0
+  unsigned M_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
+  unsigned exchange_index_micromag(const unsigned &k) const {return 4 + k;} // equation 4,5,6 
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
@@ -147,7 +143,7 @@ public:
   }
   
   // EFFECTIVE ANISOTROPY FIELD
-  /// Function pointer to crystalline anisotropy field function
+  /// Function pointer to the effective crystalline anisotropy field function
   typedef void (*CrystAnisFieldFctPt)(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis);
 
   /// Access function: Pointer to crystalline anisotropy field function
@@ -181,7 +177,7 @@ public:
   /// Get saturisation magnetisation at eulerian postition x.
   inline virtual double get_sat_mag(const double& t, const Vector<double>& x) const
   {
-    //If no source function has been set, return one
+    //If no saturisation magnetisation function has been set, return one
     if(Sat_mag_fct_pt==0) {return 1.0;}
     else
       {
@@ -234,6 +230,29 @@ public:
       }
   } 
 
+  // EXCHANGE COEFF FUNCTION POINTER
+  /// Function pointer to exchange coefficient function fct(x)
+  typedef double (*ExchangeCoeffFctPt)(const double& t, const Vector<double>& x);
+
+  /// Access function: Pointer to exchange coefficient function
+  ExchangeCoeffFctPt& exchange_coeff_fct_pt() {return Exchange_coeff_fct_pt;}
+
+  /// Access function: Pointer to exchange coefficient function. Const version
+  ExchangeCoeffFctPt exchange_coeff_fct_pt() const {return Exchange_coeff_fct_pt;}
+
+  /// Get exchange coefficient at eulerian postition x.
+  inline virtual double get_exchange_coeff(const double& t, const Vector<double>& x) const
+  {
+    // If no exchange coeff function has been set, return zero (to retain backwards 
+    // compatability with parameter sets that don't use exchange)
+    if(Exchange_coeff_fct_pt==0) {return 0.0;}
+    else
+      {
+	// Otherwise get the exchange coefficient at position x
+	return (*Exchange_coeff_fct_pt)(t,x);
+      }
+  } 
+
   // EXACT PHI FUNCTION POINTER
   /// Function pointer to exact phi function fct(x)
   typedef double (*ExactPhiFctPt)(const double& t, const Vector<double>& x);
@@ -247,8 +266,8 @@ public:
   /// Get exact phi at eulerian postition x.
   inline virtual double get_exact_phi(const double& t, const Vector<double>& x) const
   {
-    //If no exact phi function has been set, return something crazy
-    if(Exact_phi_fct_pt==0) {return -1000.0;}
+    // If no exact phi function has been set, return something crazy
+    if(Exact_phi_fct_pt==0) {return -1000.0;} //??ds and give a warning? #ifdef...
     else
       {
 	// Otherwise get the exact phi at position x
@@ -269,8 +288,8 @@ public:
   /// Get exact M at eulerian postition x.
   inline virtual void get_exact_m(const double& t, const Vector<double>& x, Vector<double>& M_exact) const
   {
-    //If exact M function has been set, return something crazy
-    if(Exact_m_fct_pt==0) {for(unsigned j=0;j<3;j++) M_exact[j] = -1000.0;}
+    //If no exact M function has been set, return something crazy
+    if(Exact_m_fct_pt==0) {for(unsigned j=0;j<3;j++) M_exact[j] = -1000.0;} //??ds and give a warning? #ifdef...
     else
       {
 	// Otherwise get exact M coefficient at position x
@@ -501,6 +520,9 @@ protected:
   /// Pointer to function giving LLG precession coefficient
   LlgPrecessFctPt Llg_precess_fct_pt;
 
+  /// Pointer to function giving exchange coefficitent
+  ExchangeCoeffFctPt Exchange_coeff_fct_pt;
+
   /// Pointer to the exact solution for M
   ExactMFctPt Exact_m_fct_pt;
 
@@ -630,16 +652,17 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	      // Add source term 
 	      //residuals[phi_local_eqn] -= poisson_source*test(l)*W; //??ds not sure on sign
 
-	      // standard residuals term - not "integrated by parts"
-	      residuals[phi_local_eqn] -= 4.0*MathematicalConstants::Pi*div_m;
+	      // standard residuals term (not "integrated by parts")
+	      //residuals[phi_local_eqn] -= 4.0*MathematicalConstants::Pi*div_m;
 
 	      // The Poisson and divergence of M bits (after reducing the order of differentiation using integration by parts)
 	      for(unsigned k=0;k<DIM;k++)
 		{
 		  residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
 
-		  //residuals[phi_local_eqn] += 4.0*MathematicalConstants::Pi
-		  //*interpolated_m[k]*dtestdx(l,k)*W; // this rearrangement switches the sign, requires M_x = 0 at 0 and 1.
+		  // this rearrangement using "integration by parts" switches the sign, requires M_x = 0 at 0 and 1.
+		  residuals[phi_local_eqn] += 4.0*MathematicalConstants::Pi
+		    *interpolated_m[k]*dtestdx(l,k)*W; 
 		}
 	      
 
@@ -647,69 +670,102 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	    }
 
-	} // End of Poisson section
+	} // End of Poisson section]
+
+
+      // Exchange field section
+      //----------------------------------------------------
+      // H_ex = coeff * laplacian(M)
+      // Weak form: int( H_ex_i - coeff* grad(M).grad(test) ) = 0 
+      // ??ds only when grad(M).n = 0 at boundaries, otherwise need another term!
+
+      Vector<double> H_exchange(3,0.0);
+      double exchange_coeff = get_exchange_coeff(time, interpolated_x);
+
+      for (unsigned l=0; l<n_node; l++)
+      	{
+      	  // loop over field/magnetisation directions
+      	  for(unsigned k=0; k<3; k++)
+      	    {
+      	      // Get the local equation number for the kth componenet of H_ex
+      	      double exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(k));
+
+      	      if(exchange_local_eqn >= 0)  // If it's not a boundary condition
+      	      	{ //??ds not finished here
+      	      	  residuals[exchange_local_eqn] += H_exchange[k]*test(l)*W;
+
+		  // add coeff * grad(M_k) * grad(test) (then *weight, as always)
+		  // we only loop over DIM directions since derrivatives are automatically zero in non-spatial directions.
+		  for(unsigned i=0; i<DIM; i++)
+		    {
+			residuals[exchange_local_eqn] +=
+			  exchange_coeff * (interpolated_m[i]*dpsidx(l,i)) * dtestdx(l,i) * W;
+		      }
+	      //??ds put in jacobian calculation eventually
+		}
+	    }
+	} // End of loop over test functions
+      
 
 
       // LLG section (time evolution of magnetisation)
       //----------------------------------------------------
 
-      // If saturisation magnetisation is non-zero (i.e. if the point we are integrating at is magnetic) then calculate all the LLG equation stuff, otherwise don't bother
-      //??ds No boundary conditions on M, for now... could there be?
+      //??ds No boundary conditions on M, for now...
 
-	  // Get applied field at this position
-	  // get_applied_field(time, interpolated_x, H_applied);
+      // Get applied field at this position
+      // get_applied_field(time, interpolated_x, H_applied);
       
-	  // Get crystalline anisotropy effective field
-	  // get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
+      // Get crystalline anisotropy effective field
+      // get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
 
-	  // Get LLG source function
-	  Vector<double> llg_source(3,0.0);
-	  get_source_llg(time, interpolated_x, llg_source);
+      // Get LLG source function
+      Vector<double> llg_source(3,0.0);
+      get_source_llg(time, interpolated_x, llg_source);
 
-	  //(-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field: H_demag = - grad(phi))
-	  Vector<double> H_magnetostatic(3,0.0);
-	  for(unsigned j=0; j<DIM; j++)
-	    {
-	      H_magnetostatic[j] = -1*interpolated_dphidx[j];
-	    }
+      //(-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field: H_demag = - grad(phi))
+      Vector<double> H_magnetostatic(3,0.0);
+      for(unsigned j=0; j<DIM; j++)
+	{
+	  H_magnetostatic[j] = -1*interpolated_dphidx[j];
+	}
 
-       
-	  // Take total of all fields used
-	  // ??ds pass this entire section out to a function eventually if possible?
-	  // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
-	  for(unsigned j=0; j<3; j++)
-	    { 
-	      H_total[j] = H_applied[j] + H_magnetostatic[j]; //+ H_cryst_anis[j]
-	    }
+      // Take total of all fields used
+      // ??ds pass this entire section out to a function eventually if possible?
+      // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
+      for(unsigned j=0; j<3; j++)
+	{ 
+	  H_total[j] = H_applied[j] + H_magnetostatic[j] + H_exchange[j] + H_cryst_anis[j];
+	}
             
-	  // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
-	  llg_damping_coeff = get_llg_damp(time, interpolated_x);
-	  llg_precession_coeff = get_llg_precess(interpolated_x);
+      // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
+      llg_damping_coeff = get_llg_damp(time, interpolated_x);
+      llg_precession_coeff = get_llg_precess(interpolated_x);
       
-	  // Get the cross products for the LLG equation
-	  cross(interpolated_m, H_total, interpolated_mxH);
-	  cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);    
+      // Get the cross products for the LLG equation
+      cross(interpolated_m, H_total, interpolated_mxH);
+      cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);    
 
-	  for (unsigned l=0; l<n_node; l++)
-	    {
+      for (unsigned l=0; l<n_node; l++)
+	{
 	
-	      // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
-	      // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] - llg_source = 0
+	  // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
+	  // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] - llg_source = 0
 
-	      // loop over M directions
-	      for(unsigned k=0; k<3; k++)
+	  // loop over M directions
+	  for(unsigned k=0; k<3; k++)
+	    {
+	      // Get the local equation number for the kth component of M part
+	      M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
+
+	      if(M_local_eqn >= 0)  // If it's not a boundary condition
 		{
-		  // Get the local equation number for the M_x part
-		  M_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
-
-		  if(M_local_eqn >= 0)  // If it's not a boundary condition
-		    {
-		      residuals[M_local_eqn] += ( interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] - llg_source[k] )*test(l)*W;
-		    }
-		  //??ds put in jacobian calculation eventually
-
+		  residuals[M_local_eqn] += ( interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] - llg_source[k] )*test(l)*W;
 		}
-	    } // End of loop over test functions
+	      //??ds put in jacobian calculation eventually
+
+	    }
+	} // End of loop over test functions
      
 
 	  // //??dsbad mass output for debugging

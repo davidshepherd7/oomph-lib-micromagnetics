@@ -1,6 +1,9 @@
 
 # include "../micromagnetics_element.h"
-# include "./parameters7.cc"
+
+# include "meshes/one_d_mesh.h"
+
+# include "./parameters4.cc"
 
 using namespace std;
 
@@ -78,9 +81,9 @@ public:
 
 }; // end of problem class
 
-/// Set number of values stored at each node (4: phi, M_x, M_y, M_z)
+/// Set number of values stored at each node (7: phi, 3 M's, 3 H_ex's)
 template<unsigned DIM, unsigned NNODE_1D>
-const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
+const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 
 
 
@@ -120,7 +123,7 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
 
-  // Loop over elements to set pointers to source function, applied field and time
+  // Loop over elements to set pointers to source function everything
   for(unsigned i=0;i<n_element;i++)
     {
       // Upcast from GeneralisedElement to the present element
@@ -249,16 +252,17 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  // Get initial value of M
 	  Vector<double> initial_M(3,0.0);
 	  OneDMicromagSetup::exact_M_solution(time,x,initial_M);
-
-	  // Get initial value of phi
-	  double phi = OneDMicromagSetup::exact_phi_solution(time,x);
      
-	  // Assign solution
-	  for(unsigned i=0; i<3; i++)
+	  // Assign solution of M
+	  for(unsigned k=0; k<3; k++)
 	    {
-	      // Set ith direction of M on node n at time t to be M[i]
-	      mesh_pt()->node_pt(n)->set_value(t,elem_pt->M_index_micromag(i),initial_M[i]);
+	      // Set the t'th history value of the ith direction of M 
+	      // on node n to be initial_M[k].
+	      mesh_pt()->node_pt(n)->set_value(time,elem_pt->M_index_micromag(k),initial_M[k]);
 	    }
+
+	  // Get initial value of phi and assign solution
+	  double phi = OneDMicromagSetup::exact_phi_solution(t,x);
 	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
 	      
 	  // Loop over coordinate directions: Mesh doesn't move, so previous position = present position
@@ -411,7 +415,7 @@ int main()
    
       // Take timestep
       problem.unsteady_newton_solve(dt);
-   
+      
       //Output solution
       problem.doc_solution(doc_info,trace_file);
    
