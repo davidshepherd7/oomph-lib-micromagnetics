@@ -243,9 +243,9 @@ public:
   /// Get exchange coefficient at eulerian postition x.
   inline virtual double get_exchange_coeff(const double& t, const Vector<double>& x) const
   {
-    // If no exchange coeff function has been set, return zero (to retain backwards 
-    // compatability with parameter sets that don't use exchange)
-    if(Exchange_coeff_fct_pt==0) {return 0.0;}
+    // If no exchange coeff function has been set, return 1.
+    // (If exchange field is not being used you need to pin it's values)
+    if(Exchange_coeff_fct_pt==0) {return 1.0;}
     else
       {
 	// Otherwise get the exchange coefficient at position x

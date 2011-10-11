@@ -118,10 +118,17 @@ OneDMicromagProblem<ELEMENT>::OneDMicromagProblem(const unsigned& n_element,
   cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
 
 
-  // Set up the boundary conditions for this problem: pin the nodes at either end
+  // Set up the boundary conditions for this problem: pin the poisson parts of the nodes at either end
   mesh_pt()->boundary_node_pt(0,0)->pin(0);
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
+  // Pin the exchange field at all points since we do not want to use it in this test.
+  for(unsigned i=0; i<mesh_pt()->nnode(); i++)
+    {
+      mesh_pt()->node_pt(i)->pin(4);
+      mesh_pt()->node_pt(i)->pin(5);
+      mesh_pt()->node_pt(i)->pin(6);
+    }
 
   // Loop over elements to set pointers to source function everything
   for(unsigned i=0;i<n_element;i++)
