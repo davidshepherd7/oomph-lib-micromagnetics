@@ -8,11 +8,11 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
 
   // Time stepping parameters
-  double t_max = 3;
+  double t_max = 2;
   double dt = 0.05;
 
   // Number of elements
-  double n_x_elements = 41;
+  double n_x_elements = 80;
 
   double alpha = 0.7;   // Gibert damping constant
   double gamma = 0.221E-8;   // Electromagnetic ratio

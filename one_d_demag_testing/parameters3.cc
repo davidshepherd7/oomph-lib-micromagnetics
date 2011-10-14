@@ -76,9 +76,9 @@ namespace OneDMicromagSetup
     H_cryst_anis[2] = 0.0;
   }
 
-  void initial_M(const Vector<double>& x, Vector<double>& M)
+  void initial_M(const double& t, const Vector<double>& x, Vector<double>& M)
   {
-    exact_M_solution(0.0,x,M);
+    exact_M_solution(t,x,M);
   }
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_applied)

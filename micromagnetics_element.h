@@ -465,9 +465,9 @@ public:
   // }
 
   // Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
-  void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) ;
+  void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag);
 
-  /// Get dM/dt at local node n (using timestepper and history values).
+  /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
   void dm_dt_micromag(const unsigned &n, Vector<double>& dmdt) const
   {
     // Get the data's timestepper
@@ -603,6 +603,8 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       Vector<double> H_total(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
       Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
       Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
+      Vector<double> interpolated_H_exchange(3,0.0);
+
    
       //Calculate function value and derivatives:
       //-----------------------------------------
@@ -620,6 +622,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 	    {
 	      interpolated_dmdt[j] += dmdt[j]*psi(l);
 	      interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
+	      interpolated_H_exchange[j] +=nodal_value(l,exchange_index_micromag(j))*psi(l);
 	    }
 
 	  // Loop over spatial directions
@@ -654,15 +657,17 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	      // standard residuals term (not "integrated by parts")
 	      //residuals[phi_local_eqn] -= 4.0*MathematicalConstants::Pi*div_m;
-
+	      
 	      // The Poisson and divergence of M bits (after reducing the order of differentiation using integration by parts)
 	      for(unsigned k=0;k<DIM;k++)
 		{
 		  residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
-
-		  // this rearrangement using "integration by parts" switches the sign, requires M_x = 0 at 0 and 1.
+		  
+		  // this rearrangement using "integration by parts" switches the sign, 
+		  // requires M_x = 0 at 0 and 1.
 		  residuals[phi_local_eqn] += 4.0*MathematicalConstants::Pi
 		    *interpolated_m[k]*dtestdx(l,k)*W; 
+		  
 		}
 	      
 
@@ -678,8 +683,6 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       // H_ex = coeff * laplacian(M)
       // Weak form: int( H_ex_i - coeff* grad(M).grad(test) ) = 0 
       // ??ds only when grad(M).n = 0 at boundaries, otherwise need another term!
-
-      Vector<double> H_exchange(3,0.0);
       double exchange_coeff = get_exchange_coeff(time, interpolated_x);
 
       for (unsigned l=0; l<n_node; l++)
@@ -687,26 +690,26 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       	  // loop over field/magnetisation directions
       	  for(unsigned k=0; k<3; k++)
       	    {
-      	      // Get the local equation number for the kth componenet of H_ex
-      	      double exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(k));
+      	      // Get the local equation number for the kth componenet of H_ex on node l
+      	      int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(k));
+	      //std::cout << exchange_index_micromag(k) << " ele = "  << std::endl;
 
       	      if(exchange_local_eqn >= 0)  // If it's not a boundary condition
-      	      	{ //??ds not finished here
-      	      	  residuals[exchange_local_eqn] += H_exchange[k]*test(l)*W;
+      	      	{
+      	      	  residuals[exchange_local_eqn] += interpolated_H_exchange[k]*test(l)*W;
 
-		  // add coeff * grad(M_k) * grad(test) (then *weight, as always)
-		  // we only loop over DIM directions since derrivatives are automatically zero in non-spatial directions.
-		  for(unsigned i=0; i<DIM; i++)
-		    {
-			residuals[exchange_local_eqn] +=
-			  exchange_coeff * (interpolated_m[i]*dpsidx(l,i)) * dtestdx(l,i) * W;
-		      }
-	      //??ds put in jacobian calculation eventually
-		}
-	    }
-	} // End of loop over test functions
+      		  // add coeff * grad(M_k) * grad(test) (then *weight, as always)
+      		  // we only loop over DIM directions since derrivatives are automatically zero in non-spatial directions.
+      		  for(unsigned i=0; i<DIM; i++)
+      		    {
+      			residuals[exchange_local_eqn] +=
+      			  exchange_coeff * (interpolated_m[k]*dpsidx(l,i)) * dtestdx(l,i) * W;
+      		    }
+      		  //??ds put in jacobian calculation eventually
+      		}
+      	    }
+      	} // End of loop over test functions
       
-
 
       // LLG section (time evolution of magnetisation)
       //----------------------------------------------------
@@ -735,7 +738,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
       // ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
       for(unsigned j=0; j<3; j++)
 	{ 
-	  H_total[j] = H_applied[j] + H_magnetostatic[j] + H_exchange[j] + H_cryst_anis[j];
+	  H_total[j] = H_applied[j] + H_magnetostatic[j] + interpolated_H_exchange[j] + H_cryst_anis[j];
 	}
             
       // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
@@ -760,81 +763,17 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 
 	      if(M_local_eqn >= 0)  // If it's not a boundary condition
 		{
-		  residuals[M_local_eqn] += ( interpolated_dmdt[k] + llg_precession_coeff*interpolated_mxH[k] + llg_damping_coeff*interpolated_mxmxH[k] - llg_source[k] )*test(l)*W;
+		  residuals[M_local_eqn] += 
+		    ( interpolated_dmdt[k] 
+		      + llg_precession_coeff*interpolated_mxH[k] 
+		      + llg_damping_coeff*interpolated_mxmxH[k] 
+		      - llg_source[k] 
+		      )*test(l)*W;
 		}
 	      //??ds put in jacobian calculation eventually
 
 	    }
 	} // End of loop over test functions
-     
-
-	  // //??dsbad mass output for debugging
-	  // std::ofstream debugfile;
-	  // char debugfilename[100];
-	  // sprintf(debugfilename,"debug/debug%f.dat",time);
-	  // debugfile.open(debugfilename,std::ios::app);
-	  // debugfile << interpolated_x[0] << " " << time << " ";
-	  // debugfile << interpolated_phi << " ";
-	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_m[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {debugfile << H_total[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxH[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_mxmxH[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {debugfile << interpolated_dmdt[i] << " ";}
-	  // debugfile << std::endl;
-	  // debugfile.close();
-
-
-	  // Vector<double> exact_m(3,0.0), exact_H_total(3,0.0), exact_mxH(3,0.0);
-	  // Vector<double> exact_mxmxH(3,0.0), exact_dmdt(3,0.0), x(3,0.0);
-	  // double exact_phi = get_exact_phi(time,interpolated_x);
-	  // get_exact_m(time,interpolated_x,exact_m);
-
-	  // //??dsbad exact solutions for parameters1
-
-	  // // use namespace with Pi in it, set x = interpolated_x
-	  // using namespace MathematicalConstants;
-	  // for(unsigned i=0; i<DIM; i++) {x[i] = interpolated_x[i];}
-	  // double omega =1; //??dsbad - careful, no idea where omega is jsut set to one anyway...
-
-	  // // Calculate exact values - parameters1
-	  // exact_dmdt[0] = cos(2*Pi*x[0])*-sin(time);
-	  // exact_dmdt[1] = cos(2*Pi*x[0])*cos(time);
-	  // exact_mxH[2] = cos(2*Pi*x[0])*4*Pi*cos(2*Pi*x[0])*cos(time)*sin(time);
-	  // double p = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(time)*sin(time);
-	  // exact_mxmxH[0] = p*sin(time);
-	  // exact_mxmxH[1] = p*-cos(time);
-	  // exact_H_total[0] = -4*Pi*cos(2*Pi*x[0])*cos(time);
-
-	  // Calculate exact values - parameters3
-	  // exact_dmdt[0] = -omega*x[0]*sin(omega*time);
-	  // exact_dmdt[1] = omega*sin(omega*time)*(x[0] - 1);
-	  // exact_mxH[2] = -4*Pi*x[0]*cos(omega*time);
-	  // exact_mxmxH[0] = 4*Pi*x[0]*cos(omega*time)*cos(omega*time)*cos(omega*time)*(x[0] - 1)*(x[0] - 1);
-	  // exact_mxmxH[1] = 4*Pi*x[0]*x[0]*cos(omega*time)*cos(omega*time)*cos(omega*time)*(x[0] - 1);
-	  // exact_H_total[0] = -4*Pi*x[0]*cos(omega*time);
-
-	  // // Calculate exact values - parameters5
-	  // exact_dmdt[0] = omega*cos(omega*time);
-	  // exact_dmdt[1] = -omega*sin(omega*time);
-	  // exact_mxH[2] = cos(omega*time);
-	  // exact_mxmxH[0] = cos(omega*time)*cos(omega*time);
-	  // exact_mxmxH[1] = -cos(omega*time)*sin(omega*time);
-	  // exact_H_total[0] = -1;
-	  
-
-	  // std::ofstream exactfile;
-	  // char exactfilename[100];
-	  // sprintf(exactfilename,"debug/exact%f.dat",time);
-	  // exactfile.open(exactfilename,std::ios::app);
-	  // exactfile << x[0] << " " << time << " ";
-	  // exactfile << exact_phi << " ";
-	  // for(unsigned i=0; i<3; i++) {exactfile << exact_m[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {exactfile << exact_H_total[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {exactfile << exact_mxH[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {exactfile << exact_mxmxH[i] << " ";}
-	  // for(unsigned i=0; i<3; i++) {exactfile << exact_dmdt[i] << " ";}
-	  // exactfile << std::endl;
-	  // exactfile.close();
 
     }// End of loop over integration points
 } // End of fill in residuals function 
@@ -892,9 +831,9 @@ void  MicromagEquations<DIM>::output(std::ostream &outfile,
       Vector<double> exact_m(3,0.0);
       get_exact_m(t,x,exact_m);
       for (unsigned i=0; i<3; i++)
-	{
-	  outfile << exact_m[i] << " ";
-	}
+      	{
+      	  outfile << exact_m[i] << " ";
+      	}
 
       // Output LLg source
       Vector<double> llg_source(3,0.0);
