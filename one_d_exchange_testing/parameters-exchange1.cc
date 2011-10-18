@@ -1,4 +1,6 @@
-// parameters for
+// parameters for M = [cos(2*pi*x)*cos(t), 0, 0]
+
+// see ??ds for more detail
 
 #include "math.h"
 #include "../parameters.h"
@@ -19,7 +21,7 @@ namespace OneDMicromagSetup
 
   /// Compute all components of the exact solution at time t, position x
   void exact_solution(const double& t, const Vector<double>& x,
-			       Vector<double>& solution)
+		      Vector<double>& solution)
   {
     // phi
     solution[0] = 2*sin(2*Pi*x[0])*cos(t);
@@ -30,7 +32,8 @@ namespace OneDMicromagSetup
     solution[2] = 0.0;
   }
 
-  void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
+  void llg_source_function(const double& t, const Vector<double>& x,
+			   Vector<double>& source)
   {
     // Source function to exactly cancel out contributions from not being a real exact solution
     source[0] = -cos(2*Pi*x[0])*sin(t);

@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange1t.cc"
+# include "./parameters-exchange3.cc"
 
 using namespace std;
 
