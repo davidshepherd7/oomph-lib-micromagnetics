@@ -1,5 +1,7 @@
 
 # include "../micromagnetics_element.h"
+# include "meshes/one_d_mesh.h"
+
 
 using namespace std;
 
@@ -161,7 +163,7 @@ public:
 
 /// Set number of values stored at each node (4: phi, M_x, M_y, M_z)
 template<unsigned DIM, unsigned NNODE_1D>
-const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 4;
+const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 
 
 

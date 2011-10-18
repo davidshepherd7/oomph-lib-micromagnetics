@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters4.cc"
+# include "./parameters-exchange1.cc"
 
 using namespace std;
 
@@ -337,38 +337,66 @@ template<class ELEMENT>
 void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 { 
 
-  ofstream some_file;
   char filename[100];
-
+  
   // Number of plot points
   unsigned npts;
   npts=2; 
 
+  // Get the current time
+  double time = time_pt()->time();
+
   cout << std::endl;
   cout << "=================================================" << std::endl;
-  cout << "Doc'ing solution for t=" << time_pt()->time() << std::endl;
+  cout << "Doc'ing solution for t=" << time << std::endl;
   cout << "=================================================" << std::endl;
 
-  // Output solution 
+
+  // Output computed solution 
   //-----------------
+  ofstream soln_file;
+ 
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
 	  doc_info.number());
 
-  some_file.open(filename);
-  mesh_pt()->output(some_file,npts);
+  soln_file.open(filename);
+  mesh_pt()->output(soln_file,npts);
+  soln_file.close();
 
-  // // Write file as a tecplot text object
-  // some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = " 
-  // 	    << time_pt()->time() << "\"";
-  // // ...and draw a horizontal line whose length is proportional
-  // // to the elapsed time
-  // some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
-  // some_file << "1" << std::endl;
-  // some_file << "2" << std::endl;
-  // some_file << " 0 0" << std::endl;
-  // some_file << time_pt()->time()*20.0 << " 0" << std::endl;
+  if(1) //??ds some condition determining if I want full error checking output, maybe ifdef..
+    {
+      // Output exact solution (at many more points than the computed solution)
+      //-----------------------------------------
+      ofstream exact_file;
+      sprintf(filename,"%s/exact%i.dat",doc_info.directory().c_str(),
+	      doc_info.number());
 
-  some_file.close();
+      exact_file.open(filename);
+      mesh_pt()->output_fct(exact_file, 10*npts, time,
+			    OneDMicromagSetup::complete_exact_solution); 
+      exact_file.close();
+
+  
+      // Output errors
+      //------------------------------
+      ofstream error_file;
+      double error_norm(0.0), exact_norm(0.0);
+      
+      sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
+	      doc_info.number());
+      
+      // Do the outputing
+      error_file.open(filename);
+      mesh_pt()->compute_error(error_file, OneDMicromagSetup::complete_exact_solution,
+			       time, error_norm, exact_norm);
+      error_file.close();
+      
+      // Doc error norm:
+      cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl; 
+      cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
+      cout << std::endl;
+    }
+  
 } // end of doc
 
  
@@ -417,8 +445,8 @@ int main()
   sprintf(filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(filename);
   trace_file << "VARIABLES=\"time\",\"u<SUB>FE</SUB>\","
-	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
-	     << std::endl;
+  	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
+  	     << std::endl;
   
 
   // SET UP TIME STEPPING
@@ -454,21 +482,21 @@ int main()
   // DoubleVector res;
   // problem.get_residuals(res);
   // exit(0);
-
+  
   // //  ??ds testing stuff 
-  DenseDoubleMatrix jacobian;
-  DoubleVector res;
-  problem.get_jacobian(res,jacobian);
-  jacobian.DenseMatrix<double>::sparse_indexed_output(std::cout);
-  // ??ds hacky way to output last entry of matrix for matlab to pickup on
-  std::cout << jacobian.nrow() -1 << " " << jacobian.ncol() -1 << " 0" << std:: endl;
+  // DenseDoubleMatrix jacobian;
+  // DoubleVector res;
+  // problem.get_jacobian(res,jacobian);
+  // jacobian.DenseMatrix<double>::sparse_indexed_output(std::cout);
+  // // ??ds hacky way to output last entry of matrix for matlab to pickup on
+  // std::cout << jacobian.nrow() -1 << " " << jacobian.ncol() -1 << " 0" << std:: endl;
  
   // SOLVE THE PROBLEM
   // Find number of steps
   unsigned nstep = unsigned(t_max/dt);
 
   // Timestepping loop
-  for (unsigned istep=0;istep<nstep;istep++)
+  for (unsigned istep=0; istep<nstep; istep++)
     {
       cout << "Timestep " << istep << std::endl;
    

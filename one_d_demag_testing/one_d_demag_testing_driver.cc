@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters4.cc"
+# include "./parameters-demag1.cc"
 
 using namespace std;
 
@@ -325,38 +325,51 @@ template<class ELEMENT>
 void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 { 
 
-  ofstream some_file;
   char filename[100];
-
+  
   // Number of plot points
   unsigned npts;
   npts=2; 
 
+  // Get the current time
+  double time = time_pt()->time();
+
   cout << std::endl;
   cout << "=================================================" << std::endl;
-  cout << "Doc'ing solution for t=" << time_pt()->time() << std::endl;
+  cout << "Doc'ing solution for t=" << time << std::endl;
   cout << "=================================================" << std::endl;
 
   // Output solution 
   //-----------------
+  ofstream soln_file;
+ 
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
 	  doc_info.number());
 
-  some_file.open(filename);
-  mesh_pt()->output(some_file,npts);
-
-  // // Write file as a tecplot text object
-  // some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = " 
-  // 	    << time_pt()->time() << "\"";
-  // // ...and draw a horizontal line whose length is proportional
-  // // to the elapsed time
-  // some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
-  // some_file << "1" << std::endl;
-  // some_file << "2" << std::endl;
-  // some_file << " 0 0" << std::endl;
-  // some_file << time_pt()->time()*20.0 << " 0" << std::endl;
-
-  some_file.close();
+  soln_file.open(filename);
+  mesh_pt()->output(soln_file,npts);
+  soln_file.close();
+  
+  // Output errors
+  //------------------------------
+  // ??ds If there is an exact solution
+  ofstream error_file;
+  double error_norm(0.0), exact_norm(0.0);
+      
+  sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
+	  doc_info.number());
+      
+  // Do the outputing
+  error_file.open(filename);
+  mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_M_solution,
+			   time, error_norm, exact_norm);
+  error_file.close();
+      
+  // Doc error norm:
+  cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl; 
+  cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
+  cout << std::endl;
+  
 } // end of doc
 
  
