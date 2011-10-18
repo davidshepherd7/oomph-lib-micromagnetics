@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange1.cc"
+# include "./parameters-exchange1t.cc"
 
 using namespace std;
 
@@ -103,8 +103,7 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 //========================================================================
 template<class ELEMENT> 
 OneDMicromagProblem<ELEMENT>::
-OneDMicromagProblem(
-		    const unsigned& n_element,
+OneDMicromagProblem(const unsigned& n_element,
 		    MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
 		    MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt,
 		    MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
@@ -329,7 +328,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 
 } // end of set_initial_condition
 
-
+ 
 //===start_of_doc=========================================================
 /// Doc the solution in tecplot format. Label files with label.
 //========================================================================
@@ -373,7 +372,7 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
       exact_file.open(filename);
       mesh_pt()->output_fct(exact_file, 10*npts, time,
-			    OneDMicromagSetup::complete_exact_solution); 
+			    OneDMicromagSetup::exact_solution); 
       exact_file.close();
 
   
@@ -387,7 +386,7 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
       
       // Do the outputing
       error_file.open(filename);
-      mesh_pt()->compute_error(error_file, OneDMicromagSetup::complete_exact_solution,
+      mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_solution,
 			       time, error_norm, exact_norm);
       error_file.close();
       
@@ -416,18 +415,18 @@ int main()
   // Set up the problem:
 
   unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element,
-						      OneDMicromagSetup::source_function,
-						      OneDMicromagSetup::llg_source_function,
-						      OneDMicromagSetup::applied_field, 
-						      OneDMicromagSetup::cryst_anis_field, 
-						      OneDMicromagSetup::sat_mag, 
-						      OneDMicromagSetup::llg_damping_coeff, 
-						      OneDMicromagSetup::llg_precession_coeff,
-						      OneDMicromagSetup::exchange_coeff,
-						      OneDMicromagSetup::exact_M_solution,
-						      OneDMicromagSetup::exact_phi_solution);
-
+  OneDMicromagProblem<QMicromagElement<1,2> >
+    problem(n_element,
+	    OneDMicromagSetup::source_function,
+	    OneDMicromagSetup::llg_source_function,
+	    OneDMicromagSetup::applied_field, 
+	    OneDMicromagSetup::cryst_anis_field, 
+	    OneDMicromagSetup::sat_mag, 
+	    OneDMicromagSetup::llg_damping_coeff, 
+	    OneDMicromagSetup::llg_precession_coeff,
+	    OneDMicromagSetup::exchange_coeff,
+	    OneDMicromagSetup::exact_M_solution,
+	    OneDMicromagSetup::exact_phi_solution);
 
   // SET UP OUTPUT
   // Setup labels for output

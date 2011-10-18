@@ -210,7 +210,7 @@ public:
   
   // LLG PRECESSION COEFF FUNCTION POINTER
   /// Function pointer to LLG precession coefficient function fct(x)
-  typedef double (*LlgPrecessFctPt)(const Vector<double>& x);
+  typedef double (*LlgPrecessFctPt)(const double& t, const Vector<double>& x);
 
   /// Access function: Pointer to LLG precession coefficient function
   LlgPrecessFctPt& llg_precess_fct_pt() {return Llg_precess_fct_pt;}
@@ -219,14 +219,14 @@ public:
   LlgPrecessFctPt llg_precess_fct_pt() const {return Llg_precess_fct_pt;}
 
   /// Get LLG precession coefficient at eulerian postition x.
-  inline virtual double get_llg_precess(const Vector<double>& x) const
+  inline virtual double get_llg_precess(const double& t, const Vector<double>& x) const
   {
     //If no LLg precession function has been set, return one
     if(Llg_precess_fct_pt==0) {return 1.0;}
     else
       {
 	// Otherwise get the LLG precession coefficient at position x
-	return (*Llg_precess_fct_pt)(x);
+	return (*Llg_precess_fct_pt)(t,x);
       }
   } 
 
@@ -751,7 +751,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
             
       // Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
       llg_damping_coeff = get_llg_damp(time, interpolated_x);
-      llg_precession_coeff = get_llg_precess(interpolated_x);
+      llg_precession_coeff = get_llg_precess(time, interpolated_x);
       
       // Get the cross products for the LLG equation
       cross(interpolated_m, H_total, interpolated_mxH);

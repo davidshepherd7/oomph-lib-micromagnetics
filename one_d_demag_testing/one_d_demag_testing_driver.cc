@@ -318,6 +318,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 } // end of set_initial_condition
 
 
+ 
 //===start_of_doc=========================================================
 /// Doc the solution in tecplot format. Label files with label.
 //========================================================================
@@ -339,7 +340,8 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   cout << "Doc'ing solution for t=" << time << std::endl;
   cout << "=================================================" << std::endl;
 
-  // Output solution 
+
+  // Output computed solution 
   //-----------------
   ofstream soln_file;
  
@@ -349,28 +351,43 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   soln_file.open(filename);
   mesh_pt()->output(soln_file,npts);
   soln_file.close();
+
+  if(1) //??ds some condition determining if I want full error checking output, maybe ifdef..
+    {
+      // Output exact solution (at many more points than the computed solution)
+      //-----------------------------------------
+      ofstream exact_file;
+      sprintf(filename,"%s/exact%i.dat",doc_info.directory().c_str(),
+	      doc_info.number());
+
+      exact_file.open(filename);
+      mesh_pt()->output_fct(exact_file, 10*npts, time,
+			    OneDMicromagSetup::complete_exact_solution); 
+      exact_file.close();
+
   
-  // Output errors
-  //------------------------------
-  // ??ds If there is an exact solution
-  ofstream error_file;
-  double error_norm(0.0), exact_norm(0.0);
+      // Output errors
+      //------------------------------
+      ofstream error_file;
+      double error_norm(0.0), exact_norm(0.0);
       
-  sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
-	  doc_info.number());
+      sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
+	      doc_info.number());
       
-  // Do the outputing
-  error_file.open(filename);
-  mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_M_solution,
-			   time, error_norm, exact_norm);
-  error_file.close();
+      // Do the outputing
+      error_file.open(filename);
+      mesh_pt()->compute_error(error_file, OneDMicromagSetup::complete_exact_solution,
+			       time, error_norm, exact_norm);
+      error_file.close();
       
-  // Doc error norm:
-  cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl; 
-  cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
-  cout << std::endl;
+      // Doc error norm:
+      cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl; 
+      cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
+      cout << std::endl;
+    }
   
 } // end of doc
+
 
  
 

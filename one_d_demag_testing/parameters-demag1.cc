@@ -59,6 +59,19 @@ namespace OneDMicromagSetup
   // Derived quantities:
   //==================================================
 
+  /// Compute all components of the exact solution at time t, position x
+  void complete_exact_solution(const double& t, const Vector<double>& x,
+			       Vector<double>& solution)
+  {
+    // phi
+    solution[0] = exact_phi_solution(t,x);
+
+    // x,y,z components of M respectively
+    Vector<double> exact_M(3,0.0);
+    exact_M_solution(t,x,exact_M);
+    for(unsigned i=0; i<3; i++){solution[i] = exact_M[i];}
+  }
+
   //Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
   {
