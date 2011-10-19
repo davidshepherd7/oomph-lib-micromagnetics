@@ -2,7 +2,6 @@
 // see 17/10/11
 
 #include "math.h"
-#include "../parameters.h"
 using namespace std;
 using namespace MathematicalConstants;
 

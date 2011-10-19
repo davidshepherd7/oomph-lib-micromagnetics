@@ -45,7 +45,7 @@ public:
   // Specify nodal index of value of phi, kth component of M and kth component of H_ex
   unsigned phi_index_micromag() const {return 0;} // equation 0
   unsigned M_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
-  unsigned exchange_index_micromag(const unsigned &k) const {return 4 + k;} // equation 4,5,6 
+  unsigned exchange_index_micromag(const unsigned &k) const {return 4 + k;} // equations 4,5,6 
 
   /// Turn ALE on/off (needed if mesh is potentially moving - i.e. multiphysics but creates slightly more work)
   void disable_ALE(){ALE_is_disabled=true;}
@@ -427,7 +427,7 @@ public:
   
   // OUTPUT FUNCTIONS
   /// Output with default number of plot points
-  void output(std::ostream &outfile) 
+  void output(std::ostream &outfile)
   {
     const unsigned n_plot=5;
     output(outfile,n_plot);
@@ -438,7 +438,7 @@ public:
 
   /// Output exact solution at n_plot points
   void output_fct(std::ostream &outfile, const unsigned &n_plot,
-		  const double& time, FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt);
+		  const double& time, FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt) const;
 
   // /// C_style output with default number of plot points
   // void output(FILE* file_pt)
@@ -796,7 +796,7 @@ void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vect
 //======================================================================
 template <unsigned DIM>
 void MicromagEquations<DIM>::output(std::ostream &outfile, 
-				     const unsigned &nplot)
+				     const unsigned &n_plot)
 {
   //Vector of local coordinates
   Vector<double> s(DIM);
@@ -805,15 +805,15 @@ void MicromagEquations<DIM>::output(std::ostream &outfile,
   double t = time_pt()->time();
  
   // Tecplot header info
-  outfile << tecplot_zone_string(nplot);
+  outfile << tecplot_zone_string(n_plot);
  
   // Loop over plot points
-  unsigned num_plot_points=nplot_points(nplot);
+  unsigned num_plot_points=nplot_points(n_plot);
   for (unsigned iplot=0;iplot<num_plot_points;iplot++)
     {
    
       // Get local coordinates of plot point
-      get_s_plot(iplot,nplot,s);
+      get_s_plot(iplot,n_plot,s);
 
       // Get and output eulerian coordinates of plot point and output
       Vector<double> x(DIM,0.0);
@@ -842,20 +842,19 @@ void MicromagEquations<DIM>::output(std::ostream &outfile,
 	  outfile << llg_source[i] << " ";
 	}
 
-   
       // End the line ready for next point
       outfile << std::endl;
     }
 
   // Write tecplot footer (e.g. FE connectivity lists)
-  write_tecplot_zone_footer(outfile,nplot);
+  write_tecplot_zone_footer(outfile,n_plot);
 
 }
 
 /// Output a time-dependent exact solution over the element.
 template <unsigned DIM>
 void MicromagEquations<DIM>::output_fct(std::ostream &outfile, const unsigned &n_plot,
-		const double& time, FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
+		const double& time, FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt) const
 {
   
   //Vector of local coordinates
@@ -927,6 +926,9 @@ compute_error(std::ostream &outfile,
   //Set the value of n_intpt
   unsigned n_intpt = integral_pt()->nweight();
 
+  // Set how many values are output at each node, any will do so use 0th node.
+  unsigned nvalues = node_pt(0)->nvalue();
+
   // Tecplot header info
   outfile << "ZONE" << std::endl;
 
@@ -955,21 +957,29 @@ compute_error(std::ostream &outfile,
       //??ds at the current time
       Vector<double> interpolated_m(3,0.0);
       interpolated_m_micromag(s,interpolated_m);
+
+      // Combine with phi solution into one soln vector "interpolated_soln"
+      Vector<double> interpolated_soln(nvalues,0.0);
+      interpolated_soln[phi_index_micromag()] = interpolated_phi_micromag(s);
+      for(unsigned i=0; i<3; i++)
+	{ interpolated_soln[M_index_micromag(i)] = interpolated_m[i]; }
+      //??ds include exchange field and anything else I add eventually
    
       // Get exact solution at point x and time "time"
-      Vector<double> exact_soln(3,0.0);
+      Vector<double> exact_soln(nvalues,0.0);
       (*exact_soln_pt)(time,x,exact_soln);
 
       // Output exact solution and error then end the line
-      for(unsigned i=0; i<3; i++){outfile << exact_soln[i] << " ";}
-      for(unsigned i=0; i<3; i++){outfile << exact_soln[i] - interpolated_m[i] << " ";}
+      // ============================================================
+      for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i] << " ";}
+      for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
       outfile << std::endl;
 
       // Add contributions to the norms of the error and exact soln from this integration point
-      for(unsigned i=0; i<3; i++)
+      for(unsigned i=0; i<nvalues; i++)
 	{
-	  error_norm += (exact_soln[i] - interpolated_m[i])
-	    *(exact_soln[i] - interpolated_m[i])*W;
+	  error_norm += (exact_soln[i] - interpolated_soln[i])
+	    *(exact_soln[i] - interpolated_soln[i])*W;
 	  exact_norm += exact_soln[i]*exact_soln[i]*W;
 	}
    

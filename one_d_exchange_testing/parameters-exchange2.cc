@@ -3,7 +3,6 @@
 // see ??ds for more detail
 
 #include "math.h"
-#include "../parameters.h"
 using namespace std;
 using namespace MathematicalConstants;
 
@@ -28,8 +27,8 @@ namespace OneDMicromagSetup
 
     // x,y,z components of M respectively
     solution[1] = 1.0;
-    solution[1] = 0.0;
     solution[2] = 0.0;
+    solution[3] = 0.0;
   }
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
