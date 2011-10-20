@@ -1,7 +1,9 @@
 
-# include "../micromagnetics_element.h"
+//??ds other drivers use .h file here - am I doing something wrong?
+# include "../micromagnetics_element.cc"
+
 # include "meshes/one_d_mesh.h"
-# include "./parameters-demag6.cc"
+# include "./parameters-demag5.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -55,7 +57,7 @@ namespace OneDMicromagSetup
   }
 
   // Poisson source, set to zero unless needed for testing
-  void source_function(const double& t, const Vector<double>& x, double& source)
+  void poisson_source_function(const double& t, const Vector<double>& x, double& source)
   {
     source = 0.0;
   }
@@ -75,18 +77,18 @@ namespace OneDMicromagSetup
     return exact[0];
   }
 
-  void initial_M(const double& t, const Vector<double>& x, Vector<double>& M)
+  void initial_m(const double& t, const Vector<double>& x, Vector<double>& m)
   {
     Vector<double> exact(4,0.0);
     exact_solution(t,x,exact);
-    for(unsigned i=0; i<3; i++){M[i] = exact[i+1];}
+    for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }
 
-  void boundary_m(const double& t, const Vector<double>& x, Vector<double>& M)
+  void boundary_m(const double& t, const Vector<double>& x, Vector<double>& m)
   {
     Vector<double> exact(4,0.0);
     exact_solution(t,x,exact);
-    for(unsigned i=0; i<3; i++){M[i] = exact[i+1];}
+    for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }
 
   double exact_phi_solution(const double& t, const Vector<double>& x)
@@ -96,13 +98,14 @@ namespace OneDMicromagSetup
     return exact[0];
   }
 
-  void exact_M_solution(const double& t, const Vector<double>& x,
-			Vector<double>& M)
+  void exact_m_solution(const double& t, const Vector<double>& x,
+			Vector<double>& m)
   {
     Vector<double> exact(4,0.0);
     exact_solution(t,x,exact);
-    for(unsigned i=0; i<3; i++){M[i] = exact[i+1];}
+    for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }
+
 }; // End of namespace
 
 //==start_of_problem_class============================================
@@ -115,7 +118,7 @@ class OneDMicromagProblem : public Problem
 private:
 
   /// Pointer to Poisson source function
-  MicromagEquations<1>::PoissonSourceFctPt Source_fct_pt;
+  MicromagEquations<1>::PoissonSourceFctPt Poisson_source_fct_pt;
 
   /// Pointer to LLg source function
   MicromagEquations<1>::LlgSourceFctPt Llg_source_fct_pt;
@@ -135,11 +138,14 @@ private:
   /// Pointer to LLG precession coefficient function
   MicromagEquations<1>::LlgPrecessFctPt Llg_precess_fct_pt;
 
-  // /// Pointer to exact M solution function
-  // MicromagEquations<1>::ExactMFctPt Exact_m_fct_pt;
+  /// Pointer to exchange coefficient function
+  MicromagEquations<1>::ExchangeCoeffFctPt Exchange_coeff_fct_pt;
 
-  // /// Pointer to exact phi solution function
-  // MicromagEquations<1>::ExactPhiFctPt Exact_phi_fct_pt;
+  /// Pointer to exact M solution function
+  MicromagEquations<1>::ExactMFctPt Exact_m_fct_pt;
+
+  /// Pointer to exact phi solution function
+  MicromagEquations<1>::ExactPhiFctPt Exact_phi_fct_pt;
 
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
@@ -160,10 +166,10 @@ public:
 		      MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
 		      MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt,
 		      MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt,
-		      MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt//,
- 		      // MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
-		      // MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt
-		      );
+		      MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt,
+		      MicromagEquations<1>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
+		      MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
+		      MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
   ~OneDMicromagProblem(){};
@@ -201,25 +207,27 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 template<class ELEMENT>
 OneDMicromagProblem<ELEMENT>::
 OneDMicromagProblem(const unsigned& n_element,
-		    MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
+		    MicromagEquations<1>::PoissonSourceFctPt poisson_source_fct_pt,
 		    MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt,
 		    MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
 		    MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
 		    MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt,
 		    MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt,
-		    MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt//,
-		    // MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
-		    // MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt
-		    ) :
-  Source_fct_pt(source_fct_pt),
+		    MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt,
+		    MicromagEquations<1>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
+		    MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
+		    MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt) :
+
+  Poisson_source_fct_pt(poisson_source_fct_pt),
   Llg_source_fct_pt(llg_source_fct_pt),
   Applied_field_fct_pt(applied_field_fct_pt),
   Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt),
   Sat_mag_fct_pt(sat_mag_fct_pt),
   Llg_damp_fct_pt(llg_damp_fct_pt),
-  Llg_precess_fct_pt(llg_precess_fct_pt)//,
-  // Exact_m_fct_pt(exact_m_fct_pt),
-  // Exact_phi_fct_pt(exact_phi_fct_pt)
+  Llg_precess_fct_pt(llg_precess_fct_pt),
+  Exchange_coeff_fct_pt(exchange_coeff_fct_pt),
+  Exact_m_fct_pt(exact_m_fct_pt),
+  Exact_phi_fct_pt(exact_phi_fct_pt)
 {
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps.
   add_time_stepper_pt(new BDF<2>);
@@ -236,7 +244,8 @@ OneDMicromagProblem(const unsigned& n_element,
   std::cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
 
 
-  // Set up the boundary conditions for this problem: pin the nodes at either end
+  // Set up the boundary conditions for this problem:
+  // pin the phi values of the nodes at either end - int. by parts of phi
   mesh_pt()->boundary_node_pt(0,0)->pin(0);
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
@@ -244,7 +253,11 @@ OneDMicromagProblem(const unsigned& n_element,
   // mesh_pt()->boundary_node_pt(0,0)->pin(1);
   // mesh_pt()->boundary_node_pt(1,0)->pin(1);
 
-  // // Pin the exchange field at all points since we do not want to use it in this test.
+  // pin dM/dn = dM/dx at either end - int. by parts of laplacian(M)
+  //??ds
+
+  // // Pin the exchange field at all points if we don't want to use it
+  // //??ds pin if exchange coeff fn pt set to zero?
   // for(unsigned i=0; i<mesh_pt()->nnode(); i++)
   //   {
   //     mesh_pt()->node_pt(i)->pin(4);
@@ -259,7 +272,7 @@ OneDMicromagProblem(const unsigned& n_element,
       ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
 
       //Set the source function pointer
-      elem_pt->source_fct_pt() = Source_fct_pt;
+      elem_pt->poisson_source_fct_pt() = Poisson_source_fct_pt;
 
       // Set the LLG source function pointer
       elem_pt->llg_source_fct_pt() = Llg_source_fct_pt;
@@ -279,11 +292,11 @@ OneDMicromagProblem(const unsigned& n_element,
       // Set the LLg precession coefficient function pointer
       elem_pt->llg_precess_fct_pt() = Llg_precess_fct_pt;
 
-      // // Set the exact M solution function pointer
-      // elem_pt->exact_m_fct_pt() = Exact_m_fct_pt;
+      // Set the exact M solution function pointer
+      elem_pt->exact_m_fct_pt() = Exact_m_fct_pt;
 
-      // // Set the exact phi function pointer
-      // elem_pt->exact_phi_fct_pt() = Exact_phi_fct_pt;
+      // Set the exact phi function pointer
+      elem_pt->exact_phi_fct_pt() = Exact_phi_fct_pt;
 
       // Set pointer to continous time
       elem_pt->time_pt() = time_pt();
@@ -322,13 +335,13 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
       unsigned num_nod=mesh_pt()->nboundary_node(ibound);
       for (unsigned inod=0;inod<num_nod;inod++)
 	{
-	  // Set boundary conditions at this node
+	  // Get x coordinate at this node.
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
 
-	  // Get and set conditions on phi
+	  // Get and set conditions on phi.
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
-	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
+	  nod_pt->set_value(0,phi_nodal_index,phi_boundary_value);
 	}
     }
 
@@ -379,8 +392,8 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  x[0]=mesh_pt()->node_pt(n)->x(0);
 
 	  // Get initial value of M
-	  Vector<double> initial_M_values(3,0.0);
-	  OneDMicromagSetup::initial_M(time,x,initial_M_values);
+	  Vector<double> initial_m_values(3,0.0);
+	  OneDMicromagSetup::initial_m(time,x,initial_m_values);
 
 	  // Assign solution of M
 	  for(unsigned k=0; k<3; k++)
@@ -388,7 +401,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	      // Set the t'th history value of the ith direction of M
 	      // on node n to be initial_M[k].
 	      mesh_pt()->node_pt(n)->
-		set_value(t,elem_pt->M_index_micromag(k),initial_M_values[k]);
+		set_value(t, elem_pt->M_index_micromag(k), initial_m_values[k]);
 	    }
 
 	  // Get initial value of phi and assign solution
@@ -489,18 +502,18 @@ int main()
   // Set up the problem:
 
   unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element,
-						      OneDMicromagSetup::source_function,
-						      OneDMicromagSetup::llg_source_function,
-						      OneDMicromagSetup::applied_field,
-						      OneDMicromagSetup::cryst_anis_field,
-						      OneDMicromagSetup::sat_mag,
-						      OneDMicromagSetup::llg_damping_coeff,
-						      OneDMicromagSetup::llg_precession_coeff//,
-						      // OneDMicromagSetup::exact_M_solution,
-						      // OneDMicromagSetup::exact_phi_solution
-						      );
-
+  OneDMicromagProblem<QMicromagElement<1,2> >
+    problem(n_element,
+	    OneDMicromagSetup::poisson_source_function,
+	    OneDMicromagSetup::llg_source_function,
+	    OneDMicromagSetup::applied_field,
+	    OneDMicromagSetup::cryst_anis_field,
+	    OneDMicromagSetup::sat_mag,
+	    OneDMicromagSetup::llg_damping_coeff,
+	    OneDMicromagSetup::llg_precession_coeff,
+	    OneDMicromagSetup::exchange_coeff,
+	    OneDMicromagSetup::exact_m_solution,
+	    OneDMicromagSetup::exact_phi_solution);
 
   // SET UP OUTPUT
   // Setup labels for output
@@ -556,20 +569,20 @@ int main()
   // problem.get_residuals(res);
   // exit(0);
 
-  // // //  ??ds testing stuff
+  // //  ??ds testing stuff
   // DenseDoubleMatrix jacobian;
   // DoubleVector res;
   // problem.get_jacobian(res,jacobian);
-  // jacobian.DenseMatrix<double>::indexed_output(std::cout);
-  // std::cout <<  jacobian.nrow() << std::endl;
-  // std::cout <<  jacobian.ncol() << std::endl;
+  // jacobian.DenseMatrix<double>::sparse_indexed_output(std::cout);
+  // // ??ds hacky way to output last entry of matrix for matlab to pickup on
+  // std::cout << jacobian.nrow() -1 << " " << jacobian.ncol() -1 << " 0" << std:: endl;
 
   // SOLVE THE PROBLEM
   // Find number of steps
   unsigned nstep = unsigned(t_max/dt);
 
   // Timestepping loop
-  for (unsigned istep=0;istep<nstep;istep++)
+  for(unsigned istep=0; istep<nstep; istep++)
     {
       std::cout << "Timestep " << istep << std::endl;
 

@@ -17,6 +17,10 @@ namespace OneDMicromagSetup
   // Number of elements
   double n_x_elements = 40;
 
+
+  // Prototypes for coeff functions
+  double llg_damping_coeff(const double& t, const Vector<double>& x);
+  double llg_precession_coeff(const double& t, const Vector<double>& x);
   double exchange_coeff(const double& t, const Vector<double>& x);
 
   /// Compute all components of the exact solution at time t, position x
