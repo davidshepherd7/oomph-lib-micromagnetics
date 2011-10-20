@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange2.cc"
+# include "./parameters-exchange3.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -336,13 +336,13 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
       unsigned num_nod=mesh_pt()->nboundary_node(ibound);
       for (unsigned inod=0;inod<num_nod;inod++)
 	{
-	  // Set boundary conditions at this node
+	  // Get x coordinate at this node.
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
 
-	  // Get and set conditions on phi
+	  // Get and set conditions on phi.
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
-	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
+	  nod_pt->set_value(0,phi_nodal_index,phi_boundary_value);
 	}
     }
 

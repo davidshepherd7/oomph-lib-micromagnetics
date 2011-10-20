@@ -1,5 +1,5 @@
-// parameters for the solution with M =[ x cos(omega*t), 0, 0 ]
-// 
+// parameters for the solution with M = [x*cos(t), 0, 0]
+//
 // See 27/11/11 (1) for details
 
 # include "math.h"
@@ -31,8 +31,10 @@ namespace OneDMicromagSetup
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
-    // Source function to exactly cancel out contributions from not being a real exact solution   
-    source[0] = -1*x[0]*sin(t);
+    // Source function to exactly cancel out contributions from not being a real exact solution
+    source[0] = -x[0]*sin(t);
+    source[1] = 0.0;
+    source[2] = 0.0;
   }
 
 }; // end of namespace

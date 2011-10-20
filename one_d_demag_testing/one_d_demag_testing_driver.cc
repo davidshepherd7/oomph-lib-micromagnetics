@@ -1,11 +1,11 @@
 
 # include "../micromagnetics_element.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-demag1.cc"
+# include "./parameters-demag6.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
-//============================================================ 
+//============================================================
 namespace OneDMicromagSetup
 {
   using namespace MathematicalConstants;
@@ -30,7 +30,7 @@ namespace OneDMicromagSetup
 
   // The coefficient of the damping term of the Landau-Lifschitz-Gilbert equation
   // (M x (M x H))
-  double llg_damping_coeff(const double& t, const Vector<double>& x)    
+  double llg_damping_coeff(const double& t, const Vector<double>& x)
   { //??ds ifdef error checking then check ms is nonzero?
     //??ds need to put Ms in here instead of 1 but in these tests Ms can be zero...
     return gamma/(1 + alpha*alpha) * (alpha/1.0);}
@@ -53,13 +53,13 @@ namespace OneDMicromagSetup
     H_applied[1] = 0.0;
     H_applied[2] = 0.0;
   }
-  
+
   // Poisson source, set to zero unless needed for testing
   void source_function(const double& t, const Vector<double>& x, double& source)
   {
     source = 0.0;
   }
-  
+
   // Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
   {
@@ -108,7 +108,7 @@ namespace OneDMicromagSetup
 //==start_of_problem_class============================================
 /// 1D Micromag problem in unit interval.
 //====================================================================
-template<class ELEMENT> 
+template<class ELEMENT>
 class OneDMicromagProblem : public Problem
 {
 
@@ -146,22 +146,22 @@ private:
 
   // Doc info object
   DocInfo Doc_info;
-  
+
   // Trace file
-  ofstream Trace_file;
+  std::ofstream Trace_file;
 
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
   OneDMicromagProblem(const unsigned& n_element,
-		      MicromagEquations<1>::PoissonSourceFctPt source_fct_pt, 
-		      MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt, 
-		      MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt, 
-		      MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt, 
-		      MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt, 
-		      MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt, 
+		      MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
+		      MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt,
+		      MicromagEquations<1>::AppliedFieldFctPt applied_field_fct_pt,
+		      MicromagEquations<1>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
+		      MicromagEquations<1>::SatMagFctPt sat_mag_fct_pt,
+		      MicromagEquations<1>::LlgDampFctPt llg_damp_fct_pt,
 		      MicromagEquations<1>::LlgPrecessFctPt llg_precess_fct_pt//,
- 		      // MicromagEquations<1>::ExactMFctPt exact_m_fct_pt, 
+ 		      // MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
 		      // MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt
 		      );
 
@@ -184,7 +184,7 @@ public:
   /// Update the problem specs before next timestep
   void actions_before_implicit_timestep();
 
-  /// Set initial condition (incl previous timesteps) according to specified function. 
+  /// Set initial condition (incl previous timesteps) according to specified function.
   void set_initial_condition();
 
 }; // end of problem class
@@ -198,7 +198,7 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 //=====start_of_constructor===============================================
 /// ??ds
 //========================================================================
-template<class ELEMENT> 
+template<class ELEMENT>
 OneDMicromagProblem<ELEMENT>::
 OneDMicromagProblem(const unsigned& n_element,
 		    MicromagEquations<1>::PoissonSourceFctPt source_fct_pt,
@@ -211,20 +211,20 @@ OneDMicromagProblem(const unsigned& n_element,
 		    // MicromagEquations<1>::ExactMFctPt exact_m_fct_pt,
 		    // MicromagEquations<1>::ExactPhiFctPt exact_phi_fct_pt
 		    ) :
-  Source_fct_pt(source_fct_pt), 
+  Source_fct_pt(source_fct_pt),
   Llg_source_fct_pt(llg_source_fct_pt),
   Applied_field_fct_pt(applied_field_fct_pt),
-  Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt), 
-  Sat_mag_fct_pt(sat_mag_fct_pt), 
-  Llg_damp_fct_pt(llg_damp_fct_pt), 
-  Llg_precess_fct_pt(llg_precess_fct_pt)//, 
-  // Exact_m_fct_pt(exact_m_fct_pt), 
+  Cryst_anis_field_fct_pt(cryst_anis_field_fct_pt),
+  Sat_mag_fct_pt(sat_mag_fct_pt),
+  Llg_damp_fct_pt(llg_damp_fct_pt),
+  Llg_precess_fct_pt(llg_precess_fct_pt)//,
+  // Exact_m_fct_pt(exact_m_fct_pt),
   // Exact_phi_fct_pt(exact_phi_fct_pt)
-{  
-  // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps. 
+{
+  // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps.
   add_time_stepper_pt(new BDF<2>);
 
-  // Set domain length 
+  // Set domain length
   double L=1.0;
 
   // Build mesh and store pointer in Problem
@@ -233,7 +233,7 @@ OneDMicromagProblem(const unsigned& n_element,
   // Choose a control node at which the solution is documented
   unsigned control_el = unsigned(n_element/2); // Pick a control element in the middle
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);  // Choose its first node as the control node
-  cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
+  std::cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
 
 
   // Set up the boundary conditions for this problem: pin the nodes at either end
@@ -257,7 +257,7 @@ OneDMicromagProblem(const unsigned& n_element,
     {
       // Upcast from GeneralisedElement to the present element
       ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
-   
+
       //Set the source function pointer
       elem_pt->source_fct_pt() = Source_fct_pt;
 
@@ -289,7 +289,7 @@ OneDMicromagProblem(const unsigned& n_element,
       elem_pt->time_pt() = time_pt();
     }
 
- 
+
   // Setup equation numbering scheme
   assign_eqn_numbers();
 
@@ -298,7 +298,7 @@ OneDMicromagProblem(const unsigned& n_element,
 
 
 //=========start of actions_before_implicit_timestep===============================
-/// \short Actions before timestep: update the domain, then reset the 
+/// \short Actions before timestep: update the domain, then reset the
 /// boundary conditions for the current time.
 //========================================================================
 template<class ELEMENT>
@@ -325,7 +325,7 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 	  // Set boundary conditions at this node
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
-	  
+
 	  // Get and set conditions on phi
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
 	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
@@ -341,10 +341,10 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 //========================================================================
 template<class ELEMENT>
 void OneDMicromagProblem<ELEMENT>::set_initial_condition()
-{ 
+{
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
-         
+
   // Past history needs to be established for t=time0-deltat, ...
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
@@ -353,7 +353,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   unsigned num_nod = mesh_pt()->nnode();
 
   // Get pointer to an element (any will do so take 0th)
-  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0)); 
+  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
 
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
@@ -362,15 +362,15 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   for (int t=nprev_steps;t>=0;t--)
     {
       prev_time[t]=time_pt()->time(unsigned(t));
-    } 
+    }
 
   // Loop over current & previous timesteps
   for (int t=nprev_steps;t>=0;t--)
     {
       // Continuous time
       double time = prev_time[t];
-      cout << "setting IC at time =" << time << std::endl;
-   
+      std::cout << "setting IC at time =" << time << std::endl;
+
       // Loop over the nodes to set initial values everywhere
       for (unsigned n=0;n<num_nod;n++)
 	{
@@ -381,11 +381,11 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  // Get initial value of M
 	  Vector<double> initial_M_values(3,0.0);
 	  OneDMicromagSetup::initial_M(time,x,initial_M_values);
-     
+
 	  // Assign solution of M
 	  for(unsigned k=0; k<3; k++)
 	    {
-	      // Set the t'th history value of the ith direction of M 
+	      // Set the t'th history value of the ith direction of M
 	      // on node n to be initial_M[k].
 	      mesh_pt()->node_pt(n)->
 		set_value(t,elem_pt->M_index_micromag(k),initial_M_values[k]);
@@ -394,8 +394,8 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  // Get initial value of phi and assign solution
 	  double phi = OneDMicromagSetup::exact_phi_solution(t,x);
 	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
-	  
-	} 
+
+	}
     }
 
   // Reset backed up time for global timestepper
@@ -409,27 +409,27 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 //========================================================================
 template<class ELEMENT>
 void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
-{ 
+{
 
   char filename[100];
-  
+
   // Number of plot points
   unsigned npts;
-  npts=2; 
+  npts=2;
 
   // Get the current time
   double time = time_pt()->time();
 
-  cout << std::endl;
-  cout << "=================================================" << std::endl;
-  cout << "Doc'ing solution for t=" << time << std::endl;
-  cout << "=================================================" << std::endl;
+  std::cout << std::endl;
+  std::cout << "=================================================" << std::endl;
+  std::cout << "Doc'ing solution for t=" << time << std::endl;
+  std::cout << "=================================================" << std::endl;
 
 
-  // Output computed solution 
+  // Output computed solution
   //-----------------
-  ofstream soln_file;
- 
+  std::ofstream soln_file;
+
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
 	  doc_info.number());
 
@@ -441,38 +441,38 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
     {
       // Output exact solution (at many more points than the computed solution)
       //-----------------------------------------
-      ofstream exact_file;
+      std::ofstream exact_file;
       sprintf(filename,"%s/exact%i.dat",doc_info.directory().c_str(),
 	      doc_info.number());
 
       exact_file.open(filename);
       mesh_pt()->output_fct(exact_file, 10*npts, time,
-			    OneDMicromagSetup::exact_solution); 
+			    OneDMicromagSetup::exact_solution);
       exact_file.close();
 
-  
+
       // Output errors
       //------------------------------
-      ofstream error_file;
+      std::ofstream error_file;
       double error_norm(0.0), exact_norm(0.0);
-      
+
       sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
 	      doc_info.number());
-      
+
       // Do the outputing
       error_file.open(filename);
       mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_solution,
 			       time, error_norm, exact_norm);
       error_file.close();
-      
+
       // Doc error norm:
-      cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl; 
-      cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
-      cout << std::endl;
+      std::cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl;
+      std::cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
+      std::cout << std::endl;
     }
-  
+
 } // end of doc
- 
+
 
   ////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
@@ -492,10 +492,10 @@ int main()
   OneDMicromagProblem<QMicromagElement<1,2> > problem(n_element,
 						      OneDMicromagSetup::source_function,
 						      OneDMicromagSetup::llg_source_function,
-						      OneDMicromagSetup::applied_field, 
-						      OneDMicromagSetup::cryst_anis_field, 
-						      OneDMicromagSetup::sat_mag, 
-						      OneDMicromagSetup::llg_damping_coeff, 
+						      OneDMicromagSetup::applied_field,
+						      OneDMicromagSetup::cryst_anis_field,
+						      OneDMicromagSetup::sat_mag,
+						      OneDMicromagSetup::llg_damping_coeff,
 						      OneDMicromagSetup::llg_precession_coeff//,
 						      // OneDMicromagSetup::exact_M_solution,
 						      // OneDMicromagSetup::exact_phi_solution
@@ -508,19 +508,19 @@ int main()
 
   // Output directory
   doc_info.set_directory("RESLT");
- 
+
   // Output number
   doc_info.number()=0;
- 
+
   // Open a trace file
-  ofstream trace_file;
-  char filename[100];   
+  std::ofstream trace_file;
+  char filename[100];
   sprintf(filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(filename);
   trace_file << "VARIABLES=\"time\",\"u<SUB>FE</SUB>\","
 	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
 	     << std::endl;
-  
+
 
   // SET UP TIME STEPPING
   // Choose simulation interval and timestep
@@ -530,21 +530,21 @@ int main()
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
   problem.initialise_dt(dt);
- 
+
   // Set initial condition (on M)
   problem.set_initial_condition();
 
   // Output initial conditions
   problem.doc_solution(doc_info,trace_file);   //Output initial condition
-  doc_info.number()++; //Increment counter for solutions 
+  doc_info.number()++; //Increment counter for solutions
 
   // Check whether the problem can be solved
-  cout << "\n\n\nProblem self-test ";
-  if (problem.self_test()==0)  
+  std::cout << "\n\n\nProblem self-test ";
+  if (problem.self_test()==0)
     {
-      cout << "passed: Problem can be solved." << std::endl;
+      std::cout << "passed: Problem can be solved." << std::endl;
     }
-  else 
+  else
     {
       throw OomphLibError("failed!",
 			  "main()",
@@ -556,14 +556,14 @@ int main()
   // problem.get_residuals(res);
   // exit(0);
 
-  // // //  ??ds testing stuff 
+  // // //  ??ds testing stuff
   // DenseDoubleMatrix jacobian;
   // DoubleVector res;
   // problem.get_jacobian(res,jacobian);
   // jacobian.DenseMatrix<double>::indexed_output(std::cout);
   // std::cout <<  jacobian.nrow() << std::endl;
   // std::cout <<  jacobian.ncol() << std::endl;
- 
+
   // SOLVE THE PROBLEM
   // Find number of steps
   unsigned nstep = unsigned(t_max/dt);
@@ -571,21 +571,21 @@ int main()
   // Timestepping loop
   for (unsigned istep=0;istep<nstep;istep++)
     {
-      cout << "Timestep " << istep << std::endl;
-   
+      std::cout << "Timestep " << istep << std::endl;
+
       // Take timestep
       problem.unsteady_newton_solve(dt);
 
       //Output solution
       problem.doc_solution(doc_info,trace_file);
-   
-      //Increment counter for solutions 
+
+      //Increment counter for solutions
       doc_info.number()++;
     }
- 
+
   // Close trace file
   trace_file.close();
 
   return 0;
-  
+
 } // end of main

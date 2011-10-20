@@ -1,4 +1,4 @@
-// parameters for the solution M_x = cos(2*pi*x)* [cos(t), sin(t), 0]
+// parameters for the solution M = cos(2*pi*x)* [cos(t), sin(t), 0]
 
 // see ??ds for details
 
@@ -17,6 +17,11 @@ namespace OneDMicromagSetup
   // Number of elements
   double n_x_elements = 40;
 
+  // Prototypes for coeff functions
+  double llg_damping_coeff(const double& t, const Vector<double>& x);
+  double llg_precession_coeff(const double& t, const Vector<double>& x);
+  double exchange_coeff(const double& t, const Vector<double>& x);
+
   void exact_solution(const double& t, const Vector<double>& x, Vector<double>& solution)
   {
     // Phi exact solution
@@ -32,11 +37,10 @@ namespace OneDMicromagSetup
   {
     // Source function to exactly cancel out contributions from solution not being a real solution
 
-    source[0] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t)*sin(t) 
-      - cos(2*Pi*x[0])*sin(t);
-    source[1] = cos(2*Pi*x[0])*cos(t) 
-      - 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*cos(t)*sin(t);
-    source[2] = 4*Pi*cos(2*Pi*x[0])*cos(2*Pi*x[0])*cos(t)*sin(t);
+    source[0] = -cos(Pi*x[0]*2.0)*sin(t)+llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(sin(t),2.0)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
+    source[1] = cos(Pi*x[0]*2.0)*cos(t)-llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*cos(t)*sin(t)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
+    source[2] = llg_precession_coeff(t,x)*cos(Pi*x[0]*2.0)*sin(t)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
+
   }
 
 }; // end of namespace

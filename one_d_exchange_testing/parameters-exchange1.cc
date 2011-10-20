@@ -36,7 +36,7 @@ namespace OneDMicromagSetup
 			   Vector<double>& source)
   {
     // Source function to exactly cancel out contributions from not being a real exact solution
-    source[0] = -cos(2*Pi*x[0])*sin(t);
+    source[0] = -cos(Pi*x[0]*2.0)*sin(t);
     source[1] = 0.0;
     source[2] = 0.0;
   }
