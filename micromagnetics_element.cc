@@ -305,9 +305,10 @@ namespace oomph
   }
 
   /// Output a time-dependent exact solution over the element.
-  template <unsigned DIM>
-  void MicromagEquations<DIM>::output_fct(std::ostream &outfile, const unsigned &n_plot,
-					  const double& time, FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt) const
+  template <unsigned DIM> void MicromagEquations<DIM>::
+  output_fct(std::ostream &outfile, const unsigned &n_plot,
+	     const double& time,
+	     const FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
   {
 
     //Vector of local coordinates
