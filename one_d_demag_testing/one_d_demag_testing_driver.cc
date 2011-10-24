@@ -3,7 +3,7 @@
 # include "../micromagnetics_element.cc"
 
 # include "meshes/one_d_mesh.h"
-# include "./parameters-demag5.cc"
+# include "./parameters-demag1.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
