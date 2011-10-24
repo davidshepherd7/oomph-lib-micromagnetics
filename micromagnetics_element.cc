@@ -59,7 +59,6 @@ namespace oomph
 	// dphidx is also H_demag so we need all 3 components initialised - even if they are zero.
 	double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0, div_m=0.0;
 	Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(3,0.0);
-	Vector<double> H_total(3,0.0), H_cryst_anis(3,0.0), H_applied(3,0.0);
 	Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
 	Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
 	Vector<double> interpolated_H_exchange(3,0.0);
@@ -174,19 +173,19 @@ namespace oomph
 	// LLG section (time evolution of magnetisation)
 	//----------------------------------------------------
 
-	//??ds No boundary conditions on M, for now...
-
 	// Get applied field at this position
-	// get_applied_field(time, interpolated_x, H_applied);
+	Vector<double> H_applied(3,0.0);
+	get_applied_field(time, interpolated_x, H_applied);
 
 	// Get crystalline anisotropy effective field
-	// get_H_cryst_anis_field(time, interpolated_x, interpolated_m,  H_cryst_anis);
+	Vector<double> H_cryst_anis(3,0.0);
+	get_H_cryst_anis_field(time, interpolated_x, interpolated_m, H_cryst_anis);
 
 	// Get LLG source function
 	Vector<double> llg_source(3,0.0);
 	get_source_llg(time, interpolated_x, llg_source);
 
-	//(-1*interpolated_dphidx is exactly the demagnetising/magnetostatic field: H_demag = - grad(phi))
+	// Get the magnetostatic/demag field: H_demag = - grad(phi))
 	Vector<double> H_magnetostatic(3,0.0);
 	for(unsigned j=0; j<DIM; j++)
 	  {
@@ -194,15 +193,15 @@ namespace oomph
 	  }
 
 	// Take total of all fields used
-	// ??ds pass this entire section out to a function eventually if possible?
 	// ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
+	Vector<double> H_total(3,0.0);
 	for(unsigned j=0; j<3; j++)
 	  {
 	    H_total[j] = H_applied[j] + H_magnetostatic[j]
 	      + interpolated_H_exchange[j] + H_cryst_anis[j];
 	  }
 
-	// Get the coefficients for the LLG equation (damping could be a function of position if saturation magnetisation varies)
+	// Get the coefficients for the LLG equation
 	llg_damping_coeff = get_llg_damp(time, interpolated_x);
 	llg_precession_coeff = get_llg_precess(time, interpolated_x);
 
@@ -214,7 +213,8 @@ namespace oomph
 	  {
 
 	    // Calculate residuals for the time evolution equations (Landau-Lifschitz-Gilbert):
-	    // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] - llg_source = 0
+	    // dM/dt + gamma/(1+alpha^2) [ (M x H) + (gamma/|M_s|)(M x (M x H)) ] - llg_source
+	    //    = 0
 
 	    // loop over M directions
 	    for(unsigned k=0; k<3; k++)
