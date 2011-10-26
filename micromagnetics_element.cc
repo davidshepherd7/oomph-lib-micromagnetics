@@ -384,7 +384,10 @@ namespace oomph
     unsigned nvalues = node_pt(0)->nvalue();
 
     // Tecplot header info
-    outfile << "ZONE" << std::endl;
+    outfile << tecplot_zone_string(2);
+    //??ds can't just use 2 here but seeing if it works
+    //??ds use n_intpt/DIM? - only good for simple shaped elements?
+    //??ds causes small issuse with output - points for soln/exact are at the corners of elements but for errors they are at the int pts
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
@@ -424,7 +427,6 @@ namespace oomph
 	(*exact_soln_pt)(time,x,exact_soln);
 
 	// Output error then end the line
-	// ============================================================
 	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
 	outfile << std::endl;
 
@@ -437,6 +439,9 @@ namespace oomph
 	  }
 
       }
+
+    // Write tecplot footer (e.g. FE connectivity lists)
+    write_tecplot_zone_footer(outfile,2);
   }
 
   // //======================================================================

@@ -469,11 +469,6 @@ namespace oomph
     /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
     virtual double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
 
-    /// Boolean flag to indicate if ALE formulation is disabled when time-derivatives are computed. Only set to true if you're sure that the mesh is stationary.
-    // ??ds not actually implemented and ALE stuff yet...
-    bool ALE_is_disabled;
-
-
   }; // End of MicromagElements class
 
   //====================================================================
@@ -507,8 +502,10 @@ namespace oomph
     }
 
     /// Required  # of `values' (pinned or dofs) at node n.
+    // We need to store phi(1 value), M(3) and H_exchange(3).
+    //??ds generalise somehow?
     inline unsigned required_nvalue(const unsigned &n) const
-    {return Initial_Nvalue;}
+    {return 7;}
 
     // OUTPUT FUNCTIONS (just call from MicromagEquations class)
     /// Output function: x,y,u or x,y,z,u

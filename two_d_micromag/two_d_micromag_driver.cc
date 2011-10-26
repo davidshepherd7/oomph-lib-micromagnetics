@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.cc"
 # include "meshes/rectangular_quadmesh.h"
-# include "./parameters-twod1.cc"
+# include "./parameters-twod3.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -205,10 +205,10 @@ public:
 
 }; // end of problem class
 
-/// Set number of values stored at each nde (7: phi, 3 M's, 3 H_ex's)
-//??ds possibly not working right?
-template<unsigned DIM, unsigned NNODE_1D>
-const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
+// /// Set number of values stored at each nde (7: phi, 3 M's, 3 H_ex's)
+// //??ds possibly not working right?
+// template<unsigned DIM, unsigned NNODE_1D>
+// const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 
 
 
@@ -246,7 +246,7 @@ TwoDMicromagProblem(const unsigned& n_x,
 
   // Set domain size
   double l_x = 1.0;
-  double l_y = 0.2;
+  double l_y = 1.0;
 
   // Build mesh and store pointer in Problem
   mesh_pt() = new RectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y,time_stepper_pt());
@@ -406,8 +406,8 @@ void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
 	  // Assign solution of M
 	  for(unsigned k=0; k<3; k++)
 	    {
-	      // Set the t'th history value of the ith direction of M
-	      // on node n to be initial_M[k].
+	      // Set the t'th history value of the kth direction of M
+	      // on node n.
 	      mesh_pt()->node_pt(n)->
 		set_value(t, elem_pt->M_index_micromag(k), initial_m_values[k]);
 	    }
@@ -436,7 +436,7 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
   // Number of plot points
   unsigned npts;
-  npts=8;
+  npts=2;
 
   // Get the current time
   double time = time_pt()->time();
@@ -467,7 +467,7 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 	      doc_info.number());
 
       exact_file.open(filename);
-      mesh_pt()->output_fct(exact_file, 10*npts, time,
+      mesh_pt()->output_fct(exact_file, 3*npts, time,
 			    TwoDMicromagSetup::exact_solution);
       exact_file.close();
 
@@ -504,14 +504,20 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   //======start_of_main==================================================
   /// Driver for 1D Micromag problem
   //=====================================================================
-int main(int argv, char* argc[])
+int main()
 {
 
-  // Parameters:
-  double t_max = atof(argc[1]);
-  double dt = atof(argc[2]);
-  unsigned n_x = atoi(argc[3]);
-  unsigned n_y = atoi(argc[4]);
+  // // Parameters:
+  // double t_max = atof(argc[1]);
+  // double dt = atof(argc[2]);
+  // unsigned n_x = atoi(argc[3]);
+  // unsigned n_y = atoi(argc[4]);
+
+  // Parameters (get from paramters file)
+  double t_max = TwoDMicromagSetup::t_max;
+  double dt = TwoDMicromagSetup::dt;
+  unsigned n_x = TwoDMicromagSetup::n_x;
+  unsigned n_y = TwoDMicromagSetup::n_y;
 
   // Set up the problem:
   TwoDMicromagProblem<QMicromagElement<2,2> >
@@ -544,8 +550,8 @@ int main(int argv, char* argc[])
   sprintf(filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(filename);
   trace_file << "VARIABLES=\"time\",\"u<SUB>FE</SUB>\","
-	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
-	     << std::endl;
+  	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
+  	     << std::endl;
 
 
   // SET UP TIME STEPPING

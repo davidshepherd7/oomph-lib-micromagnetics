@@ -1,7 +1,7 @@
 // parameters for M = [cos(2*pi*x)*cos(t), 0, 0]
 
 // Note that MxH ends up as zero - so not much is tested here...
-// see ??ds for more detail
+// see 26/10/11 for more details
 
 #include "math.h"
 using namespace std;
