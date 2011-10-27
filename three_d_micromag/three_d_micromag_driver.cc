@@ -1,15 +1,15 @@
 
 # include "../micromagnetics_element.cc"
-# include "meshes/rectangular_quadmesh.h"
-# include "./parameters-twod3.cc"
+# include "meshes/simple_cubic_mesh.h"
+# include "./parameters-threed2.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
 //============================================================
-namespace TwoDMicromagSetup
+namespace ThreeDMicromagSetup
 {
   using namespace MathematicalConstants;
-  using namespace TwoDMicromagSetup;
+  using namespace ThreeDMicromagSetup;
 
   // Prototypes
   // ==========================================================
@@ -121,40 +121,40 @@ namespace TwoDMicromagSetup
 /// 1D Micromag problem in unit interval.
 //====================================================================
 template<class ELEMENT>
-class TwoDMicromagProblem : public Problem
+class ThreeDMicromagProblem : public Problem
 {
 
 private:
 
   /// Pointer to Poisson source function
-  MicromagEquations<2>::PoissonSourceFctPt Poisson_source_fct_pt;
+  MicromagEquations<3>::PoissonSourceFctPt Poisson_source_fct_pt;
 
   /// Pointer to LLg source function
-  MicromagEquations<2>::LlgSourceFctPt Llg_source_fct_pt;
+  MicromagEquations<3>::LlgSourceFctPt Llg_source_fct_pt;
 
   /// Pointer to applied field function
-  MicromagEquations<2>::AppliedFieldFctPt Applied_field_fct_pt;
+  MicromagEquations<3>::AppliedFieldFctPt Applied_field_fct_pt;
 
   /// Pointer to crystalline anisotropy effective field function
-  MicromagEquations<2>::CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
+  MicromagEquations<3>::CrystAnisFieldFctPt Cryst_anis_field_fct_pt;
 
   /// Pointer to saturisation magnetisation function
-  MicromagEquations<2>::SatMagFctPt Sat_mag_fct_pt;
+  MicromagEquations<3>::SatMagFctPt Sat_mag_fct_pt;
 
   /// Pointer to LLG damping coefficient function
-  MicromagEquations<2>::LlgDampFctPt Llg_damp_fct_pt;
+  MicromagEquations<3>::LlgDampFctPt Llg_damp_fct_pt;
 
   /// Pointer to LLG precession coefficient function
-  MicromagEquations<2>::LlgPrecessFctPt Llg_precess_fct_pt;
+  MicromagEquations<3>::LlgPrecessFctPt Llg_precess_fct_pt;
 
   /// Pointer to exchange coefficient function
-  MicromagEquations<2>::ExchangeCoeffFctPt Exchange_coeff_fct_pt;
+  MicromagEquations<3>::ExchangeCoeffFctPt Exchange_coeff_fct_pt;
 
   /// Pointer to exact M solution function
-  MicromagEquations<2>::ExactMFctPt Exact_m_fct_pt;
+  MicromagEquations<3>::ExactMFctPt Exact_m_fct_pt;
 
   /// Pointer to exact phi solution function
-  MicromagEquations<2>::ExactPhiFctPt Exact_phi_fct_pt;
+  MicromagEquations<3>::ExactPhiFctPt Exact_phi_fct_pt;
 
   /// Pointer to control node at which the solution is documented ??ds - not sure what this is
   Node* Control_node_pt;
@@ -168,21 +168,22 @@ private:
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
-  TwoDMicromagProblem(const unsigned& n_x,
-		      const unsigned& n_y,
-		      MicromagEquations<2>::PoissonSourceFctPt source_fct_pt,
-		      MicromagEquations<2>::LlgSourceFctPt llg_source_fct_pt,
-		      MicromagEquations<2>::AppliedFieldFctPt applied_field_fct_pt,
-		      MicromagEquations<2>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
-		      MicromagEquations<2>::SatMagFctPt sat_mag_fct_pt,
-		      MicromagEquations<2>::LlgDampFctPt llg_damp_fct_pt,
-		      MicromagEquations<2>::LlgPrecessFctPt llg_precess_fct_pt,
-		      MicromagEquations<2>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
-		      MicromagEquations<2>::ExactMFctPt exact_m_fct_pt,
-		      MicromagEquations<2>::ExactPhiFctPt exact_phi_fct_pt);
+  ThreeDMicromagProblem(const unsigned& n_x,
+			const unsigned& n_y,
+			const unsigned& n_z,
+			MicromagEquations<3>::PoissonSourceFctPt source_fct_pt,
+			MicromagEquations<3>::LlgSourceFctPt llg_source_fct_pt,
+			MicromagEquations<3>::AppliedFieldFctPt applied_field_fct_pt,
+			MicromagEquations<3>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
+			MicromagEquations<3>::SatMagFctPt sat_mag_fct_pt,
+			MicromagEquations<3>::LlgDampFctPt llg_damp_fct_pt,
+			MicromagEquations<3>::LlgPrecessFctPt llg_precess_fct_pt,
+			MicromagEquations<3>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
+			MicromagEquations<3>::ExactMFctPt exact_m_fct_pt,
+			MicromagEquations<3>::ExactPhiFctPt exact_phi_fct_pt);
 
   /// Destructor (empty -- all the cleanup is done in the base class)
-  ~TwoDMicromagProblem(){};
+  ~ThreeDMicromagProblem(){};
 
   /// Update the problem specs before solve: Set boundary conditions
   void actions_before_newton_solve(){};
@@ -216,19 +217,20 @@ public:
 /// ??ds
 //========================================================================
 template<class ELEMENT>
-TwoDMicromagProblem<ELEMENT>::
-TwoDMicromagProblem(const unsigned& n_x,
-		    const unsigned& n_y,
-		    MicromagEquations<2>::PoissonSourceFctPt poisson_source_fct_pt,
-		    MicromagEquations<2>::LlgSourceFctPt llg_source_fct_pt,
-		    MicromagEquations<2>::AppliedFieldFctPt applied_field_fct_pt,
-		    MicromagEquations<2>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
-		    MicromagEquations<2>::SatMagFctPt sat_mag_fct_pt,
-		    MicromagEquations<2>::LlgDampFctPt llg_damp_fct_pt,
-		    MicromagEquations<2>::LlgPrecessFctPt llg_precess_fct_pt,
-		    MicromagEquations<2>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
-		    MicromagEquations<2>::ExactMFctPt exact_m_fct_pt,
-		    MicromagEquations<2>::ExactPhiFctPt exact_phi_fct_pt) :
+ThreeDMicromagProblem<ELEMENT>::
+ThreeDMicromagProblem(const unsigned& n_x,
+		      const unsigned& n_y,
+		      const unsigned& n_z,
+		      MicromagEquations<3>::PoissonSourceFctPt poisson_source_fct_pt,
+		      MicromagEquations<3>::LlgSourceFctPt llg_source_fct_pt,
+		      MicromagEquations<3>::AppliedFieldFctPt applied_field_fct_pt,
+		      MicromagEquations<3>::CrystAnisFieldFctPt cryst_anis_field_fct_pt,
+		      MicromagEquations<3>::SatMagFctPt sat_mag_fct_pt,
+		      MicromagEquations<3>::LlgDampFctPt llg_damp_fct_pt,
+		      MicromagEquations<3>::LlgPrecessFctPt llg_precess_fct_pt,
+		      MicromagEquations<3>::ExchangeCoeffFctPt exchange_coeff_fct_pt,
+		      MicromagEquations<3>::ExactMFctPt exact_m_fct_pt,
+		      MicromagEquations<3>::ExactPhiFctPt exact_phi_fct_pt) :
 
   Poisson_source_fct_pt(poisson_source_fct_pt),
   Llg_source_fct_pt(llg_source_fct_pt),
@@ -247,9 +249,10 @@ TwoDMicromagProblem(const unsigned& n_x,
   // Set domain size
   double l_x = 1.0;
   double l_y = 1.0;
+  double l_z = 1.0;
 
   // Build mesh and store pointer in Problem
-  mesh_pt() = new RectangularQuadMesh<ELEMENT>(n_x,n_y,l_x,l_y,time_stepper_pt());
+  mesh_pt() = new SimpleCubicMesh<ELEMENT>(n_x,n_y,n_z,l_x,l_y,l_z,time_stepper_pt());
 
   // Get number of elements
   unsigned n_element = mesh_pt()->nelement();
@@ -322,7 +325,7 @@ TwoDMicromagProblem(const unsigned& n_x,
 /// boundary conditions for the current time.
 //========================================================================
 template<class ELEMENT>
-void TwoDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
+void ThreeDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 {
   // get current time
   double t = time_pt()->time();
@@ -344,11 +347,11 @@ void TwoDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 	{
 	  // Get x coordinate at this node.
 	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
-	  Vector<double> x(2,0.0);
-	  for(unsigned i=0; i<2; i++) {x[i] = nod_pt->x(i);}
+	  Vector<double> x(3,0.0);
+	  for(unsigned i=0; i<3; i++) {x[i] = nod_pt->x(i);}
 
 	  // Get and set conditions on phi.
-	  double phi_boundary_value = TwoDMicromagSetup::boundary_phi(t,x);
+	  double phi_boundary_value = ThreeDMicromagSetup::boundary_phi(t,x);
 	  nod_pt->set_value(0,phi_nodal_index,phi_boundary_value);
 	}
     }
@@ -361,7 +364,7 @@ void TwoDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 /// from exact solution.
 //========================================================================
 template<class ELEMENT>
-void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
+void ThreeDMicromagProblem<ELEMENT>::set_initial_condition()
 {
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
@@ -396,12 +399,12 @@ void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
       for (unsigned n=0;n<num_nod;n++)
 	{
 	  // Get nodal coordinate
-	  Vector<double> x(2,0.0);
-	  for(unsigned i=0; i<2; i++) {x[i]=mesh_pt()->node_pt(n)->x(i);}
+	  Vector<double> x(3,0.0);
+	  for(unsigned i=0; i<3; i++) {x[i]=mesh_pt()->node_pt(n)->x(i);}
 
 	  // Get initial value of M
 	  Vector<double> initial_m_values(3,0.0);
-	  TwoDMicromagSetup::initial_m(time,x,initial_m_values);
+	  ThreeDMicromagSetup::initial_m(time,x,initial_m_values);
 
 	  // Assign solution of M
 	  for(unsigned k=0; k<3; k++)
@@ -413,7 +416,7 @@ void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
 	    }
 
 	  // Get initial value of phi and assign solution
-	  double phi = TwoDMicromagSetup::exact_phi_solution(t,x);
+	  double phi = ThreeDMicromagSetup::exact_phi_solution(t,x);
 	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
 
 	}
@@ -429,7 +432,7 @@ void TwoDMicromagProblem<ELEMENT>::set_initial_condition()
 /// Doc the solution in tecplot format. Label files with label.
 //========================================================================
 template<class ELEMENT>
-void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
+void ThreeDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 {
 
   char filename[100];
@@ -468,7 +471,7 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
       exact_file.open(filename);
       mesh_pt()->output_fct(exact_file, 3*npts, time,
-			    TwoDMicromagSetup::exact_solution);
+			    ThreeDMicromagSetup::exact_solution);
       exact_file.close();
 
 
@@ -482,7 +485,7 @@ void TwoDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
       // Do the outputing
       error_file.open(filename);
-      mesh_pt()->compute_error(error_file, TwoDMicromagSetup::exact_solution,
+      mesh_pt()->compute_error(error_file, ThreeDMicromagSetup::exact_solution,
 			       time, error_norm, exact_norm);
       error_file.close();
 
@@ -512,27 +515,30 @@ int main()
   // double dt = atof(argc[2]);
   // unsigned n_x = atoi(argc[3]);
   // unsigned n_y = atoi(argc[4]);
+  // unsigned n_z = atoi(argc[4]);
 
   // Parameters (get from paramters file)
-  double t_max = TwoDMicromagSetup::t_max;
-  double dt = TwoDMicromagSetup::dt;
-  unsigned n_x = TwoDMicromagSetup::n_x;
-  unsigned n_y = TwoDMicromagSetup::n_y;
+  double t_max = ThreeDMicromagSetup::t_max;
+  double dt = ThreeDMicromagSetup::dt;
+  unsigned n_x = ThreeDMicromagSetup::n_x;
+  unsigned n_y = ThreeDMicromagSetup::n_y;
+  unsigned n_z = ThreeDMicromagSetup::n_z;
 
   // Set up the problem:
-  TwoDMicromagProblem<QMicromagElement<2,2> >
+  ThreeDMicromagProblem<QMicromagElement<3,2> >
     problem(n_x,
 	    n_y,
-	    TwoDMicromagSetup::poisson_source_function,
-	    TwoDMicromagSetup::llg_source_function,
-	    TwoDMicromagSetup::applied_field,
-	    TwoDMicromagSetup::cryst_anis_field,
-	    TwoDMicromagSetup::sat_mag,
-	    TwoDMicromagSetup::llg_damping_coeff,
-	    TwoDMicromagSetup::llg_precession_coeff,
-	    TwoDMicromagSetup::exchange_coeff,
-	    TwoDMicromagSetup::exact_m_solution,
-	    TwoDMicromagSetup::exact_phi_solution);
+	    n_z,
+	    ThreeDMicromagSetup::poisson_source_function,
+	    ThreeDMicromagSetup::llg_source_function,
+	    ThreeDMicromagSetup::applied_field,
+	    ThreeDMicromagSetup::cryst_anis_field,
+	    ThreeDMicromagSetup::sat_mag,
+	    ThreeDMicromagSetup::llg_damping_coeff,
+	    ThreeDMicromagSetup::llg_precession_coeff,
+	    ThreeDMicromagSetup::exchange_coeff,
+	    ThreeDMicromagSetup::exact_m_solution,
+	    ThreeDMicromagSetup::exact_phi_solution);
 
   // SET UP OUTPUT
   // Setup labels for output

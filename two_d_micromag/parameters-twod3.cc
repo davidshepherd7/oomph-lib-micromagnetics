@@ -30,7 +30,7 @@ namespace TwoDMicromagSetup
 		      Vector<double>& solution)
   {
     // phi
-    solution[0] =
+    solution[0] = 2*cos(t)*sin(2*Pi*x[0])*sin(2*Pi*x[1]);
 
     // x,y,z components of M respectively
     solution[1] = cos(2*Pi*x[0])*sin(2*Pi*x[1])*cos(t);

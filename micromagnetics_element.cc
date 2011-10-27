@@ -193,7 +193,7 @@ namespace oomph
 	  }
 
 	// Take total of all fields used
-	// ??ds add 0.1 to push off maximum (i.e. thermal-ish...)
+	// ??ds add 0.1 to push off maximum? (i.e. thermal-ish...)
 	Vector<double> H_total(3,0.0);
 	for(unsigned j=0; j<3; j++)
 	  {

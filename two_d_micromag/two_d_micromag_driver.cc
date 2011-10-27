@@ -45,7 +45,7 @@ namespace TwoDMicromagSetup
     Vector<double> easy_axis(3,0.0); easy_axis[0] = 1.0;
 
     // Crystalline anisotropy coeff
-    double cryst_coeff = 1.0;
+    double cryst_coeff = 0.0;
 
     // Get the dot product of the easy axis with M
     double easy_dot_m = 0.0;

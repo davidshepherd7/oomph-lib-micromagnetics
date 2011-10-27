@@ -41,9 +41,20 @@ namespace OneDMicromagSetup
   // Crystalline anisotropy field - set to zero if unused
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
   {
-    H_cryst_anis[0] = 0.0;
-    H_cryst_anis[1] = 0.0;
-    H_cryst_anis[2] = 0.0;
+    // Easy axis direction vector
+    Vector<double> easy_axis(3,0.0); easy_axis[0] = 1.0;
+
+    // Crystalline anisotropy coeff
+    double cryst_coeff = 1.0;
+
+    // Get the dot product of the easy axis with M
+    double easy_dot_m = 0.0;
+    for(unsigned i=0; i<3; i++)
+      easy_dot_m += easy_axis[i] * m[i];
+
+    // The actual crystalline anisotropy equation
+    for(unsigned i=0; i<3; i++)
+      H_cryst_anis[i] = cryst_coeff * easy_dot_m *  easy_axis[i];
   }
 
   // Applied field - set to zero if unused
