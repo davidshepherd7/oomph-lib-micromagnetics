@@ -1,9 +1,9 @@
 
 //??ds other drivers use .h file here - am I doing something wrong?
 # include "../micromagnetics_element.cc"
-
 # include "meshes/one_d_mesh.h"
-# include "./parameters-demag1.cc"
+//# include "./parameters-demag1.cc"
+#include "../one_d_exchange_testing/parameters-exchange3.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -23,7 +23,7 @@ namespace OneDMicromagSetup
   // Constants
   //===========================================================
   double alpha = 0.7;   // Gibert damping constant
-  double gamma = 0.221E-8;   // Electromagnetic ratio
+  double gamma = 0.30;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
   // (M x H)
@@ -38,7 +38,7 @@ namespace OneDMicromagSetup
     return gamma/(1 + alpha*alpha) * (alpha/1.0);}
 
   double exchange_coeff(const double& t, const Vector<double>& x)
-  {return 1.0;}
+  {return 0.0;}
 
   // Crystalline anisotropy field - set to zero if unused
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
@@ -256,14 +256,14 @@ OneDMicromagProblem(const unsigned& n_element,
   // pin dM/dn = dM/dx at either end - int. by parts of laplacian(M)
   //??ds
 
-  // // Pin the exchange field at all points if we don't want to use it
-  // //??ds pin if exchange coeff fn pt set to zero?
-  // for(unsigned i=0; i<mesh_pt()->nnode(); i++)
-  //   {
-  //     mesh_pt()->node_pt(i)->pin(4);
-  //     mesh_pt()->node_pt(i)->pin(5);
-  //     mesh_pt()->node_pt(i)->pin(6);
-  //   }
+  // Pin the exchange field at all points if we don't want to use it
+  //??ds pin if exchange coeff fn pt set to zero?
+  for(unsigned i=0; i<mesh_pt()->nnode(); i++)
+    {
+      mesh_pt()->node_pt(i)->pin(4);
+      mesh_pt()->node_pt(i)->pin(5);
+      mesh_pt()->node_pt(i)->pin(6);
+    }
 
   // Loop over elements to set pointers to everything
   for(unsigned i=0;i<n_element;i++)
