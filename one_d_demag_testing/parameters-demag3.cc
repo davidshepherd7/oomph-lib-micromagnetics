@@ -12,7 +12,7 @@ namespace OneDMicromagSetup
   double dt = 0.05;
 
   // Number of elements
-  double n_x_elements = 40;
+  unsigned n_x_elements = 40;
 
   // Prototypes for coeff functions
   double llg_damping_coeff(const double& t, const Vector<double>& x);

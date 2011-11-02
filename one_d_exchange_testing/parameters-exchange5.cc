@@ -1,5 +1,4 @@
-// parameters for M = cos(t) *[cos(2*pi*x), cos(2*pi*x),0]
-// see 17/10/11
+// parameters for M = t^2*[1,1,1]
 
 #include "math.h"
 using namespace std;
@@ -11,11 +10,11 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
 
   // Time stepping parameters
-  double t_max = 5;
+  double t_max = 3;
   double dt = 0.05;
 
   // Number of elements
-  unsigned n_x_elements = 40;
+  unsigned n_x_elements = 3;
 
 
   // Prototypes for coeff functions
@@ -28,19 +27,20 @@ namespace OneDMicromagSetup
 		      Vector<double>& solution)
   {
     // phi
-    solution[0] = 2.0*cos(t)*sin(2*Pi*x[0]);
+    solution[0] = -x[0];
 
     // x,y,z components of M respectively
-    solution[1] = cos(2*Pi*x[0])*cos(t);
-    solution[2] = cos(2*Pi*x[0])*cos(t);
-    solution[3] = 0.0;
+    solution[1] = 0.0;
+    solution[2] = t*t;
+    solution[3] = t*t;
   }
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
-    source[0] = -cos(Pi*x[0]*2.0)*sin(t)+llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(cos(t),2.0)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
-    source[1] = -cos(Pi*x[0]*2.0)*sin(t)-llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(cos(t),2.0)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
-    source[2] = llg_precession_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
+
+    source[0] = t*2.0-llg_damping_coeff(t,x)*(t*t*t*t)*2.0;
+    source[1] = t*2.0+llg_damping_coeff(t,x)*(t*t*t*t)+llg_precession_coeff(t,x)*(t*t);
+    source[2] = t*2.0+llg_damping_coeff(t,x)*(t*t*t*t)-llg_precession_coeff(t,x)*(t*t);
 
   }
 

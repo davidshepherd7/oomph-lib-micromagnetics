@@ -1,5 +1,8 @@
 syms x y z t llg_precession_coeff llg_damping_coeff exchange_coeff;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% INPUT M
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %M = cos(2*pi*x) * [cos(t), 0, 0];
 %M = cos(2*pi*x)* [cos(t), sin(t), 0]
 %M = cos(t) *[cos(2*pi*x), cos(2*pi*x),0]
@@ -11,18 +14,24 @@ syms x y z t llg_precession_coeff llg_damping_coeff exchange_coeff;
 %M = (x^2 - x) * [cos(t), sin(t), 0]
 %M = cos(t) *[cos(2*pi*x), cos(2*pi*x),0]
 %M = cos(t) *[cos(2*pi*x)*sin(2*pi*y), cos(2*pi*y)*sin(2*pi*x),0] % have to calculate phi by hand
-M = cos(t) *[cos(2*pi*x)*sin(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*cos(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*sin(2*pi*y)*cos(2*pi*z)] % have to calculate phi by hand
+%M = cos(t) *[cos(2*pi*x)*sin(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*cos(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*sin(2*pi*y)*cos(2*pi*z)] % have to calculate phi by hand
+  M = t*t*x*x*[1,1,1]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  ddphi = 4*pi*(diff(M(1),x) + diff(M(2),y) + diff(M(3),z));
-%dphi = int(ddphi,x);
-%phi = int(dphi,x)
+ddphi = 4*pi*(diff(M(1),x) + diff(M(2),y) + diff(M(3),z));
+dphi = int(ddphi,x);
+phi = int(dphi,x)
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % INPUT PHI (if needed)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %phi = x %% used to set phi when we want non-zero bc
 %phi = 2*pi*cos(t)*x*x
-
 %  phi = 2*cos(t)*sin(2*pi*x)*sin(2*pi*y) %% phi for M = cos(t) *[cos(2*pi*x)*sin(2*pi*y), cos(2*pi*y)*sin(2*pi*x),0]
-  phi = 2*cos(t)*sin(2*pi*x)*sin(2*pi*y)*sin(2*pi*z)
+ % phi = 2*cos(t)*sin(2*pi*x)*sin(2*pi*y)*sin(2*pi*z)
 %% phi for M = cos(t) *[cos(2*pi*x)*sin(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*cos(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*sin(2*pi*y)*cos(2*pi*z)]
+%  phi = (4/3)*x*x*x*t*t*pi
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dMdt = diff(M,t)
 
@@ -40,7 +49,7 @@ MxMxH = llg_damping_coeff*cross(M,cross(M,H))
   source = dMdt + MxH + MxMxH;
 
 % check residual is zero:
-simple(dMdt + cross(M,H) + cross(M,cross(M,H)) - source) == 0
+simple(dMdt + MxH + MxMxH - source) == 0
 
 ccode(M)
 
