@@ -360,6 +360,36 @@ namespace oomph
 
     }
 
+    /// \short Return FE representation of solution vector (phi,M,H_ex)
+    /// at local coordinate s and current time.
+    inline void interpolated_solution_micromag(const Vector<double> &s,
+					Vector<double>& interpolated_solution) const
+    {
+      //Find number of nodes
+      const unsigned n_node = nnode();
+
+      //Local shape function
+      Shape psi(n_node);
+
+      //Find values of shape function
+      shape(s,psi);
+
+      // Initialise solution vector
+      //??ds need to get length of solution vector really..., replace 7 with it
+      for(unsigned i=0; i<7; i++){interpolated_solution[i] = 0.0;}
+
+      // Loop over the list of solutions
+      for(unsigned i=0; i<7; i++)
+	{
+	  //Loop over the local nodes and sum
+	  for(unsigned l=0;l<n_node;l++)
+	    {
+	      interpolated_solution[i] += this->nodal_value(l,i)*psi[l];
+	    }
+	}
+
+    }
+
     // OUTPUT FUNCTIONS
     /// Output with default number of plot points
     void output(std::ostream &outfile)

@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange1.cc"
+# include "./parameters-exchange6.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -21,7 +21,7 @@ namespace OneDMicromagSetup
   // Constants
   //===========================================================
   double alpha = 0.7;   // Gibert damping constant
-  double gamma = 0.221E-8;   // Electromagnetic ratio
+  double gamma = 0.3;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
   // (M x H)
@@ -63,35 +63,35 @@ namespace OneDMicromagSetup
   // Get the saturisation magnetisation at position x
   double sat_mag(const double& t, const Vector<double>& x)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     return exact[1]*exact[1] + exact[2]*exact[2] + exact[3]*exact[3];
   }
 
   double boundary_phi(const double& t, const Vector<double>& x)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     return exact[0];
   }
 
   void initial_m(const double& t, const Vector<double>& x, Vector<double>& m)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }
 
   void boundary_m(const double& t, const Vector<double>& x, Vector<double>& m)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }
 
   double exact_phi_solution(const double& t, const Vector<double>& x)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     return exact[0];
   }
@@ -99,7 +99,7 @@ namespace OneDMicromagSetup
   void exact_m_solution(const double& t, const Vector<double>& x,
 			Vector<double>& m)
   {
-    Vector<double> exact(4,0.0);
+    Vector<double> exact(7,0.0);
     exact_solution(t,x,exact);
     for(unsigned i=0; i<3; i++){m[i] = exact[i+1];}
   }

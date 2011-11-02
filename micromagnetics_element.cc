@@ -101,7 +101,7 @@ namespace oomph
 	double poisson_source = 0;
 	get_poisson_source(time,ipt,interpolated_x,poisson_source);
 
-	// Loop over the test functions
+	// Loop over the test functions/nodes
 	for(unsigned l=0;l<n_node;l++)
 	  {
 
@@ -144,25 +144,28 @@ namespace oomph
 	// ??ds only when grad(M).n = 0 at boundaries, otherwise need another term!
 	double exchange_coeff = get_exchange_coeff(time, interpolated_x);
 
+	// loop over the nodes (equivalently over the test functions)
 	for (unsigned l=0; l<n_node; l++)
 	  {
 	    // loop over field/magnetisation directions
-	    for(unsigned k=0; k<3; k++)
+	    for(unsigned i=0; i<3; i++)
 	      {
-		// Get the local equation number for the kth componenet of H_ex on node l
-		int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(k));
+		// Get the local equation number for the ith componenent of H_ex on node l
+		int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
 
 		if(exchange_local_eqn >= 0)  // If it's not a boundary condition
 		  {
-		    residuals[exchange_local_eqn] += interpolated_H_exchange[k]*test(l)*W;
+		    residuals[exchange_local_eqn] += interpolated_H_exchange[i]*test(l)*W;
 
-		    // add coeff * grad(M_k) * grad(test) (then *weight, as always)
+		    // add coeff * grad(M_i) * grad(test) (then *weight, as always)
 		    // we only loop over DIM directions since derrivatives are automatically zero in non-spatial directions.
 		    // This rearrangement requires dM/dn = 0 at boundaries.
-		    for(unsigned i=0; i<DIM; i++)
+		    for(unsigned k=0; k<DIM; k++)
 		      {
 			residuals[exchange_local_eqn] +=
-			  exchange_coeff * (interpolated_m[k]*dpsidx(l,i)) * dtestdx(l,i) * W;
+			  exchange_coeff
+			  * nodal_value(l,exchange_index_micromag(i))*dpsidx(l,k)
+			  * dtestdx(l,k) * W;
 		      }
 		    //??ds put in jacobian calculation eventually
 		  }
@@ -255,7 +258,7 @@ namespace oomph
     Vector<double> s(DIM);
 
     // Get time
-    double t = time_pt()->time();
+    //double t = time_pt()->time();
 
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
@@ -276,24 +279,40 @@ namespace oomph
 	    outfile << x[i] << " ";
 	  }
 
-	// Output phi value at position
-	outfile << interpolated_phi_micromag(s) << " ";
-
-	// Output all M values at position
-	Vector<double> interpolated_m(3,0.0);
-	interpolated_m_micromag(s,interpolated_m);
-	for(unsigned i=0; i<3; i++)
+	// Output solution vector at local coordinate s
+	Vector<double> interpolated_solution(7,0.0); //??ds generalise the length?
+	interpolated_solution_micromag(s,interpolated_solution);
+	for(unsigned i=0; i<7; i++)
 	  {
-	    outfile << interpolated_m[i] << " ";
+	    outfile << interpolated_solution[i] << " ";
 	  }
 
-	// Output LLg source (just in case)
-	Vector<double> llg_source(3,0.0);
-	get_source_llg(t,x,llg_source);
-	for(unsigned i=0; i<3; i++)
-	  {
-	    outfile << llg_source[i] << " ";
-	  }
+	// // Output phi value at position
+	// outfile << interpolated_phi_micromag(s) << " ";
+
+	// // Output all M values at position
+	// Vector<double> interpolated_m(3,0.0);
+	// interpolated_m_micromag(s,interpolated_m);
+	// for(unsigned i=0; i<3; i++)
+	//   {
+	//     outfile << interpolated_m[i] << " ";
+	//   }
+
+	// // Output all H_ex values at position
+	// Vector<double> interpolated_H_exchange(3,0.0);
+	// interpolated_H_exchange_micromag(s,interpolated_H_exchange);
+	// for(unsigned i=0; i<3; i++)
+	//   {
+	//     outfile << interpolated_H_exchange[i] << " ";
+	//   }
+
+	// // Output LLg source (just in case)
+	// Vector<double> llg_source(3,0.0);
+	// get_source_llg(t,x,llg_source);
+	// for(unsigned i=0; i<3; i++)
+	//   {
+	//     outfile << llg_source[i] << " ";
+	//   }
 
 	// End the line ready for next point
 	outfile << std::endl;
@@ -337,9 +356,9 @@ namespace oomph
 	  }
 
 	// Calculate and output exact solution at point x and time t
-	Vector<double> exact_solution(4,0.0);
+	Vector<double> exact_solution(7,0.0);
 	(*exact_soln_pt)(t,x,exact_solution);
-	for(unsigned i=0; i<4; i++)
+	for(unsigned i=0; i<7; i++)
 	  {
 	    outfile << exact_solution[i] << " ";
 	  }
