@@ -29,6 +29,12 @@ namespace OneDMicromagSetup
     solution[1] = (x[0]*x[0] - x[0])*cos(t);
     solution[2] = (x[0]*x[0] - x[0])*sin(t);
     solution[3] = 0.0;
+
+    // x,y,z components of H_exchange
+    solution[4] = exchange_coeff(t,x)*cos(t)*2;
+    solution[5] = exchange_coeff(t,x)*sin(t)*2;
+    solution[6] = 0.0;
+
   }
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)

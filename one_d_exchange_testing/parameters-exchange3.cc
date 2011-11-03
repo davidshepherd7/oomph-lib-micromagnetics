@@ -11,7 +11,7 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
 
   // Time stepping parameters
-  double t_max = 5;
+  double t_max = 10;
   double dt = 0.05;
 
   // Number of elements
@@ -34,6 +34,13 @@ namespace OneDMicromagSetup
     solution[1] = cos(2*Pi*x[0])*cos(t);
     solution[2] = cos(2*Pi*x[0])*cos(t);
     solution[3] = 0.0;
+
+    // x,y,z components of H_exchange respectively
+    solution[4] = (Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*-4.0;
+    solution[5] = (Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*-4.0;
+    solution[6] = 0.0;
+
+
   }
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)

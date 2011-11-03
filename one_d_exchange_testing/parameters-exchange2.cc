@@ -16,7 +16,7 @@ namespace OneDMicromagSetup
   double dt = 0.05;
 
   // Number of elements
-  unsigned n_x_elements = 40;
+  unsigned n_x_elements = 1;
 
   /// Compute all components of the exact solution at time t, position x
   void exact_solution(const double& t, const Vector<double>& x,
