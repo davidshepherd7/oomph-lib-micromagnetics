@@ -15,7 +15,8 @@ syms x y z t llg_precession_coeff llg_damping_coeff exchange_coeff;
 %M = cos(t) *[cos(2*pi*x), cos(2*pi*x),0]
 %M = cos(t) *[cos(2*pi*x)*sin(2*pi*y), cos(2*pi*y)*sin(2*pi*x),0] % have to calculate phi by hand
 %M = cos(t) *[cos(2*pi*x)*sin(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*cos(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*sin(2*pi*y)*cos(2*pi*z)] % have to calculate phi by hand
-  M = t*t*x*x*[1,1,1]
+%M = t*t*(x*x - x)*[1,1,0]
+M = t*(x*x*x/3 - x*x/2)*[1,1,0]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ddphi = 4*pi*(diff(M(1),x) + diff(M(2),y) + diff(M(3),z));
@@ -30,14 +31,15 @@ phi = int(dphi,x)
 %  phi = 2*cos(t)*sin(2*pi*x)*sin(2*pi*y) %% phi for M = cos(t) *[cos(2*pi*x)*sin(2*pi*y), cos(2*pi*y)*sin(2*pi*x),0]
  % phi = 2*cos(t)*sin(2*pi*x)*sin(2*pi*y)*sin(2*pi*z)
 %% phi for M = cos(t) *[cos(2*pi*x)*sin(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*cos(2*pi*y)*sin(2*pi*z),sin(2*pi*x)*sin(2*pi*y)*cos(2*pi*z)]
-%  phi = (4/3)*x*x*x*t*t*pi
+%phi = 2*t*t*pi*((2/3)*x*x*x - x*x) % for M = t*t*(x*x - x)*[1,1,0]
+phi = (1/3)*pi*t*x*x*x*(x - 2) %% for M = t*(x*x*x/3 - x*x/2)*[1,1,0]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dMdt = diff(M,t)
 
-  H_demag = [-diff(phi,x), -diff(phi,y), -diff(phi,z)]
+H_demag = [-diff(phi,x), -diff(phi,y), -diff(phi,z)]
 
-  dMx = [diff(M(1),x), diff(M(2),x), diff(M(3),x)];
+dMx = [diff(M(1),x), diff(M(2),x), diff(M(3),x)];
 dMy = [diff(M(1),y), diff(M(2),y), diff(M(3),y)];
 dMz = [diff(M(1),z), diff(M(2),z), diff(M(3),z)];
 H_ex = exchange_coeff*[diff(dMx(1),x) + diff(dMy(1),y) + diff(dMz(1),z), diff(dMx(2),x) + diff(dMy(2),y) + diff(dMz(2),z), diff(dMx(3),x) + diff(dMy(3),y) + diff(dMz(3),z)]
@@ -53,4 +55,4 @@ simple(dMdt + MxH + MxMxH - source) == 0
 
 ccode(M)
 
-ccode(source)
+  ccode(simple(source))
