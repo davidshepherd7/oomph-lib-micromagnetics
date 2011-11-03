@@ -1,7 +1,7 @@
 
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange6.cc"
+# include "./parameters-exchange3.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -247,22 +247,6 @@ OneDMicromagProblem(const unsigned& n_element,
   mesh_pt()->boundary_node_pt(0,0)->pin(0);
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
-  // // pin the M_x values at either end - int. by parts of div(M)
-  // mesh_pt()->boundary_node_pt(0,0)->pin(1);
-  // mesh_pt()->boundary_node_pt(1,0)->pin(1);
-
-  // pin dM/dn = dM/dx at either end - int. by parts of laplacian(M)
-  //??ds
-
-  // // Pin the exchange field at all points if we don't want to use it
-  // //??ds pin if exchange coeff fn pt set to zero?
-  // for(unsigned i=0; i<mesh_pt()->nnode(); i++)
-  //   {
-  //     mesh_pt()->node_pt(i)->pin(4);
-  //     mesh_pt()->node_pt(i)->pin(5);
-  //     mesh_pt()->node_pt(i)->pin(6);
-  //   }
-
   // Loop over elements to set pointers to everything
   for(unsigned i=0;i<n_element;i++)
     {
@@ -339,7 +323,7 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 
 	  // Get and set conditions on phi.
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
-	  nod_pt->set_value(0,phi_nodal_index,phi_boundary_value);
+	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
 	}
     }
 
@@ -362,9 +346,6 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 
   //Find number of nodes in mesh
   unsigned num_nod = mesh_pt()->nnode();
-
-  // Get pointer to an element (any will do so take 0th)
-  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
 
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
@@ -389,23 +370,16 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  Vector<double> x(1,0.0);
 	  x[0]=mesh_pt()->node_pt(n)->x(0);
 
-	  // Get initial value of M
-	  Vector<double> initial_m_values(3,0.0);
-	  OneDMicromagSetup::initial_m(time,x,initial_m_values);
+	  // Get initial value of solution
+	  Vector<double> initial_solution(7,0.0);
+	  OneDMicromagSetup::exact_solution(time,x,initial_solution);
 
-	  // Assign solution of M
-	  for(unsigned k=0; k<3; k++)
+	  // Set all components of the solution at this node, timestep t
+	  for(unsigned i=0; i<7; i++)
 	    {
-	      // Set the t'th history value of the ith direction of M
-	      // on node n to be initial_M[k].
 	      mesh_pt()->node_pt(n)->
-		set_value(t, elem_pt->M_index_micromag(k), initial_m_values[k]);
+		set_value(t,i,initial_solution[i]);
 	    }
-
-	  // Get initial value of phi and assign solution
-	  double phi = OneDMicromagSetup::exact_phi_solution(t,x);
-	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
-
 	}
     }
 
@@ -500,7 +474,7 @@ int main()
   // Set up the problem:
 
   unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> >
+  OneDMicromagProblem<QMicromagElement<1,4> >
     problem(n_element,
 	    OneDMicromagSetup::poisson_source_function,
 	    OneDMicromagSetup::llg_source_function,
@@ -561,11 +535,6 @@ int main()
 			  "main()",
 			  OOMPH_EXCEPTION_LOCATION);
     }
-
-  // //  ??ds testing stuff - run get residuals then exit
-  // DoubleVector res;
-  // problem.get_residuals(res);
-  // exit(0);
 
   // //  ??ds testing stuff
   // DenseDoubleMatrix jacobian;
