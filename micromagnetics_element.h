@@ -297,7 +297,7 @@ namespace oomph
     }
 
     /// Calculate the cross product of vectors A and B, store the result in vector output. NOTE: the cross product is only valid for 3-dimensional vectors
-    //??ds this should go somewhere else probably
+    //??ds this should go somewhere else probably, maybe generic.h?
     void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output) const
     {
       output[0] = A[1]*B[2] - A[2]*B[1];

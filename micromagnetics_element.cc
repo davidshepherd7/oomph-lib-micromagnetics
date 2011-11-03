@@ -57,12 +57,12 @@ namespace oomph
 
 	//Allocate memory for local quantities and initialise to zero
 	// dphidx is also H_demag so we need all 3 components initialised - even if they are zero.
-	double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0, div_m=0.0;
+	double interpolated_phi=0.0,  llg_damping_coeff=0.0, llg_precession_coeff=0.0;
 	Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(3,0.0);
 	Vector<double> interpolated_m(3,0.0), interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
 	Vector<double> dmdt(3,0.0), interpolated_dmdt(3,0.0);
 	Vector<double> interpolated_H_exchange(3,0.0);
-
+	//Vector<double> interpolated_dmidxi(3,0.0);
 
 	//Calculate function value and derivatives:
 	//-----------------------------------------
@@ -80,7 +80,7 @@ namespace oomph
 	      {
 		interpolated_dmdt[j] += dmdt[j]*psi(l);
 		interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
-		interpolated_H_exchange[j] +=nodal_value(l,exchange_index_micromag(j))*psi(l);
+		interpolated_H_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
 	      }
 
 	    // Loop over spatial directions
@@ -88,15 +88,12 @@ namespace oomph
 	      {
 		interpolated_x[j] += nodal_position(l,j)*psi(l);
 		interpolated_dphidx[j] += phi_value*dpsidx(l,j);
-		div_m += nodal_value(l,M_index_micromag(j)) *dpsidx(l,j);
+		//interpolated_dmidxi[j] += nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
 	      }
-
 	  }
-
 
 	// Poisson section (demagnetising field calculation)
 	//----------------------------------------------------
-
 	// Get source function
 	double poisson_source = 0;
 	get_poisson_source(time,ipt,interpolated_x,poisson_source);
@@ -129,7 +126,6 @@ namespace oomph
 
 		  }
 
-
 		// ??ds add in jacobian calculation eventually
 
 	      }
@@ -142,35 +138,51 @@ namespace oomph
 	// H_ex = coeff * laplacian(M)
 	// Weak form: int( H_ex_i - coeff* grad(M).grad(test) ) = 0
 	// ??ds only when grad(M).n = 0 at boundaries, otherwise need another term!
+
+	// Get exchange coeff
 	double exchange_coeff = get_exchange_coeff(time, interpolated_x);
 
-	// loop over the nodes (equivalently over the test functions)
-	for (unsigned l=0; l<n_node; l++)
+	// Calculate dMi/dxk for each component of M, for each k.
+	// interpolated_dmdx(i,k) is the ith component diff wrt x_k
+	DenseMatrix<double> interpolated_dmdx(3,3,0.0);
+	for(unsigned i=0; i<3; i++)
 	  {
-	    // loop over field/magnetisation directions
-	    for(unsigned i=0; i<3; i++)
+	    for(unsigned k=0; k<DIM; k++)
 	      {
-		// Get the local equation number for the ith componenent of H_ex on node l
-		int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
-
-		if(exchange_local_eqn >= 0)  // If it's not a boundary condition
+		for(unsigned l=0; l<n_node; l++)
 		  {
-		    residuals[exchange_local_eqn] += interpolated_H_exchange[i]*test(l)*W;
-
-		    // add coeff * grad(M_i) * grad(test) (then *weight, as always)
-		    // we only loop over DIM directions since derrivatives are automatically zero in non-spatial directions.
-		    // This rearrangement requires dM/dn = 0 at boundaries.
-		    for(unsigned k=0; k<DIM; k++)
-		      {
-			residuals[exchange_local_eqn] +=
-			  exchange_coeff
-			  * nodal_value(l,exchange_index_micromag(i))*dpsidx(l,k)
-			  * dtestdx(l,k) * W;
-		      }
-		    //??ds put in jacobian calculation eventually
+		    interpolated_dmdx(i,k) += nodal_value(l,M_index_micromag(i)) * dpsidx(l,k);
 		  }
 	      }
-	  } // End of loop over test functions
+	  }
+
+	// Loop over H_exchange components
+	for(unsigned i=0; i<3; i++)
+	  {
+	    // Loop over nodes, adding contributions from each
+	    for(unsigned l=0; l<n_node; l++)
+	      {
+		// Get local equation number for H_exchange
+		int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
+
+		// If it's not a boundary condition
+		if(exchange_local_eqn >=0)
+		  {
+		    // Add exchange field component at integration pt
+		    residuals[exchange_local_eqn] += interpolated_H_exchange[i] * test(l) * W;
+
+		    // Add grad(M).grad(test) at integration pt
+		    for(unsigned k=0; k<DIM; k++)
+		      {
+			residuals[exchange_local_eqn] += exchange_coeff
+			  * interpolated_dmdx(i,k)
+			  * dtestdx(l,k) * W;
+		      }
+		    //?? jacobian calculation here
+		  }
+	      }
+
+	  }
 
 
 	// LLG section (time evolution of magnetisation)
@@ -238,7 +250,6 @@ namespace oomph
 
 	      }
 	  } // End of loop over test functions
-
       }// End of loop over integration points
   } // End of fill in residuals function
 
@@ -286,33 +297,6 @@ namespace oomph
 	  {
 	    outfile << interpolated_solution[i] << " ";
 	  }
-
-	// // Output phi value at position
-	// outfile << interpolated_phi_micromag(s) << " ";
-
-	// // Output all M values at position
-	// Vector<double> interpolated_m(3,0.0);
-	// interpolated_m_micromag(s,interpolated_m);
-	// for(unsigned i=0; i<3; i++)
-	//   {
-	//     outfile << interpolated_m[i] << " ";
-	//   }
-
-	// // Output all H_ex values at position
-	// Vector<double> interpolated_H_exchange(3,0.0);
-	// interpolated_H_exchange_micromag(s,interpolated_H_exchange);
-	// for(unsigned i=0; i<3; i++)
-	//   {
-	//     outfile << interpolated_H_exchange[i] << " ";
-	//   }
-
-	// // Output LLg source (just in case)
-	// Vector<double> llg_source(3,0.0);
-	// get_source_llg(t,x,llg_source);
-	// for(unsigned i=0; i<3; i++)
-	//   {
-	//     outfile << llg_source[i] << " ";
-	//   }
 
 	// End the line ready for next point
 	outfile << std::endl;
@@ -429,23 +413,15 @@ namespace oomph
 	//Premultiply the weights and the Jacobian
 	double W = w*J;
 
-	// Get finite element interpolated magnetisation
-	//??ds at the current time
-	Vector<double> interpolated_m(3,0.0);
-	interpolated_m_micromag(s,interpolated_m);
-
-	// Combine with phi solution into one soln vector "interpolated_soln"
+	// Get entire interpolated solution at position s and current time
 	Vector<double> interpolated_soln(nvalues,0.0);
-	interpolated_soln[phi_index_micromag()] = interpolated_phi_micromag(s);
-	for(unsigned i=0; i<3; i++)
-	  { interpolated_soln[M_index_micromag(i)] = interpolated_m[i]; }
-	//??ds include exchange field and anything else I add eventually
+	interpolated_solution_micromag(s,interpolated_soln);
 
-	// Get exact solution at point x and time "time"
+	// Get entire exact solution at point x and time "time"
 	Vector<double> exact_soln(nvalues,0.0);
 	(*exact_soln_pt)(time,x,exact_soln);
 
-	// Output error then end the line
+	// Output the error (difference between exact and interpolated solutions)
 	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
 	outfile << std::endl;
 
