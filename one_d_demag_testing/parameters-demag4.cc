@@ -37,9 +37,11 @@ namespace OneDMicromagSetup
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
     // Source function to exactly cancel out contributions from not being a real exact solution
-    source[0] = llg_damping_coeff(t,x)*-cos(t)*x[0]*x[0];
-    source[1] = -sin(t)*x[0];
-    source[2] = llg_precession_coeff(t,x)*-cos(t)*x[0];
+
+  source[0] = llg_damping_coeff(t,x)*(x[0]*x[0])*pow(cos(t),2.0);
+  source[1] = -x[0]*sin(t);
+  source[2] = llg_precession_coeff(t,x)*x[0]*cos(t);
+
   }
 
 }; // end of namespace

@@ -10,11 +10,11 @@ namespace OneDMicromagSetup
   using namespace OneDMicromagSetup;
 
   // Time stepping parameters
-  double t_max = 3;
+  double t_max = 5;
   double dt = 0.05;
 
   // Number of elements
-  unsigned n_x_elements = 3;
+  unsigned n_x_elements = 40;
 
 
   // Prototypes for coeff functions
@@ -30,7 +30,7 @@ namespace OneDMicromagSetup
     solution[0] = -x[0];
 
     // x,y,z components of M respectively
-    solution[1] = 0.0;
+    solution[1] = t*t;
     solution[2] = t*t;
     solution[3] = t*t;
   }

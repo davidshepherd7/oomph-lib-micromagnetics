@@ -45,9 +45,10 @@ namespace OneDMicromagSetup
 
   void llg_source_function(const double& t, const Vector<double>& x, Vector<double>& source)
   {
-    source[0] = -cos(Pi*x[0]*2.0)*sin(t)+llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(cos(t),2.0)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
-    source[1] = -cos(Pi*x[0]*2.0)*sin(t)-llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(cos(t),2.0)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
-    source[2] = llg_precession_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*(Pi*cos(Pi*x[0]*2.0)*cos(t)*4.0+(Pi*Pi)*exchange_coeff(t,x)*cos(Pi*x[0]*2.0)*cos(t)*4.0);
+
+  source[0] = -cos(Pi*x[0]*2.0)*sin(t)+Pi*llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),3.0)*pow(cos(t),3.0)*4.0;
+  source[1] = -cos(Pi*x[0]*2.0)*sin(t)-Pi*llg_damping_coeff(t,x)*pow(cos(Pi*x[0]*2.0),3.0)*pow(cos(t),3.0)*4.0;
+  source[2] = Pi*llg_precession_coeff(t,x)*pow(cos(Pi*x[0]*2.0),2.0)*pow(cos(t),2.0)*4.0;
 
   }
 
