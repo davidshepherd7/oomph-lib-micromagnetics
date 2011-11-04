@@ -1,7 +1,8 @@
 
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-exchange3.cc"
+//# include "./../one_d_demag_testing/parameters-demag4.cc"
+# include "./parameters-exchange7.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -468,13 +469,29 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   //======start_of_main==================================================
   /// Driver for 1D Micromag problem
   //=====================================================================
-int main()
+int main(int argc, char *argv[])
 {
 
-  // Set up the problem:
+  // Get t_max, dt and n_element intelligently
+  double t_max, dt;
+  unsigned n_element;
+  if(argc == 4)
+    {
+      // If arguments are provided to function use them
+      t_max = atof(argv[1]);
+      dt = atof(argv[2]);
+      n_element = atoi(argv[3]);
+    }
+  else
+    {
+      // Else use the arguments from parameters files
+      std::cout << "Not enough arguments, using parameters from file" << std::endl;
+      t_max = OneDMicromagSetup::t_max;
+      dt = OneDMicromagSetup::dt;
+      n_element = OneDMicromagSetup::n_x_elements;
+    }
 
-  unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,4> >
+    OneDMicromagProblem<QMicromagElement<1,4> >
     problem(n_element,
 	    OneDMicromagSetup::poisson_source_function,
 	    OneDMicromagSetup::llg_source_function,
@@ -505,12 +522,6 @@ int main()
   trace_file << "VARIABLES=\"time\",\"u<SUB>FE</SUB>\","
 	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
 	     << std::endl;
-
-
-  // SET UP TIME STEPPING
-  // Choose simulation interval and timestep
-  double t_max = OneDMicromagSetup::t_max;
-  double dt = OneDMicromagSetup::dt;
 
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
