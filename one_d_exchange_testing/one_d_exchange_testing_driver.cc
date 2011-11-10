@@ -2,7 +2,7 @@
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
 //# include "./../one_d_demag_testing/parameters-demag4.cc"
-# include "./parameters-exchange3.cc"
+# include "./parameters-exchange7.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -22,7 +22,7 @@ namespace OneDMicromagSetup
   // Constants
   //===========================================================
   double alpha = 0.5;   // Gibert damping constant
-  double gamma = 0.5;   // Electromagnetic ratio
+  double gamma = 0.1;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
   // (M x H)
@@ -247,6 +247,13 @@ OneDMicromagProblem(const unsigned& n_element,
   mesh_pt()->boundary_node_pt(0,0)->pin(0);
   mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
+  // //??ds messing around here:
+  // for(unsigned i=0; i<3; i++)
+  //   {
+  //     mesh_pt()->boundary_node_pt(0,0)->pin(1+i);
+  //     mesh_pt()->boundary_node_pt(1,0)->pin(1+i);
+  //   }
+
   // Loop over elements to set pointers to everything
   for(unsigned i=0;i<n_element;i++)
     {
@@ -323,6 +330,12 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 	  // Get and set conditions on phi.
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
 	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
+
+	  // //??ds messing around: get + set conditions on M
+	  // Vector<double> exact_solution(7,0.0);
+	  // for(unsigned i=0; i<3; i++)
+	  //   nod_pt->set_value(elem_pt->m_index_micromag(i),
+	  // 		      exact_solution[elem_pt->m_index_micromag(i)]);
 	}
     }
 

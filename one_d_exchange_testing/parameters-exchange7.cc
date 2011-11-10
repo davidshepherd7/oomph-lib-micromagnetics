@@ -11,7 +11,7 @@ namespace OneDMicromagSetup
 
   // Time stepping parameters
   double t_max = 15;
-  double dt = 1E-5;
+  double dt = 0.05;
 
   // Number of elements
   unsigned n_x_elements = 40;

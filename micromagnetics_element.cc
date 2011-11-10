@@ -79,7 +79,7 @@ namespace oomph
 	    for(unsigned j=0; j<3; j++)
 	      {
 		interpolated_dmdt[j] += dmdt[j]*psi(l);
-		interpolated_m[j] += nodal_value(l,M_index_micromag(j))*psi(l);
+		interpolated_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
 		interpolated_H_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
 	      }
 
@@ -88,7 +88,7 @@ namespace oomph
 	      {
 		interpolated_x[j] += nodal_position(l,j)*psi(l);
 		interpolated_dphidx[j] += phi_value*dpsidx(l,j);
-		//interpolated_dmidxi[j] += nodal_value(l,M_index_micromag(j))*dpsidx(l,j);
+		//interpolated_dmidxi[j] += nodal_value(l,m_index_micromag(j))*dpsidx(l,j);
 	      }
 	  }
 
@@ -151,7 +151,7 @@ namespace oomph
 	      {
 		for(unsigned l=0; l<n_node; l++)
 		  {
-		    interpolated_dmdx(i,k) += nodal_value(l,M_index_micromag(i)) * dpsidx(l,k);
+		    interpolated_dmdx(i,k) += nodal_value(l,m_index_micromag(i)) * dpsidx(l,k);
 		  }
 	      }
 	  }
@@ -235,7 +235,7 @@ namespace oomph
 	    for(unsigned k=0; k<3; k++)
 	      {
 		// Get the local equation number for the kth component of M part
-		m_local_eqn = nodal_local_eqn(l,M_index_micromag(k));
+		m_local_eqn = nodal_local_eqn(l,m_index_micromag(k));
 
 		if(m_local_eqn >= 0)  // If it's not a boundary condition
 		  {

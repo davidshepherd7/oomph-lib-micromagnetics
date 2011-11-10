@@ -48,7 +48,7 @@ namespace oomph
     unsigned phi_index_micromag() const {return 0;} // equation 0
 
     /// Specify nodal index for kth component of M.
-    unsigned M_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
+    unsigned m_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
 
     /// Specify nodal index for kth component of H_ex.
     unsigned exchange_index_micromag(const unsigned &k) const {return 4 + k;} // equations 4,5,6
@@ -354,7 +354,7 @@ namespace oomph
 	  //Loop over the local nodes and sum
 	  for(unsigned l=0;l<n_node;l++)
 	    {
-	      interpolated_m[k] += this->nodal_value(l,M_index_micromag(k))*psi[l];
+	      interpolated_m[k] += this->nodal_value(l,m_index_micromag(k))*psi[l];
 	    }
 	}
 
@@ -454,7 +454,7 @@ namespace oomph
 	      for(unsigned t=0;t<n_time;t++)
 		{
 		  // ??ds The "1" in weights is the derrivative order (i.e. 1: dM/dt, 2: d^2M/dt^2) I think...
-		  dmdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,M_index_micromag(j));
+		  dmdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,m_index_micromag(j));
 		}
 	    }
 
