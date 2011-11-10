@@ -422,7 +422,8 @@ namespace oomph
 
     // ??ds re-activate this when you're confident that the Jacobian is correct!
     // /// Add the element's contribution to its residual vector and element Jacobian matrix (wrapper)
-    // void fill_in_contribution_to_jacobian(Vector<double> &residuals, DenseMatrix<double> &jacobian)
+    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    //                                       DenseMatrix<double> &jacobian)
     // {
     //   //Call the generic routine with the flag set to 1
     //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
@@ -561,10 +562,18 @@ namespace oomph
   protected:
 
     /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const;
+    inline double dshape_and_dtest_eulerian_micromag(const Vector<double> &s,
+						     Shape &psi,
+						     DShape &dpsidx,
+						     Shape &test,
+						     DShape &dtestdx) const;
 
     /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
-    inline double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const;
+    inline double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt,
+							     Shape &psi,
+							     DShape &dpsidx,
+							     Shape &test,
+							     DShape &dtestdx) const;
 
   }; // end of QMicromagElement class declaration
 

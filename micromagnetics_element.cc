@@ -317,9 +317,6 @@ namespace oomph
     //Vector of local coordinates
     Vector<double> s(DIM);
 
-    // Get time
-    double t = time_pt()->time();
-
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
 
@@ -328,27 +325,27 @@ namespace oomph
     for (unsigned iplot=0;iplot<num_plot_points;iplot++)
       {
 
-	// Get local coordinates of plot point
-	get_s_plot(iplot,n_plot,s);
+    	// Get local coordinates of plot point
+    	get_s_plot(iplot,n_plot,s);
 
-	// Get and output eulerian coordinates of plot point and output
-	Vector<double> x(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++)
-	  {
-	    x[i] = interpolated_x(s,i);
-	    outfile << x[i] << " ";
-	  }
+    	// Get and output eulerian coordinates of plot point and output
+    	Vector<double> x(DIM,0.0);
+    	for(unsigned i=0; i<DIM; i++)
+    	  {
+    	    x[i] = interpolated_x(s,i);
+    	    outfile << x[i] << " ";
+    	  }
 
-	// Calculate and output exact solution at point x and time t
-	Vector<double> exact_solution(7,0.0);
-	(*exact_soln_pt)(t,x,exact_solution);
-	for(unsigned i=0; i<7; i++)
-	  {
-	    outfile << exact_solution[i] << " ";
-	  }
+    	// Calculate and output exact solution at point x and time t
+    	Vector<double> exact_solution(7,0.0);
+    	(*exact_soln_pt)(time,x,exact_solution);
+    	for(unsigned i=0; i<7; i++)
+    	  {
+    	    outfile << exact_solution[i] << " ";
+    	  }
 
-	// End the line ready for next point
-	outfile << std::endl;
+    	// End the line ready for next point
+    	outfile << std::endl;
       }
 
     // Write tecplot footer (e.g. FE connectivity lists)

@@ -2,8 +2,8 @@
 //??ds other drivers use .h file here - am I doing something wrong?
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
-//# include "./parameters-demag7.cc"
-#include "../one_d_exchange_testing/parameters-exchange3.cc"
+# include "./parameters-demag4.cc"
+//# include "../one_d_exchange_testing/parameters-exchange6.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)

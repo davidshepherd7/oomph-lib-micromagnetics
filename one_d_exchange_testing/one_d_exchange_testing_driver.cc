@@ -2,7 +2,7 @@
 # include "../micromagnetics_element.cc"
 # include "meshes/one_d_mesh.h"
 //# include "./../one_d_demag_testing/parameters-demag4.cc"
-# include "./parameters-exchange7.cc"
+# include "./parameters-exchange3.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -21,8 +21,8 @@ namespace OneDMicromagSetup
 
   // Constants
   //===========================================================
-  double alpha = 0.7;   // Gibert damping constant
-  double gamma = 0.3;   // Electromagnetic ratio
+  double alpha = 0.5;   // Gibert damping constant
+  double gamma = 0.5;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
   // (M x H)
@@ -108,7 +108,7 @@ namespace OneDMicromagSetup
 }; // End of namespace
 
 //==start_of_problem_class============================================
-/// 1D Micromag problem in unit interval.
+///
 //====================================================================
 template<class ELEMENT>
 class OneDMicromagProblem : public Problem
@@ -201,7 +201,7 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 
 
 //=====start_of_constructor===============================================
-/// ??ds
+///
 //========================================================================
 template<class ELEMENT>
 OneDMicromagProblem<ELEMENT>::
@@ -240,8 +240,7 @@ OneDMicromagProblem(const unsigned& n_element,
   // Choose a control node at which the solution is documented
   unsigned control_el = unsigned(n_element/2); // Pick a control element in the middle
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);  // Choose its first node as the control node
-  std::cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
-
+  std::cout << "Recording trace of the solution at x = " << Control_node_pt->x(0) << std::endl;
 
   // Set up the boundary conditions for this problem:
   // pin the phi values of the nodes at either end - int. by parts of phi
@@ -254,7 +253,7 @@ OneDMicromagProblem(const unsigned& n_element,
       // Upcast from GeneralisedElement to the present element
       ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
 
-      //Set the source function pointer
+      //Set the poisson source function pointer
       elem_pt->poisson_source_fct_pt() = Poisson_source_fct_pt;
 
       // Set the LLG source function pointer
@@ -284,7 +283,6 @@ OneDMicromagProblem(const unsigned& n_element,
       // Set pointer to continous time
       elem_pt->time_pt() = time_pt();
     }
-
 
   // Setup equation numbering scheme
   assign_eqn_numbers();
@@ -375,8 +373,9 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 	  Vector<double> initial_solution(7,0.0);
 	  OneDMicromagSetup::exact_solution(time,x,initial_solution);
 
-	  // Set all components of the solution at this node, timestep t
-	  for(unsigned i=0; i<7; i++)
+	  // Set initial condition on M, could set others here using other i values
+	  //??ds don't think we need any others though
+	  for(unsigned i=1; i<4; i++)
 	    {
 	      mesh_pt()->node_pt(n)->
 		set_value(t,i,initial_solution[i]);
@@ -471,6 +470,8 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   //=====================================================================
 int main(int argc, char *argv[])
 {
+  // Store the command line arguments
+  CommandLineArgs::setup(argc,argv);
 
   // Get t_max, dt and n_element intelligently
   double t_max, dt;
@@ -491,7 +492,7 @@ int main(int argc, char *argv[])
       n_element = OneDMicromagSetup::n_x_elements;
     }
 
-    OneDMicromagProblem<QMicromagElement<1,4> >
+  OneDMicromagProblem<QMicromagElement<1,2> >
     problem(n_element,
 	    OneDMicromagSetup::poisson_source_function,
 	    OneDMicromagSetup::llg_source_function,
