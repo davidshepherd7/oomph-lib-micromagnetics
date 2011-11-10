@@ -1,9 +1,9 @@
 
 //??ds other drivers use .h file here - am I doing something wrong?
 # include "../micromagnetics_element.cc"
+# include "poisson.h"
 # include "meshes/one_d_mesh.h"
-# include "./parameters-demag4.cc"
-//# include "../one_d_exchange_testing/parameters-exchange6.cc"
+# include "../one_d_exchange_testing/parameters-exchange4.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -22,8 +22,8 @@ namespace OneDMicromagSetup
 
   // Constants
   //===========================================================
-  double alpha = 0.7;   // Gibert damping constant
-  double gamma = 0.3;   // Electromagnetic ratio
+  double alpha = 0.5;   // Gibert damping constant
+  double gamma = 0.5;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
   // (M x H)
@@ -38,7 +38,7 @@ namespace OneDMicromagSetup
     return gamma/(1 + alpha*alpha) * (alpha/1.0);}
 
   double exchange_coeff(const double& t, const Vector<double>& x)
-  {return 0.0;}
+  {return 1.0;}
 
   // Crystalline anisotropy field - set to zero if unused
   void cryst_anis_field(const double& t, const Vector<double>& x, const Vector<double>& m, Vector<double>& H_cryst_anis)
@@ -109,9 +109,9 @@ namespace OneDMicromagSetup
 }; // End of namespace
 
 //==start_of_problem_class============================================
-/// 1D Micromag problem in unit interval.
+///
 //====================================================================
-template<class ELEMENT>
+template<class MAGELEMENT, class EXTELEMENT>
 class OneDMicromagProblem : public Problem
 {
 
@@ -156,6 +156,12 @@ private:
   // Trace file
   std::ofstream Trace_file;
 
+  /// Variable to store the index of the magnetic submesh in mesh_pt()
+  unsigned Magnetic_mesh_index_micromag;
+
+  /// Variable to store the index of the external, non-magnetic submesh in mesh_pt()
+  unsigned External_mesh_index_micromag;
+
 public:
 
   /// Constructor: Pass number of elements and pointer to source function
@@ -193,6 +199,14 @@ public:
   /// Set initial condition (incl previous timesteps) according to specified function.
   void set_initial_condition();
 
+  /// Get the mesh number of the magnetic mesh
+  unsigned magnetic_mesh_index_micromag() const
+  {return Magnetic_mesh_index_micromag;}
+
+  /// Get the mesh number of the external mesh
+  unsigned external_mesh_index_micromag() const
+  {return External_mesh_index_micromag;}
+
 }; // end of problem class
 
 /// Set number of values stored at each node (7: phi, 3 M's, 3 H_ex's)
@@ -202,10 +216,10 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 7;
 
 
 //=====start_of_constructor===============================================
-/// ??ds
+///
 //========================================================================
-template<class ELEMENT>
-OneDMicromagProblem<ELEMENT>::
+template<class MAGELEMENT, class EXTELEMENT>
+OneDMicromagProblem<MAGELEMENT,EXTELEMENT>::
 OneDMicromagProblem(const unsigned& n_element,
 		    MicromagEquations<1>::PoissonSourceFctPt poisson_source_fct_pt,
 		    MicromagEquations<1>::LlgSourceFctPt llg_source_fct_pt,
@@ -232,46 +246,51 @@ OneDMicromagProblem(const unsigned& n_element,
   // Allocate the timestepper -- this constructs the Problem's time object with a sufficient amount of storage to store the previous timsteps.
   add_time_stepper_pt(new BDF<2>);
 
-  // Set domain length
-  double L=1.0;
+  // Create mesh of magnetic region from x=0 to x=0.2
+  unsigned n_mag_element = unsigned(n_element/4);
+  Mesh* magnetic_region_mesh_pt =
+    new OneDMesh<MAGELEMENT>(n_mag_element,0,1.0,time_stepper_pt());
 
-  // Build mesh and store pointer in Problem
-  Problem::mesh_pt() = new OneDMesh<ELEMENT>(n_element,L,time_stepper_pt());
+  // Add this mesh to the list of submeshes and record the index
+  Magnetic_mesh_index_micromag = add_sub_mesh(magnetic_region_mesh_pt);
+
+  // Create mesh of non-magnetic external region from x=0.2 to x=1.0
+  unsigned n_ext_element = n_element - n_mag_element;
+  Mesh* non_magnetic_region_mesh_pt =
+    new OneDMesh<EXTELEMENT>(n_ext_element,1,6,time_stepper_pt());
+
+  // Add this mesh to the list of submeshes and record the index
+  External_mesh_index_micromag = add_sub_mesh(non_magnetic_region_mesh_pt);
+
+  // Build global mesh from all the sub-meshes
+  build_global_mesh();
+
+  // // Old mesh construction for testing ??ds
+  // Problem::mesh_pt() = new OneDMesh<MAGELEMENT>(n_element,1.0,time_stepper_pt());
 
   // Choose a control node at which the solution is documented
   unsigned control_el = unsigned(n_element/2); // Pick a control element in the middle
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);  // Choose its first node as the control node
-  std::cout << "Recording trace of the solution at: " << Control_node_pt->x(0) << std::endl;
-
+  std::cout << "Recording trace of the solution at x = " << Control_node_pt->x(0) << std::endl;
 
   // Set up the boundary conditions for this problem:
-  // pin the phi values of the nodes at either end - int. by parts of phi
-  mesh_pt()->boundary_node_pt(0,0)->pin(0);
-  mesh_pt()->boundary_node_pt(1,0)->pin(0);
+  //??ds in final version only boundary conditions on mag mesh will
+  // be from external mesh
 
-  // // pin the M_x values at either end - int. by parts of div(M)
-  // mesh_pt()->boundary_node_pt(0,0)->pin(1);
-  // mesh_pt()->boundary_node_pt(1,0)->pin(1);
+  // pin the phi values of the nodes at either end
+  mesh_pt(magnetic_mesh_index_micromag())->boundary_node_pt(0,0)->pin(0);
+  mesh_pt(magnetic_mesh_index_micromag())->boundary_node_pt(1,0)->pin(0);
 
-  // pin dM/dn = dM/dx at either end - int. by parts of laplacian(M)
-  //??ds
-
-  // Pin the exchange field at all points if we don't want to use it
-  //??ds pin if exchange coeff fn pt set to zero?
-  for(unsigned i=0; i<mesh_pt()->nnode(); i++)
-    {
-      mesh_pt()->node_pt(i)->pin(4);
-      mesh_pt()->node_pt(i)->pin(5);
-      mesh_pt()->node_pt(i)->pin(6);
-    }
-
-  // Loop over elements to set pointers to everything
-  for(unsigned i=0;i<n_element;i++)
+  // Loop over elements to set pointers to everything in magnetic region
+  for(unsigned i=0;i<n_mag_element;i++)
     {
       // Upcast from GeneralisedElement to the present element
-      ELEMENT *elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
+      MAGELEMENT *elem_pt = dynamic_cast<MAGELEMENT*>(mesh_pt()->element_pt(i));
 
-      //Set the source function pointer
+      // Set pointer to continous time
+      elem_pt->time_pt() = time_pt();
+
+      //Set the poisson source function pointer
       elem_pt->poisson_source_fct_pt() = Poisson_source_fct_pt;
 
       // Set the LLG source function pointer
@@ -297,11 +316,7 @@ OneDMicromagProblem(const unsigned& n_element,
 
       // Set the exact phi function pointer
       elem_pt->exact_phi_fct_pt() = Exact_phi_fct_pt;
-
-      // Set pointer to continous time
-      elem_pt->time_pt() = time_pt();
     }
-
 
   // Setup equation numbering scheme
   assign_eqn_numbers();
@@ -314,36 +329,40 @@ OneDMicromagProblem(const unsigned& n_element,
 /// \short Actions before timestep: update the domain, then reset the
 /// boundary conditions for the current time.
 //========================================================================
-template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
+template<class MAGELEMENT, class EXTELEMENT>
+void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::actions_before_implicit_timestep()
 {
   // get current time
   double t = time_pt()->time();
 
   // Get pointer to (0th) element - exact element doesn't matter for this use.
-  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
+  MAGELEMENT* elem_pt = dynamic_cast<MAGELEMENT*>(mesh_pt()->element_pt(0));
 
   // Get index at which phi is stored (in nodal data)
   unsigned phi_nodal_index = elem_pt->phi_index_micromag();
 
-  // Set boundary conditions (more general method that works in higher dimensions)
-  // Loop over all boundaries
-  unsigned num_bound = mesh_pt()->nboundary();
+  // Get mesh_pt to magnetic mesh
+  Mesh* mag_mesh_pt = mesh_pt(magnetic_mesh_index_micromag());
+
+  // Loop over all boundaries on magnetic mesh
+  unsigned num_bound = mag_mesh_pt->nboundary();
   for(unsigned ibound=0;ibound<num_bound;ibound++)
     {
       // Loop over the nodes on this boundary
-      unsigned num_nod=mesh_pt()->nboundary_node(ibound);
+      unsigned num_nod= mag_mesh_pt->nboundary_node(ibound);
       for (unsigned inod=0;inod<num_nod;inod++)
 	{
 	  // Get x coordinate at this node.
-	  Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
+	  Node* nod_pt= mag_mesh_pt->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
 
 	  // Get and set conditions on phi.
 	  double phi_boundary_value = OneDMicromagSetup::boundary_phi(t,x);
-	  nod_pt->set_value(0,phi_nodal_index,phi_boundary_value);
+	  nod_pt->set_value(phi_nodal_index,phi_boundary_value);
 	}
     }
+
+  //??ds no boundary conditions set on external mesh
 
 }
 
@@ -352,8 +371,8 @@ void OneDMicromagProblem<ELEMENT>::actions_before_implicit_timestep()
 /// \short Set initial condition: Assign previous and current values
 /// from exact solution.
 //========================================================================
-template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::set_initial_condition()
+template<class MAGELEMENT, class EXTELEMENT>
+void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::set_initial_condition()
 {
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
@@ -362,11 +381,11 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
 
-  //Find number of nodes in mesh
-  unsigned num_nod = mesh_pt()->nnode();
+  // Get pointer to mangetic mesh
+  Mesh* mag_mesh_pt =  mesh_pt(magnetic_mesh_index_micromag());
 
-  // Get pointer to an element (any will do so take 0th)
-  ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
+  //Find number of nodes in magnetic mesh
+  unsigned mag_num_nod = mag_mesh_pt->nnode();
 
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
@@ -377,6 +396,7 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
       prev_time[t]=time_pt()->time(unsigned(t));
     }
 
+
   // Loop over current & previous timesteps
   for (int t=nprev_steps;t>=0;t--)
     {
@@ -384,35 +404,31 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
       double time = prev_time[t];
       std::cout << "setting IC at time =" << time << std::endl;
 
-      // Loop over the nodes to set initial values everywhere
-      for (unsigned n=0;n<num_nod;n++)
+      // Loop over the nodes to set initial values on magnetic mesh
+      for (unsigned n=0;n<mag_num_nod;n++)
 	{
 	  // Get nodal coordinate
 	  Vector<double> x(1,0.0);
-	  x[0]=mesh_pt()->node_pt(n)->x(0);
+	  x[0]=mag_mesh_pt->node_pt(n)->x(0);
 
-	  // Get initial value of M
-	  Vector<double> initial_m_values(3,0.0);
-	  OneDMicromagSetup::initial_m(time,x,initial_m_values);
+	  // Get initial value of solution
+	  Vector<double> initial_solution(7,0.0);
+	  OneDMicromagSetup::exact_solution(time,x,initial_solution);
 
-	  // Assign solution of M
-	  for(unsigned k=0; k<3; k++)
+	  // Set initial condition on M, could set others here using other i values
+	  //??ds don't think we need any others though
+	  for(unsigned i=1; i<4; i++)
 	    {
-	      // Set the t'th history value of the ith direction of M
-	      // on node n to be initial_M[k].
-	      mesh_pt()->node_pt(n)->
-		set_value(t, elem_pt->M_index_micromag(k), initial_m_values[k]);
+	      mag_mesh_pt->node_pt(n)->
+		set_value(t,i,initial_solution[i]);
 	    }
-
-	  // Get initial value of phi and assign solution
-	  double phi = OneDMicromagSetup::exact_phi_solution(t,x);
-	  mesh_pt()->node_pt(n)->set_value(t,elem_pt->phi_index_micromag(),phi);
-
 	}
     }
 
   // Reset backed up time for global timestepper
   time_pt()->time()=backed_up_time;
+
+  //??ds no conditions set for external mesh
 
 } // end of set_initial_condition
 
@@ -420,8 +436,8 @@ void OneDMicromagProblem<ELEMENT>::set_initial_condition()
 //===start_of_doc=========================================================
 /// Doc the solution in tecplot format. Label files with label.
 //========================================================================
-template<class ELEMENT>
-void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
+template<class MAGELEMENT, class EXTELEMENT>
+void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 {
 
   char filename[100];
@@ -450,7 +466,9 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   mesh_pt()->output(soln_file,npts);
   soln_file.close();
 
-  if(1) //??ds some condition determining if I want full error checking output, maybe ifdef..
+  // Only output these for the magnetic mesh since we have no time dependence in
+  // poisson mesh so we can't get exact solution over time.
+  if(1) //??ds some condition determining if I want full error checking output..
     {
       // Output exact solution (at many more points than the computed solution)
       //-----------------------------------------
@@ -459,8 +477,8 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 	      doc_info.number());
 
       exact_file.open(filename);
-      mesh_pt()->output_fct(exact_file, 10*npts, time,
-			    OneDMicromagSetup::exact_solution);
+      mesh_pt(magnetic_mesh_index_micromag())
+	->output_fct(exact_file, 10*npts, time, OneDMicromagSetup::exact_solution);
       exact_file.close();
 
 
@@ -474,13 +492,14 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
 
       // Do the outputing
       error_file.open(filename);
-      mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_solution,
+      mesh_pt(magnetic_mesh_index_micromag())
+	->compute_error(error_file, OneDMicromagSetup::exact_solution,
 			       time, error_norm, exact_norm);
       error_file.close();
 
       // Doc error norm:
-      std::cout << "\nNorm of error   : " << sqrt(error_norm) << std::endl;
-      std::cout << "Norm of solution : " << sqrt(exact_norm) << std::endl << std::endl;
+      std::cout << "\nNorm of error in magnetic region : " << sqrt(error_norm) << std::endl;
+      std::cout << "Norm of solution in magnetic region : " << sqrt(exact_norm) << std::endl << std::endl;
       std::cout << std::endl;
     }
 
@@ -496,13 +515,31 @@ void OneDMicromagProblem<ELEMENT>::doc_solution(DocInfo& doc_info, std::ofstream
   //======start_of_main==================================================
   /// Driver for 1D Micromag problem
   //=====================================================================
-int main()
+int main(int argc, char *argv[])
 {
+  // Store the command line arguments
+  CommandLineArgs::setup(argc,argv);
 
-  // Set up the problem:
+  // Get t_max, dt and n_element intelligently
+  double t_max, dt;
+  unsigned n_element;
+  if(argc == 4)
+    {
+      // If arguments are provided to function use them
+      t_max = atof(argv[1]);
+      dt = atof(argv[2]);
+      n_element = atoi(argv[3]);
+    }
+  else
+    {
+      // Else use the arguments from parameters files
+      std::cout << "Not enough arguments, using parameters from file" << std::endl;
+      t_max = OneDMicromagSetup::t_max;
+      dt = OneDMicromagSetup::dt;
+      n_element = OneDMicromagSetup::n_x_elements;
+    }
 
-  unsigned n_element = OneDMicromagSetup::n_x_elements; //Number of elements
-  OneDMicromagProblem<QMicromagElement<1,2> >
+  OneDMicromagProblem< QMicromagElement<1,2>, QPoissonElement<1,2> >
     problem(n_element,
 	    OneDMicromagSetup::poisson_source_function,
 	    OneDMicromagSetup::llg_source_function,
@@ -534,12 +571,6 @@ int main()
 	     << "\"u<SUB>exact</SUB>\",\"norm of error\",\"norm of solution\""
 	     << std::endl;
 
-
-  // SET UP TIME STEPPING
-  // Choose simulation interval and timestep
-  double t_max = OneDMicromagSetup::t_max;
-  double dt = OneDMicromagSetup::dt;
-
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
   problem.initialise_dt(dt);
@@ -563,11 +594,6 @@ int main()
 			  "main()",
 			  OOMPH_EXCEPTION_LOCATION);
     }
-
-  // //  ??ds testing stuff - run get residuals then exit
-  // DoubleVector res;
-  // problem.get_residuals(res);
-  // exit(0);
 
   // //  ??ds testing stuff
   // DenseDoubleMatrix jacobian;

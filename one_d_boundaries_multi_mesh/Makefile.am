@@ -7,7 +7,7 @@ one_d_boundaries_multi_mesh_driver_SOURCES = one_d_boundaries_multi_mesh_driver.
 
 # Required libraries:
 # $(FLIBS) is included in case the solver involves fortran sources.
-one_d_boundaries_multi_mesh_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
+one_d_boundaries_multi_mesh_driver_LDADD = -L@libdir@ -lpoisson -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 
 INCLUDES = -I@includedir@
