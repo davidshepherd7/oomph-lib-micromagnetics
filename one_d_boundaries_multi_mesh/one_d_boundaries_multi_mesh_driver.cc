@@ -1,9 +1,10 @@
+//??ds change templating to be by geometric element
 
 //??ds other drivers use .h file here - am I doing something wrong?
 # include "../micromagnetics_element.cc"
 # include "poisson.h"
 # include "meshes/one_d_mesh.h"
-# include "../one_d_exchange_testing/parameters-exchange4.cc"
+# include "../one_d_exchange_testing/parameters-exchange7.cc"
 
 //============================================================
 // Core parameters (others are in parameters files)
@@ -22,7 +23,7 @@ namespace OneDMicromagSetup
 
   // Constants
   //===========================================================
-  double alpha = 0.5;   // Gibert damping constant
+  double alpha = 0.1;   // Gibert damping constant
   double gamma = 0.5;   // Electromagnetic ratio
 
   // The coefficient of the precession term of the Landau-Lifschitz-Gilbert equation
@@ -156,11 +157,14 @@ private:
   // Trace file
   std::ofstream Trace_file;
 
-  /// Variable to store the index of the magnetic submesh in mesh_pt()
-  unsigned Magnetic_mesh_index_micromag;
+  /// Pointer to the magnetic submesh
+  Mesh* Mag_mesh_pt;
 
-  /// Variable to store the index of the external, non-magnetic submesh in mesh_pt()
-  unsigned External_mesh_index_micromag;
+  /// Pointer to the surface submesh
+  Mesh* Surface_mesh_pt;
+
+  /// Pointer to the external submesh
+  Mesh* Ext_mesh_pt;
 
 public:
 
@@ -199,13 +203,23 @@ public:
   /// Set initial condition (incl previous timesteps) according to specified function.
   void set_initial_condition();
 
-  /// Get the mesh number of the magnetic mesh
-  unsigned magnetic_mesh_index_micromag() const
-  {return Magnetic_mesh_index_micromag;}
+  /// \short Create Poisson flux elements on boundary b of the Mesh pointed
+  /// to by bulk_mesh_pt and add them to the Mesh object pointed to by
+  /// surface_mesh_pt.
+  void create_flux_elements(const unsigned &b, Mesh* const &bulk_mesh_pt,
+			    Mesh* const &surface_mesh_pt);
 
-  /// Get the mesh number of the external mesh
-  unsigned external_mesh_index_micromag() const
-  {return External_mesh_index_micromag;}
+  /// Get the pointer to the magnetic region mesh
+  Mesh* mag_mesh_pt() const
+  {return Mag_mesh_pt;}
+
+  /// Get the pointer to the surface mesh
+  Mesh* surface_mesh_pt() const
+  {return Surface_mesh_pt;}
+
+  /// Get the pointer to the external mesh
+  Mesh* ext_mesh_pt() const
+  {return Ext_mesh_pt;}
 
 }; // end of problem class
 
@@ -248,19 +262,29 @@ OneDMicromagProblem(const unsigned& n_element,
 
   // Create mesh of magnetic region from x=0 to x=0.2
   unsigned n_mag_element = unsigned(n_element/4);
-  Mesh* magnetic_region_mesh_pt =
+  Mag_mesh_pt =
     new OneDMesh<MAGELEMENT>(n_mag_element,0,1.0,time_stepper_pt());
 
-  // Add this mesh to the list of submeshes and record the index
-  Magnetic_mesh_index_micromag = add_sub_mesh(magnetic_region_mesh_pt);
+  // Create "surface mesh" that will contain only the prescribed-flux
+  // elements. The constructor just creates the mesh without
+  // giving it any elements, nodes, etc.
+  Surface_mesh_pt = new Mesh;
+
+  // Create prescribed-flux elements from all elements that are
+  // adjacent to boundary 1, but add them to a separate mesh.
+  // Note that this is exactly the same function as used in the
+  // single mesh version of the problem, we merely pass different Mesh pointers.
+  create_flux_elements(1,Mag_mesh_pt,Surface_mesh_pt);
 
   // Create mesh of non-magnetic external region from x=0.2 to x=1.0
   unsigned n_ext_element = n_element - n_mag_element;
-  Mesh* non_magnetic_region_mesh_pt =
+  Ext_mesh_pt =
     new OneDMesh<EXTELEMENT>(n_ext_element,1,6,time_stepper_pt());
 
-  // Add this mesh to the list of submeshes and record the index
-  External_mesh_index_micromag = add_sub_mesh(non_magnetic_region_mesh_pt);
+  // Add all the meshes to the list of submeshes
+  add_sub_mesh(Mag_mesh_pt);
+  add_sub_mesh(Surface_mesh_pt);
+  add_sub_mesh(Ext_mesh_pt);
 
   // Build global mesh from all the sub-meshes
   build_global_mesh();
@@ -278,8 +302,8 @@ OneDMicromagProblem(const unsigned& n_element,
   // be from external mesh
 
   // pin the phi values of the nodes at either end
-  mesh_pt(magnetic_mesh_index_micromag())->boundary_node_pt(0,0)->pin(0);
-  mesh_pt(magnetic_mesh_index_micromag())->boundary_node_pt(1,0)->pin(0);
+  mag_mesh_pt()->boundary_node_pt(0,0)->pin(0);
+  //mag_mesh_pt()->boundary_node_pt(1,0)->pin(0);
 
   // Loop over elements to set pointers to everything in magnetic region
   for(unsigned i=0;i<n_mag_element;i++)
@@ -341,19 +365,16 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::actions_before_implicit_timest
   // Get index at which phi is stored (in nodal data)
   unsigned phi_nodal_index = elem_pt->phi_index_micromag();
 
-  // Get mesh_pt to magnetic mesh
-  Mesh* mag_mesh_pt = mesh_pt(magnetic_mesh_index_micromag());
-
   // Loop over all boundaries on magnetic mesh
-  unsigned num_bound = mag_mesh_pt->nboundary();
+  unsigned num_bound = mag_mesh_pt()->nboundary();
   for(unsigned ibound=0;ibound<num_bound;ibound++)
     {
       // Loop over the nodes on this boundary
-      unsigned num_nod= mag_mesh_pt->nboundary_node(ibound);
+      unsigned num_nod= mag_mesh_pt()->nboundary_node(ibound);
       for (unsigned inod=0;inod<num_nod;inod++)
 	{
 	  // Get x coordinate at this node.
-	  Node* nod_pt= mag_mesh_pt->boundary_node_pt(ibound,inod);
+	  Node* nod_pt= mag_mesh_pt()->boundary_node_pt(ibound,inod);
 	  Vector<double> x(1,nod_pt->x(0));
 
 	  // Get and set conditions on phi.
@@ -381,11 +402,8 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::set_initial_condition()
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
 
-  // Get pointer to mangetic mesh
-  Mesh* mag_mesh_pt =  mesh_pt(magnetic_mesh_index_micromag());
-
   //Find number of nodes in magnetic mesh
-  unsigned mag_num_nod = mag_mesh_pt->nnode();
+  unsigned mag_num_nod = mag_mesh_pt()->nnode();
 
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
@@ -409,7 +427,7 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::set_initial_condition()
 	{
 	  // Get nodal coordinate
 	  Vector<double> x(1,0.0);
-	  x[0]=mag_mesh_pt->node_pt(n)->x(0);
+	  x[0]=mag_mesh_pt()->node_pt(n)->x(0);
 
 	  // Get initial value of solution
 	  Vector<double> initial_solution(7,0.0);
@@ -419,7 +437,7 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::set_initial_condition()
 	  //??ds don't think we need any others though
 	  for(unsigned i=1; i<4; i++)
 	    {
-	      mag_mesh_pt->node_pt(n)->
+	      mag_mesh_pt()->node_pt(n)->
 		set_value(t,i,initial_solution[i]);
 	    }
 	}
@@ -431,6 +449,41 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::set_initial_condition()
   //??ds no conditions set for external mesh
 
 } // end of set_initial_condition
+
+//??ds still need to look at this
+//============start_of_create_flux_elements==============================
+/// Create Poisson Flux Elements on the b-th boundary of the Mesh object
+/// pointed to by bulk_mesh_pt and add the elements to the Mesh object
+/// pointeed to by surface_mesh_pt.
+//=======================================================================
+template<class MAGELEMENT, class EXTELEMENT>
+void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::
+create_flux_elements(const unsigned &b, Mesh* const &bulk_mesh_pt,
+			  Mesh* const &surface_mesh_pt)
+{
+  // How many bulk elements are adjacent to boundary b?
+  unsigned n_element = bulk_mesh_pt->nboundary_element(b);
+
+  // Loop over the bulk elements adjacent to boundary b?
+  for(unsigned e=0;e<n_element;e++)
+    {
+      // Get pointer to the bulk element that is adjacent to boundary b
+      MAGELEMENT* bulk_elem_pt
+	= dynamic_cast<MAGELEMENT*>(bulk_mesh_pt->boundary_element_pt(b,e));
+
+      //What is the index of the face of the bulk element e on bondary b
+      int face_index = bulk_mesh_pt->face_index_at_boundary(b,e);
+
+      // Build the corresponding prescribed-flux element
+      PoissonFluxElement<EXTELEMENT>* flux_element_pt
+	= new PoissonFluxElement<EXTELEMENT>(bulk_elem_pt,face_index);
+
+      //Add the prescribed-flux element to the surface mesh
+      surface_mesh_pt->add_element_pt(flux_element_pt);
+
+    } //end of loop over bulk elements adjacent to boundary b
+
+} // end of create_flux_elements
 
 
 //===start_of_doc=========================================================
@@ -477,8 +530,8 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::doc_solution(DocInfo& doc_info
 	      doc_info.number());
 
       exact_file.open(filename);
-      mesh_pt(magnetic_mesh_index_micromag())
-	->output_fct(exact_file, 10*npts, time, OneDMicromagSetup::exact_solution);
+      mag_mesh_pt()->output_fct(exact_file, 10*npts, time,
+				OneDMicromagSetup::exact_solution);
       exact_file.close();
 
 
@@ -492,9 +545,8 @@ void OneDMicromagProblem<MAGELEMENT, EXTELEMENT>::doc_solution(DocInfo& doc_info
 
       // Do the outputing
       error_file.open(filename);
-      mesh_pt(magnetic_mesh_index_micromag())
-	->compute_error(error_file, OneDMicromagSetup::exact_solution,
-			       time, error_norm, exact_norm);
+      mag_mesh_pt()->compute_error(error_file, OneDMicromagSetup::exact_solution,
+				   time, error_norm, exact_norm);
       error_file.close();
 
       // Doc error norm:
