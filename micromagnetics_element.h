@@ -429,7 +429,7 @@ namespace oomph
     //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
     // }
 
-    // Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
+    /// Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
     void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag);
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
@@ -500,7 +500,7 @@ namespace oomph
     /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
     virtual double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const=0;
 
-  }; // End of MicromagElements class
+  }; // End of MicromagEquations class
 
   //====================================================================
   /// A class combining the micromag equations with a QElement geometry

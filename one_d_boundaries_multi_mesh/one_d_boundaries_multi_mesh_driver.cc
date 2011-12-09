@@ -265,7 +265,7 @@ OneDMicromagProblem(const unsigned& n_element,
   Mag_mesh_pt =
     new OneDMesh<MAGELEMENT>(n_mag_element,0,1.0,time_stepper_pt());
 
-  // Create "surface mesh" that will contain only the prescribed-flux
+    // Create "surface mesh" that will contain only the prescribed-flux
   // elements. The constructor just creates the mesh without
   // giving it any elements, nodes, etc.
   Surface_mesh_pt = new Mesh;
