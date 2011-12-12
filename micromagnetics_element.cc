@@ -31,14 +31,8 @@ namespace oomph
     // Get current time
     double time = time_pt()->time();
 
-    //Index at which the poisson unknown is stored
-    //const unsigned phi_index_micromag() = phi_index_micromag();
-
     //Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();
-
-    //Integers to store the local equation and unknown numbers
-    //int phi_local_eqn=0, m_local_eqn=0;
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
