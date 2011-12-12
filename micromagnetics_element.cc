@@ -32,13 +32,13 @@ namespace oomph
     double time = time_pt()->time();
 
     //Index at which the poisson unknown is stored
-    const unsigned phi_nodal_index = phi_index_micromag();
+    //const unsigned phi_index_micromag() = phi_index_micromag();
 
     //Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();
 
     //Integers to store the local equation and unknown numbers
-    int phi_local_eqn=0, m_local_eqn=0;
+    //int phi_local_eqn=0, m_local_eqn=0;
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
@@ -71,7 +71,7 @@ namespace oomph
 	for(unsigned l=0;l<n_node;l++)
 	  {
 	    //Get the nodal value of phi (the poisson unknown)
-	    double phi_value = nodal_value(l,phi_nodal_index);
+	    double phi_value = nodal_value(l,phi_index_micromag());
 	    interpolated_phi += phi_value*psi(l);
 
 	    // Get the nodal values of dM/dt
@@ -103,7 +103,7 @@ namespace oomph
 	  {
 
 	    // Get the local equation number for the poisson part
-	    phi_local_eqn = nodal_local_eqn(l,phi_nodal_index);
+	    int phi_local_eqn = nodal_local_eqn(l,phi_index_micromag());
 
 	    if(phi_local_eqn >= 0)	  // If it's not a boundary condition:
 	      {
@@ -235,7 +235,7 @@ namespace oomph
 	    for(unsigned k=0; k<3; k++)
 	      {
 		// Get the local equation number for the kth component of M part
-		m_local_eqn = nodal_local_eqn(l,m_index_micromag(k));
+		int m_local_eqn = nodal_local_eqn(l,m_index_micromag(k));
 
 		if(m_local_eqn >= 0)  // If it's not a boundary condition
 		  {

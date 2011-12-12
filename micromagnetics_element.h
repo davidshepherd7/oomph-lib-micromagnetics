@@ -47,6 +47,12 @@ namespace oomph
     /// Specify nodal index for phi.
     unsigned phi_index_micromag() const {return 0;} // equation 0
 
+     /// Specify nodal index for phi 1. //??ds need to include these everywhere else still
+    unsigned phi_1_index_micromag() const {return 7;}
+
+    /// Specify nodal index for phi 2. //??ds need to include these everywhere else still
+    unsigned phi_2_index_micromag() const {return 8;}
+
     /// Specify nodal index for kth component of M.
     unsigned m_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
 
