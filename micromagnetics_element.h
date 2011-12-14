@@ -422,8 +422,8 @@ namespace oomph
     void fill_in_contribution_to_residuals(Vector<double> &residuals)
     {
       //Call the generic residuals function with flag set to 0 using a dummy matrix argument
-      fill_in_generic_residual_contribution_micromag
-	(residuals, GeneralisedElement::Dummy_matrix, 0);
+      fill_in_generic_residual_contribution_micromag(residuals,
+						     GeneralisedElement::Dummy_matrix, 0);
     }
 
     // ??ds re-activate this when you're confident that the Jacobian is correct!
@@ -436,7 +436,9 @@ namespace oomph
     // }
 
     /// Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
-    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag);
+    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
+							DenseMatrix<double> &jacobian,
+							const unsigned& flag) const;
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned &n, Vector<double>& dmdt) const
@@ -583,6 +585,33 @@ namespace oomph
 
   }; // end of QMicromagElement class declaration
 
+//=======================================================================
+/// Face geometry for the QMicromagElement elements: The spatial
+/// dimension of the face elements is one lower than that of the
+/// bulk element but they have the same number of points
+/// along their 1D edges.
+//=======================================================================
+template<unsigned DIM, unsigned NNODE_1D>
+class FaceGeometry<QMicromagElement<DIM,NNODE_1D> >:
+ public virtual QElement<DIM-1,NNODE_1D>
+{
+
+  public:
+
+ /// \short Constructor: Call the constructor for the
+ /// appropriate lower-dimensional QElement
+ FaceGeometry() : QElement<DIM-1,NNODE_1D>() {}
+
+};
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
+
 }
+
+
+
 
 #endif
