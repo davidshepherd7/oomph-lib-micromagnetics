@@ -1,5 +1,8 @@
+#ifndef OOMPH_MICROMAGNETICS_ELEMENT_H
+#include "micromagnetics_element.h"
+#define OOMPH_MICROMAGNETICS_ELEMENT_H
 
-#include "./micromagnetics_element.h"
+
 
 using namespace oomph;
 
@@ -15,7 +18,7 @@ namespace oomph
   /// Pure version without hanging nodes
   //======================================================================
   template<unsigned DIM>
-  void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag)
+  void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag(Vector<double> &residuals, DenseMatrix<double> &jacobian, const unsigned& flag) const
   {
 
     //Find out how many nodes there are
@@ -512,3 +515,5 @@ namespace oomph
   }
 
 }
+
+#endif
