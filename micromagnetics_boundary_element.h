@@ -13,7 +13,7 @@ namespace oomph
 {
 
   //================================================================================
-  /// A class combining the MicromagBE equations with a face element.
+  ///
   //================================================================================
   template<class ELEMENT>
   class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
@@ -25,8 +25,7 @@ namespace oomph
     /// \short Constructor, takes the pointer to the bulk element and the
     /// index of the face to which the element is attached.
     MicromagFaceElement(FiniteElement* const &bulk_el_pt,
-			const int& face_index,
-			Mesh* mesh_pt);
+			const int& face_index);
 
     ///\short  Broken empty constructor
     MicromagFaceElement()
@@ -57,25 +56,21 @@ namespace oomph
 		      const unsigned &i) const
     {return FaceElement::zeta_nodal(n,k,i);}
 
-    /// Calculate and add in the boundary element matrix contribution for this element
-    void fill_in_elemental_contribution_to_boundary_element_matrix(DenseMatrix<double> &boundary_matrix) const;
-
-    /// Add the element's contribution to its residual vector
-    inline void fill_in_contribution_to_residuals(Vector<double> &residuals)
+    /// Add the element's contribution to its residual vector (dummy function)
+    inline void fill_in_contribution_to_residuals(Vector<double> &dummy)
     {
-      //Call the generic residuals function with flag set to 0
-      //using a dummy matrix argument
-      fill_in_generic_residual_contribution_micromag(residuals,
-						     GeneralisedElement::Dummy_matrix,0);
+      // Do nothing - no residuals to add
     }
 
     /// \short Add the element's contribution to its residual vector and its
     /// Jacobian matrix
-    inline void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-						 DenseMatrix<double> &jacobian)
+    inline void fill_in_contribution_to_jacobian(Vector<double> &dummy,
+						 DenseMatrix<double> &boundary_matrix)
     {
-      //Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+      //??ds need to fake fill-in residuals vector to stop it crashing
+
+
+      fill_in_boundary_element_contribution_micromag(boundary_matrix);
     }
 
     /// Output function -- forward to broken version in FiniteElement
@@ -109,6 +104,11 @@ namespace oomph
 				   const Vector<double>& y,
 				   const Vector<double>& n) const;
 
+    /// Const access function for mesh pointer
+    inline Mesh* mesh_pt() const {return Mesh_pt;}
+
+    /// Set function for mesh pointer
+    inline void set_mesh_pt(Mesh* mesh_pointer) {Mesh_pt = mesh_pointer;}
 
   protected:
 
@@ -157,12 +157,11 @@ namespace oomph
     /// \short Add the element's contribution to its residual vector.
     /// flag=1(or 0): do (or don't) compute the contribution to the
     /// Jacobian as well.
-    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
-							     DenseMatrix<double> &jacobian,
-							     const unsigned& flag);
+    void fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
+      const;
 
-    /// \short Pointer to the mesh (needed to access nodes outside of this element
-    /// for calculation of boundary matrix.
+    /// \short Pointer to the boundary mesh (needed to access nodes outside of this element
+    /// for calculation of boundary matrix).
     Mesh* Mesh_pt;
 
     /// The dimension of the element surface/volume (i.e. one less than the dimension of the nodes.
@@ -173,6 +172,10 @@ namespace oomph
 
     /// The index at which phi_2 is stored
     unsigned Phi_2_index_micromag;
+
+    /// The number of values to be stored at each boundary element node is 2: phi_1 and phi_2
+    inline unsigned required_nvalue(const unsigned &n) const
+    {return 2;}
 
   };
 
@@ -185,12 +188,9 @@ namespace oomph
   //===========================================================================
   template<class ELEMENT>
   MicromagFaceElement<ELEMENT>::
-  MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index, Mesh* mesh_pt)
+  MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index)
     : FaceGeometry<ELEMENT>(), FaceElement()
   {
-    // Store the mesh pointer (needed to get access to positions of nodes not in element).
-    Mesh_pt = mesh_pt;
-
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
     // element), etc.
@@ -278,15 +278,95 @@ namespace oomph
       }
   }
 
-  //======================================================================
-  /// Dummy ??ds
-  //======================================================================
+  //=======================================================================
+  /// Not actually getting residuals - getting boundary element matrix but using
+  /// machinery used to assemble jacobian normally.
+  /// Compute the effect of phi_1 in this element on ALL nodes on the boundary.
+  /// Note that this depends on all other elements but not on the values of phi_1.
+  //??ds may have confused test and "psi" functions but it doesn't matter for now
+  // since they are the same (Galerkin method)
+  //=======================================================================
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
-  fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
-						      DenseMatrix<double> &dummy,
-						      const unsigned& flag)
+  fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
+    const
   {
+    // Find out dimension of element
+    const unsigned el_dim = Node_dim - 1;
+
+    //Find out how many nodes there are
+    const unsigned n_element_node = nnode();
+
+    //Set up memory for the shape and test functions
+    Shape psi(n_element_node), test(n_element_node);
+
+    // Set up memory for the coordinate vectors and normal vector
+    Vector<double> s(el_dim,0.0), interpolated_x(Node_dim,0.0),
+      normal(Node_dim,0.0), target_node_x(Node_dim,0.0);
+
+    // // Get current time
+    // double time = time_pt()->time();
+
+    //Set the value of n_intpt
+    const unsigned n_intpt = integral_pt()->nweight();
+
+    //Loop over the integration points
+    for(unsigned ipt=0;ipt<n_intpt;ipt++)
+      {
+	//Get the integral weight
+	double w = integral_pt()->weight(ipt);
+
+	//Call the derivatives of the shape and test functions
+	double J = shape_and_test(s,psi,test);
+
+	//Premultiply the weights and the Jacobian
+	double W = w*J;
+
+	// Get values of s (local coordinate)
+	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
+
+	// Get values of x (global coordinate)
+	for(unsigned l=0; l<n_element_node; l++)
+	  {
+	    for(unsigned i=0; i<Node_dim; i++)
+	      interpolated_x[i] += nodal_position(l,i)*psi[l];
+	  }
+
+	// Compute the normal vector
+	//??ds not sure hwo this works - might not work for curved boundaries?
+	outer_unit_normal(ipt,normal);
+
+	// Loop over ALL nodes on in boundary mesh (except the current ones?) (target_node)
+	unsigned n_boundary_node = mesh_pt()->nnode();
+	for(unsigned i_target_node=0; i_target_node<n_boundary_node; i_target_node++)
+	  {
+	    // Get coordinates of target node
+	    mesh_pt()->node_pt(i_target_node)->position(target_node_x);
+
+	    std::cout << "Gauss point at: (" << interpolated_x[0]
+		      << ", " << interpolated_x[1] << ")"
+		      << ". Target node at: (" << target_node_x[0]
+		      << ", " << target_node_x[1] << ")"
+		      << std::endl;
+
+	    // Calculate dGreendn between target node and integration point
+	    double dgreendn = green_normal_derivative(interpolated_x,target_node_x,normal);
+
+	    // Loop over test functions i.e. (local nodes) adding contributions
+	    for(unsigned l=0; l<n_element_node; l++)
+	      {
+		// Add contribution to integral (note dGreendn is negative in our definition)
+		// See write up for details
+		// Note that l is the LOCAL node number, need to do local to global mapping elsewhere, as seen in residual construction.
+		boundary_matrix(l,i_target_node) -= dgreendn * test(l) * W;
+	      }
+
+	  }
+      }
+
+    //??ds need to seperately add the contribution at each node from angles
+
+    //??ds probably need to seperately calculate for the elements near the current one eventually
 
   }
 
@@ -334,100 +414,6 @@ namespace oomph
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
     return -1/Pi * ndotr * pow((2*r),-2) * 2;
-  }
-
-  //=======================================================================
-  /// Compute the effect of phi_1 in this element on ALL nodes on the boundary.
-  /// Note that this depends on all other elements but not on the values of phi_1.
-  //??ds may have confused test and "psi" functions but it doesn't matter for now
-  // since they are the same (Galerkin method)
-  //=======================================================================
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
-  fill_in_elemental_contribution_to_boundary_element_matrix(DenseMatrix<double> &boundary_matrix)
-    const
-  {
-    // Find out dimension of element
-    const unsigned el_dim = Node_dim - 1;
-
-    //Find out how many nodes there are
-    const unsigned n_node = nnode();
-
-    //Set up memory for the shape and test functions
-    Shape psi(n_node), test(n_node);
-
-    // Set up memory for the coordinate vectors and normal vector
-    Vector<double> s(el_dim,0.0), interpolated_x(Node_dim,0.0),
-      normal(Node_dim,0.0), target_node_x(Node_dim,0.0);
-
-    // // Get current time
-    // double time = time_pt()->time();
-
-    //Set the value of n_intpt
-    const unsigned n_intpt = integral_pt()->nweight();
-
-    //Loop over the integration points
-    for(unsigned ipt=0;ipt<n_intpt;ipt++)
-      {
-	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
-
-	//Call the derivatives of the shape and test functions
-	double J = shape_and_test(s,psi,test);
-
-	//Premultiply the weights and the Jacobian
-	double W = w*J;
-
-	// Get values of s (local coordinate)
-	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
-
-	// Get values of x (global coordinate)
-	for(unsigned l=0; l<n_node; l++)
-	  {
-	    for(unsigned i=0; i<Node_dim; i++)
-	      interpolated_x[i] += nodal_position(l,i)*psi[l];
-	  }
-
-	// Compute the normal vector
-	//??ds not sure hwo this works - might not work for curved boundaries?
-	outer_unit_normal(ipt,normal);
-
-	// Loop over ALL nodes on all boundaries (except the current ones?) (target_node)
-
-	unsigned n_boundary = Mesh_pt->nboundary();
-	for(unsigned i_boundary=2; i_boundary<3; i_boundary++)
-	  {
-	    unsigned n_boundary_nodes = Mesh_pt->nboundary_node(i_boundary);
-	    for(unsigned i_target_node=0; i_target_node<n_boundary_nodes; i_target_node++)
-	      {
-		// Get coordinates of target node
-		Mesh_pt->boundary_node_pt(i_boundary,i_target_node)->position(target_node_x);
-
-		std::cout << "Gauss point at: (" << interpolated_x[0]
-			  << ", " << interpolated_x[1] << ")"
-			  << ". Target node at: (" << target_node_x[0]
-			  << ", " << target_node_x[1] << ")"
-			  << " on boundary " << i_boundary << std::endl;
-
-		// Calculate dGreendn between target node and integration point
-		double dgreendn = green_normal_derivative(interpolated_x,target_node_x,normal);
-
-		// Loop over test functions i.e. (local nodes) adding contributions
-		for(unsigned l=0; l<n_node; l++)
-		  {
-		    // Add contribution to integral (note dGreendn is negative in our definition)
-		    // See write up for details
-		    // Note that l is the LOCAL node number, need to do local to global mapping elsewhere, as seen in residual construction.
-		    boundary_matrix(l,i_target_node) -= dgreendn * test(l) * W;
-		  }
-	      }
-	  }
-      }
-
-    //??ds need to seperately add the contribution at each node from angles
-
-    //??ds probably need to seperately calculate for the elements near the current one eventually
-
   }
 
 }
