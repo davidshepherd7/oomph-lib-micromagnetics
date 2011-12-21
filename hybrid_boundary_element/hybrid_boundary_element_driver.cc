@@ -148,6 +148,9 @@ namespace oomph
     /// Bulk mesh pointer access function
     Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
 
+    /// Build the mesh for this problem
+    void build_face_mesh(Mesh* const &bulk_mesh_pt);
+
   private:
 
     /// Create face elements on the i'th boundary and add to boundary mesh
@@ -168,21 +171,12 @@ namespace oomph
     Bulk_mesh_pt = input_bulk_mesh_pt;
 
     // Create (empty) boundary mesh
-    Problem::mesh_pt() = new Mesh();
+    mesh_pt() = new Mesh();
 
     // control node?
 
     // Create face elements on all boundaries and add them to the face mesh
-    unsigned n_bulk_boundary = bulk_mesh_pt()->nboundary();
-    for(unsigned i_bulk_boundary=0; i_bulk_boundary < n_bulk_boundary;
-	i_bulk_boundary++)
-      {
-	Bulk_mesh_pt->build_face_mesh<BULK_ELEMENT,FACE_ELEMENT>
-	  (i_bulk_boundary,Problem::mesh_pt());
-      }
-
-    //??ds remove the duplicate nodes from the face mesh
-    //??ds remove + re-add via a set?
+    build_face_mesh(bulk_mesh_pt());
 
     // Pin the values of phi_1 on all nodes in the boundary mesh
     unsigned n_node = mesh_pt()->nnode();
@@ -207,6 +201,60 @@ namespace oomph
     std::cout << "Number of equations: " << assign_eqn_numbers() << std::endl;
 
   } // End of constructor
+
+  /// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
+  /// of the mesh (which contains elements of type BULK_ELEMENT)
+  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
+  void TwoDBoundaryProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  build_face_mesh(Mesh* const &bulk_mesh_pt)
+  {
+    // Create a set to temporarily store the list of boundary nodes
+    // (we do it via a set because sets automatically detect duplicates)
+    std::set<Node*> node_set;
+    std::set<Node*>::iterator it;
+
+    // Loop over the boundaries
+    unsigned n_bulk_boundary = bulk_mesh_pt->nboundary();
+    for(unsigned b=0; b<n_bulk_boundary; b++)
+      {
+	//Find the number of nodes on the boundary
+	unsigned n_bound_node = bulk_mesh_pt->nboundary_node(b);
+
+	//Loop over the boundary nodes and add them to the set
+	for(unsigned n=0;n<n_bound_node;n++)
+	  node_set.insert(bulk_mesh_pt->boundary_node_pt(b,n));
+
+
+	//Find the number of elements next to the boundary
+	unsigned n_bound_element = bulk_mesh_pt->nboundary_element(b);
+
+	//Loop over the elements adjacent to boundary b
+	for(unsigned e=0;e<n_bound_element;e++)
+	  {
+	    //Create the FaceElement
+	    FACE_ELEMENT<BULK_ELEMENT>* face_element_pt =
+	      new FACE_ELEMENT<BULK_ELEMENT>
+	      (bulk_mesh_pt->boundary_element_pt(b,e),
+	       bulk_mesh_pt->face_index_at_boundary(b,e));
+
+	    //Add the face element to the face mesh
+	    mesh_pt()->add_element_pt(face_element_pt);
+	  }
+      }
+
+    // Iterate over all elements of the set and add to the mesh
+    for(it=node_set.begin(); it!=node_set.end(); it++)
+      mesh_pt()->add_node_pt(*it);
+
+    //??ds taken from mesh.h - no idea what this does but maybe useful later...
+#ifdef OOMPH_HAS_MPI
+    // If the bulk mesh has been distributed then the face mesh is too
+    if (this->is_mesh_distributed())
+      {
+	face_mesh_pt->set_mesh_distributed();
+      }
+#endif
+  }
 
 } // End of oomph namespace
 
@@ -256,17 +304,6 @@ int main()
   		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
   		<< std::endl;
     }
-
-  // // solve the problem
-  // problem.newton_solve();
-
-  // //Output solution
-  // problem.doc_solution(doc_info);
-
-  // // Get "jacobian" (actually boundary element matrix) for boundary problem
-  // DenseDoubleMatrix* matrix_pt=new DenseDoubleMatrix;
-  // DoubleVector dummy;
-  // boundary_problem.get_jacobian(dummy,*matrix_pt);
 
   // Eventually loop over all boundary elements?
   unsigned n_boundary_node = boundary_problem.mesh_pt()->nnode();
