@@ -1,0 +1,1189 @@
+Index: autogen.sh
+===================================================================
+--- autogen.sh	(revision 258)
++++ autogen.sh	(working copy)
+@@ -1,60 +1,60 @@
+-#! /bin/sh
++#! /bin/bash
+ 
++# Set the script to exit if any commands fail
++set -o errexit
+ 
+-
+-
+-
+ #====================================================================
+ # A few helper functions
+ #====================================================================
+ 
+ # A little function 'borrowed' from the tecplot installation script...
+-OptionPrompt() 
+-{ 
+- printf "%s " "$1" 
++OptionPrompt()
++{
++    printf "%s " "$1"
+ }
+ 
+ # Another little function 'borrowed' from the tecplot installation script...
+ OptionRead()
+ {
+- read Opt
+- if test "$Opt" = "" ; then
+-  Opt=$1
+- fi
+- echo $Opt
++    # -e allows for editing of the input (i.e. arrow keys, del etc. work as normal)
++    read -e Opt
++ # if test "$Opt" = "" ; then
++ #  Opt=$1
++ # fi
++    echo $Opt
+ }
+ 
+ #This little function takes the input, removes anything following a #
+ #deletes blanks lines and then replaces all newlines by spaces
+ ProcessOptionsFile()
+ {
+-echo `cat $1 | sed 's/#.*$//' | sed '/^$/d' | tr '\012' ' '`
++    echo `cat $1 | sed 's/#.*$//' | sed '/^$/d' | tr '\012' ' '`
+ }
+ 
+ 
+-#This function returns a match (non-null string) if the input string 
+-#contains a long option (starting with --) after a short option 
++#This function returns a match (non-null string) if the input string
++#contains a long option (starting with --) after a short option
+ #(no --)
+ CheckOptions()
+ {
+ #old echo `echo -n $@ | sed 's/^/ /' | sed -n '/[ ].[^-].* --/p'`
+-echo `echo $@ | sed 's/^/ /' | sed -n '/[ ].[^-].* --/p'`
++    echo `echo $@ | sed 's/^/ /' | sed -n '/[ ].[^-].* --/p'`
+ # echo `printf "$@" | sed 's/^/ /' | sed -n '/[ ].[^-].* --/p'`
+ }
+ 
+ #This little function echo's the usage information
+ EchoUsage()
+ {
+-        echo "Usage: "
+-        echo "------ "
+-        echo " "
+-        echo "[without flags]: Normal \"./configure; make; make install; make check\" sequence."
+-        echo " "
+-        echo " --rebuild     : Complete re-configure, followed by normal build sequence."
+-        echo " "
+-        echo "--jobs[=N]     :  Run N make jobs simultaneously."
+-        echo "                  Useful for speeding up the build on multi-core processors." 
+-        exit
++    echo "Usage: "
++    echo "------ "
++    echo " "
++    echo "[without flags]: Normal \"./configure; make; make install; make check\" sequence."
++    echo " "
++    echo " --rebuild     : Complete re-configure, followed by normal build sequence."
++    echo " "
++    echo "--jobs[=N]     :  Run N make jobs simultaneously."
++    echo "                  Useful for speeding up the build on multi-core processors."
++    exit
+ }
+ 
+ 
+@@ -66,44 +66,48 @@
+ 
+ echo " "
+ echo "============================================================= "
+-echo "              oomph-lib installation script" 
++echo "              oomph-lib installation script"
+ echo "============================================================= "
+ echo " "
+ 
+ # Do you want to rebuild from scratch?
+ #-------------------------------------
+-#If so specify --rebuild as command line argument. Default is 
++#If so specify --rebuild as command line argument. Default is
+ # to just do the normal ".configure, make, make install, make check" sequence.
+ 
+ #Bail out if more than two command line arguments
+-if (test $# -gt 2); then 
+- EchoUsage 
+-fi   
++if (test $# -gt 2); then
++    EchoUsage
++fi
+ 
+ #Process the command line options
+ raw_build=false;
+ make_options=" ";
+ while (test $# -gt 0)
+ do
+-   case "$1" in
++    case "$1" in
+      #Set the rebuild flag
+-     --rebuild) 
+-      echo "             [Doing complete rebuild from scratch.]"
+-      raw_build=true;;
++	--rebuild)
++	    echo "             [Doing complete rebuild from scratch.]"
++	    raw_build=true;;
+      #Set the jobs flag
+-     --jobs*)
+-      make_options="$1";;
+-     #Anything else bail out     
+-      *)  
+-       EchoUsage;;
+-   esac
+-   shift
++	--jobs*)
++	    make_options="$1";;
++     #Anything else bail out
++	*)
++	    EchoUsage;;
++    esac
++    shift
+ done
+ 
+ if (test "$raw_build" = "false"); then
+-   echo "                     [Doing normal build.]"
+-fi   
++    echo "                     [Doing normal build.]"
++fi
+ 
++# Set the script to crash if any un set variables are used
++# (we put this after the options processsing since command line
++# arguments may legitimately not exist).
++set -o nounset
+ 
+ # Read out root install directory
+ #--------------------------------
+@@ -111,65 +115,86 @@
+ 
+ 
+ 
+-# If this is a rebuild: Check for helper scripts 
++# If this is a rebuild: Check for helper scripts
+ #-----------------------------------------------
+ if $raw_build; then
+ 
+-  SCRIPT_LIST=`echo config.guess config.sub depcomp install-sh ltmain.sh missing aclocal.m4 mkinstalldirs `
+-  SCRIPTS_EXIST="no"
+-  for script in $SCRIPT_LIST
+-   do
+-    if (test -e $script); then
+-        SCRIPTS_EXIST="yes"
+-    fi 
+-  done
+-  if test "$SCRIPTS_EXIST" = "yes" ; then 
+-    echo " "
+-    echo "You may wipe the symbolic links to the autoconf/automake helper scripts"
+-    echo " "
++    SCRIPT_LIST=`echo config.guess config.sub depcomp install-sh ltmain.sh missing aclocal.m4 mkinstalldirs `
++    SCRIPTS_EXIST="no"
+     for script in $SCRIPT_LIST
+-      do
+-        if (test -e $script); then
+-          echo "   " $script
+-        fi 
+-      done
+-    echo " "
+-    echo "[This is recommended if you have moved the sources to a different"
+-    echo " machine without packaging them up with make dist. The symbolic "
+-    echo " links tend to be machine-specific so it's best to force "
+-    echo " autoconf/automake to rebuild them on the new machine]."
+-    echo " "
+-    echo " Do you want to wipe the helper scripts [y/n -- default: n]"
+-    reply=`OptionRead`
+-    if test "$reply" = "y" -o "$reply" = "Y" ; then 
+-        echo " "
+-        echo "As a backup: Here are the old symbolic links:"
+-        echo " "
+-        for script in $SCRIPT_LIST
+-          do
+-          if (test -L $script); then
+-              ls -L $script
+-              ls -l $script > old_symbolic_links.txt
+-          fi
+-        done
+-        echo " "
+-        echo "We have stored this information in old_symbolic_links.txt"
+-        echo " "
+-        echo "Wiping them..."
+-        rm -f  $SCRIPT_LIST
+-        echo "Done"
+-    fi   
+-else
+-    echo " "
+-    echo "[No autoconf/automake helper scripts to be wiped...]"
+-    echo " "
++    do
++	if (test -e $script); then
++	    SCRIPTS_EXIST="yes"
++	fi
++    done
++    if test "$SCRIPTS_EXIST" = "yes" ; then
++	echo " "
++	echo "You may wipe the symbolic links to the autoconf/automake helper scripts"
++	echo " "
++	for script in $SCRIPT_LIST
++	do
++	    if (test -e $script); then
++		echo "   " $script
++	    fi
++	done
++	echo " "
++	echo "[This is recommended if you have moved the sources to a different"
++	echo " machine without packaging them up with make dist. The symbolic "
++	echo " links tend to be machine-specific so it's best to force "
++	echo " autoconf/automake to rebuild them on the new machine]."
++	echo " "
++	echo " Do you want to wipe the helper scripts [y/n -- default: n]"
++	reply=`OptionRead`
++	if test "$reply" = "y" -o "$reply" = "Y" ; then
++	    echo " "
++	    echo "As a backup: Here are the old symbolic links:"
++	    echo " "
++	    for script in $SCRIPT_LIST
++	    do
++		if (test -L $script); then
++		    ls -L $script
++		    ls -l $script > old_symbolic_links.txt
++		fi
++	    done
++	    echo " "
++	    echo "We have stored this information in old_symbolic_links.txt"
++	    echo " "
++	    echo "Wiping them..."
++	    rm -f  $SCRIPT_LIST
++	    echo "Done"
++	fi
++    else
++	echo " "
++	echo "[No autoconf/automake helper scripts to be wiped...]"
++	echo " "
++    fi
+ fi
+-fi
+ 
+ 
++# Autodetect folders in user_drivers
++#-----------------------------------
+ 
++# Backup old file (use -f so it doesn't give an error if the file doesn't exist)
++mv -f ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list.backup
+ 
++# Get a list of locations of files named Makefile.am, modify a little and write to user_drivers.dir_list.
++find ${MY_HOME_WD}/user_drivers -type f -name "Makefile.am" \
++    | grep -v "^${MY_HOME_WD}/user_drivers/Makefile.am" \
++    | sed 's:/Makefile.am$::' \
++    | sed "s:^${MY_HOME_WD}/::" \
++    > ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list
+ 
++# The grep and sed commands above do the following:
++# Remove the line that corresponds to the Makefile.am in user_drivers itself.
++# Remove "/Makefile.am" from each line (leaving only the directory).
++# Remove the start of the path from each line leaving only the location relative to the oomph-lib root directory
++
++echo
++echo "User driver folders included are:"
++cat ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list
++echo
++
++
+ # Set the build directory (for lib,include), relative to root
+ #------------------------------------------------------------
+ build_sub_dir=build
+@@ -190,9 +215,9 @@
+ echo " "
+ OptionPrompt " Is this OK? [y/n -- default: n]"
+ reply=`OptionRead`
+-if test "$reply" != "y" -a "$reply" != "Y" ; then 
+-   OptionPrompt "Specify build directory [e.g. /home/joe_user/build] :"
+-   build_dir=`OptionRead`
++if test "$reply" != "y" -a "$reply" != "Y" ; then
++    OptionPrompt "Specify build directory [e.g. /home/joe_user/build] :"
++    build_dir=`OptionRead`
+ else
+     echo "It's ok"
+ fi
+@@ -203,50 +228,50 @@
+ echo " "
+ echo "============================================================= "
+ echo " "
+-echo "Build directory is: " 
+-echo " " 
++echo "Build directory is: "
++echo " "
+ echo "     " $build_dir
+-echo " " 
++echo " "
+ echo "--> The include directory will be in: "
+-echo " " 
+-echo "    " $build_dir"/include" 
+-echo " " 
++echo " "
++echo "    " $build_dir"/include"
++echo " "
+ echo "--> The lib directory will be in: "
+-echo " " 
+-echo "    " $build_dir"/lib" 
+ echo " "
+-echo "etc.       " 
++echo "    " $build_dir"/lib"
+ echo " "
++echo "etc.       "
++echo " "
+ echo "============================================================= "
+ echo " "
+ 
+ 
+ # Wipe previous builds
+ #---------------------
+-if (test -d  $build_dir); then 
++if (test -d  $build_dir); then
+     echo " "
+     echo "Note: Build directory " $build_dir " exists."
+     echo " "
+     OptionPrompt "Do you want to wipe it [y/n -- default: n]"
+     reply=`OptionRead`
+-    if test "$reply" = "y" -o "$reply" = "Y" ; then 
++    if test "$reply" = "y" -o "$reply" = "Y" ; then
+ 
+-       echo " "
+-       echo "Sorry to be over-cautious here, but we'd better double-check"
+-       echo "before we delete some of your precious files..."
+-       echo " "
+-       echo "The contents of " $build_dir " are:"
+-       echo " "
+-       ls -l  $build_dir
+-       echo " "
+-       OptionPrompt "Are you still sure you want to wipe it [y/n -- default: n]"
+-       reply2=`OptionRead`
+-       if test "$reply2" = "y" -o "$reply2" = "Y" ; then 
+-          echo " "
+-          echo "Wiping it..."
+-          rm -f -r $build_dir
+-          echo "Done"
+-       fi
++	echo " "
++	echo "Sorry to be over-cautious here, but we'd better double-check"
++	echo "before we delete some of your precious files..."
++	echo " "
++	echo "The contents of " $build_dir " are:"
++	echo " "
++	ls -l  $build_dir
++	echo " "
++	OptionPrompt "Are you still sure you want to wipe it [y/n -- default: n]"
++	reply2=`OptionRead`
++	if test "$reply2" = "y" -o "$reply2" = "Y" ; then
++	    echo " "
++	    echo "Wiping it..."
++	    rm -f -r $build_dir
++	    echo "Done"
++	fi
+     fi
+ fi
+ 
+@@ -256,29 +281,29 @@
+ 
+ #Doc size of build?
+ #------------------
+-echo " " 
+-echo " " 
++echo " "
++echo " "
+ OptionPrompt "Do you want to document the size of the installation ? [y/n -- default: n]"
+ want_doc_size=`OptionRead`
+-if test "$want_doc_size" = "y" -o "$want_doc_size" = "Y" ; then 
++if test "$want_doc_size" = "y" -o "$want_doc_size" = "Y" ; then
+     doc_size="y"
+-    echo " " 
++    echo " "
+     echo "Size of the distribution at various stages of the"
+     echo "build process will be documented in size.html"
+-    echo " " 
++    echo " "
+ else
+     doc_size="n"
+-    echo " " 
++    echo " "
+     echo "Not documenting size of build"
+ fi
+ 
+ #Create header for size.html file
+ #--------------------------------
+-if test "$doc_size" = "y"; then 
++if test "$doc_size" = "y"; then
+     echo " "
+     echo "Assessing size of the distribution before the"
+     echo "installation -- this can take a little while... "
+-    echo " " 
++    echo " "
+     echo "<html>" > size.html
+     echo "<h1>" >> size.html
+     echo "Build sizes for oomph-lib build in " `pwd` " on " `date` >> size.html
+@@ -320,10 +345,10 @@
+     # Indicate if we have documentation available
+     #--------------------------------------------
+     echo "<TD align=\"center\">" >> size.html
+-    if (test -e doc/doc.txt); then 
+-      echo "yes" >> size.html
+-    else 
+-      echo "no" >> size.html
++    if (test -e doc/doc.txt); then
++	echo "yes" >> size.html
++    else
++	echo "no" >> size.html
+     fi
+     echo "</TD>" >> size.html
+ 
+@@ -331,10 +356,10 @@
+     # Indicate if we have validata available
+     #---------------------------------------
+     echo "<TD align=\"center\">" >> size.html
+-    if (test -e demo_drivers/poisson/two_d_poisson_flux_bc_adapt/validata/results.dat.gz); then 
+-      echo "yes" >> size.html
+-    else 
+-      echo "no" >> size.html
++    if (test -e demo_drivers/poisson/two_d_poisson_flux_bc_adapt/validata/results.dat.gz); then
++	echo "yes" >> size.html
++    else
++	echo "no" >> size.html
+     fi
+     echo "</TD>" >> size.html
+ 
+@@ -354,7 +379,7 @@
+ 
+     echo " "
+     echo "...done."
+-    echo " " 
++    echo " "
+ 
+ fi
+ 
+@@ -365,8 +390,8 @@
+ # Process configure options from the file config/configure_options/current
+ # Ignore any line that starts with "#";
+ # Add continuation slash at the end of each
+-# line. Check that all options (starting with "--") 
+-# come first. 
++# line. Check that all options (starting with "--")
++# come first.
+ 
+ #Continue asking if the options are OK until approved
+ accept_configure_options=0
+@@ -377,126 +402,127 @@
+ 
+ 
+ #Read the options from the file and convert them into a single one-line string
+-configure_options=`ProcessOptionsFile config/configure_options/current`
++    configure_options=`ProcessOptionsFile config/configure_options/current`
+ 
+ 
+ #Check that the options are in the correct order
+-if test "`CheckOptions $configure_options`" != ""; then
++    if test "`CheckOptions $configure_options`" != ""; then
+ 
+-  echo " "
+-  echo "==============================================================="
+-  echo "Error message from autogen.sh:"
+-  echo " " 
+-  echo "        Configure options (starting with \"--\") must be specified"
+-  echo "        before any flags!"
+-  reply="n"
+-  OptionRead #This is just a pause
++	echo " "
++	echo "==============================================================="
++	echo "Error message from autogen.sh:"
++	echo " "
++	echo "        Configure options (starting with \"--\") must be specified"
++	echo "        before any flags!"
++	reply="n"
++	OptionRead #This is just a pause
+ 
+ #If the options are in the correct order, ask whether they are OK
+-else
++    else
+ 
+-  echo " "
+-  echo "Configure options are: "
+-  echo 
+-  echo $configure_options
+-  echo 
+-  if test $list_changed = "false"; then
+-   OptionPrompt "Is this OK? [y/n -- default: y]"
+-   reply=`OptionRead`
+-  else
+-   reply="n"
+-   list_changed="false"
+-  fi
+-fi
++	echo " "
++	echo "Configure options are: "
++	echo
++	echo $configure_options
++	echo
++	if test $list_changed = "false"; then
++	    OptionPrompt "Is this OK? [y/n -- default: y]"
++	    reply=`OptionRead`
++	else
++	    reply="n"
++	    list_changed="false"
++	fi
++    fi
+ 
+ 
+ #If it's not OK, then read in alternative options from a file, or
+ #specify on command line
+-if test "$reply" = "n" -o "$reply" = "N"; then
+- 
++    private_configure_option_files=""
++    if test "$reply" = "n" -o "$reply" = "N"; then
++
+   #Remove the current symbolic link (or file)
+-  #rm -f config/configure_options/current   
++  #rm -f config/configure_options/current
+ 
+   # Link in the private ones:
+-  return_dir_before_link_in_private=`pwd`
++	return_dir_before_link_in_private=`pwd`
+   # Kill stray symlinks
+-  cd config/configure_options
+-  find . -type l -exec rm {} \; 
+-  if test  "$full_list" = "true"; then
+-   cd private_configure_options
+-   private_configure_option_files=`ls `
+-   cd ..
+-   for file in $private_configure_option_files; do ln -s private_configure_options/$file ; done
+-  fi
+-  cd $return_dir_before_link_in_private
++	cd config/configure_options
++	find . -type l -exec rm {} \;
++	if test  "$full_list" = "true"; then
++	    cd private_configure_options
++	    private_configure_option_files=`ls `
++	    cd ..
++	    for file in $private_configure_option_files; do ln -s private_configure_options/$file ; done
++	fi
++	cd $return_dir_before_link_in_private
+ 
+   # Ooops: Non-portable gnu extension to ls
+   #configure_option_files=`ls --ignore=private_configure_options config/configure_options`
+ 
+   # Thanks for this fix, Andy!
+-  configure_option_files=`ls config/configure_options | grep -v  private_configure_options` 
++	configure_option_files=`ls config/configure_options | grep -v  private_configure_options`
+ 
+-  echo " "
+-  echo "======================================================================"
+-  echo 
+-  echo "Choose an alternative configuration file "
++	echo " "
++	echo "======================================================================"
++	echo
++	echo "Choose an alternative configuration file "
+   #Loop over files and display a menu
+-  count=0
+-  for file in $configure_option_files
+-   do
++	count=0
++	for file in $configure_option_files
++	do
+     #Increase the counter
+-    count=`expr $count + 1`
+-    echo $count ": " $file
+-   done #End of loop over files in config/configure_options
+- echo
++	    count=`expr $count + 1`
++	    echo $count ": " $file
++	done #End of loop over files in config/configure_options
++	echo
+ 
+-  echo "Enter the Desired configuration file [1-"$count"]"
+-  if test $full_list = "false"; then
+-   echo "Enter -1 to show an extended list of options"
+-  else 
+-   echo "Enter -1 to show a short list of options"
+-  fi
+-  echo "Enter 0 to specify the options on the command line"
++	echo "Enter the Desired configuration file [1-"$count"]"
++	if test $full_list = "false"; then
++	    echo "Enter -1 to show an extended list of options"
++	else
++	    echo "Enter -1 to show a short list of options"
++	fi
++	echo "Enter 0 to specify the options on the command line"
+   #Read in the Desired File
+-  file_number=`OptionRead`
++	file_number=`OptionRead`
+ 
+   #If options are to be read from the command line then store the#
+   #options in the file config/configure_options/current
+-  if (test $file_number -eq 0); then
+-   echo 
+-   echo "Enter options"
+-   configure_options=`OptionRead`  
+-   echo $configure_options > config/configure_options/current
++	if (test $file_number -eq 0); then
++	    echo
++	    echo "Enter options"
++	    configure_options=`OptionRead`
++	    echo $configure_options > config/configure_options/current
+ 
+   #Otherwise copy the desired options file to config/configure_options/current
+-  elif (test $file_number -eq -1); then
+-   list_changed="true"
+-   if test $full_list = "true"; then
+-    full_list="false"
+-   else
+-    full_list="true"
+-   fi
+-  else   
++	elif (test $file_number -eq -1); then
++	    list_changed="true"
++	    if test $full_list = "true"; then
++		full_list="false"
++	    else
++		full_list="true"
++	    fi
++	else
+    #Reset the counter
+-   count=0
++	    count=0
+    #Loop over the files until the counter equals the chosen file_number
+-   for file in $configure_option_files
+-     do
++	    for file in $configure_option_files
++	    do
+      #Increase the counter
+-     count=`expr $count + 1`
+-     if (test $count -eq $file_number); then
+-        cp -f config/configure_options/$file config/configure_options/current
+-        break
+-     fi
+-   done #End of loop over files
+-   fi #End of create symbolic link code
++		count=`expr $count + 1`
++		if (test $count -eq $file_number); then
++		    cp -f config/configure_options/$file config/configure_options/current
++		    break
++		fi
++	    done #End of loop over files
++	fi #End of create symbolic link code
+ 
+ #If the configuration is OK, accept it
+-else
+- echo " " 
+- echo "Configure options have been accepted."
+- accept_configure_options=1
+-fi
++    else
++	echo " "
++	echo "Configure options have been accepted."
++	accept_configure_options=1
++    fi
+ 
+ done #End of while loop over customisation of configure options
+ 
+@@ -508,54 +534,54 @@
+ cd $return_dir_before_link_in_private
+ 
+ 
+-echo " " 
+-echo "=============================================================" 
+-echo " " 
++echo " "
++echo "============================================================="
++echo " "
+ 
+ 
+-# Automatic run of self tests? 
++# Automatic run of self tests?
+ #-----------------------------
+-echo " " 
++echo " "
+ echo "It is possible to execute the library's extensive self-test"
+ echo "when the build is complete. Depending on the speed of your"
+ echo "computer, this may take a long time as more than 450 test "
+ echo "codes are run and validated."
+-echo " " 
++echo " "
+ echo "Do you want to build the demo codes and run the self-tests at the end "
+ OptionPrompt "of the build procedure? [y/n -- default: n]"
+ want_self_tests=`OptionRead`
+ 
+-if test "$want_self_tests" = "y" -o "$want_self_tests" = "Y" ; then 
+-  echo " "
+-  echo "\"make check\" will be run at the end of the build procedure"
+-  echo "to build/self-test the demo codes."
+-  echo " "
+-  echo "The results of the self-tests will be written to the"
+-  echo "file validation.log in the top-level oomph-lib directory."
+-  echo " "
+-  if [ -e validation.log ]; then 
+-    echo " " 
+-    OptionPrompt "The file validation.log exists. Is it OK to wipe it? [y/n -- default: n]"
+-    reply=`OptionRead`
+-    if test "$reply" != "y" -a "$reply" != "Y" ; then 
+-       echo " "
+-       echo "In that case I am disabling the automatic self-test that you requested earlier."
+-       want_self_tests="n"
+-       echo " "
+-       OptionPrompt "Hit enter to acknowledge"
+-       tmp=`OptionRead`
+-    else
+-       rm -f validation.log
+-       echo "I have wiped the validation.log file."
++if test "$want_self_tests" = "y" -o "$want_self_tests" = "Y" ; then
++    echo " "
++    echo "\"make check\" will be run at the end of the build procedure"
++    echo "to build/self-test the demo codes."
++    echo " "
++    echo "The results of the self-tests will be written to the"
++    echo "file validation.log in the top-level oomph-lib directory."
++    echo " "
++    if [ -e validation.log ]; then
++	echo " "
++	OptionPrompt "The file validation.log exists. Is it OK to wipe it? [y/n -- default: n]"
++	reply=`OptionRead`
++	if test "$reply" != "y" -a "$reply" != "Y" ; then
++	    echo " "
++	    echo "In that case I am disabling the automatic self-test that you requested earlier."
++	    want_self_tests="n"
++	    echo " "
++	    OptionPrompt "Hit enter to acknowledge"
++	    tmp=`OptionRead`
++	else
++	    rm -f validation.log
++	    echo "I have wiped the validation.log file."
++	fi
+     fi
+-  fi
+ else
+-  echo " "
+-  echo "The self-test procedure will not be run automatically."
+-  echo "You may initiate the self-tests manually by typing \"make check\" "
+-  echo "in the top-level oomph-lib directory when the build process "
+-  echo "is complete."
+-  echo " "
++    echo " "
++    echo "The self-test procedure will not be run automatically."
++    echo "You may initiate the self-tests manually by typing \"make check\" "
++    echo "in the top-level oomph-lib directory when the build process "
++    echo "is complete."
++    echo " "
+ fi
+ 
+ 
+@@ -563,8 +589,8 @@
+ #---------------------------------------------------------
+ # and run a sample mpi code
+ #---------------------------
+-if test "$want_self_tests" = "y" -o "$want_self_tests" = "Y" ; then 
+-    
++if test "$want_self_tests" = "y" -o "$want_self_tests" = "Y" ; then
++
+     mpi_run_command=`echo $configure_options | \
+         awk '{ \
+         start=match($0,"--with-mpi-self-tests"); \
+@@ -582,53 +608,53 @@
+         { \
+         print "FAILED" \
+         } \
+-        }'` 
+-    
+-    if test "$mpi_run_command" != "FAILED" 
+-        then  
++        }'`
++
++    if test "$mpi_run_command" != "FAILED"
++    then
+         echo " "
+         echo "============================================================"
+         echo " "
+-        echo "It appears that you want to excecute the mpi self-tests " 
++        echo "It appears that you want to excecute the mpi self-tests "
+         echo "by executing the mpi codes with the run command:"
+-        echo " " 
++        echo " "
+         echo "       " $mpi_run_command
+         echo " "
+         echo "I'm now going to check if we can compile and run a basic"
+         echo "stand-alone mpi code."
+-        echo " " 
++        echo " "
+     # Extract c++ compilation command
+         cxx_compile_command=`echo $configure_options | \
+-            awk '{ \
+-            start=match($0,"CXX="); \
+-            if (start!=0) \
+-            {  \
+-            start+=4; rest=substr($0 ,start); \
+-            end=match(rest," ")-1; \
+-            } \
+-            } \
+-            END{if (start!=0) \
+-            { \
+-            print  substr(rest,1,end) \
+-            } \
+-            else \
+-            { \
+-            print "FAILED cxx" \
+-            } \
+-            }'` 
+-        
+-        if test "$cxx_compile_command" != "FAILED cxx" 
+-            then  
+-            echo "OK, let's try to compile the basic mpi test"
+-            echo "code with the compile command: " 
+-            echo " "            
+-            full_command=`echo $cxx_compile_command -o bin/minimal_mpi_test bin/minimal_mpi_test.cc` 
+-            echo "      "$full_command 
+-            echo " " 
+-            rm -f bin/minimal_mpi_test
+-            `echo $full_command` 
+-            if [ ! -e bin/minimal_mpi_test ]; then
+-                echo " " 
++	    awk '{ \
++	    start=match($0,"CXX="); \
++	    if (start!=0) \
++	    {  \
++	    start+=4; rest=substr($0 ,start); \
++	    end=match(rest," ")-1; \
++	    } \
++	    } \
++	    END{if (start!=0) \
++	    { \
++	    print  substr(rest,1,end) \
++	    } \
++	    else \
++	    { \
++	    print "FAILED cxx" \
++	    } \
++	    }'`
++
++        if test "$cxx_compile_command" != "FAILED cxx"
++        then
++	    echo "OK, let's try to compile the basic mpi test"
++	    echo "code with the compile command: "
++	    echo " "
++	    full_command=`echo $cxx_compile_command -o bin/minimal_mpi_test bin/minimal_mpi_test.cc`
++	    echo "      "$full_command
++	    echo " "
++	    rm -f bin/minimal_mpi_test
++	    `echo $full_command`
++	    if [ ! -e bin/minimal_mpi_test ]; then
++                echo " "
+                 echo "================================================="
+                 echo " "
+                 echo "WARNING (ISSUED BY OOMPH-LIB):"
+@@ -648,75 +674,75 @@
+                 echo " "
+                 echo "================================================="
+                 echo " "
+-            else
++	    else
+                 echo "Done: Executable was produced -- that's good!"
+-                echo " " 
+-                echo "Now let's run the minimal mpi test to see if mpi is up and running:" 
++                echo " "
++                echo "Now let's run the minimal mpi test to see if mpi is up and running:"
+                 echo "I'm going to run the code with the command: "
+-                full_command=`echo $mpi_run_command ` 
++                full_command=`echo $mpi_run_command `
+                 full_command=$full_command" bin/minimal_mpi_test "
+                 rm -f bin/minimal_mpi_test.out
+-                echo " " 
++                echo " "
+                 echo "      " $full_command
+-                echo " " 
++                echo " "
+                 `echo $full_command`  > bin/minimal_mpi_test.out
+                 result=`grep 'This worked'  bin/minimal_mpi_test.out | wc | awk '{print $1}'`
+                 if [ "$result" -ne "2" ]
+-                    then
+-                    echo " " 
+-                    echo "================================================="
+-                    echo " "
+-                    echo "WARNING (ISSUED BY OOMPH-LIB):"
+-                    echo "------------------------------"
+-                    echo " "
+-                    echo "The mpi test code bin/minimal_mpi_test was not run"
+-                    echo "successfully." 
+-                    echo " " 
+-                    echo "You may want to check the following:" 
+-                    echo "-- Are you sure your mpi demons have been started?"
+-                    echo "   E.g. under lam you have to use the lamboot "
+-                    echo "   command to get mpi up and running...."
+-                    echo "-- Is the mpi run command you specified via "
+-                    echo "   the --with-mpi-self-tests flag in the"
+-                    echo "   configure options valid?"
+-                    echo " "
+-                    echo "I will continue regardless but you shouldn't be"
+-                    echo "surprised if large numbers of mpi self-test fail..."
+-                    echo " "
+-                    echo "================================================="
+-                    echo " "
++                then
++		    echo " "
++		    echo "================================================="
++		    echo " "
++		    echo "WARNING (ISSUED BY OOMPH-LIB):"
++		    echo "------------------------------"
++		    echo " "
++		    echo "The mpi test code bin/minimal_mpi_test was not run"
++		    echo "successfully."
++		    echo " "
++		    echo "You may want to check the following:"
++		    echo "-- Are you sure your mpi demons have been started?"
++		    echo "   E.g. under lam you have to use the lamboot "
++		    echo "   command to get mpi up and running...."
++		    echo "-- Is the mpi run command you specified via "
++		    echo "   the --with-mpi-self-tests flag in the"
++		    echo "   configure options valid?"
++		    echo " "
++		    echo "I will continue regardless but you shouldn't be"
++		    echo "surprised if large numbers of mpi self-test fail..."
++		    echo " "
++		    echo "================================================="
++		    echo " "
+                 else
+-                    echo " " 
+-                    echo "Done: mpi test code was executed succesfully. Good stuff."
++		    echo " "
++		    echo "Done: mpi test code was executed succesfully. Good stuff."
+                 fi
+-            fi
++	    fi
+         else
+-            echo " "
+-            echo "================================================="
+-            echo " "
+-            echo "WARNING (ISSUED BY OOMPH-LIB):"
+-            echo "------------------------------"
+-            echo " "
+-            echo "Sorry I got myself confused when parsing " 
+-            echo "the configure options and could not find"
+-            echo "the specification of the c++ mpi compiler"
+-            echo "via the CXX flag. Please make sure this is"
+-            echo "specified in configure/configure_optinios/current"
+-            echo "in the form: CXX=mpic++, say, (no quotes, no spaces)."
+-            echo " " 
+-            echo "NOTE: This is not necessarily a problem, but will"
+-            echo "keep me from checking if mpi is up and running"
+-            echo "before starting the self-tests."
+-            echo " "
+-            echo "================================================="
+-            echo " "        
++	    echo " "
++	    echo "================================================="
++	    echo " "
++	    echo "WARNING (ISSUED BY OOMPH-LIB):"
++	    echo "------------------------------"
++	    echo " "
++	    echo "Sorry I got myself confused when parsing "
++	    echo "the configure options and could not find"
++	    echo "the specification of the c++ mpi compiler"
++	    echo "via the CXX flag. Please make sure this is"
++	    echo "specified in configure/configure_optinios/current"
++	    echo "in the form: CXX=mpic++, say, (no quotes, no spaces)."
++	    echo " "
++	    echo "NOTE: This is not necessarily a problem, but will"
++	    echo "keep me from checking if mpi is up and running"
++	    echo "before starting the self-tests."
++	    echo " "
++	    echo "================================================="
++	    echo " "
+         fi
+         echo " "
+     else
+         echo " "
+         echo "No mpi self-tests were requested"
+         echo " "
+-    fi  
++    fi
+ fi
+ 
+ 
+@@ -728,7 +754,7 @@
+ echo "End of customisation -- the actual build process is about to start."
+ echo "This may take a while... No user intervention is required during"
+ echo "the build procedure, so go and take the dog for a walk..."
+-echo " " 
++echo " "
+ OptionPrompt "Hit enter to continue."
+ tmp=`OptionRead`
+ 
+@@ -740,11 +766,11 @@
+ # Start actual build process
+ #====================================================================
+ 
+-
+-# Raw build: Go through all the initialisation procedures
++# If we are doing a raw build or if ./configure does not yet exist
++# for some other reason then generate all the config files needed.
+ #--------------------------------------------------------
+-if $raw_build; then
+- $MY_HOME_WD/bin/regenerate_config_files.sh $MY_HOME_WD
++if [ $raw_build -o ! -e ./configure ]; then
++    $MY_HOME_WD/bin/regenerate_config_files.sh $MY_HOME_WD
+ fi
+ 
+ # Now do the actual configure:
+@@ -753,7 +779,7 @@
+ # - CXX =  C++ compiler (defaults to gcc/g++)
+ # - CC =   C compiler (defaults to gcc)
+ # - F77 =  F77 compiler (defaults to gcc/g77)
+-# 
++#
+ # Options: "--enable-MPI" includes all MPI sources into the build
+ #
+ 
+@@ -761,20 +787,20 @@
+ # Run configure command
+ echo " "
+ echo "Running ./configure --prefix $build_dir $configure_options"
+-echo " " 
++echo " "
+ /bin/sh -c "./configure --prefix $build_dir $configure_options"
+ 
+-echo " " 
+-echo " " 
++echo " "
++echo " "
+ echo "done running ./configure"
+-echo " " 
+-echo " " 
++echo " "
++echo " "
+ 
+ 
+ # Make all libraries
+ #-------------------
+ echo " "
+-echo "Running make $make_options" 
++echo "Running make $make_options"
+ make $make_options
+ echo "done"
+ 
+@@ -784,24 +810,24 @@
+ echo " "
+ echo "running make $make_options install"
+ make $make_options install
+-echo "done" 
++echo "done"
+ 
+ 
+ 
+ 
+ # Size after build
+ #-----------------
+-if test "$doc_size" = "y"; then 
++if test "$doc_size" = "y"; then
+     echo " "
+     echo "Assessing size of the distribution after "
+     echo "installation -- this can take a little while..."
+-    echo " " 
++    echo " "
+     echo "<TD align=\"center\">" >> size.html
+     echo `du -s -h .` >> size.html
+     echo "</TD>" >> size.html
+     echo " "
+     echo "...done."
+-    echo " " 
++    echo " "
+ fi
+ 
+ 
+@@ -809,48 +835,48 @@
+ #------------------------------------------------------------------
+ # declaration in the "Makefile.am"s
+ #-----------------------------------
+-if test "$want_self_tests" = "y" -o "$reply" = "Y" ; then 
+-  echo " "
+-  echo "Running check to build/self-test the demo codes."
+-  echo "y" | make $make_options check
+-  echo "Done self test"
++if test "$want_self_tests" = "y" -o "$reply" = "Y" ; then
++    echo " "
++    echo "Running check to build/self-test the demo codes."
++    echo "y" | make $make_options check
++    echo "Done self test"
+ 
+   # Size after self-tests
+   #----------------------
+-  if test "$doc_size" = "y"; then 
+-      echo " "
+-      echo "Assessing size of the distribution after "
+-      echo "self tests -- this can take a little while... "
+-      echo " " 
+-      echo "<TD align=\"center\">" >> size.html
+-      echo `du -s -h .` >> size.html
+-      echo "</TD>" >> size.html
+-      echo " "
+-      echo "...done."
+-      echo " " 
+-  fi
++    if test "$doc_size" = "y"; then
++	echo " "
++	echo "Assessing size of the distribution after "
++	echo "self tests -- this can take a little while... "
++	echo " "
++	echo "<TD align=\"center\">" >> size.html
++	echo `du -s -h .` >> size.html
++	echo "</TD>" >> size.html
++	echo " "
++	echo "...done."
++	echo " "
++    fi
+ 
+ else
+-  echo " "
+-  echo "The build process is complete. You may now "
+-  echo "initiate the self-tests by typing \"make check\". "
+-  echo " "
++    echo " "
++    echo "The build process is complete. You may now "
++    echo "initiate the self-tests by typing \"make check\". "
++    echo " "
+ 
+ 
+   # Size after self-tests
+   #----------------------
+-  if test "$doc_size" = "y"; then 
+-      echo "<TD align=\"center\">" >> size.html
+-      echo "n/a" >> size.html
+-      echo "</TD>" >> size.html
+-  fi
++    if test "$doc_size" = "y"; then
++	echo "<TD align=\"center\">" >> size.html
++	echo "n/a" >> size.html
++	echo "</TD>" >> size.html
++    fi
+ 
+ fi
+ 
+ 
+ #Finish off size file
+ #--------------------
+-if test "$doc_size" = "y"; then 
++if test "$doc_size" = "y"; then
+     echo "</TR>" >> size.html
+     echo " " >> size.html
+     echo " " >> size.html
+@@ -863,10 +889,9 @@
+ 
+ 
+ echo " "
+-echo "autogen.sh has finished! If you can't spot any error messages" 
+-echo "above this, oomph-lib should now be ready to use... " 
+-echo " " 
+-echo "If you encounter any problems, please study the installation" 
+-echo "instructions and the FAQ before contacting the developers. " 
+-echo " " 
+-
++echo "autogen.sh has finished! If the script made it this far then"
++echo "oomph-lib should now be ready to use... "
++echo " "
++echo "If you encounter any problems, please study the installation"
++echo "instructions and the FAQ before contacting the developers. "
++echo " "
