@@ -67,9 +67,6 @@ namespace oomph
     inline void fill_in_contribution_to_jacobian(Vector<double> &dummy,
 						 DenseMatrix<double> &boundary_matrix)
     {
-      //??ds need to fake fill-in residuals vector to stop it crashing
-
-
       fill_in_boundary_element_contribution_micromag(boundary_matrix);
     }
 
@@ -173,9 +170,9 @@ namespace oomph
     /// The index at which phi_2 is stored
     unsigned Phi_2_index_micromag;
 
-    /// The number of values to be stored at each boundary element node is 2: phi_1 and phi_2
+    /// The number of values to be stored at each boundary element node
     inline unsigned required_nvalue(const unsigned &n) const
-    {return 2;}
+    {return 0;}
 
   };
 
@@ -200,82 +197,82 @@ namespace oomph
     // the first (face) node.
     Node_dim = this->node_pt(0)->ndim();
 
-    // Cast to the appropriate equation element so that we can
-    // find the index at which the variable is stored
-    //??ds this code seems horrible....
-    switch(Node_dim)
-      {
-	//One dimensional problem
-      case 1:
-	{
-	  MicromagEquations<1>* eqn_pt = dynamic_cast<MicromagEquations<1>*>(bulk_el_pt);
-	  //If the cast has failed die
-	  if(eqn_pt==0)
-	    {
-	      throw OomphLibError("Cannot cast the bulk element.",
-				  "MicromagFaceElement::MicromagFaceElement()",
-				  OOMPH_EXCEPTION_LOCATION);
-	    }
-	  else
-	    {
-	      // Read the indicies from the (cast) bulk element
-	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-	    }
-	}
-	break;
+    // // Cast to the appropriate equation element so that we can
+    // // find the index at which the variable is stored
+    // //??ds this code seems horrible....
+    // switch(Node_dim)
+    //   {
+    // 	//One dimensional problem
+    //   case 1:
+    // 	{
+    // 	  MicromagEquations<1>* eqn_pt = dynamic_cast<MicromagEquations<1>*>(bulk_el_pt);
+    // 	  //If the cast has failed die
+    // 	  if(eqn_pt==0)
+    // 	    {
+    // 	      throw OomphLibError("Cannot cast the bulk element.",
+    // 				  "MicromagFaceElement::MicromagFaceElement()",
+    // 				  OOMPH_EXCEPTION_LOCATION);
+    // 	    }
+    // 	  else
+    // 	    {
+    // 	      // Read the indicies from the (cast) bulk element
+    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
+    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
+    // 	    }
+    // 	}
+    // 	break;
 
-	//Two dimensional problem
-      case 2:
-	{
-	  MicromagEquations<2>* eqn_pt = dynamic_cast<MicromagEquations<2>*>(bulk_el_pt);
-	  //If the cast has failed die
-	  if(eqn_pt==0)
-	    {
-	      throw OomphLibError("Cannot cast the bulk element.",
-				  "MicromagFaceElement::MicromagFaceElement()",
-				  OOMPH_EXCEPTION_LOCATION);
-	    }
-	  else
-	    {
-	      // Read the indicies from the (cast) bulk element
-	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-	    }
-	}
-	break;
+    // 	//Two dimensional problem
+    //   case 2:
+    // 	{
+    // 	  MicromagEquations<2>* eqn_pt = dynamic_cast<MicromagEquations<2>*>(bulk_el_pt);
+    // 	  //If the cast has failed die
+    // 	  if(eqn_pt==0)
+    // 	    {
+    // 	      throw OomphLibError("Cannot cast the bulk element.",
+    // 				  "MicromagFaceElement::MicromagFaceElement()",
+    // 				  OOMPH_EXCEPTION_LOCATION);
+    // 	    }
+    // 	  else
+    // 	    {
+    // 	      // Read the indicies from the (cast) bulk element
+    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
+    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
+    // 	    }
+    // 	}
+    // 	break;
 
-	//Three dimensional problem
-      case 3:
-	{
-	  MicromagEquations<3>* eqn_pt = dynamic_cast<MicromagEquations<3>*>(bulk_el_pt);
-	  //If the cast has failed die
-	  if(eqn_pt==0)
-	    {
-	      throw OomphLibError("Cannot cast the bulk element.",
-				  "MicromagFaceElement::MicromagFaceElement()",
-				  OOMPH_EXCEPTION_LOCATION);
-	    }
-	  else
-	    {
-	      // Read the indicies from the (cast) bulk element
-	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-	    }
-	}
-	break;
+    // 	//Three dimensional problem
+    //   case 3:
+    // 	{
+    // 	  MicromagEquations<3>* eqn_pt = dynamic_cast<MicromagEquations<3>*>(bulk_el_pt);
+    // 	  //If the cast has failed die
+    // 	  if(eqn_pt==0)
+    // 	    {
+    // 	      throw OomphLibError("Cannot cast the bulk element.",
+    // 				  "MicromagFaceElement::MicromagFaceElement()",
+    // 				  OOMPH_EXCEPTION_LOCATION);
+    // 	    }
+    // 	  else
+    // 	    {
+    // 	      // Read the indicies from the (cast) bulk element
+    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
+    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
+    // 	    }
+    // 	}
+    // 	break;
 
-	//Any other case is an error
-      default:
-	std::ostringstream error_stream;
-	error_stream <<  "Dimension of node is " << Node_dim
-		     << ". It should be 1,2, or 3!" << std::endl;
+    // 	//Any other case is an error
+    //   default:
+    // 	std::ostringstream error_stream;
+    // 	error_stream <<  "Dimension of node is " << Node_dim
+    // 		     << ". It should be 1,2, or 3!" << std::endl;
 
-	throw OomphLibError(error_stream.str(),
-			    "MicromagFaceElement::MicromagFaceElement()",
-			    OOMPH_EXCEPTION_LOCATION);
-	break;
-      }
+    // 	throw OomphLibError(error_stream.str(),
+    // 			    "MicromagFaceElement::MicromagFaceElement()",
+    // 			    OOMPH_EXCEPTION_LOCATION);
+    // 	break;
+    //   }
   }
 
   //=======================================================================
@@ -296,13 +293,10 @@ namespace oomph
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
+    // std::cout << n_element_node << std::endl;
 
     //Set up memory for the shape and test functions
     Shape psi(n_element_node), test(n_element_node);
-
-    // Set up memory for the coordinate vectors and normal vector
-    Vector<double> s(el_dim,0.0), interpolated_x(Node_dim,0.0),
-      normal(Node_dim,0.0), target_node_x(Node_dim,0.0);
 
     // // Get current time
     // double time = time_pt()->time();
@@ -313,6 +307,10 @@ namespace oomph
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
+	// Get values of s (local coordinate)
+	Vector<double> s(el_dim,0.0);
+	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
+
 	//Get the integral weight
 	double w = integral_pt()->weight(ipt);
 
@@ -322,32 +320,35 @@ namespace oomph
 	//Premultiply the weights and the Jacobian
 	double W = w*J;
 
-	// Get values of s (local coordinate)
-	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
-
 	// Get values of x (global coordinate)
+	Vector<double> interpolated_x(Node_dim,0.0);
 	for(unsigned l=0; l<n_element_node; l++)
 	  {
 	    for(unsigned i=0; i<Node_dim; i++)
 	      interpolated_x[i] += nodal_position(l,i)*psi[l];
 	  }
 
+	// std::cout << "Gauss point at: (" << interpolated_x[0]
+	// 	  << ", " << interpolated_x[1] << ")" << std::endl;
+
 	// Compute the normal vector
-	//??ds not sure hwo this works - might not work for curved boundaries?
-	outer_unit_normal(ipt,normal);
+	//??ds not sure how this works - might not work for curved boundaries?
+	Vector<double> normal(Node_dim,0.0);
+	outer_unit_normal(s,normal);
 
 	// Loop over ALL nodes on in boundary mesh (except the current ones?) (target_node)
 	unsigned n_boundary_node = mesh_pt()->nnode();
 	for(unsigned i_target_node=0; i_target_node<n_boundary_node; i_target_node++)
 	  {
 	    // Get coordinates of target node
+	    Vector<double> target_node_x(Node_dim,0.0);
 	    mesh_pt()->node_pt(i_target_node)->position(target_node_x);
 
-	    std::cout << "Gauss point at: (" << interpolated_x[0]
-		      << ", " << interpolated_x[1] << ")"
-		      << ". Target node at: (" << target_node_x[0]
-		      << ", " << target_node_x[1] << ")"
-		      << std::endl;
+	    // // Debugguging output:
+	    // std::cout << std::endl;
+	    // std::cout << ". Target node at: (" << target_node_x[0]
+	    // 	      << ", " << target_node_x[1] << ")"
+	    // 	      << std::endl;
 
 	    // Calculate dGreendn between target node and integration point
 	    double dgreendn = green_normal_derivative(interpolated_x,target_node_x,normal);
@@ -370,7 +371,7 @@ namespace oomph
 
   }
 
-//======================================================================
+  //======================================================================
   ///
   //======================================================================
   template<class ELEMENT>
@@ -407,9 +408,10 @@ namespace oomph
     for(unsigned i=0; i<Node_dim; i++)
       ndotr += r_unit[i]*n[i];
 
-    std::cout << "ndotr = " << ndotr << std::endl;
-    std::cout << "r = " << r << std::endl;
-    std::cout << "greens/ndotr = " << -1/Pi * pow((2*r),-2) * 2 << std::endl;
+    // std::cout << "ndotr = " << ndotr << std::endl;
+    // std::cout << "r = " << r << std::endl;
+    // std::cout << "greens/ndotr = " << -1/Pi * pow((2*r),-2) * 2 << std::endl;
+    // std::cout << "greens = " <<-1/Pi * ndotr * pow((2*r),-2) * 2 << std::endl;
 
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
