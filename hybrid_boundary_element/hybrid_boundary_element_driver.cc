@@ -73,7 +73,7 @@ namespace oomph
   TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   {
     // Set domain size
-    double l_x = 4.0;
+    double l_x = 3.0;
     double l_y = 1.0;
 
     // Allocate steady state timestepper
@@ -150,6 +150,9 @@ namespace oomph
 
     /// Build the mesh for this problem
     void build_face_mesh(Mesh* const &bulk_mesh_pt);
+
+    /// Get the boundary element matrix (similar to problem::get_jacobian)
+    void get_boundary_matrix(DenseDoubleMatrix& boundary_matrix);
 
   private:
 
@@ -256,6 +259,60 @@ namespace oomph
 #endif
   }
 
+
+  //=============================================================================
+  /// Get the fully assembled boundary matrix in dense storage.
+  //=============================================================================
+  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
+  void TwoDBoundaryProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  get_boundary_matrix(DenseDoubleMatrix& boundary_matrix)
+  {
+
+    // get the number of nodes in the boundary problem
+    unsigned long n_node=mesh_pt()->nnode();
+
+    // resize the boundary matrix
+    boundary_matrix.resize(n_node,n_node);
+    boundary_matrix.initialise(0.0);
+
+    // Loop over all the elements
+    unsigned long n_element = mesh_pt()->nelement();
+    for(unsigned long e=0;e<n_element;e++)
+      {
+	// Get the pointer to the element (and cast to FiniteElement)
+	FiniteElement* elem_pt =
+	  dynamic_cast<FiniteElement*>(mesh_pt()->element_pt(e));
+
+	// Find number of nodes in the element
+	unsigned long n_element_node = elem_pt->nnode();
+
+	// Set up a matrix and dummy residual vector
+	DenseMatrix<double> element_boundary_matrix(2,n_node);
+	Vector<double> dummy(0);
+
+	// Fill the matrix
+	assembly_handler_pt()
+	  ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
+
+	// Loop over the nodes in this element
+	for(unsigned l=0;l<n_element_node;l++)
+	  {
+	    //??ds how do I get the global node number?
+	    //??ds is there a global node number - only via mesh, no good here :(
+	    unsigned source_node = elem_pt->eqn_number(l);
+
+	    std::cout << "source node = " << source_node << std::endl;
+
+	    // Loop over all nodes in the mesh and add contributions from this element
+	    for(unsigned long target_node=0;target_node<n_node;target_node++)
+	      {
+		boundary_matrix(source_node,target_node)
+		  += element_boundary_matrix(l,target_node);
+	      }
+	  }
+      }
+  }
+
 } // End of oomph namespace
 
 //==========start_of_main=================================================
@@ -289,11 +346,11 @@ int main()
     std::cout << "passed: Problem can be solved." << std::endl;
   else
     throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
-  // std::cout << "\n\n\nBoundary problem self-test ";
-  // if (boundary_problem.self_test()==0)
-  //   std::cout << "passed: Problem can be solved." << std::endl;
-  // else
-  //   throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
+  std::cout << "\n\n\nBoundary problem self-test ";
+  if (boundary_problem.self_test()==0)
+    std::cout << "passed: Problem can be solved." << std::endl;
+  else
+    throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
 
   // Dump boundary mesh positions
   unsigned n_node = boundary_problem.mesh_pt()->nnode();
@@ -305,32 +362,42 @@ int main()
   		<< std::endl;
     }
 
-  // Eventually loop over all boundary elements?
-  unsigned n_boundary_node = boundary_problem.mesh_pt()->nnode();
+  std::cout << std::endl;
+  std::cout << "number of degrees of freedom = " << boundary_problem.ndof() << std::endl;
 
-  unsigned i_ele = 0;
-  {
-    // Get element pointer to ith element
-    MicromagFaceElement<QMicromagElement<2,2> >* elem_pt =
-      dynamic_cast<MicromagFaceElement<QMicromagElement<2,2> >*>
-      (boundary_problem.mesh_pt()->element_pt(i_ele));
+  // unsigned i_ele = 3;
+  // {
+  //   // Get element pointer to ith element
+  //   MicromagFaceElement<QMicromagElement<2,2> >* elem_pt =
+  //     dynamic_cast<MicromagFaceElement<QMicromagElement<2,2> >*>
+  //     (boundary_problem.mesh_pt()->element_pt(i_ele));
 
-    // Create matrix to store boundary data for this element
-    DenseMatrix<double> boundary_matrix(2,n_boundary_node,0.0);
-    //??ds not actually 2 - should be number of nodes in element
+  //   // Create matrix to store boundary data for this element
+  //   DenseMatrix<double> boundary_matrix(2,n_node,0.0);
+  //   //??ds not actually 2 - should be number of nodes in element
 
-    // Get boundary element matrix for this element
-    Vector<double> dummy(0,0.0);
-    elem_pt->fill_in_contribution_to_jacobian(dummy,boundary_matrix);
+  //   // Get boundary element matrix for this element
+  //   Vector<double> dummy(0,0.0);
+  //   elem_pt->fill_in_contribution_to_jacobian(dummy,boundary_matrix);
 
-    // dump for testing:
-    std::ofstream matrix_file;
-    char filename[100] = "matrix";
-    matrix_file.open(filename);
-    boundary_matrix.output(matrix_file);
-    matrix_file.close();
-  }
+  //   // dump for testing:
+  //   std::ofstream matrix_file;
+  //   char filename[100] = "matrix";
+  //   matrix_file.open(filename);
+  //   boundary_matrix.output(matrix_file);
+  //   matrix_file.close();
+  // }
 
+  DoubleVector dummy_vec;
+  DenseDoubleMatrix jacobian;
+  boundary_problem.get_boundary_matrix(jacobian);
+
+  // // dump for testing:
+  // std::ofstream matrix_file;
+  // char filename[100] = "fake_jacobian";
+  // matrix_file.open(filename);
+  // jacobian.output(matrix_file);
+  // matrix_file.close();
 
   return 0;
 } //end of main
