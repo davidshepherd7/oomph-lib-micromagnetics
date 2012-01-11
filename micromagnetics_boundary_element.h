@@ -197,6 +197,9 @@ namespace oomph
     // the first (face) node.
     Node_dim = this->node_pt(0)->ndim();
 
+    //??ds Set integral pointer to point to adaptive method
+    //set_integration_scheme(....);
+
     // // Cast to the appropriate equation element so that we can
     // // find the index at which the variable is stored
     // //??ds this code seems horrible....
@@ -300,6 +303,9 @@ namespace oomph
 
     // // Get current time
     // double time = time_pt()->time();
+
+    //??ds adaptive quadrature: given acceptable error choose integration
+    // method and return integral_pt
 
     //Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();

@@ -342,6 +342,7 @@ namespace oomph
     for(unsigned long e=0;e<n_element;e++)
       {
 	// Get the pointer to the element (and cast to FiniteElement)
+	//??ds might need only finite ele in the end? not sure how to get phi_2_index yet
 	FACE_ELEMENT<BULK_ELEMENT>* elem_pt =
 	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT>* >(mesh_pt()->element_pt(e));
 
