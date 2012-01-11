@@ -5,6 +5,7 @@
   ??ds  description of file goes here
 */
 
+#include <map>
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
 #include "meshes/rectangular_quadmesh.h"
@@ -98,7 +99,7 @@ namespace oomph
     // ??ds add this when we are actually solving things
 
     // Setup equation numbering scheme
-    std::cout << "Number of equations: " << assign_eqn_numbers() << std::endl;
+    std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
 
   } // end of constructor
 
@@ -154,10 +155,21 @@ namespace oomph
     /// Get the boundary element matrix (similar to problem::get_jacobian)
     void get_boundary_matrix(DenseDoubleMatrix& boundary_matrix);
 
+    /// \short Get the mapping between the global equation numbering and
+    /// the boundary equation numbering.
+    void create_global_boundary_equation_number_map();
+
+    /// Get the boundary equation number from the global equation number
+    unsigned convert_global_to_boundary_equation_number(const unsigned &global)
+    {return Global_boundary_equation_num_map[global];}
+
   private:
 
     /// Create face elements on the i'th boundary and add to boundary mesh
     void create_face_elements(const unsigned &i_bulk_boundary);
+
+    /// The map the global equation numbering and the boundary equation numbering.
+    std::map<unsigned,unsigned> Global_boundary_equation_num_map;
 
     /// Pointer to the bulk mesh
     Mesh* Bulk_mesh_pt;
@@ -201,7 +213,7 @@ namespace oomph
       }
 
     // Set up numbering scheme
-    std::cout << "Number of equations: " << assign_eqn_numbers() << std::endl;
+    std::cout << "Boundary element number of equations: " << assign_eqn_numbers() << std::endl;
 
   } // End of constructor
 
@@ -259,6 +271,56 @@ namespace oomph
 #endif
   }
 
+  // Create a map from the global equation numbers to the boundary node.
+  // Note since we use the global equation number as a key the map will
+  // automatically reject duplicate entries.
+  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
+  void TwoDBoundaryProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  create_global_boundary_equation_number_map()
+  {
+    // Initialise the map
+    Global_boundary_equation_num_map.clear();
+
+    // Get index of phi_2 (from the first element of the mesh)
+    BULK_ELEMENT* ele_pt = dynamic_cast < BULK_ELEMENT* > (this->mesh_pt()->element_pt(0));
+    unsigned phi_2_index = ele_pt->phi_2_index_micromag();
+
+    // Loop over boundary nodes assigning a boundary equation number to each.
+    unsigned n_boundary_node = this->mesh_pt()->nnode(), k=0;
+    for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
+      {
+	// Get global equation number for phi_2
+	unsigned global_eqn_number = this->mesh_pt()->
+	  node_pt(i_node)->eqn_number(phi_2_index);
+
+	// Set up the pair ready to input with key="global equation number" and
+	// value ="boundary equation number"=k.
+	std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
+
+	// Add entry to map and store whether this was a new addition
+	bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
+			).second;
+
+	// Increment k if this was a new addition to the map
+	if(new_addition)
+	  {
+	    std::cout << "New pair added: "
+		      << convert_global_to_boundary_equation_number(global_eqn_number)
+		      << std::endl;
+	    k++;
+	  }
+      }
+
+
+    // std::cout << "Just messing: " << std::endl;
+
+    // for(unsigned i=0; i<50; i++)
+    //   {
+    // 	std::cout << convert_global_to_boundary_equation_number(i) << " "
+    // 		  << std::endl;
+    //   }
+  }
+
 
   //=============================================================================
   /// Get the fully assembled boundary matrix in dense storage.
@@ -269,7 +331,7 @@ namespace oomph
   {
 
     // get the number of nodes in the boundary problem
-    unsigned long n_node=mesh_pt()->nnode();
+    unsigned long n_node = mesh_pt()->nnode();
 
     // resize the boundary matrix
     boundary_matrix.resize(n_node,n_node);
@@ -280,14 +342,14 @@ namespace oomph
     for(unsigned long e=0;e<n_element;e++)
       {
 	// Get the pointer to the element (and cast to FiniteElement)
-	FiniteElement* elem_pt =
-	  dynamic_cast<FiniteElement*>(mesh_pt()->element_pt(e));
+	FACE_ELEMENT<BULK_ELEMENT>* elem_pt =
+	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT>* >(mesh_pt()->element_pt(e));
 
 	// Find number of nodes in the element
 	unsigned long n_element_node = elem_pt->nnode();
 
 	// Set up a matrix and dummy residual vector
-	DenseMatrix<double> element_boundary_matrix(2,n_node);
+	DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
 	Vector<double> dummy(0);
 
 	// Fill the matrix
@@ -297,9 +359,12 @@ namespace oomph
 	// Loop over the nodes in this element
 	for(unsigned l=0;l<n_element_node;l++)
 	  {
-	    //??ds how do I get the global node number?
-	    //??ds is there a global node number - only via mesh, no good here :(
-	    unsigned source_node = elem_pt->eqn_number(l);
+
+	    // Get the boundary equation (=node) number from the global one
+	    unsigned source_node =
+	      this->convert_global_to_boundary_equation_number(
+							       elem_pt->node_pt(l)->eqn_number(8));
+	    //??ds need to get real phi_2_micromag somehow... :(
 
 	    std::cout << "source node = " << source_node << std::endl;
 
@@ -318,11 +383,13 @@ namespace oomph
 //==========start_of_main=================================================
 /// ??ds
 //========================================================================
-int main()
+int main(int argc, char* argv[])
 {
+  CommandLineArgs::setup(argc,argv);
+
   // Set number of elements in each direction
-  unsigned n_x = 2;
-  unsigned n_y = 1;
+  unsigned n_x = 3;
+  unsigned n_y = 3;
 
   // Set dimension of problem and number of nodes along each edge
   const unsigned dim = 2;
@@ -352,15 +419,15 @@ int main()
   else
     throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
 
-  // Dump boundary mesh positions
-  unsigned n_node = boundary_problem.mesh_pt()->nnode();
-  std::cout << n_node << std::endl;
-  for(unsigned i_node=0; i_node < n_node; i_node++)
-    {
-      std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
-  		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
-  		<< std::endl;
-    }
+  // // Dump boundary mesh positions
+  // unsigned n_node = boundary_problem.mesh_pt()->nnode();
+  // std::cout << n_node << std::endl;
+  // for(unsigned i_node=0; i_node < n_node; i_node++)
+  //   {
+  //     std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
+  // 		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
+  // 		<< std::endl;
+  //   }
 
   std::cout << std::endl;
   std::cout << "number of degrees of freedom = " << boundary_problem.ndof() << std::endl;
@@ -388,16 +455,19 @@ int main()
   //   matrix_file.close();
   // }
 
+  // Setup the boundary equation numbering map
+  boundary_problem.create_global_boundary_equation_number_map();
+
   DoubleVector dummy_vec;
   DenseDoubleMatrix jacobian;
   boundary_problem.get_boundary_matrix(jacobian);
 
-  // // dump for testing:
-  // std::ofstream matrix_file;
-  // char filename[100] = "fake_jacobian";
-  // matrix_file.open(filename);
-  // jacobian.output(matrix_file);
-  // matrix_file.close();
+  // dump for testing:
+  std::ofstream matrix_file;
+  char filename[100] = "fake_jacobian";
+  matrix_file.open(filename);
+  jacobian.output(matrix_file);
+  matrix_file.close();
 
   return 0;
 } //end of main
