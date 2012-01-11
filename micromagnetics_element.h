@@ -369,7 +369,7 @@ namespace oomph
     /// \short Return FE representation of solution vector (phi,M,H_ex)
     /// at local coordinate s and current time.
     inline void interpolated_solution_micromag(const Vector<double> &s,
-					Vector<double>& interpolated_solution) const
+					       Vector<double>& interpolated_solution) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
@@ -541,10 +541,12 @@ namespace oomph
     }
 
     /// Required  # of `values' (pinned or dofs) at node n.
-    // We need to store phi(1 value), M(3) and H_exchange(3).
+    // We need to store phi(1 value), M(3) and H_exchange(3),
+    // phi_1 and phi_2.
+    //??ds clean this up - probably don't need phi or H-exchange..
     //??ds generalise somehow?
     inline unsigned required_nvalue(const unsigned &n) const
-    {return 7;}
+    {return 9;}
 
     // OUTPUT FUNCTIONS (just call from MicromagEquations class)
     /// Output function: x,y,u or x,y,z,u
