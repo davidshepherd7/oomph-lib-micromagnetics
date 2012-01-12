@@ -523,7 +523,7 @@ int main(int argc, char *argv[])
   DocInfo doc_info;
 
   // Output directory
-  doc_info.set_directory("RESLT");
+  doc_info.set_directory("results");
 
   // Output number
   doc_info.number()=0;

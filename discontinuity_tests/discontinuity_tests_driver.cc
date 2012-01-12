@@ -1,31 +1,31 @@
 //LIC// ====================================================================
-//LIC// This file forms part of oomph-lib, the object-oriented, 
-//LIC// multi-physics finite-element library, available 
+//LIC// This file forms part of oomph-lib, the object-oriented,
+//LIC// multi-physics finite-element library, available
 //LIC// at http://www.oomph-lib.org.
-//LIC// 
+//LIC//
 //LIC//           Version 0.90. August 3, 2009.
-//LIC// 
+//LIC//
 //LIC// Copyright (C) 2006-2009 Matthias Heil and Andrew Hazel
-//LIC// 
+//LIC//
 //LIC// This library is free software; you can redistribute it and/or
 //LIC// modify it under the terms of the GNU Lesser General Public
 //LIC// License as published by the Free Software Foundation; either
 //LIC// version 2.1 of the License, or (at your option) any later version.
-//LIC// 
+//LIC//
 //LIC// This library is distributed in the hope that it will be useful,
 //LIC// but WITHOUT ANY WARRANTY; without even the implied warranty of
 //LIC// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 //LIC// Lesser General Public License for more details.
-//LIC// 
+//LIC//
 //LIC// You should have received a copy of the GNU Lesser General Public
 //LIC// License along with this library; if not, write to the Free Software
 //LIC// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 //LIC// 02110-1301  USA.
-//LIC// 
+//LIC//
 //LIC// The authors may be contacted at oomph-lib@maths.man.ac.uk.
-//LIC// 
+//LIC//
 //LIC//====================================================================
-//Driver for 2D unsteady heat problem 
+//Driver for 2D unsteady heat problem
 
 //Generic routines
 #include "generic.h"
@@ -59,7 +59,7 @@ namespace DCtsSetup
 }
 
 //=====start_of_problem_class=========================================
-/// UnsteadyHeat problem 
+/// UnsteadyHeat problem
 //====================================================================
 template<class ELEMENT>
 class UnsteadyHeatProblem : public Problem
@@ -68,7 +68,7 @@ class UnsteadyHeatProblem : public Problem
 public:
 
   /// Constructor
-  UnsteadyHeatProblem(UnsteadyHeatEquations<1>::UnsteadyHeatSourceFctPt 
+  UnsteadyHeatProblem(UnsteadyHeatEquations<1>::UnsteadyHeatSourceFctPt
 		      source_fct_pt);
 
   /// Destructor (empty)
@@ -83,22 +83,22 @@ public:
   /// Update the problem specs after solve (empty)
   void actions_after_implicit_timestep() {}
 
-  /// \short Update the problem specs before next timestep: 
+  /// \short Update the problem specs before next timestep:
   /// Set Dirchlet boundary conditions from exact solution.
   void actions_before_implicit_timestep();
 
   /// \short Set initial condition (incl previous timesteps) according
-  /// to specified function. 
+  /// to specified function.
   void set_initial_condition();
 
   /// Doc the solution
   void doc_solution(DocInfo& doc_info, ofstream& trace_file);
- 
+
 private:
 
   /// Pointer to source function
   UnsteadyHeatEquations<1>::UnsteadyHeatSourceFctPt Source_fct_pt;
- 
+
   /// Pointer to control node at which the solution is documented
   Node* Control_node_pt;
 
@@ -110,13 +110,13 @@ private:
 //========================================================================
 template<class ELEMENT>
 UnsteadyHeatProblem<ELEMENT>::UnsteadyHeatProblem(
-						  UnsteadyHeatEquations<1>::UnsteadyHeatSourceFctPt source_fct_pt) : 
+						  UnsteadyHeatEquations<1>::UnsteadyHeatSourceFctPt source_fct_pt) :
   Source_fct_pt(source_fct_pt)
-{ 
+{
 
-  // Allocate the timestepper -- this constructs the Problem's 
+  // Allocate the timestepper -- this constructs the Problem's
   // time object with a sufficient amount of storage to store the
-  // previous timsteps. 
+  // previous timsteps.
   add_time_stepper_pt(new BDF<2>);
 
   // Setup parameters for exact solution
@@ -145,22 +145,22 @@ UnsteadyHeatProblem<ELEMENT>::UnsteadyHeatProblem(
   // Choose its first node as the control node
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);
 
-  cout << "Recording trace of the solution at: " 
+  cout << "Recording trace of the solution at: "
        << Control_node_pt->x(0) << " " << std::endl;
 
 
   //??ds no boundary conditions for this
-  // Set the boundary conditions for this problem: 
+  // Set the boundary conditions for this problem:
   // ---------------------------------------------
-  // All nodes are free by default -- just pin the ones that have 
-  // Dirichlet conditions here. 
+  // All nodes are free by default -- just pin the ones that have
+  // Dirichlet conditions here.
   // unsigned n_bound = mesh_pt()->nboundary();
   // for(unsigned b=0;b<n_bound;b++)
   //   {
   //     unsigned n_node = mesh_pt()->nboundary_node(b);
   //     for (unsigned n=0;n<n_node;n++)
   // 	{
-  // 	  mesh_pt()->boundary_node_pt(b,n)->pin(0); 
+  // 	  mesh_pt()->boundary_node_pt(b,n)->pin(0);
   // 	}
   //   } // end of set boundary conditions
 
@@ -171,7 +171,7 @@ UnsteadyHeatProblem<ELEMENT>::UnsteadyHeatProblem(
   // Find number of elements in mesh
   unsigned n_element = mesh_pt()->nelement();
 
-  // Loop over the elements to set up element-specific 
+  // Loop over the elements to set up element-specific
   // things that cannot be handled by constructor
   for(unsigned i=0;i<n_element;i++)
     {
@@ -186,14 +186,14 @@ UnsteadyHeatProblem<ELEMENT>::UnsteadyHeatProblem(
     }
 
   // Do equation numbering
-  cout <<"Number of equations: " << assign_eqn_numbers() << std::endl; 
+  cout <<"Number of equations: " << assign_eqn_numbers() << std::endl;
 
 } // end of constructor
 
 
 
 //=========start of actions_before_implicit_timestep===============================
-/// \short Actions before timestep: update the domain, then reset the 
+/// \short Actions before timestep: update the domain, then reset the
 /// boundary conditions for the current time.
 //========================================================================
 template<class ELEMENT>
@@ -204,7 +204,7 @@ void UnsteadyHeatProblem<ELEMENT>::actions_before_implicit_timestep()
 
   // Get current time
   //double time=time_pt()->time();
- 
+
   // //Loop over the boundaries
   // unsigned num_bound = mesh_pt()->nboundary();
   // for(unsigned ibound=0;ibound<num_bound;ibound++)
@@ -230,14 +230,14 @@ void UnsteadyHeatProblem<ELEMENT>::actions_before_implicit_timestep()
 //========================================================================
 template<class ELEMENT>
 void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
-{ 
+{
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
-         
+
   // Past history needs to be established for t=time0-deltat, ...
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
- 
+
   // Vector of exact solution value
   Vector<double> soln(1);
   Vector<double> x(1);
@@ -252,7 +252,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
   for (int t=nprev_steps;t>=0;t--)
     {
       prev_time[t]=time_pt()->time(unsigned(t));
-    } 
+    }
 
   // Loop over current & previous timesteps
   for (int t=nprev_steps;t>=0;t--)
@@ -260,7 +260,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
       // Continuous time
       double time=prev_time[t];
       cout << "setting IC at time =" << time << std::endl;
-   
+
       // Loop over the nodes to set initial guess everywhere
       for (unsigned n=0;n<num_nod;n++)
 	{
@@ -269,14 +269,14 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
 
 	  double initial_u = DCtsSetup::get_initial_u(x);
 	  mesh_pt()->node_pt(n)->set_value(t,0,initial_u);
-     
-	  // Loop over coordinate directions: Mesh doesn't move, so 
+
+	  // Loop over coordinate directions: Mesh doesn't move, so
 	  // previous position = present position
 	  for (unsigned i=0;i<1;i++)
 	    {
 	      mesh_pt()->node_pt(n)->x(t,i)=x[i];
 	    }
-	} 
+	}
     }
 
   // Reset backed up time for global timestepper
@@ -292,7 +292,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
 template<class ELEMENT>
 void UnsteadyHeatProblem<ELEMENT>::
 doc_solution(DocInfo& doc_info,ofstream& trace_file)
-{ 
+{
   ofstream some_file;
   char filename[100];
 
@@ -307,7 +307,7 @@ doc_solution(DocInfo& doc_info,ofstream& trace_file)
   cout << "=================================================" << std::endl;
 
 
-  // Output solution 
+  // Output solution
   //-----------------
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
 	  doc_info.number());
@@ -335,19 +335,19 @@ int main()
   // Build problem
   UnsteadyHeatProblem<QUnsteadyHeatElement<1,4> >
     problem(&DCtsSetup::get_source);
- 
+
   // Setup labels for output
   DocInfo doc_info;
 
   // Output directory
-  doc_info.set_directory("RESLT");
- 
+  doc_info.set_directory("results");
+
   // Output number
   doc_info.number()=0;
- 
+
   // Open a trace file
   ofstream trace_file;
-  char filename[100];   
+  char filename[100];
   sprintf(filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(filename);
   trace_file << "VARIABLES=\"time\",\"u<SUB>FE</SUB>\","
@@ -361,14 +361,14 @@ int main()
   // Initialise timestep -- also sets the weights for all timesteppers
   // in the problem.
   problem.initialise_dt(dt);
- 
+
   // Set IC
   problem.set_initial_condition();
- 
+
   //Output initial condition
   problem.doc_solution(doc_info,trace_file);
- 
-  //Increment counter for solutions 
+
+  //Increment counter for solutions
   doc_info.number()++;
 
   // Find number of steps
@@ -378,17 +378,17 @@ int main()
   for (unsigned istep=0;istep<nstep;istep++)
     {
       cout << " Timestep " << istep << std::endl;
-   
+
       // Take timestep
       problem.unsteady_newton_solve(dt);
-   
+
       //Output solution
       problem.doc_solution(doc_info,trace_file);
-   
-      //Increment counter for solutions 
+
+      //Increment counter for solutions
       doc_info.number()++;
     }
- 
+
   // Close trace file
   trace_file.close();
 

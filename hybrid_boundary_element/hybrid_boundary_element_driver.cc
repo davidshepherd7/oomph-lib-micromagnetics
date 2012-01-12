@@ -321,13 +321,7 @@ namespace oomph
 			).second;
 
 	// Increment k if this was a new addition to the map
-	if(new_addition)
-	  {
-	    std::cout << "New pair added: "
-		      << convert_global_to_boundary_equation_number(global_eqn_number)
-		      << std::endl;
-	    k++;
-	  }
+	if(new_addition) k++;
       }
 
 
@@ -386,7 +380,7 @@ namespace oomph
 							       elem_pt->node_pt(l)->eqn_number(8));
 	    //??ds need to get real phi_2_micromag somehow... :(
 
-	    std::cout << "source node = " << source_node << std::endl;
+	    //std::cout << "source node = " << source_node << std::endl;
 
 	    // Loop over all nodes in the mesh and add contributions from this element
 	    for(unsigned long target_node=0;target_node<n_node;target_node++)
@@ -405,8 +399,6 @@ namespace oomph
 //========================================================================
 int main(int argc, char* argv[])
 {
-  CommandLineArgs::setup(argc,argv);
-
   // Set number of elements in each direction
   unsigned n_x = 3;
   unsigned n_y = 3;
@@ -425,55 +417,21 @@ int main(int argc, char* argv[])
 
   // Setup doc info
   DocInfo doc_info;
-  doc_info.set_directory("RESLT");
+  doc_info.set_directory("results");
 
   // Run self tests on problem and boundary problem:
-  std::cout << "\n\n\nProblem self-test ";
-  if (problem.self_test()==0)
-    std::cout << "passed: Problem can be solved." << std::endl;
-  else
-    throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
-  std::cout << "\n\n\nBoundary problem self-test ";
-  if (boundary_problem.self_test()==0)
-    std::cout << "passed: Problem can be solved." << std::endl;
-  else
-    throw OomphLibError("Self test failed","main()",OOMPH_EXCEPTION_LOCATION);
+  problem.self_test();
+  boundary_problem.self_test();
 
   // // Dump boundary mesh positions
-  // unsigned n_node = boundary_problem.mesh_pt()->nnode();
-  // std::cout << n_node << std::endl;
+  unsigned n_node = boundary_problem.mesh_pt()->nnode();
+  std::cout << n_node << std::endl;
   // for(unsigned i_node=0; i_node < n_node; i_node++)
   //   {
   //     std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
   // 		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
   // 		<< std::endl;
   //   }
-
-  std::cout << std::endl;
-  std::cout << "number of degrees of freedom = " << boundary_problem.ndof() << std::endl;
-
-  // unsigned i_ele = 3;
-  // {
-  //   // Get element pointer to ith element
-  //   MicromagFaceElement<QMicromagElement<2,2> >* elem_pt =
-  //     dynamic_cast<MicromagFaceElement<QMicromagElement<2,2> >*>
-  //     (boundary_problem.mesh_pt()->element_pt(i_ele));
-
-  //   // Create matrix to store boundary data for this element
-  //   DenseMatrix<double> boundary_matrix(2,n_node,0.0);
-  //   //??ds not actually 2 - should be number of nodes in element
-
-  //   // Get boundary element matrix for this element
-  //   Vector<double> dummy(0,0.0);
-  //   elem_pt->fill_in_contribution_to_jacobian(dummy,boundary_matrix);
-
-  //   // dump for testing:
-  //   std::ofstream matrix_file;
-  //   char filename[100] = "matrix";
-  //   matrix_file.open(filename);
-  //   boundary_matrix.output(matrix_file);
-  //   matrix_file.close();
-  // }
 
   // Setup the boundary equation numbering map
   boundary_problem.create_global_boundary_equation_number_map();
