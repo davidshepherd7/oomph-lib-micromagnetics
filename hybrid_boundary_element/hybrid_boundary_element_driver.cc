@@ -265,17 +265,13 @@ namespace oomph
     // Initialise the map
     Global_boundary_equation_num_map.clear();
 
-    // Get index of phi_1 (from the first element of the mesh)
-    BULK_ELEMENT* ele_pt = dynamic_cast < BULK_ELEMENT* > (this->face_mesh_pt()->element_pt(0));
-    unsigned phi_1_index = ele_pt->phi_1_index_micromag();
-
     // Loop over boundary nodes assigning a boundary equation number to each.
     unsigned n_boundary_node = this->face_mesh_pt()->nnode(), k=0;
     for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
       {
 	// Get global equation number for phi_2
 	unsigned global_eqn_number = this->face_mesh_pt()->
-	  node_pt(i_node)->eqn_number(phi_1_index);
+	  node_pt(i_node)->eqn_number(0);
 
 	// Set up the pair ready to input with key="global equation number" and
 	// value ="boundary equation number"=k.
@@ -305,10 +301,6 @@ namespace oomph
     Boundary_matrix.resize(n_node,n_node);
     Boundary_matrix.initialise(0.0);
 
-    // Get the index of phi_1 from the first bulk element
-    unsigned phi_1_index = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)))
-      ->phi_1_index_micromag();
-
     // Loop over all the elements
     unsigned long n_element = face_mesh_pt()->nelement();
     for(unsigned long e=0;e<n_element;e++)
@@ -335,7 +327,7 @@ namespace oomph
 	    // Get the boundary equation (=node) number from the global one
 	    unsigned l_number =
 	      this->convert_global_to_boundary_equation_number
-	      (elem_pt->node_pt(l)->eqn_number(phi_1_index));
+	      (elem_pt->node_pt(l)->eqn_number(0));
 
 	    //std::cout << "target node = " << l << std::endl;
 
@@ -344,7 +336,7 @@ namespace oomph
 	      {
 		unsigned source_number =
 		  this->convert_global_to_boundary_equation_number
-		  (face_mesh_pt()->node_pt(source_node)->eqn_number(phi_1_index));
+		  (face_mesh_pt()->node_pt(source_node)->eqn_number(0));
 
 		Boundary_matrix(l_number,source_number)
 		  += element_boundary_matrix(l,source_node);
@@ -363,9 +355,8 @@ namespace oomph
   void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
   update_boundary_phi_2()
   {
-    // Get the indices of phi_1 and phi_2
+    // Get the index of phi_2
     BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
-    unsigned phi_1_index = elem_pt->phi_1_index_micromag();
     unsigned phi_2_index = elem_pt->phi_2_index_micromag();
 
     // Loop over all (target) nodes on the boundary
@@ -377,7 +368,7 @@ namespace oomph
 
     	// Get boundary equation number for this target node
     	unsigned target_number = convert_global_to_boundary_equation_number
-    	  (target_node_pt->eqn_number(phi_1_index));
+    	  (target_node_pt->eqn_number(0));
 
 	// Double to store the value of phi_2 during computation
 	double target_phi_2_value = 0;
@@ -390,13 +381,13 @@ namespace oomph
 
     	    // Get boundary equation number for this source node
     	    unsigned source_number = convert_global_to_boundary_equation_number
-    	      (source_node_pt->eqn_number(phi_1_index));
+    	      (source_node_pt->eqn_number(0));
 
     	    // Add the contribution to phi_2 at the target node due to
     	    // the source node (relationship is given by the boundary matrix).
     	    //??ds check consistency of boundary matrix numbering
 	    target_phi_2_value += Boundary_matrix(target_number,source_number)
-    	      * source_node_pt->value(phi_1_index);
+    	      * source_node_pt->value(0);
     	  }
 	// Save the total into the target node
 	target_node_pt->set_value(phi_2_index,target_phi_2_value);
