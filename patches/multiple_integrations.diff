@@ -1,0 +1,45 @@
+Index: src/generic/elements.h
+===================================================================
+--- src/generic/elements.h	(revision 253)
++++ src/generic/elements.h	(working copy)
+@@ -1107,7 +1107,7 @@
+   private:
+
+  /// Pointer to the spatial integration scheme
+- Integral* Integral_pt;
++  Vector<Integral*> Integral_pt;
+
+  /// Constructor
+- FiniteElement() : GeneralisedElement(), Integral_pt(0),
++ FiniteElement() : GeneralisedElement(), Integral_pt(1),
+   Node_pt(0), Nodal_local_eqn(0), Nnode(0),
+   Elemental_dimension(0), Nodal_dimension(0), Nnodal_position_type(1),
+   Macro_elem_pt(0) {}
+@@ -1722,8 +1722,15 @@
+  virtual void set_integration_scheme(Integral* const &integral_pt);
+
+  /// Return the pointer to the integration scheme (const version)
+- Integral* const &integral_pt() const {return Integral_pt;}
++  Integral* const &integral_pt() const {return Integral_pt[0];}
+
++  ///Set the n'th spatial integration scheme
++  virtual void set_integration_scheme(Integral* const &integral_pt, const unsigned &n)
++  {Integral_pt[n] = integral_pt;}
++
++  /// Return the pointer to the n'th integration scheme
++  Integral* const &integral_pt(unsigned n) const {return Integral_pt[n];}
++
+  /// \short Calculate the geometric shape functions
+  /// at local coordinate s. This function must be overloaded for each specific
+  /// geometric element.
+Index: src/generic/elements.cc
+===================================================================
+--- src/generic/elements.cc	(revision 253)
++++ src/generic/elements.cc	(working copy)
+@@ -2811,7 +2811,7 @@
+  void FiniteElement::set_integration_scheme(Integral* const &integral_pt)
+  {
+   //Assign the integration scheme
+-  Integral_pt = integral_pt;
++  Integral_pt[0] = integral_pt;
+  }
