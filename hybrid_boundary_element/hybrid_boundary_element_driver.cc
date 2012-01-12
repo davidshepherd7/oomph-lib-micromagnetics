@@ -2,7 +2,7 @@
 #define OOMPH_HYBRID_BOUNDARY_ELEMENT_DRIVER_H
 
 /*
-  ??ds  description of file goes here
+  ??ds might be better to just use 0th equation instead of phi_1 in the various global equation to node mappings since we just need a numbering system for the nodes, using phi_1 could be confusing and is slightly harder to get.
 */
 
 #include <map>
@@ -40,7 +40,7 @@ namespace oomph
     Mesh* face_mesh_pt() {return Face_mesh_pt;}
 
     /// Get the boundary element matrix (similar to problem::get_jacobian)
-    void get_boundary_matrix(DenseDoubleMatrix& boundary_matrix);
+    void get_boundary_matrix();
 
     /// \short Get the mapping between the global equation numbering and
     /// the boundary equation numbering.
@@ -51,6 +51,10 @@ namespace oomph
 
     /// Update the values of phi_2 on the boundary
     void update_boundary_phi_2();
+
+    /// Return pointer to the boundary matrix
+    DenseDoubleMatrix* boundary_matrix_pt()
+    {return &Boundary_matrix;}
 
   private:
 
@@ -63,8 +67,11 @@ namespace oomph
     /// Mesh containing the face elements
     Mesh* Face_mesh_pt;
 
-     /// Doc info object
-     DocInfo Doc_info;
+    /// Doc info object
+    DocInfo Doc_info;
+
+    /// Matrix to store the relationship between phi_1 and phi_2 on the boundary
+    DenseDoubleMatrix Boundary_matrix;
 
     //  /// Trace file
     //  std::ofstream Trace_file;
@@ -288,15 +295,15 @@ namespace oomph
   //=============================================================================
   template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
   void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
-  get_boundary_matrix(DenseDoubleMatrix& boundary_matrix)
+  get_boundary_matrix()
   {
 
     // get the number of nodes in the boundary problem
     unsigned long n_node = face_mesh_pt()->nnode();
 
     // Initialise and resize the boundary matrix
-    boundary_matrix.resize(n_node,n_node);
-    boundary_matrix.initialise(0.0);
+    Boundary_matrix.resize(n_node,n_node);
+    Boundary_matrix.initialise(0.0);
 
     // Get the index of phi_1 from the first bulk element
     unsigned phi_1_index = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)))
@@ -325,19 +332,22 @@ namespace oomph
 	// Loop over the nodes in this element
 	for(unsigned l=0;l<n_element_node;l++)
 	  {
-
 	    // Get the boundary equation (=node) number from the global one
-	    unsigned source_node =
+	    unsigned l_number =
 	      this->convert_global_to_boundary_equation_number
 	      (elem_pt->node_pt(l)->eqn_number(phi_1_index));
 
-	    //std::cout << "source node = " << source_node << std::endl;
+	    //std::cout << "target node = " << l << std::endl;
 
 	    // Loop over all nodes in the mesh and add contributions from this element
-	    for(unsigned long target_node=0;target_node<n_node;target_node++)
+	    for(unsigned long source_node=0; source_node<n_node; source_node++)
 	      {
-		boundary_matrix(source_node,target_node)
-		  += element_boundary_matrix(l,target_node);
+		unsigned source_number =
+		  this->convert_global_to_boundary_equation_number
+		  (face_mesh_pt()->node_pt(source_node)->eqn_number(phi_1_index));
+
+		Boundary_matrix(l_number,source_number)
+		  += element_boundary_matrix(l,source_node);
 	      }
 	  }
       }
@@ -353,37 +363,44 @@ namespace oomph
   void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
   update_boundary_phi_2()
   {
-    // // Get the indices of phi_1 and phi_2
-    // BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
-    // unsigned phi_1_index = elem_pt->phi_1_index_micromag();
-    // unsigned phi_2_index = elem_pt->phi_2_index_micromag();
+    // Get the indices of phi_1 and phi_2
+    BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
+    unsigned phi_1_index = elem_pt->phi_1_index_micromag();
+    unsigned phi_2_index = elem_pt->phi_2_index_micromag();
 
-    // // Loop over all (target) nodes on the boundary
-    // unsigned n_boundary_node = face_mesh_pt()->nnode();
-    // for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
-    //   {
-    // 	// Get boundary equation number for this target node
-    // 	unsigned target_number = convert_global_to_boundary_equation_number
-    // 	  (target_node_pt->);
+    // Loop over all (target) nodes on the boundary
+    unsigned n_boundary_node = face_mesh_pt()->nnode();
+    for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
+      {
+	// Get a pointer to the target node
+	Node* target_node_pt = face_mesh_pt()->node_pt(target_node);
 
-    // 	// Loop over all source nodes adding contribution from each
-    // 	for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
-    // 	  {
-    // 	    // Get a pointer to the source node
-    // 	    Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+    	// Get boundary equation number for this target node
+    	unsigned target_number = convert_global_to_boundary_equation_number
+    	  (target_node_pt->eqn_number(phi_1_index));
 
-    // 	    // Get boundary equation number for this source node
-    // 	    unsigned source_number = convert_global_to_boundary_equation_number
-    // 	      (source_node_pt->equation_number(phi_1_index));
+	// Double to store the value of phi_2 during computation
+	double target_phi_2_value = 0;
 
-    // 	    // Add the contribution to phi_2 at the target node
-    // 	    // due to the source node (relationship is given by the boundary matrix).
-    // 	    //??ds check consistency of boundary matrix numbering
-    // 	    target_node_pt->nodal_value(phi_2_index)
-    // 	      += boundary_matrix(target_number,source_number)
-    // 	      * source_node_pt->nodal_value(phi_1_index);
-    // 	  }
-    //   }
+    	// Loop over all source nodes adding contribution from each
+    	for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
+    	  {
+    	    // Get a pointer to the source node
+    	    Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+
+    	    // Get boundary equation number for this source node
+    	    unsigned source_number = convert_global_to_boundary_equation_number
+    	      (source_node_pt->eqn_number(phi_1_index));
+
+    	    // Add the contribution to phi_2 at the target node due to
+    	    // the source node (relationship is given by the boundary matrix).
+    	    //??ds check consistency of boundary matrix numbering
+	    target_phi_2_value += Boundary_matrix(target_number,source_number)
+    	      * source_node_pt->value(phi_1_index);
+    	  }
+	// Save the total into the target node
+	target_node_pt->set_value(phi_2_index,target_phi_2_value);
+      }
   }
 
 
@@ -426,15 +443,14 @@ int main(int argc, char* argv[])
   // Setup the boundary equation numbering map
   problem.create_global_boundary_equation_number_map();
 
-  DoubleVector dummy_vec;
-  DenseDoubleMatrix jacobian;
-  problem.get_boundary_matrix(jacobian);
+  // Get the boundary matrix
+  problem.get_boundary_matrix();
 
   // dump for testing:
   std::ofstream matrix_file;
   char filename[100] = "fake_jacobian";
   matrix_file.open(filename);
-  jacobian.output(matrix_file);
+  problem.boundary_matrix_pt()->output(matrix_file);
   matrix_file.close();
 
   return 0;
