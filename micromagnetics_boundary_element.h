@@ -342,24 +342,24 @@ namespace oomph
 	Vector<double> normal(Node_dim,0.0);
 	outer_unit_normal(s,normal);
 
-	// Loop over ALL nodes on in boundary mesh (except the current ones?) (target_node)
+	// Loop over ALL nodes on in boundary mesh (except the current ones?) (source_node)
 	unsigned n_boundary_node = mesh_pt()->nnode();
-	for(unsigned i_target_node=0; i_target_node<n_boundary_node; i_target_node++)
+	for(unsigned i_source_node=0; i_source_node<n_boundary_node; i_source_node++)
 	  {
-	    // Get coordinates of target node
-	    Vector<double> target_node_x(Node_dim,0.0);
-	    mesh_pt()->node_pt(i_target_node)->position(target_node_x);
+	    // Get coordinates of source node
+	    Vector<double> source_node_x(Node_dim,0.0);
+	    mesh_pt()->node_pt(i_source_node)->position(source_node_x);
 
 	    // // Debugguging output:
 	    // std::cout << std::endl;
-	    // std::cout << ". Target node at: (" << target_node_x[0]
-	    // 	      << ", " << target_node_x[1] << ")"
+	    // std::cout << ". Source node at: (" << source_node_x[0]
+	    // 	      << ", " << source_node_x[1] << ")"
 	    // 	      << std::endl;
 
-	    // Calculate dGreendn between target node and integration point
-	    double dgreendn = green_normal_derivative(interpolated_x,target_node_x,normal);
+	    // Calculate dGreendn between source node and integration point
+	    double dgreendn = green_normal_derivative(interpolated_x,source_node_x,normal);
 
-	    // Loop over test functions i.e. (local nodes) adding contributions
+	    // Loop over test functions, i.e. local/target nodes, adding contributions
 	    for(unsigned l=0; l<n_element_node; l++)
 	      {
 		// Add contribution to integral (note dGreendn is negative in our definition)
