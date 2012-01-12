@@ -160,8 +160,27 @@ namespace oomph
     void create_global_boundary_equation_number_map();
 
     /// Get the boundary equation number from the global equation number
-    unsigned convert_global_to_boundary_equation_number(const unsigned &global)
-    {return Global_boundary_equation_num_map[global];}
+    unsigned convert_global_to_boundary_equation_number(const unsigned &global_num)
+    {
+#ifdef PARANOID
+      // Get the location of the global_num key in an iterator
+      std::map<unsigned,unsigned>::iterator it
+	= Global_boundary_equation_num_map.find(global_num);
+
+      // If the iterator is placed at the end the given global equation number is
+      // not in the map, so return an error.
+      if(it == Global_boundary_equation_num_map.end())
+	{
+	  std::ostringstream error_stream;
+	  error_stream << "Global equation number " << global_num
+			<< " is not in the global to boundary map.";
+	  throw OomphLibError(error_stream.str(),
+			      "TwoDBoundaryProblem::convert_global_to_boundary_equation_number",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+#endif
+      return ((*Global_boundary_equation_num_map.find(global_num)).second);
+    }
 
   private:
 
