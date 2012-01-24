@@ -3,8 +3,14 @@
 // Include infomation on the floating point specifications for our compiler and platform
 #include<float.h>
 
+// Generic oomph-lib header
 #include<generic.h>
+
+// Header for the type std::function and related
 #include<functional>
+
+// Header for wrappers to the LAPACK dgels functions
+#include "./dgels.h"
 
 // Include oomph-lib library for calculation of nodes of the Gauss Legendre polynomials
 #include "generic/orthpoly.h"
@@ -33,15 +39,15 @@ namespace oomph
 
 
   /// Calculate psi_i = P_i * singularity. Singularity order -1 gives P_i, singularity order 0 gives P_i*ln|x-t|, higher orders give 1/((t-x)^sing_order).
-    double psi(const unsigned& i, const int& singularity_order,
+  double psi(const unsigned& legendre_order, const int& singularity_order,
 	     const double& z, const double& x)
-    {
+  {
     if(singularity_order == -1)
-      return Orthpoly::legendre(i,x);
+      return Orthpoly::legendre(legendre_order,x);
     else if(singularity_order == 0)
-      return Orthpoly::legendre(i,x)*log(fabs(z - x)); // log = ln in C++
+      return Orthpoly::legendre(legendre_order,x)*log(fabs(z - x)); // log = ln in C++
     else
-      return Orthpoly::legendre(i,x)*(1/( pow((z - x), singularity_order)));
+      return Orthpoly::legendre(legendre_order,x)*(1/( pow((z - x), singularity_order)));
   }
 
   /// Get the finite part integral of a singularity of order one or two at z.
@@ -83,14 +89,15 @@ namespace oomph
   }
 
   /// Calculate the integral of psi on [-1,+1] using Brandao's finite part method. The input i is the order of the Legrende polynomial, z is the location of the singularity and M is the order of Gaussian Quadrature to use in the evaluation of the modified integral.
-  double psi_brandao_finite_part_integral(unsigned& i, int& singularity_order,
-					  double& z, unsigned& M)
+  double psi_brandao_finite_part_integral(const unsigned& legendre_order,
+					  const int& singularity_order,
+					  const double& z, const unsigned& M)
   {
     switch(singularity_order)
       {
       case -1:
-	if(i==0) return 0.0;
-	if(i>0) return 2.0;
+	if(legendre_order==0) return 0.0;
+	if(legendre_order>0) return 2.0;
 
       case 0:
 	if(fabs(z)!=1.0) return 0; //return 2*(Q(i+1,z) - Q(i-1,z))/(2*i +1);
@@ -103,29 +110,31 @@ namespace oomph
 
       case 1:
 	{
-	  auto integrand = [&i, &z] (const double& x) -> double
-	    { return (Orthpoly::legendre(i,x) - Orthpoly::legendre(i,z))/(z-x); };
+	  auto integrand = [&legendre_order, &z] (const double& x) -> double
+	    { return (Orthpoly::legendre(legendre_order,x)
+		      - Orthpoly::legendre(legendre_order,z))/(z-x); };
 
-	  return Orthpoly::legendre(i,z) * singularity_finite_part(1,z)
+	  return Orthpoly::legendre(legendre_order,z) * singularity_finite_part(1,z)
 	    + gauss_quadrature(M,integrand,-1.0,+1.0);
 	}
 
       case 2:
 	{
-	  auto integrand = [&i, &z] (const double& x) -> double
-	    { return (Orthpoly::legendre(i,x) - Orthpoly::legendre(i,z)
-		      + (z-x)*Orthpoly::dlegendre(i,z))
+	  auto integrand = [&legendre_order, &z] (const double& x) -> double
+	    { return (Orthpoly::legendre(legendre_order,x)
+		      - Orthpoly::legendre(legendre_order,z)
+		      + (z-x)*Orthpoly::dlegendre(legendre_order,z))
 	      /(z-x); };
 
-	  return Orthpoly::legendre(i,z) * singularity_finite_part(2,z)
-	    - Orthpoly::dlegendre(i,z) * singularity_finite_part(1,z)
+	  return Orthpoly::legendre(legendre_order,z) * singularity_finite_part(2,z)
+	    - Orthpoly::dlegendre(legendre_order,z) * singularity_finite_part(1,z)
 	    + gauss_quadrature(M,integrand,-1.0,+1.0);
 	}
 
 	// Else give an error
       default:
 	std::ostringstream error_stream;
-	error_stream << "Singularity of order " << i << " is not yet handled.";
+	error_stream << "Singularity of order " << singularity_order << " is not yet handled.";
 	throw OomphLibError(error_stream.str(),
 			    "singular_quadrature::psi_brandao_finite_part_integral",
 			    OOMPH_EXCEPTION_LOCATION);
@@ -142,22 +151,23 @@ int main(int argc, char* argv[])
   // Set up
   ////////////////////////////////////////////////////////////////
 
-  // The maximum order of the singularity that this method is known to work with.
-  int max_singularity = 2;
-  int min_singularity = 1; // singularity order -1 = constant (no singularity)
+  // A list of the orders of singularity that we want to calculate the weights for.
+  // The method is only known to work up to order 2. Order -1 = constant (no singularity).
+  int singularity_orders[] = {-1,1,2};
+  unsigned n_sing_orders = sizeof(singularity_orders)/sizeof(int);
 
   // M is a parameter in the calculation of the method. It is the number of abcissas
   // to use when calculating the moments. Higher M should in theory give a more
   // accurate method.
-  unsigned M = 4;
-  unsigned matrix_height = M*(max_singularity+2);
+  const unsigned M = 4;
+  const unsigned matrix_height = M*(n_sing_orders);
 
   // N is a parameter in the method itself. It is the number of abicassas to be
   // used in the finished method.
-  unsigned N = 16;
+  const unsigned N = 6;
 
   // The location of the singularity
-  double z = -1.0;
+  const double z = -1.0;
 
   ////////////////////////////////////////////////////////////////
   // Assemble matrix and vectors
@@ -167,50 +177,103 @@ int main(int argc, char* argv[])
   Vector<double> abcissa_locations(N,0.0);
   Orthpoly::gl_nodes(N,abcissa_locations);
 
-  // Compute the values of psi_i at each node: psi_i = P_i * 1/(x - t_j),
+  // Compute the values of psi_i at each node: psi_i = P_i * sing(z - x),
   // x is the location of the singularity, P_i is the ith Gauss-Legendre polynomial.
-  DenseDoubleMatrix psis(matrix_height,N,0.0);
+  DenseMatrix<double> psis(matrix_height,N,234.2);
   // Loop over the N point abicassa
   for(unsigned j=0; j<N; j++)
     {
       // Get the location of this abicassa
       double x = abcissa_locations[j];
 
-      // Loop over the list of psi (singularity orders first then Legendre polynomial orders)
-      for(int singularity_order=min_singularity;
-	  singularity_order<=max_singularity; singularity_order++)
-	{
-	  for(unsigned i=0; i<M; i++)
-	    {
-	      // Compute psi_i_so at the abcissa
-	      psis(i*(singularity_order+2),j) = psi(i,singularity_order,z,x);
-	      std::cout << psis(i*(singularity_order+2),j) << ",";
-	    }
-	}
-      std::cout << std::endl;
+      // Loop over the list of psi(x) (singularity orders first then Legendre polynomial orders)
+      for(unsigned i=0; i < n_sing_orders; i++)
+	  for(unsigned legendre_order=0; legendre_order<M; legendre_order++)
+	      psis(i*n_sing_orders+legendre_order,j)
+		= psi(legendre_order,singularity_orders[i],z,x);
     }
+
+  // // dump matrix
+  // for(unsigned i=0; i<matrix_height; i++)
+  //   {
+  //     for(unsigned j=0; j<N; j++)
+  // 	{
+  // 	  std::cout << psis(i,j) << ",";
+  // 	}
+  //     std::cout << std::endl;
+  //   }
+  // std::cout << std:: endl;
 
   // Compute the values of the moments (= the integral of psi_i over [-1,+1], done using Brandao's method)
   // Loop over singularity orders then Legendre polynomial orders.
   Vector<double> moments(matrix_height,0.0);
-  for(int singularity_order=min_singularity;
-      singularity_order<=max_singularity; singularity_order++)
+  for(unsigned i=0; i < n_sing_orders; i++)
     {
-      for(unsigned i=0; i<M; i++)
+      for(unsigned legendre_order=0; legendre_order<M; legendre_order++)
   	{
   	  // Compute the integral of psi_i over [-1,+1]
-  	  moments[i] = psi_brandao_finite_part_integral(i,singularity_order,z,M);
-  	  //std::cout << moments[i] << std::endl;
+  	  moments[i*M+legendre_order]
+	    = psi_brandao_finite_part_integral(legendre_order,singularity_orders[i],z,M);
   	}
     }
 
   ////////////////////////////////////////////////////////////////
-  // Solve the system
+  // Solve the system using LAPACK
   ////////////////////////////////////////////////////////////////
 
   // Solve the system psis * weights = moments to get the weights
-  Vector<double> weights(N,0.0);
-  psis.linear_solver_pt()->solve(&psis,moments,weights);
+
+  //??ds what should rcond be?
+
+  // Declare some inputs and outputs for DEGELSY
+  // (from http://www.netlib.org/lapack/double/dgelsy.f).
+  int INFO(0), RANK(0), LWORK(0);
+  double TEST_WORK[1], RCOND(-1.0);
+  int JVPT[N];
+  for(unsigned i=0; i<N; i++) {JVPT[i] = 0;} // worst initialisation method ever...
+  int LDB = matrix_height > N ? matrix_height : N; // get max(matrix_height,N)
+
+  // We have to convert to array based formats for the fortran solver
+  double X[matrix_height], PSIS[matrix_height*N];
+  for(unsigned i=0; i<matrix_height; i++)
+    {
+      X[i] = moments[i];
+      for(unsigned j=0; j<N; j++)
+	{
+	  PSIS[i*N+j] = psis(i,j);
+	}
+    }
+
+  for(unsigned i=0; i<matrix_height; i++)
+    std::cout << X[i] << std::endl;
+  std::cout << std::endl;
+
+  // Dump matrix
+  for(unsigned i=0; i<matrix_height; i++)
+    {
+      for(unsigned j=0; j<N; j++)
+	{
+	  std::cout << PSIS[i*N+j] << ",";
+	}
+      std::cout << std::endl;
+    }
+  std::cout << std::endl;
+
+  // Call with LWORK = -1 to just get the optimal value for LWORK
+  // (returned value is in WORK[0]). Then create the workspace array.
+  DGELSY(matrix_height,N,1,PSIS,matrix_height,X,LDB,JPVT,RCOND,RANK,TEST_WORK,-1,INFO);
+  LWORK = int(TEST_WORK[0]);
+  double WORK[LWORK];
+
+  // Solve
+  DGELSY(matrix_height,N,1,PSIS,matrix_height,X,LDB,
+	 JPVT,RCOND,RANK,WORK,LWORK,INFO);
+
+  // The solution is returned in the double array X
+  for(unsigned i=0; i<matrix_height; i++)
+    {
+      std::cout << X[i] << std::endl;
+    }
 
   return 0;
 }
