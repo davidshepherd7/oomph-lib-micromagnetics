@@ -1,42 +1,32 @@
 
 
-// Include infomation on the floating point specifications for our compiler and platform
-#include<float.h>
-
 // Generic oomph-lib header
 #include<generic.h>
 
 // Header for the type std::function and related
 #include<functional>
 
-// Header for wrappers to the LAPACK dgels functions
+// Header for wrappers to the fortran LAPACK dgels functions
 #include "./dgels.h"
 
-// Include oomph-lib library for calculation of nodes of the Gauss Legendre polynomials
+// oomph-lib header for calculations involving the Gauss Legendre polynomials
 #include "generic/orthpoly.h"
+
+/* We implement the method of Carley 2007 for calculation of
+   quadrature schemes allowing the evaluation of singular integrals
+   with a combination of singularities.
+
+   Not yet confirmed to be working. Anyone using this should perform
+   extensive testing and probably fix some bugs.
+
+   Currently uses some C++0x features that need to be removed before
+   inclusion into oomph-lib.
+*/
 
 using namespace oomph;
 
 namespace oomph
 {
-  // We don't have the ability to use long doubles in the lower level oomph-lib calls
-  // so this is useless :(
-  // // Check the accuracy of long doubles vs doubles since the implementation is not
-  // // standardised.
-  // void check_long_double_epsilon()
-  // {
-  //   // Check what accuracy we have with
-  //   std::cout << "Epsilon of a long double on your compiler, machine combination is: "
-  // 	      << LDBL_EPSILON << std::endl;
-  //   std::cout << "Epsilon of a double on your compiler, machine combination is: "
-  // 	      << DBL_EPSILON << std::endl;
-
-  //   if (!(LDBL_EPSILON/DBL_EPSILON < 0.01))
-  //     {
-  // 	std::cerr << "\nWarning: long doubles may not be sufficiently accurate to get the maximum accuracy.\nTo improve accuracy use a compiler which allows for more accurate long doubles (e.g. gnu, intel)." << std::endl;
-  //     }
-  // }
-
 
   /// Calculate psi_i = P_i * singularity. Singularity order -1 gives P_i, singularity order 0 gives P_i*ln|x-t|, higher orders give 1/((t-x)^sing_order).
   double psi(const unsigned& legendre_order, const int& singularity_order,
@@ -45,7 +35,7 @@ namespace oomph
     if(singularity_order == -1)
       return Orthpoly::legendre(legendre_order,x);
     else if(singularity_order == 0)
-      return Orthpoly::legendre(legendre_order,x)*log(fabs(z - x)); // log = ln in C++
+      return Orthpoly::legendre(legendre_order,x)*log(fabs(z - x)); // log = ln
     else
       return Orthpoly::legendre(legendre_order,x)*(1/( pow((z - x), singularity_order)));
   }
@@ -71,6 +61,20 @@ namespace oomph
       }
   }
 
+  // Compute the quadrature of the integrand given a set of points and weights
+  double generic_quadrature(const unsigned& M,
+			    const std::function<double(const double&)>& integrand,
+			    const double& lower_limit, const double& upper_limit,
+			    const Vector<double>& locations, const Vector<double>& weights)
+  {
+    // Sum the weight*integrand value over the M abcissas
+    double approximate_integral = 0.0;
+    for(unsigned abcissa=0; abcissa<M; abcissa++)
+      approximate_integral += integrand(locations[abcissa]) * weights[abcissa];
+
+    return approximate_integral;
+  }
+
   /// Compute the M point Gaussian quadrature of the function fct_pt. One dimensional for now, should probably extend it in the future.
   double gauss_quadrature(const unsigned& M,
 			  const std::function<double(const double&)>& integrand,
@@ -80,12 +84,8 @@ namespace oomph
     Vector<double> locations(M,0.0), weights(M,0.0);
     Orthpoly::gl_nodes(M,locations,weights);
 
-    // Sum the weight*integrand value over the M abcissas
-    double approximate_integral = 0.0;
-    for(unsigned abcissa=0; abcissa<M; abcissa++)
-      approximate_integral += integrand(locations[abcissa]) * weights[abcissa];
 
-    return approximate_integral;
+    return generic_quadrature(M,integrand,lower_limit,upper_limit,locations,weights);
   }
 
   /// Calculate the integral of psi on [-1,+1] using Brandao's finite part method. The input i is the order of the Legrende polynomial, z is the location of the singularity and M is the order of Gaussian Quadrature to use in the evaluation of the modified integral.
@@ -151,9 +151,13 @@ int main(int argc, char* argv[])
   // Set up
   ////////////////////////////////////////////////////////////////
 
+  // Force full precision output
+  std::cout.precision(16);
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);   // floatfield set to fixed
+
   // A list of the orders of singularity that we want to calculate the weights for.
   // The method is only known to work up to order 2. Order -1 = constant (no singularity).
-  int singularity_orders[] = {-1,1,2};
+  int singularity_orders[] = {-1,1};
   unsigned n_sing_orders = sizeof(singularity_orders)/sizeof(int);
 
   // M is a parameter in the calculation of the method. It is the number of abcissas
@@ -164,7 +168,7 @@ int main(int argc, char* argv[])
 
   // N is a parameter in the method itself. It is the number of abicassas to be
   // used in the finished method.
-  const unsigned N = 6;
+  const unsigned N = 12;
 
   // The location of the singularity
   const double z = -1.0;
@@ -228,13 +232,13 @@ int main(int argc, char* argv[])
   // Declare some inputs and outputs for DEGELSY
   // (from http://www.netlib.org/lapack/double/dgelsy.f).
   int INFO(0), RANK(0), LWORK(0);
-  double TEST_WORK[1], RCOND(-1.0);
+  double TEST_WORK[1], RCOND(0);
   int JVPT[N];
   for(unsigned i=0; i<N; i++) {JVPT[i] = 0;} // worst initialisation method ever...
   int LDB = matrix_height > N ? matrix_height : N; // get max(matrix_height,N)
 
   // We have to convert to array based formats for the fortran solver
-  double X[matrix_height], PSIS[matrix_height*N];
+  double X[N], PSIS[matrix_height*N];
   for(unsigned i=0; i<matrix_height; i++)
     {
       X[i] = moments[i];
@@ -244,11 +248,13 @@ int main(int argc, char* argv[])
 	}
     }
 
+  std::cout << "moments = [";
   for(unsigned i=0; i<matrix_height; i++)
     std::cout << X[i] << std::endl;
-  std::cout << std::endl;
+  std::cout << "]" << std::endl;
 
   // Dump matrix
+  std::cout << "psis = [";
   for(unsigned i=0; i<matrix_height; i++)
     {
       for(unsigned j=0; j<N; j++)
@@ -257,7 +263,7 @@ int main(int argc, char* argv[])
 	}
       std::cout << std::endl;
     }
-  std::cout << std::endl;
+  std::cout << "]" << std::endl;
 
   // Call with LWORK = -1 to just get the optimal value for LWORK
   // (returned value is in WORK[0]). Then create the workspace array.
@@ -270,11 +276,21 @@ int main(int argc, char* argv[])
 	 JPVT,RCOND,RANK,WORK,LWORK,INFO);
 
   // The solution is returned in the double array X
-  for(unsigned i=0; i<matrix_height; i++)
+  Vector<double> weights(N,0.0);
+  std::cout << "weights = [";
+  for(unsigned i=0; i<N; i++)
     {
+      weights[i] = X[i];
       std::cout << X[i] << std::endl;
     }
+  std::cout << "]" << std::endl;
 
+  ////////////////////////////////////////////////////////////////
+  // Try it out on a function
+  ////////////////////////////////////////////////////////////////
+
+
+  //  generic_quadrature(M,integrand,-1,+1,locations,weights);
   return 0;
 }
 
