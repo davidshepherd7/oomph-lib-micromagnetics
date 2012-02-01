@@ -363,9 +363,9 @@ namespace oomph
 	    for(unsigned l=0; l<n_element_node; l++)
 	      {
 		// Add contribution to integral (note dGreendn is negative in our definition)
-		// See write up for details
-		// Note that l is the LOCAL node number, need to do local to global mapping elsewhere, as seen in residual construction.
-		boundary_matrix(l,i_target_node) -= dgreendn * test(l) * W;
+		// See write up for details.
+		boundary_matrix(l,i_source_node) -= dgreendn * test(l) * W;
+		// boundary_matrix(l,i_source_node) += 1;
 	      }
 
 	  }
@@ -406,7 +406,7 @@ namespace oomph
 
 
 #ifdef PARANOID
-    //??ds check that r is not ~machine error
+    //??ds check that r is not ~machine error (division by zero)
 #endif
 
     // Calculate dot product of n with the unit vector in direction r.
