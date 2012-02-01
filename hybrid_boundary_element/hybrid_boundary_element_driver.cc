@@ -10,6 +10,12 @@
 #include "../micromagnetics_boundary_element.h"
 #include "meshes/rectangular_quadmesh.h"
 
+//??ds horrbile hack to allow changing gauss order in scripts
+#include "./gauss_order.h"
+
+// My variable gauss quadrature header
+#include "./variable_quadrature.h"
+
 using namespace oomph;
 using namespace MathematicalConstants;
 
@@ -106,8 +112,8 @@ namespace oomph
   TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   {
     // Set domain size
-    double l_x = 3.0;
-    double l_y = 1.0;
+    double l_x = 2.0;
+    double l_y = 2.0;
 
     // Allocate steady state timestepper
     add_time_stepper_pt(new Steady<2>);
@@ -180,26 +186,26 @@ namespace oomph
   template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
   unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
   convert_global_to_boundary_equation_number(const unsigned &global_num)
-    {
+  {
 #ifdef PARANOID
-      // Get the location of the global_num key in an iterator
-      std::map<unsigned,unsigned>::iterator it
-	= Global_boundary_equation_num_map.find(global_num);
+    // Get the location of the global_num key in an iterator
+    std::map<unsigned,unsigned>::iterator it
+      = Global_boundary_equation_num_map.find(global_num);
 
-      // If the iterator is placed at the end the given global equation number is
-      // not in the map, so return an error.
-      if(it == Global_boundary_equation_num_map.end())
-	{
-	  std::ostringstream error_stream;
-	  error_stream << "Global equation number " << global_num
-		       << " is not in the global to boundary map.";
-	  throw OomphLibError(error_stream.str(),
-			      "TwoDMicromagProblem::convert_global_to_boundary_equation_number",
-			      OOMPH_EXCEPTION_LOCATION);
-	}
+    // If the iterator is placed at the end the given global equation number is
+    // not in the map, so return an error.
+    if(it == Global_boundary_equation_num_map.end())
+      {
+	std::ostringstream error_stream;
+	error_stream << "Global equation number " << global_num
+		     << " is not in the global to boundary map.";
+	throw OomphLibError(error_stream.str(),
+			    "TwoDMicromagProblem::convert_global_to_boundary_equation_number",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
 #endif
-      return ((*Global_boundary_equation_num_map.find(global_num)).second);
-    }
+    return ((*Global_boundary_equation_num_map.find(global_num)).second);
+  }
   //======start_of_build_face_mesh==========================================
   /// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
   /// of the mesh (which contains elements of type BULK_ELEMENT)
@@ -402,9 +408,20 @@ namespace oomph
 //========================================================================
 int main(int argc, char* argv[])
 {
-  // Set number of elements in each direction
-  unsigned n_x = 3;
-  unsigned n_y = 3;
+  unsigned n_x, n_y;
+
+  // Get inputs
+  if(argc >= 2)
+    {
+      n_x = atoi(argv[1]);
+      n_y = atoi(argv[2]);
+    }
+  else
+  {
+      // Set number of elements in each direction
+      n_x = 20;
+      n_y = 20;
+  }
 
   // Set dimension of problem and number of nodes along each edge
   const unsigned dim = 2;
@@ -434,15 +451,31 @@ int main(int argc, char* argv[])
   // Setup the boundary equation numbering map
   problem.create_global_boundary_equation_number_map();
 
+  // Set all boundary elements to use gauss_order obtained from input
+  static Gauss<1,gauss_order> nth_gauss;
+  unsigned n_element = problem.face_mesh_pt()->nelement();
+  for(unsigned i=0; i<n_element; i++)
+    {
+      FiniteElement* finite_element_pt =
+	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
+      finite_element_pt->set_integration_scheme(&nth_gauss);
+    }
+
   // Get the boundary matrix
   problem.get_boundary_matrix();
 
   // dump for testing:
+  std::cout.precision(16);
   std::ofstream matrix_file;
-  char filename[100] = "fake_jacobian";
+  char filename[100] = "results/boundary_matrix";
   matrix_file.open(filename);
   problem.boundary_matrix_pt()->output(matrix_file);
   matrix_file.close();
+
+  // // ??ds testing my variable gaussian scheme
+  // GaussWeights<1> Weights;
+  // std::cout << Weights.get_weight(3,1) << std::endl;
+
 
   return 0;
 } //end of main
