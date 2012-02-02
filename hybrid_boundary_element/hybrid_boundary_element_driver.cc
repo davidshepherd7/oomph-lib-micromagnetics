@@ -10,9 +10,6 @@
 #include "../micromagnetics_boundary_element.h"
 #include "meshes/rectangular_quadmesh.h"
 
-//??ds horrbile hack to allow changing gauss order in scripts
-#include "./gauss_order.h"
-
 // My variable gauss quadrature header
 #include "./variable_quadrature.h"
 
@@ -400,8 +397,12 @@ namespace oomph
       }
   }
 
+  //??ds use a global variable for tests - to pass order to boundary matrix calcs
+  unsigned GLOBAL_GAUSS_ORDER;
 
 } // End of oomph namespace
+
+
 
 //==========start_of_main=================================================
 /// ??ds
@@ -423,7 +424,7 @@ int main(int argc, char* argv[])
       n_y = 20;
   }
 
-  // Set dimension of problem and number of nodes along each edge
+  // Set dimension of problem and number of nodes along each element edge
   const unsigned dim = 2;
   const unsigned nnode_1d = 2;
 
@@ -438,43 +439,54 @@ int main(int argc, char* argv[])
   // Run self tests on problem and boundary problem:
   problem.self_test();
 
-  // // Dump boundary mesh positions
-  unsigned n_node = problem.face_mesh_pt()->nnode();
-  std::cout << n_node << std::endl;
-  // for(unsigned i_node=0; i_node < n_node; i_node++)
-  //   {
-  //     std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
-  // 		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
-  // 		<< std::endl;
-  //   }
+  // // // Dump boundary mesh positions
+  // unsigned n_node = problem.face_mesh_pt()->nnode();
+  // std::cout << n_node << std::endl;
+  // // for(unsigned i_node=0; i_node < n_node; i_node++)
+  // //   {
+  // //     std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
+  // // 		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
+  // // 		<< std::endl;
+  // //   }
 
-  // Setup the boundary equation numbering map
+  // Set up the boundary equation numbering system
   problem.create_global_boundary_equation_number_map();
 
-  // Set all boundary elements to use gauss_order obtained from input
-  static Gauss<1,gauss_order> nth_gauss;
+
+
+
+
+  // // ??ds testing my variable gaussian scheme
+  static VariableGauss<1> variable_gauss;
+
+  // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
   for(unsigned i=0; i<n_element; i++)
     {
       FiniteElement* finite_element_pt =
-	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
-      finite_element_pt->set_integration_scheme(&nth_gauss);
+  	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
+      finite_element_pt->set_integration_scheme(&variable_gauss);
     }
 
-  // Get the boundary matrix
-  problem.get_boundary_matrix();
+  unsigned max_order = 30;
 
-  // dump for testing:
-  std::cout.precision(16);
-  std::ofstream matrix_file;
-  char filename[100] = "results/boundary_matrix";
-  matrix_file.open(filename);
-  problem.boundary_matrix_pt()->output(matrix_file);
-  matrix_file.close();
+  for(unsigned order=2; order<max_order; order++)
+    {
+      // Set order...??ds jsut use a global variable for this test
+      GLOBAL_GAUSS_ORDER = order;
 
-  // // ??ds testing my variable gaussian scheme
-  // GaussWeights<1> Weights;
-  // std::cout << Weights.get_weight(3,1) << std::endl;
+      // Get the boundary matrix
+      problem.get_boundary_matrix();
+
+      // dump for testing:
+      std::cout.precision(16);	// Set high precision output
+      std::ofstream matrix_file;
+      char filename[100];
+      sprintf(filename,"results/boundary_matrix_%u",order);
+      matrix_file.open(filename);
+      problem.boundary_matrix_pt()->output(matrix_file);
+      matrix_file.close();
+    }
 
 
   return 0;

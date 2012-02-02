@@ -5,6 +5,7 @@
 #include "generic.h"
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
+#include "./hybrid_boundary_element/variable_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -296,7 +297,6 @@ namespace oomph
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
-    // std::cout << n_element_node << std::endl;
 
     //Set up memory for the shape and test functions
     Shape psi(n_element_node), test(n_element_node);
@@ -305,20 +305,25 @@ namespace oomph
     // double time = time_pt()->time();
 
     //??ds adaptive quadrature: given acceptable error choose integration
-    // method and return integral_pt
+    // order/method and return integral_pt
+
+    //??ds get order from global variable (just for testing)
+    extern unsigned GLOBAL_GAUSS_ORDER;
+    VariableGauss<1>* upcast_integral_pt = dynamic_cast < VariableGauss<1>* >(integral_pt());
+    upcast_integral_pt->set_gauss_order(GLOBAL_GAUSS_ORDER);
 
     //Set the value of n_intpt
-    const unsigned n_intpt = integral_pt()->nweight();
+    const unsigned n_intpt = upcast_integral_pt->nweight();
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
 	// Get values of s (local coordinate)
 	Vector<double> s(el_dim,0.0);
-	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
+	for(unsigned j=0; j<el_dim; j++) {s[j] = upcast_integral_pt->knot(ipt,j);}
 
 	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
+	double w = upcast_integral_pt->weight(ipt);
 
 	//Call the derivatives of the shape and test functions
 	double J = shape_and_test(s,psi,test);
