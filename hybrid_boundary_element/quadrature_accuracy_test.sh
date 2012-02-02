@@ -3,33 +3,28 @@
 set -o errexit
 set -o nounset
 
-# For a few different numbers of elements
-for j in 5 10 50 250; do
+rm -f octave_script.m
 
-    # Create a script for octave to parse the data
-    echo "disp($j)" > octave_script.m
+# # For a few different numbers of elements
+## for j in 5 10 50 250; do
 
-    # For each possible gauss order:
-    for i in 2 3 4; do
-    # Horrible hack to change gauss order in script:
-	echo "const unsigned gauss_order = $i;" > gauss_order.h
+max_i=29
 
     # Build and run the program
-	make > /dev/null
-	./hybrid_boundary_element_driver $j $j > /dev/null
+make
+./hybrid_boundary_element_driver 5 5
 
-    # Move the resulting file
-	mv "results/boundary_matrix" "results/boundary_matrix_$i"
-
+    # For each possible gauss order:
+for (( i=2; i<=$max_i; i++ )); do
     # Load this matrix into octave
-	echo "load \"results/boundary_matrix_$i\";" >> octave_script.m
-    done
+    echo "load \"results/boundary_matrix_$i\";" >> octave_script.m
+done
 
     # Compare each matrix with the previous (using octave)
-    for i in 3 4; do
-	echo "max(max(boundary_matrix_$i - boundary_matrix_$(($i-1))))" >> octave_script.m
-    done
-
-    octave -q octave_script.m
-
+for (( i=2; i<=$max_i; i++ )); do
+    echo "results($i) = max(max(abs(boundary_matrix_$i - boundary_matrix_$max_i)));" >> octave_script.m
 done
+
+octave --persist octave_script.m
+
+# done
