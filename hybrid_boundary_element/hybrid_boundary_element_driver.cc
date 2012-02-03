@@ -455,7 +455,6 @@ int main(int argc, char* argv[])
 
 
 
-
   // // ??ds testing my variable gaussian scheme
   static VariableGauss<1> variable_gauss;
 
@@ -472,15 +471,16 @@ int main(int argc, char* argv[])
 
   for(unsigned order=2; order<max_order; order++)
     {
-      // Set order...??ds jsut use a global variable for this test
+      // Set order...??ds just use a global variable for this test
       GLOBAL_GAUSS_ORDER = order;
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
 
-      // dump for testing:
-      std::cout.precision(16);	// Set high precision output
+      // dump for testing
       std::ofstream matrix_file;
+      matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
+      matrix_file.precision(16);
       char filename[100];
       sprintf(filename,"results/boundary_matrix_%u",order);
       matrix_file.open(filename);
