@@ -29,17 +29,13 @@
 //    Output, double WEIGHT[ORDER], the weights.
 //
 
-
-void dump_array(double array[],unsigned length)
-{
-  std::cout << "{" << array[0];
-  for(unsigned i=1; i<length; i++)
-    std::cout << "," << array[i];
-  std::cout << "}";
-}
-
 int main()
 {
+
+  // Set output precision to 16 digits
+  std::cout.precision(16);
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);
+
 
   unsigned max_order = 50;
 
