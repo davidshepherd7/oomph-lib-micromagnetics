@@ -79,11 +79,11 @@ namespace oomph
 
     /// Return weight of i-th integration point in the order-th Gauss scheme.
     double weight(const unsigned &i) const
-    {return Weights[Order][i];}
+    {return Weights[Order-2][i];}
 
     /// Return local coordinate s[j] of i-th integration point in the order-th Gauss scheme.
     double knot(const unsigned &i, const unsigned &j) const
-    {return Knots[Order][i][j];}
+    {return Knots[Order-2][i][j];}
 
   };
 
