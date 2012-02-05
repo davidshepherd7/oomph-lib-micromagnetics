@@ -1,14 +1,15 @@
 #ifndef OOMPH_VARIABLE_QUADRATURE_H
 #define OOMPH_VARIABLE_QUADRATURE_H
 
-/* ??ds c++0x c++11 C++0x C++11
-   This header will only compile when using the 2011 version of C++.
+/* NOTE:
+   This header will only compile when using the 2011 C++ standard.
    We have used the new methods for initialising vectors to lists.
    To use the C++11 standard compile with the option "-std=c++0x".
 
-   Earlier versions of C++ must use additional classes to store the lists
+   Earlier versions of C++ would need additional classes to store the lists
    of knots and weights. This is because there was no way to initialise
-   static vectors.
+   static vectors. So in the old case we use arrays of specified size
+   instead.
 
    There should be another version of this file which is compatible with
    older C++ implementations.
