@@ -11,7 +11,7 @@
 #include "meshes/rectangular_quadmesh.h"
 
 // My variable gauss quadrature header
-#include "./variable_quadrature.h"
+// #include "./variable_quadrature_C++03.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -456,7 +456,7 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  static VariableGauss<1> variable_gauss;
+  static VariableGauss variable_gauss;
 
   // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();

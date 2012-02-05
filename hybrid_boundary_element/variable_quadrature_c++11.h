@@ -4,6 +4,7 @@
 /* ??ds c++0x c++11 C++0x C++11
    This header will only compile when using the 2011 version of C++.
    We have used the new methods for initialising vectors to lists.
+   To use the C++11 standard compile with the option "-std=c++0x".
 
    Earlier versions of C++ must use additional classes to store the lists
    of knots and weights. This is because there was no way to initialise
@@ -32,10 +33,10 @@ namespace oomph
   private:
 
     /// Vector of vectors to hold the weights for each order at each point
-    typedef weights_data_structure std::vector<std::vector<double> >;
+    typedef std::vector<std::vector<double> > weights_data_structure;
 
     /// Vector of vectors (of vectors) to hold co-ordinates for each knot for each order
-    typedef knots_data_structure std::vector<std::vector<std::vector<double> > >;
+    typedef std::vector<std::vector<std::vector<double> > > knots_data_structure;
 
     /// Holds all the weights for the Gaussian quadrature
     static const weights_data_structure Weights;
@@ -98,8 +99,7 @@ namespace oomph
   };
 
   /// Define the static classes which hold the knots and weights within VariableGauss
-  template<unsigned DIM>
-  const knots_data_structure VariableGauss<DIM>::Knots =
+  const VariableGauss::knots_data_structure VariableGauss::Knots =
     {
       {{-0.5773502691896257},{0.5773502691896257}},
       {{-0.7745966692414834},{0.0000000000000000},{0.7745966692414834}},
@@ -152,8 +152,7 @@ namespace oomph
       {{-0.9988664044200710},{-0.9940319694320907},{-0.9853540840480058},{-0.9728643851066920},{-0.9566109552428079},{-0.9366566189448780},{-0.9130785566557919},{-0.8859679795236131},{-0.8554297694299461},{-0.8215820708593360},{-0.7845558329003993},{-0.7444943022260685},{-0.7015524687068222},{-0.6558964656854394},{-0.6077029271849502},{-0.5571583045146501},{-0.5044581449074642},{-0.4498063349740388},{-0.3934143118975651},{-0.3355002454194373},{-0.2762881937795320},{-0.2160072368760418},{-0.1548905899981459},{-0.0931747015600861},{-0.0310983383271889},{0.0310983383271889},{0.0931747015600861},{0.1548905899981459},{0.2160072368760418},{0.2762881937795320},{0.3355002454194373},{0.3934143118975651},{0.4498063349740388},{0.5044581449074642},{0.5571583045146501},{0.6077029271849502},{0.6558964656854394},{0.7015524687068222},{0.7444943022260685},{0.7845558329003993},{0.8215820708593360},{0.8554297694299461},{0.8859679795236131},{0.9130785566557919},{0.9366566189448780},{0.9566109552428079},{0.9728643851066920},{0.9853540840480058},{0.9940319694320907},{0.9988664044200710}},
     };
 
-  template<unsigned DIM>
-  const weights_data_structure VariableGauss<DIM>::Weights =
+  const VariableGauss::weights_data_structure VariableGauss::Weights =
     {
       {0.9999999999999998,0.9999999999999998},
       {0.5555555555555556,0.8888888888888888,0.5555555555555556},

@@ -5,7 +5,7 @@
 #include "generic.h"
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
-#include "./hybrid_boundary_element/variable_quadrature.h"
+#include "./hybrid_boundary_element/variable_quadrature_c++11.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -309,7 +309,7 @@ namespace oomph
 
     //??ds get order from global variable (just for testing)
     extern unsigned GLOBAL_GAUSS_ORDER;
-    VariableGauss<1>* upcast_integral_pt = dynamic_cast < VariableGauss<1>* >(integral_pt());
+    VariableGauss* upcast_integral_pt = dynamic_cast < VariableGauss* >(integral_pt());
     upcast_integral_pt->set_gauss_order(GLOBAL_GAUSS_ORDER);
 
     //Set the value of n_intpt
