@@ -1,5 +1,5 @@
 
-# include "generic/quadrule.h"
+# include "./quadrule.hpp"
 
 // Details of the function used (from quadrule.cpp):
 //
@@ -39,30 +39,35 @@ int main()
 
   unsigned max_order = 50;
 
-  for(unsigned order=2; order<=max_order; order++)
+  // Calculate and output the weights
+  for(unsigned order=1; order<=max_order; order++)
     {
       // Calculate
       double weight[order], knot[order];
       legendre_dr_compute (order,knot,weight);
 
       // Dump weights to stdout
-      std::cout << "Weights[" << order - 2 << "] = {" << weight[0];
-      for(unsigned i=1; i<order; i++)
-	std::cout << "," << weight[i];
-      std::cout << "};" << std::endl;
+      std::cout << "{";
+      for(unsigned i=0; i<order; i++)
+	std::cout << weight[i] << ",";
+      std::cout << "}," << std::endl;
     }
 
-  for(unsigned order=2; order<=max_order; order++)
+  std::cout << std::endl;
+
+  // Calcualte and output the knots (redundant calculations but easier to
+  // output this way)
+  for(unsigned order=1; order<=max_order; order++)
     {
       // Calculate
       double weight[order], knot[order];
       legendre_dr_compute (order,knot,weight);
 
       // Dump weights to stdout
-      std::cout << "Knots[" << order - 2 << "] = {{" << knot[0] << "}";
-      for(unsigned i=1; i<order; i++)
-	std::cout << ",{" << knot[i] << "}";
-      std::cout << "};" << std::endl;
+      std::cout << "{";
+      for(unsigned i=0; i<order; i++)
+	std::cout << "{" << knot[i] << "},";
+      std::cout << "}," << std::endl;
     }
 
   return 0;
