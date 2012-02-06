@@ -5,7 +5,6 @@
 #include "generic.h"
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
-#include "./hybrid_boundary_element/variable_quadrature_c++11.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -307,23 +306,18 @@ namespace oomph
     //??ds adaptive quadrature: given acceptable error choose integration
     // order/method and return integral_pt
 
-    //??ds get order from global variable (just for testing)
-    extern unsigned GLOBAL_GAUSS_ORDER;
-    VariableGauss* upcast_integral_pt = dynamic_cast < VariableGauss* >(integral_pt());
-    upcast_integral_pt->set_gauss_order(GLOBAL_GAUSS_ORDER);
-
     //Set the value of n_intpt
-    const unsigned n_intpt = upcast_integral_pt->nweight();
+    const unsigned n_intpt = integral_pt()->nweight();
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
 	// Get values of s (local coordinate)
 	Vector<double> s(el_dim,0.0);
-	for(unsigned j=0; j<el_dim; j++) {s[j] = upcast_integral_pt->knot(ipt,j);}
+	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
 	//Get the integral weight
-	double w = upcast_integral_pt->weight(ipt);
+	double w = integral_pt()->weight(ipt);
 
 	//Call the derivatives of the shape and test functions
 	double J = shape_and_test(s,psi,test);

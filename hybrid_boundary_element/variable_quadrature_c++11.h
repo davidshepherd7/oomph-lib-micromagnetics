@@ -27,7 +27,7 @@ namespace oomph
   /// order of the quadrature to be decided at run time - to allow the use of
   /// predictive schemes etc.
   /// ??ds for now this is only implemented for 1D and order
-  /// from 2 to 50.
+  /// from 1 to 50.
   //=========================================================
   class VariableGauss : public Integral
   {
@@ -35,7 +35,7 @@ namespace oomph
 
     /// Data structure to hold weights at each point.
     /// dim, order, knot
-    typedef std::vector<std::vector<std::vector<double> > >
+    typedef std::vector < std::vector < std::vector<double> > >
     weights_data_structure;
 
     /// Data structure to hold coordinates of each knot.
@@ -61,8 +61,8 @@ namespace oomph
     VariableGauss(){Order=0; Dim=0;};
 
     /// Other constructors
-    VariableGauss(unsigned &dim) {Order=0; Dim = dim;}
-    VariableGauss(unsigned &dim, unsigned &order) {Order = order; Dim = dim;}
+    VariableGauss(const unsigned &dim) {Order=0; Dim = dim;}
+    VariableGauss(const unsigned &dim, const unsigned &order) {Order = order; Dim = dim;}
 
     /// Broken copy constructor
     VariableGauss(const VariableGauss& dummy)

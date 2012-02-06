@@ -1,20 +1,6 @@
 #ifndef OOMPH_VARIABLE_QUADRATURE_H
 #define OOMPH_VARIABLE_QUADRATURE_H
 
-/* NOTE:
-   This header will only compile when using the 2011 C++ standard.
-   We have used the new methods for initialising vectors to lists.
-   To use the C++11 standard compile with the option "-std=c++0x".
-
-   Earlier versions of C++ would need additional classes to store the lists
-   of knots and weights. This is because there was no way to initialise
-   static vectors. So in the old case we use arrays of specified size
-   instead.
-
-   There should be another version of this file which is compatible with
-   older C++ implementations.
-*/
-
 #include "generic.h"
 
 using namespace oomph;
@@ -27,7 +13,7 @@ namespace oomph
   /// order of the quadrature to be decided at run time - to allow the use of
   /// predictive schemes etc.
   /// ??ds for now this is only implemented for 1D and order
-  /// from 2 to 50.
+  /// from 1 to 50.
   //=========================================================
   class VariableGauss : public Integral
   {
@@ -60,8 +46,8 @@ namespace oomph
     VariableGauss(){Order=0; Dim=0;};
 
     /// Other constructors
-    VariableGauss(unsigned &dim) {Order=0; Dim = dim;}
-    VariableGauss(unsigned &dim, unsigned &order) {Order = order; Dim = dim;}
+    VariableGauss(const unsigned &dim) {Order=0; Dim = dim;}
+    VariableGauss(const unsigned &dim, const unsigned &order) {Order = order; Dim = dim;}
 
     /// Broken copy constructor
     VariableGauss(const VariableGauss& dummy)

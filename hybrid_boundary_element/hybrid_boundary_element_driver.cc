@@ -11,7 +11,7 @@
 #include "meshes/rectangular_quadmesh.h"
 
 // My variable gauss quadrature header
-// #include "./variable_quadrature_C++11.h"
+#include "./variable_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -456,7 +456,8 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  static VariableGauss variable_gauss;
+  VariableGauss variable_gauss;
+  variable_gauss.set_gauss_dim(1);
 
   // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
@@ -471,8 +472,8 @@ int main(int argc, char* argv[])
 
   for(unsigned order=2; order<max_order; order++)
     {
-      // Set order...??ds just use a global variable for this test
-      GLOBAL_GAUSS_ORDER = order;
+      // Set the integration scheme order
+      variable_gauss.set_gauss_order(order);
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
