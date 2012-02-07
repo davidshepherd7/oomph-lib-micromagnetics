@@ -1,23 +1,19 @@
 
 
 // Test chosen integration scheme on a variety of functions with known analytic values.
+// C++0x only (used lambda functions to simplify defining the long list of testing functions).
 
 #include "../variable_quadrature.h"
 #include <functional>
 #include <cmath>
 
 using namespace oomph;
-using namespace MathematicalConstants;
-
-namespace MathematicalConstants
-{
-  double constant_e = 2.71828182845904523536028747135266249;
-}
 
 namespace oomph
 {
 
   // Integrate a given function using the given scheme
+  // (no check is made that the scheme integrates between -1 and +1, watch out.)
   double integrate_function_1D(const std::function<double(double)> &function,
 			       const Integral &integral)
   {
@@ -37,7 +33,7 @@ namespace oomph
     return integral_value;
   }
 
-  // Structure to store all the information about each testing function
+  // Structure to store the information about each testing function
   struct TestingFn
   {
     std::function<double(double)> Function;
@@ -64,8 +60,7 @@ int main()
 
       // Functions from Trefethen2008:
       TestingFn([] (double x) {return pow(x,20);}, 2.0/21),
-      TestingFn([] (double x) {return exp(x);},
-		2.71828182845904523536028747135266249- 1/2.71828182845904523536028747135266249),
+      TestingFn([] (double x) {return exp(x);}, 2.3504023872876029138),
       TestingFn([] (double x) {return exp(-pow(x,2));}, 1.4936482656248540508),
       TestingFn([] (double x) {return 1/(1 + 16*x*x);}, 0.66290883183401623253),
       TestingFn([] (double x) {return exp(-1/(x*x));}, 0.17814771178156069019),
