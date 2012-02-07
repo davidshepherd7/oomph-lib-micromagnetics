@@ -1,17 +1,13 @@
 #ifndef OOMPH_HYBRID_BOUNDARY_ELEMENT_DRIVER_H
 #define OOMPH_HYBRID_BOUNDARY_ELEMENT_DRIVER_H
 
-/*
-  ??ds might be better to just use 0th equation instead of phi_1 in the various global equation to node mappings since we just need a numbering system for the nodes, using phi_1 could be confusing and is slightly harder to get.
-*/
-
 #include <map>
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
 #include "meshes/rectangular_quadmesh.h"
 
 // My variable gauss quadrature header
-#include "./variable_quadrature.h"
+#include "../variable_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -61,7 +57,7 @@ namespace oomph
 
   private:
 
-    /// The map the global equation numbering and the boundary equation numbering.
+    /// The map between the global equation numbering and the boundary equation numbering.
     std::map<unsigned,unsigned> Global_boundary_equation_num_map;
 
     /// Pointer to control node at which the solution is documented
@@ -397,9 +393,6 @@ namespace oomph
       }
   }
 
-  //??ds use a global variable for tests - to pass order to boundary matrix calcs
-  unsigned GLOBAL_GAUSS_ORDER;
-
 } // End of oomph namespace
 
 
@@ -456,8 +449,8 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  VariableGauss variable_gauss;
-  variable_gauss.set_gauss_dim(1);
+  VariableClenshawCurtis variable_gauss;
+  variable_gauss.set_dim(1);
 
   // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
@@ -473,7 +466,7 @@ int main(int argc, char* argv[])
   for(unsigned order=2; order<max_order; order++)
     {
       // Set the integration scheme order
-      variable_gauss.set_gauss_order(order);
+      variable_gauss.set_order(order);
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
