@@ -52,6 +52,8 @@ int main()
 {
 
   // Create a list of testing functions and their exact solutions
+  // Exact solutions are taken from Mathematica using the command:
+  // N[Integrate[...fn..., {x, -1, +1}], 20]
   std::vector<TestingFn > function_list =
     {
       // Some very simple functions:
@@ -65,21 +67,66 @@ int main()
       TestingFn([] (double x) {return 1/(1 + 16*x*x);}, 0.66290883183401623253),
       TestingFn([] (double x) {return exp(-1/(x*x));}, 0.17814771178156069019),
       TestingFn([] (double x) {return fabs(x*x*x);}, 0.5),
+
+      // Functions related to the hybrid FEM/BEM for micromagnetics
+      // =================================================================
+
+      // 1/r
+      TestingFn([] (double x) {return 1/fabs(x-2);}, 1.0986122886681096914),
+      TestingFn([] (double x) {return 1/fabs(x-5);}, 0.40546510810816438198),
+      TestingFn([] (double x) {return 1/fabs(x-20);}, 0.10008345855698253649),
+
+      // 1/(r^2)
+      TestingFn([] (double x) {return 1/pow(fabs(x-2),2);}, 0.66666666666666666667),
+      TestingFn([] (double x) {return 1/pow(fabs(x-5),2);}, 0.083333333333333333333),
+      TestingFn([] (double x) {return 1/pow(fabs(x-20),2);}, 0.0050125313283208020050),
     };
 
-  for(unsigned k=0; k<50; k++)
-    {
-      VariableClenshawCurtis integral = VariableClenshawCurtis();
-      integral.set_dim(1);
-      integral.set_order(k);
-      std::cout << std::endl << "Order is: " << k << std::endl;
+  // Create a list of integration methods to test:
+  Vector<VariableQuadrature*> integration_methods(3);
+  integration_methods[0] = new VariableGaussLegendre();
+  integration_methods[1] = new VariableFejerSecond();
+  integration_methods[2] = new VariableClenshawCurtis();
 
-      // Calculate the list of integrals using this method and output the error
-      for(unsigned i=0; i<function_list.size(); i++)
+  // Loop over the integration methods
+  for(unsigned int_meth=0; int_meth<integration_methods.size(); int_meth++)
+    {
+      integration_methods[int_meth]->set_dim(1);
+
+      // Set up output file
+      std::ofstream outfile;
+      outfile.setf(std::ios::fixed,std::ios::floatfield);
+      outfile.precision(16);
+      char filename[100]; sprintf(filename,"results/integration_method_%u",int_meth);
+      outfile.open(filename);
+
+      // Loop over orders of the integration scheme
+      for(unsigned k=0; k<50; k++)
 	{
-	  double integral_value = integrate_function_1D(function_list[i].Function, integral);
-	  std:: cout << integral_value - function_list[i].Answer << std::endl;
+	  integration_methods[int_meth]->set_order(k);
+
+	  outfile << k << " ";
+
+	  // Calculate each of th integrals using this method and output the error
+	  for(unsigned i=8; i<function_list.size(); i++)
+	    {
+	      double integral_value =
+		integrate_function_1D(function_list[i].Function, *integration_methods[int_meth]);
+	      outfile << " " << fabs(integral_value - function_list[i].Answer);
+	    }
+
+	  outfile << std::endl;
 	}
+
+      outfile.close();
+      outfile << std::endl;
     }
+
+  // Clean up the integration methods vector
+  for(unsigned i=0; i<integration_methods.size(); i++)
+    {
+      delete integration_methods[i];
+    }
+
   return 0;
 }
