@@ -5,6 +5,7 @@
 #include "generic.h"
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
+#include "./variable_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -278,14 +279,7 @@ namespace oomph
     //   }
   }
 
-  //=======================================================================
-  /// Not actually getting residuals - getting boundary element matrix but using
-  /// machinery used to assemble jacobian normally.
-  /// Compute the effect of phi_1 in this element on ALL nodes on the boundary.
-  /// Note that this depends on all other elements but not on the values of phi_1.
-  //??ds may have confused test and "psi" functions but it doesn't matter for now
-  // since they are the same (Galerkin method)
-  //=======================================================================
+  // ??ds Adaptive version:
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
   fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
@@ -297,84 +291,194 @@ namespace oomph
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
 
-    //Set up memory for the shape and test functions
+    // Get list of values of R + find minimum
+    // ??ds or just assume max order is needed?
+
+    // Cast pointer to the integration scheme
+    VariableClenshawCurtis* variable_int_pt =
+      dynamic_cast<VariableClenshawCurtis*>(integral_pt());
+
+    // Set the highest order integration needed
+    unsigned max_order = 32;
+    variable_int_pt->set_order(max_order);
+
+    // Then pre-calculate everything at these points:
+
+    //Set the value of n_intpt_max
+    const unsigned n_intpt_max = variable_int_pt->nweight();
+
+    // Set up vectors to store data at all integration points
+    Vector<double> J(n_intpt_max,0.0);
+    Vector<Vector<double> > s(n_intpt_max,Vector<double>(el_dim,0.0)),
+      interpolated_x(n_intpt_max,Vector<double>(Node_dim,0.0)),
+      normal(n_intpt_max,Vector<double>(Node_dim,0.0));
+
+    //??ds how can I make vectors of shape functions work?
+    // Vector<Shape> psiv(n_intpt_max, Shape(n_element_node)),
+    //   testv(n_intpt_max, Shape(n_element_node));
+
     Shape psi(n_element_node), test(n_element_node);
 
-    // // Get current time
-    // double time = time_pt()->time();
-
-    //??ds adaptive quadrature: given acceptable error choose integration
-    // order/method and return integral_pt
-
-    //Set the value of n_intpt
-    const unsigned n_intpt = integral_pt()->nweight();
-
-    //Loop over the integration points
-    for(unsigned ipt=0;ipt<n_intpt;ipt++)
+    //Loop over the integration points pre-calculating values
+    for(unsigned ipt=0;ipt<n_intpt_max;ipt++)
       {
-	// Get values of s (local coordinate)
-	Vector<double> s(el_dim,0.0);
-	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
-
-	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
-
 	//Call the derivatives of the shape and test functions
-	double J = shape_and_test(s,psi,test);
+	J[ipt] = shape_and_test(s[ipt],psi,test);
+	psi_pt.push_back(psi);
 
-	//Premultiply the weights and the Jacobian
-	double W = w*J;
-
-	// Get values of x (global coordinate)
-	Vector<double> interpolated_x(Node_dim,0.0);
-	for(unsigned l=0; l<n_element_node; l++)
+  	// Get values of s (local coordinate) and x (global coordinate)
+  	for(unsigned j=0; j<el_dim; j++)
 	  {
-	    for(unsigned i=0; i<Node_dim; i++)
-	      interpolated_x[i] += nodal_position(l,i)*psi[l];
-	  }
+	    s[ipt][j] = variable_int_pt->knot(ipt,j);
 
-	// std::cout << "Gauss point at: (" << interpolated_x[0]
-	// 	  << ", " << interpolated_x[1] << ")" << std::endl;
-
-	// Compute the normal vector
-	//??ds not sure how this works - might not work for curved boundaries?
-	Vector<double> normal(Node_dim,0.0);
-	outer_unit_normal(s,normal);
-
-	// Loop over ALL nodes on in boundary mesh (except the current ones?) (source_node)
-	unsigned n_boundary_node = mesh_pt()->nnode();
-	for(unsigned i_source_node=0; i_source_node<n_boundary_node; i_source_node++)
-	  {
-	    // Get coordinates of source node
-	    Vector<double> source_node_x(Node_dim,0.0);
-	    mesh_pt()->node_pt(i_source_node)->position(source_node_x);
-
-	    // // Debugguging output:
-	    // std::cout << std::endl;
-	    // std::cout << ". Source node at: (" << source_node_x[0]
-	    // 	      << ", " << source_node_x[1] << ")"
-	    // 	      << std::endl;
-
-	    // Calculate dGreendn between source node and integration point
-	    double dgreendn = green_normal_derivative(interpolated_x,source_node_x,normal);
-
-	    // Loop over test functions, i.e. local/target nodes, adding contributions
 	    for(unsigned l=0; l<n_element_node; l++)
-	      {
-		// Add contribution to integral (note dGreendn is negative in our definition)
-		// See write up for details.
-		boundary_matrix(l,i_source_node) -= dgreendn * test(l) * W;
-		// boundary_matrix(l,i_source_node) += 1;
-	      }
+	      interpolated_x[ipt][j] += nodal_position(l,j)*psi[l];
+	}
 
-	  }
+  	// Compute the normal vector
+  	// ??ds not sure how this works - might be far too slow
+  	outer_unit_normal(s[ipt],normal[ipt]);
       }
 
-    //??ds need to seperately add the contribution at each node from angles
+    // Loop over ALL nodes on in boundary mesh (except the current ones?) (source_node)
+    unsigned n_boundary_node = mesh_pt()->nnode();
+    for(unsigned i_source_node=0; i_source_node<n_boundary_node; i_source_node++)
+      {
+  	// Get coordinates of source node
+  	Vector<double> source_node_x(Node_dim,0.0);
+  	mesh_pt()->node_pt(i_source_node)->position(source_node_x);
 
-    //??ds probably need to seperately calculate for the elements near the current one eventually
+  	// Calculate the order of integration to use
+  	//??ds
 
-  }
+  	// Set the order of integration to use
+  	unsigned order = 2;
+  	variable_int_pt->set_order(order);
+
+  	// Do the integration: loop over the points used at this order
+  	for(unsigned ipt=0; ipt<variable_int_pt->nweight(); ipt++)
+  	  {
+  	    // Get the integration point corresponding to this one in high order scheme
+  	    unsigned i = variable_int_pt->find_corresponding_knot(ipt,order,max_order);
+
+	    //Call the derivatives of the shape and test functions
+	    shape_and_test(s[i],psi,test);
+
+  	    // Calculate dGreendn between source node and integration point
+  	    double dgreendn =
+	      green_normal_derivative(interpolated_x[i],source_node_x,normal[i]);
+
+  	    // Loop over test functions, i.e. local/target nodes, adding contributions
+  	    for(unsigned l=0; l<n_element_node; l++)
+  	      {
+  		// Add contribution to integral (note dGreendn is negative in our definition)
+  		// See write up for details.
+  		boundary_matrix(l,i_source_node) -= dgreendn * test(l)
+  		  * J[i] * variable_int_pt->weight(ipt);
+  		// boundary_matrix(l,i_source_node) += 1;
+  	      }
+  	  }
+      }
+
+  } // End of function
+
+  // //=======================================================================
+  // /// Not actually getting residuals - getting boundary element matrix but using
+  // /// machinery used to assemble jacobian normally.
+  // /// Compute the effect of phi_1 in this element on ALL nodes on the boundary.
+  // /// Note that this depends on all other elements but not on the values of phi_1.
+  // //??ds may have confused test and "psi" functions but it doesn't matter for now
+  // // since they are the same (Galerkin method)
+  // //=======================================================================
+  // template<class ELEMENT>
+  // void MicromagFaceElement<ELEMENT>::
+  // fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
+  //   const
+  // {
+  //   // Find out dimension of element
+  //   const unsigned el_dim = Node_dim - 1;
+
+  //   //Find out how many nodes there are
+  //   const unsigned n_element_node = nnode();
+
+  //   //Set up memory for the shape and test functions
+  //   Shape psi(n_element_node), test(n_element_node);
+
+  //   // // Get current time
+  //   // double time = time_pt()->time();
+
+  //   //??ds adaptive quadrature: given acceptable error choose integration
+  //   // order/method and return integral_pt
+
+  //   //Set the value of n_intpt
+  //   const unsigned n_intpt = integral_pt()->nweight();
+
+  //   //Loop over the integration points
+  //   for(unsigned ipt=0;ipt<n_intpt;ipt++)
+  //     {
+  //   	// Get values of s (local coordinate)
+  //   	Vector<double> s(el_dim,0.0);
+  //   	for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(ipt,j);}
+
+  //   	//Get the integral weight
+  //   	double w = integral_pt()->weight(ipt);
+
+  //   	//Call the derivatives of the shape and test functions
+  //   	double J = shape_and_test(s,psi,test);
+
+  //   	//Premultiply the weights and the Jacobian
+  //   	double W = w*J;
+
+  //   	// Get values of x (global coordinate)
+  //   	Vector<double> interpolated_x(Node_dim,0.0);
+  //   	for(unsigned l=0; l<n_element_node; l++)
+  //   	  {
+  //   	    for(unsigned i=0; i<Node_dim; i++)
+  //   	      interpolated_x[i] += nodal_position(l,i)*psi[l];
+  //   	  }
+
+  //   	// std::cout << "Gauss point at: (" << interpolated_x[0]
+  //   	// 	  << ", " << interpolated_x[1] << ")" << std::endl;
+
+  //   	// Compute the normal vector
+  //   	//??ds not sure how this works - might not work for curved boundaries?
+  //   	Vector<double> normal(Node_dim,0.0);
+  //   	outer_unit_normal(s,normal);
+
+  //   	// Loop over ALL nodes on in boundary mesh (except the current ones?) (source_node)
+  //   	unsigned n_boundary_node = mesh_pt()->nnode();
+  //   	for(unsigned i_source_node=0; i_source_node<n_boundary_node; i_source_node++)
+  //   	  {
+  //   	    // Get coordinates of source node
+  //   	    Vector<double> source_node_x(Node_dim,0.0);
+  //   	    mesh_pt()->node_pt(i_source_node)->position(source_node_x);
+
+  //   	    // // Debugguging output:
+  //   	    // std::cout << std::endl;
+  //   	    // std::cout << ". Source node at: (" << source_node_x[0]
+  //   	    // 	      << ", " << source_node_x[1] << ")"
+  //   	    // 	      << std::endl;
+
+  //   	    // Calculate dGreendn between source node and integration point
+  //   	    double dgreendn = green_normal_derivative(interpolated_x,source_node_x,normal);
+
+  //   	    // Loop over test functions, i.e. local/target nodes, adding contributions
+  //   	    for(unsigned l=0; l<n_element_node; l++)
+  //   	      {
+  //   		// Add contribution to integral (note dGreendn is negative in our definition)
+  //     		// See write up for details.
+  //   		boundary_matrix(l,i_source_node) -= dgreendn * test(l) * W;
+  //   		// boundary_matrix(l,i_source_node) += 1;
+  //   	      }
+
+  //   	  }
+  //     }
+
+  //   //??ds need to seperately add the contribution at each node from angles
+
+  //   //??ds probably need to seperately calculate for the elements near the current one eventually
+
+  // }
 
   //======================================================================
   ///
@@ -390,13 +494,23 @@ namespace oomph
     //??ds check that n is a unit vector
 #endif
 
-
     // Calculate the distance r from x to y.
     double r(0.0), r_sq(0.0);
     for(unsigned i=0; i<Node_dim; i++)
       r_sq += pow((x[i] - y[i]),2);
 
     r = sqrt(r_sq);
+
+    //??ds if x is a potentially singular point CHEAT
+    //??ds could go horribly wrong, probably fine so long as not actually singular
+    //??ds only works in 2d anyway
+    if(r < 1e-14)
+      {
+	// This is approximately true because the r and n unit vectors
+	// become perpendicular as x approaches y. Hence n.r = 0 and
+	// the whole function is zero.
+	return 0;
+      }
 
     // Calculate the unit vector in direction r = x - y
     Vector<double> r_unit(Node_dim,0.0);
