@@ -13,3 +13,5 @@ Makefile.in
 *_driver
 \#*\#
 rules
+plotscript.gplot
+*.gplot
