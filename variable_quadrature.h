@@ -2,7 +2,7 @@
 #define OOMPH_VARIABLE_QUADRATURE_H
 
 #include "generic.h"
-
+#include <cmath>
 /* Weights generated using C++ QUADRULE by John Burkardt.
 
    You may want to disable line wrapping for this file as the lines
@@ -105,8 +105,8 @@ namespace oomph
     if(i >= nweight())
       {
 	std::ostringstream error_stream;
-	error_stream << Dim << " dimensional Gaussian quadrature of order"
-		     << Order << " does not have a weight " << i
+	error_stream << Dim << " dimensional Gaussian quadrature of order "
+		     << Order << " does not have a weight number " << i
 		     << ".";
 	throw OomphLibError(error_stream.str(),function_name,
 			    OOMPH_EXCEPTION_LOCATION);
@@ -219,6 +219,34 @@ namespace oomph
       error_check(i,j,"VariableClenshawCurtis::knot");
 #endif
       return ClenshawCurtisKnots[Dim][Order][i][j];
+    }
+
+    /// \short Get the index of matching knots in higher order
+    /// schemes. Only applicable for progressive quadratures
+    /// (Clenshaw-Curtis, Patterson) for some orders. Useful in
+    /// adaptive schemes when we want to reuse higher order
+    /// calculations.
+    inline unsigned find_corresponding_knot(const unsigned &i, const unsigned &low_order,
+					    const unsigned &high_order) const
+    {
+      // The number of knots from the higher order scheme to skip when using the
+      // lower order scheme.
+      unsigned jump = unsigned(log2(high_order) - log2(low_order));
+
+#ifdef PARANOID
+      // If jump is non-integer then we can't do this
+      if((jump % 1) > 1e-14)
+	{
+	  std::ostringstream error_stream;
+	  error_stream << "The high order scheme must be 2^(integer) times higher"
+		       << " than the low order scheme. The power of 2 used here is "
+		       << jump << ".";
+	  throw OomphLibError(error_stream.str(),
+			      "VariableClenshawCurtis::find_corresponding_knot",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+#endif
+      return i*jump;
     }
   };
 
