@@ -411,11 +411,11 @@ int main(int argc, char* argv[])
       n_y = atoi(argv[2]);
     }
   else
-  {
+    {
       // Set number of elements in each direction
-      n_x = 20;
-      n_y = 20;
-  }
+      n_x = 10;
+      n_y = 10;
+    }
 
   // Set dimension of problem and number of nodes along each element edge
   const unsigned dim = 2;
@@ -449,8 +449,9 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  VariableClenshawCurtis variable_gauss;
-  variable_gauss.set_dim(1);
+  VariableClenshawCurtis quadrature_scheme;
+  quadrature_scheme.set_dim(1);
+
 
   // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
@@ -458,18 +459,29 @@ int main(int argc, char* argv[])
     {
       FiniteElement* finite_element_pt =
   	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
-      finite_element_pt->set_integration_scheme(&variable_gauss);
+      finite_element_pt->set_integration_scheme(&quadrature_scheme);
     }
 
   unsigned max_order = 30;
 
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);
+  std::cout.precision(16);
+
   for(unsigned order=2; order<max_order; order++)
     {
+
       // Set the integration scheme order
-      variable_gauss.set_order(order);
+      quadrature_scheme.set_order(order);
+
+      // // Create + start timer
+      // double start_time = TimingHelpers::timer();
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
+
+      // // output timer result
+      // double stop_time = TimingHelpers::timer();
+      // std::cout << order << " " << stop_time - start_time << std::endl;
 
       // dump for testing
       std::ofstream matrix_file;
