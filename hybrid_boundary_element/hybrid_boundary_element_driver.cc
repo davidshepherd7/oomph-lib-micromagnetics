@@ -446,8 +446,6 @@ int main(int argc, char* argv[])
   problem.create_global_boundary_equation_number_map();
 
 
-
-
   // // ??ds testing my variable gaussian scheme
   VariableClenshawCurtis quadrature_scheme;
   quadrature_scheme.set_dim(1);
@@ -462,26 +460,26 @@ int main(int argc, char* argv[])
       finite_element_pt->set_integration_scheme(&quadrature_scheme);
     }
 
-  unsigned max_order = 30;
+  // unsigned max_order = 30;
 
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout.precision(16);
 
-  for(unsigned order=2; order<max_order; order++)
+  //  for(unsigned order=2; order<max_order; order++)
+  int order = -1;
     {
-
       // Set the integration scheme order
-      quadrature_scheme.set_order(order);
+      //  quadrature_scheme.set_order(order);
 
-      // // Create + start timer
-      // double start_time = TimingHelpers::timer();
+      // Create + start timer
+      double start_time = TimingHelpers::timer();
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
 
-      // // output timer result
-      // double stop_time = TimingHelpers::timer();
-      // std::cout << order << " " << stop_time - start_time << std::endl;
+      // output timer result
+      double stop_time = TimingHelpers::timer();
+      std::cout << order << " " << stop_time - start_time << std::endl;
 
       // dump for testing
       std::ofstream matrix_file;
@@ -492,7 +490,7 @@ int main(int argc, char* argv[])
       matrix_file.open(filename);
       problem.boundary_matrix_pt()->output(matrix_file);
       matrix_file.close();
-    }
+      }
 
 
   return 0;
