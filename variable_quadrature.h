@@ -60,11 +60,17 @@ namespace oomph
     void set_order(const unsigned &order)
     {Order = order;}
 
+    /// Get the current order
+    unsigned order() const {return Order;}
+
     /// Choose the dimension of Gauss integration to use
     // (we can't choose it via function argument because that breaks compatibility
     // with the already existing integration schemes.)
     void set_dim(const unsigned &dim)
     {Dim = dim;}
+
+    /// Get the current Dim
+    unsigned dim() const {return Dim;}
 
     /// Return the number of integration points of the order-th Gauss scheme.
     // ??ds generalise for higher dimensions
@@ -226,27 +232,39 @@ namespace oomph
     /// (Clenshaw-Curtis, Patterson) for some orders. Useful in
     /// adaptive schemes when we want to reuse higher order
     /// calculations.
-    inline unsigned find_corresponding_knot(const unsigned &i, const unsigned &low_order,
+    // This works for orders where n_high = 2^a * n_low, where n =
+    // (order - 1) and a is some int.  i.e. order_high = 2^a *
+    // (order_low - 1) + 1 An example is 4 -> 7 -> 13 -> 25 -> 49 (so
+    // max_order = 49 works for all of these orders). Also order 2 works
+    // with anything since the only knots are the two endpoints.
+    inline unsigned find_corresponding_knot(const unsigned &i,
 					    const unsigned &high_order) const
     {
+      // If order is two then the knots are always the two endpoints
+      if(Order == 2)
+	{return ((i==0) ? 0 : (high_order-1));}
+
       // The number of knots from the higher order scheme to skip when using the
       // lower order scheme.
-      unsigned jump = unsigned(log2(high_order) - log2(low_order));
+      // (based on rearangement of (high_order - 1) = 2^a * (low_order -1) )
+      double a = log2(high_order - 1) - log2(this->Order - 1);
 
 #ifdef PARANOID
       // If jump is non-integer then we can't do this
-      if((jump % 1) > 1e-14)
+      double dummy;
+      if(modf(a,&dummy) > 1e-14)
 	{
 	  std::ostringstream error_stream;
-	  error_stream << "The high order scheme must be 2^(integer) times higher"
-		       << " than the low order scheme. The power of 2 used here is "
-		       << jump << ".";
+	  error_stream << "The high order scheme must be such that"
+		       << "n_high = 2^a * n_low, where n = (order - 1)"
+		       << "and a is an integer. Here a = "
+		       << a << ", which is non-integer.";
 	  throw OomphLibError(error_stream.str(),
 			      "VariableClenshawCurtis::find_corresponding_knot",
 			      OOMPH_EXCEPTION_LOCATION);
 	}
 #endif
-      return i*jump;
+      return i * unsigned(pow(2,unsigned(a)));
     }
   };
 
