@@ -447,7 +447,7 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  VariableClenshawCurtis quadrature_scheme;
+  VariableFejerSecond quadrature_scheme;
   quadrature_scheme.set_dim(1);
 
 

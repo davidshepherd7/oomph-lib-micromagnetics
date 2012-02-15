@@ -229,9 +229,9 @@ namespace oomph
 
     /// \short Get the index of matching knots in higher order
     /// schemes. Only applicable for progressive quadratures
-    /// (Clenshaw-Curtis, Patterson) for some orders. Useful in
-    /// adaptive schemes when we want to reuse higher order
-    /// calculations.
+    /// (Clenshaw-Curtis, Fejer's second rule, Patterson) for some
+    /// orders. Useful in adaptive schemes when we want to reuse
+    /// higher order calculations.
     // This works for orders where n_high = 2^a * n_low, where n =
     // (order - 1) and a is some int.  i.e. order_high = 2^a *
     // (order_low - 1) + 1 An example is 4 -> 7 -> 13 -> 25 -> 49 (so
@@ -250,7 +250,7 @@ namespace oomph
       double a = log2(high_order - 1) - log2(this->Order - 1);
 
 #ifdef PARANOID
-      // If jump is non-integer then we can't do this
+      // If a is non-integer then we can't do this
       double dummy;
       if(modf(a,&dummy) > 1e-14)
 	{
@@ -265,6 +265,13 @@ namespace oomph
 	}
 #endif
       return i * unsigned(pow(2,unsigned(a)));
+    }
+
+    /// Get the next highest order allowing reuse of points
+    inline unsigned adaptive_scheme_next_order() const
+    {
+      if(Order == 2) return 4;
+      else return (2*Order) -1;
     }
   };
 
@@ -301,6 +308,48 @@ namespace oomph
       error_check(i,j,"VariableFejerSecond::knot");
 #endif
       return FejerSecondKnots[Dim][Order][i][j];
+    }
+
+    /// \short Get the index of matching knots in higher order
+    /// schemes. Only applicable for progressive quadratures
+    /// (Clenshaw-Curtis, Fejer's second rule, Patterson) for some
+    /// orders. Useful in adaptive schemes when we want to reuse
+    /// higher order calculations.
+
+    // Let k = #points = order, x_i = i*pi/(k+1).
+    // nested scheme when k_high = 2^a *(k_low + 1) - 1.
+    // (Alternatively x_i = i*pi/n, n = #points + 1
+    // nested scheme when n_high = 2^a *n+low)
+    inline unsigned find_corresponding_knot(const unsigned &i,
+					    const unsigned &high_order) const
+    {
+      // The number of knots from the higher order scheme to skip when using the
+      // lower order scheme.
+      // (based on rearangement of (high_order - 1) = 2^a * (low_order -1) )
+      double a = log2(high_order + 1) - log2(this->Order + 1);
+
+#ifdef PARANOID
+      // If a is non-integer then we can't do this
+      double dummy;
+      if(modf(a,&dummy) > 1e-14)
+	{
+	  std::ostringstream error_stream;
+	  error_stream << "The high order scheme must be such that"
+		       << "n_high = 2^a * n_low, where n = (order - 1)"
+		       << "and a is an integer. Here a = "
+		       << a << ", which is non-integer.";
+	  throw OomphLibError(error_stream.str(),
+			      "VariableClenshawCurtis::find_corresponding_knot",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+#endif
+      return i * unsigned(pow(2,unsigned(a)));
+    }
+
+    /// Get the next highest order allowing reuse of points
+    inline unsigned adaptive_scheme_next_order() const
+    {
+      return (2*Order) + 1;
     }
   };
 

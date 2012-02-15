@@ -109,12 +109,6 @@ namespace oomph
     /// Set function for mesh pointer
     inline void set_mesh_pt(Mesh* mesh_pointer) {Mesh_pt = mesh_pointer;}
 
-    inline unsigned adaptive_scheme_next_order(const unsigned &order) const
-    {
-      if(order == 2) return 4;
-      else return (2*order) -1;
-    }
-
   protected:
 
     /// \short Function to compute the shape and test functions and to return
@@ -320,11 +314,11 @@ namespace oomph
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
-    VariableClenshawCurtis* variable_int_pt =
-      dynamic_cast<VariableClenshawCurtis*>(integral_pt());
+    VariableFejerSecond* variable_int_pt =
+      dynamic_cast<VariableFejerSecond*>(integral_pt());
 #else
-    VariableClenshawCurtis* variable_int_pt =
-      static_cast<VariableClenshawCurtis*>(integral_pt());
+    VariableFejerSecond* variable_int_pt =
+      static_cast<VariableFejerSecond*>(integral_pt());
 #endif
 
     // Set parameters for adaptive integration
@@ -394,7 +388,8 @@ namespace oomph
 	    for(unsigned l=0; l<n_element_node; l++)
 	      temp_bm_prev[l] = temp_bm[l];
 
-	    // Set the (new) order to use
+	    // Get and set the next order to use
+	    order = variable_int_pt->adaptive_scheme_next_order();
 	    variable_int_pt->set_order(order);
 
 	    // Get the shape and test functions at this knot
@@ -433,12 +428,9 @@ namespace oomph
 	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
 	    diff = *max_element(diff_bm.begin(),diff_bm.end());
 	    std::cout << diff << std::endl;
-
-	    // Get the next order to try
-	    order = adaptive_scheme_next_order(order);
 	  }
-	while(((diff>abstol) && (order<=max_order))
-	      || (order==adaptive_scheme_next_order(min_order)));
+	while(((diff>abstol) && (order<max_order))
+	      || (order==min_order));
 	// Repeat unless the difference is small (i.e. quadrature has converged)
 	// terminate if max_order has been reached
 	// continue anyway if we are still on the first order.
