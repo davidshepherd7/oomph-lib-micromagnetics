@@ -34,14 +34,20 @@ namespace oomph
     /// Hold the dimension of Gaussian integration to be used
     unsigned Dim;
 
+    /// The minimum order used for adaptive quadrature
+    unsigned Min_order;
+
+    /// The maximum order used for adaptive quadrature
+    unsigned Max_order;
+
   public:
 
     /// Default construtor
-    VariableQuadrature(){Order=0; Dim=0;};
+    VariableQuadrature() : Order(0), Dim(0) {}
 
     /// Other constructors
-    VariableQuadrature(const unsigned &dim) {Order=0; Dim = dim;}
-    VariableQuadrature(const unsigned &dim, const unsigned &order) {Order = order; Dim = dim;}
+    VariableQuadrature(const unsigned &dim) : Order(0), Dim(dim) {}
+    VariableQuadrature(const unsigned &dim, const unsigned &order) : Order(order), Dim(dim) {}
 
     /// Broken copy constructor
     VariableQuadrature(const VariableQuadrature& dummy)
@@ -86,6 +92,18 @@ namespace oomph
 
     /// Return local coordinate s[j] of i-th integration point.
     virtual double knot(const unsigned &i, const unsigned &j) const = 0;
+
+    /// Set the minimum order used for adaptive quadrature
+    void set_min_order(const unsigned &min_order) {Min_order = min_order;}
+
+    /// Set the maximum order used for adaptive quadrature
+    void set_max_order(const unsigned &max_order) {Max_order = max_order;}
+
+    /// Get the minimum order used for adaptive quadrature
+    unsigned min_order() const {return Min_order;}
+
+    /// Get the maximum order used for adaptive quadrature
+    unsigned max_order() const {return Max_order;}
   };
 
   void VariableQuadrature::error_check(const unsigned &i, const unsigned &j,
@@ -210,6 +228,9 @@ namespace oomph
 
   public:
 
+    /// Constructor with reasonable defaults for min/max adaptive order
+    VariableClenshawCurtis(){Min_order = 2; Max_order=49;}
+
     double weight(const unsigned &i) const
     {
 #ifdef PARANOID
@@ -268,10 +289,10 @@ namespace oomph
     }
 
     /// Get the next highest order allowing reuse of points
-    inline unsigned adaptive_scheme_next_order() const
+    inline void adaptive_scheme_next_order()
     {
-      if(Order == 2) return 4;
-      else return (2*Order) -1;
+      if(Order == 2) Order = 4;
+      else Order = (2*Order) -1;
     }
   };
 
@@ -292,6 +313,9 @@ namespace oomph
     static const knots_data_structure FejerSecondKnots;
 
   public:
+
+    /// Constructor with reasonable defaults for min/max adaptive order
+    VariableFejerSecond() {Min_order = 4; Max_order = 39;}
 
     double weight(const unsigned &i) const
     {
@@ -347,9 +371,10 @@ namespace oomph
     }
 
     /// Get the next highest order allowing reuse of points
-    inline unsigned adaptive_scheme_next_order() const
+    inline void adaptive_scheme_next_order()
     {
-      return (2*Order) + 1;
+      if(Order==0) Order=Min_order;
+      else Order = (2*Order) + 1;
     }
   };
 
