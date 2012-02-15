@@ -67,8 +67,8 @@ namespace oomph
 						 DenseMatrix<double> &boundary_matrix)
     {
       // fill_in_be_contribution(boundary_matrix);
-      // fill_in_be_contribution_adaptive(boundary_matrix);
-      fill_in_be_contribution_quadpack(boundary_matrix);
+      fill_in_be_contribution_adaptive(boundary_matrix);
+      // fill_in_be_contribution_quadpack(boundary_matrix);
     }
 
     /// Output function -- forward to broken version in FiniteElement
@@ -227,13 +227,22 @@ namespace oomph
 #endif
 
     // Set parameters for adaptive integration
-    unsigned max_order = 49;
-    unsigned min_order = 2;
-    double abstol = 1e-3;
+    unsigned max_order = variable_int_pt->max_order();
+    unsigned min_order = variable_int_pt->min_order();
+    double abstol = 1e-10;
 
+    // Start of adaptive integration scheme
+    //====================================
+
+    std::cout << "Element nodes at";
+    for(unsigned l=0; l<n_element_node; l++)
+      std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")";
+    std::cout << std::endl;
+
+
+
+    // Pre-calculate everything at these points for the highest order:
     variable_int_pt->set_order(max_order);
-
-    // Then pre-calculate everything at these points:
 
     // Find out how many knots there are
     const unsigned n_knot_max = variable_int_pt->nweight();
@@ -282,10 +291,19 @@ namespace oomph
 	// Use an adaptive scheme: calculate at two lowest orders allowed
 	// and compare. If they are close accept otherwise calculate the next
 	// and compare... etc.
-	unsigned order = min_order;
-	double diff = 1e6;
+	unsigned adapt_order;
+	double diff;
 	Vector<double> temp_bm_prev(n_element_node,0.0),
-	  temp_bm(n_element_node,0.0);
+	  temp_bm(n_element_node,5.0);
+
+	// Reset the quadrature scheme order (magic number: 0 =
+	// automatically select min_order when
+	// adaptive_scheme_next_order is used)
+	variable_int_pt->set_order(0);
+
+	std::cout << "Source at "
+		  << source_node_x[0] << " " << source_node_x[1] << std::endl;
+
 
 	do
 	  {
@@ -293,12 +311,11 @@ namespace oomph
 	    for(unsigned l=0; l<n_element_node; l++)
 	      temp_bm_prev[l] = temp_bm[l];
 
-	    // Get and set the next order to use
-	    order = variable_int_pt->adaptive_scheme_next_order();
-	    variable_int_pt->set_order(order);
+	    // Move to next adaptive scheme order
+	    variable_int_pt->adaptive_scheme_next_order();
+	    adapt_order = variable_int_pt->order();
 
-	    // Get the shape and test functions at this knot
-	    //??ds improve this by pre-calculating them
+	    // Allocate space for shape and test functions
 	    Shape psi(n_element_node), test(n_element_node);
 
 	    // Loop over the knots used in this quadrature order
@@ -332,10 +349,14 @@ namespace oomph
 	    for(unsigned l=0; l<n_element_node; l++)
 	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
 	    diff = *max_element(diff_bm.begin(),diff_bm.end());
-	    std::cout << diff << std::endl;
+
+	    std::cout << "Order = " << adapt_order << ", error = " << diff;
+	    for(unsigned l=0; l<n_element_node; l++)
+	      std::cout << " value[" << l << "] = " << temp_bm[l];
+	    std::cout << std::endl;
 	  }
-	while(((diff>abstol) && (order<max_order))
-	      || (order==min_order));
+	while(((diff>abstol) && (adapt_order<max_order))
+	      || (adapt_order==min_order));
 	// Repeat unless the difference is small (i.e. quadrature has converged)
 	// terminate if max_order has been reached
 	// continue anyway if we are still on the first order.
@@ -343,7 +364,7 @@ namespace oomph
 	std::cout << std::endl;
 
 	// If we hit the order limit without being accurate enough give an error
-	if (variable_int_pt->order() >= max_order)
+	if (adapt_order >= max_order)
 	  {
 	    throw OomphLibError("Quadrature order not high enough.",
 				"....",
@@ -353,7 +374,8 @@ namespace oomph
 	// When done add the values in the temp vector to the real boundary matrix
 	for(unsigned l=0; l<n_element_node; l++)
 	  boundary_matrix(l,i_sn) += temp_bm[l];
-      }
+
+      } // End of loop over source nodes
 
   } // End of function
 
@@ -378,9 +400,6 @@ namespace oomph
 
     //Set up memory for the shape and test functions
     Shape psi(n_element_node), test(n_element_node);
-
-    // // Get current time
-    // double time = time_pt()->time();
 
     //??ds adaptive quadrature: given acceptable error choose integration
     // order/method and return integral_pt
