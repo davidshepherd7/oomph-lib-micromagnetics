@@ -57,19 +57,18 @@ namespace oomph
 		      const unsigned &i) const
     {return FaceElement::zeta_nodal(n,k,i);}
 
-    /// Add the element's contribution to its residual vector (dummy function)
-    inline void fill_in_contribution_to_residuals(Vector<double> &dummy)
-    {
-      // Do nothing - no residuals to add
-    }
+    /// Add the element's contribution to its residual vector - do
+    /// nothing (no residuals to add).
+    inline void fill_in_contribution_to_residuals(Vector<double> &dummy) {}
 
     /// \short Add the element's contribution to its residual vector and its
     /// Jacobian matrix
     inline void fill_in_contribution_to_jacobian(Vector<double> &dummy,
 						 DenseMatrix<double> &boundary_matrix)
     {
-      // fill_in_boundary_element_contribution_micromag(boundary_matrix);
-      be_fill_in_adaptive_clenshaw_curtis(boundary_matrix);
+      // fill_in_be_contribution(boundary_matrix);
+      // fill_in_be_contribution_adaptive(boundary_matrix);
+      fill_in_be_contribution_quadpack(boundary_matrix);
     }
 
     /// Output function -- forward to broken version in FiniteElement
@@ -114,17 +113,12 @@ namespace oomph
     /// \short Function to compute the shape and test functions and to return
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
-    inline double shape_and_test(const Vector<double> &s, Shape &psi, Shape &test)
-      const
+    inline double shape_and_test(const Vector<double> &s,
+				 Shape &psi, Shape &test) const
     {
-      //Find number of nodes
-      unsigned n_node = nnode();
-
-      //Get the shape functions
+      // Get the shape function and set test = shape
       shape(s,psi);
-
-      //Set the test functions to be the same as the shape functions
-      for(unsigned i=0;i<n_node;i++) {test[i] = psi[i];}
+      for(unsigned i=0;i<nnode();i++) {test[i] = psi[i];}
 
       //Return the value of the jacobian
       return J_eulerian(s);
@@ -135,17 +129,11 @@ namespace oomph
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
     inline double shape_and_test_at_knot(const unsigned &ipt,
-					 Shape &psi, Shape &test)
-      const
+					 Shape &psi, Shape &test) const
     {
-      //Find number of nodes
-      unsigned n_node = nnode();
-
-      //Get the shape functions
+      // Get the shape function and set test = shape
       shape_at_knot(ipt,psi);
-
-      //Set the test functions to be the same as the shape functions
-      for(unsigned i=0;i<n_node;i++) {test[i] = psi[i];}
+      for(unsigned i=0;i<nnode();i++) {test[i] = psi[i];}
 
       //Return the value of the jacobian
       return J_eulerian_at_knot(ipt);
@@ -153,23 +141,21 @@ namespace oomph
 
   private:
 
-    /// \short Add the element's contribution to its residual vector.
-    /// flag=1(or 0): do (or don't) compute the contribution to the
-    /// Jacobian as well.
-    void fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
-      const;
+    /// Add the element's contribution to the boundary element matrix.
+    void fill_in_be_contribution(DenseMatrix<double> &boundary_matrix) const;
 
-    void be_fill_in_adaptive_clenshaw_curtis(DenseMatrix<double> &boundary_matrix)
-      const;
+    /// Add the element's contribution to the boundary element matrix using adaptive quadrature.
+    void fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix) const;
 
-    void be_fill_in_adaptive_gauss_legendre(DenseMatrix<double> &boundary_matrix)
-      const;
+    /// Add the element's contribution to the boundary element matrix using QUADPACK algorithms.
+    void fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix) const;
 
-    /// \short Pointer to the boundary mesh (needed to access nodes outside of this element
-    /// for calculation of boundary matrix).
+    /// \short Pointer to the boundary mesh (needed to access nodes
+    /// outside of this element for calculation of boundary matrix).
     Mesh* Mesh_pt;
 
-    /// The dimension of the element surface/volume (i.e. one less than the dimension of the nodes.
+    /// The dimension of the element surface/volume (i.e. one less
+    /// than the dimension of the nodes.
     unsigned Node_dim;
 
     /// The index at which phi_1 is stored
@@ -204,104 +190,23 @@ namespace oomph
     // Extract the nodal dimension of the problem from the dimension of
     // the first (face) node.
     Node_dim = this->node_pt(0)->ndim();
-
-    //??ds Set integral pointer to point to adaptive method
-    //set_integration_scheme(....);
-
-    // // Cast to the appropriate equation element so that we can
-    // // find the index at which the variable is stored
-    // //??ds this code seems horrible....
-    // switch(Node_dim)
-    //   {
-    // 	//One dimensional problem
-    //   case 1:
-    // 	{
-    // 	  MicromagEquations<1>* eqn_pt = dynamic_cast<MicromagEquations<1>*>(bulk_el_pt);
-    // 	  //If the cast has failed die
-    // 	  if(eqn_pt==0)
-    // 	    {
-    // 	      throw OomphLibError("Cannot cast the bulk element.",
-    // 				  "MicromagFaceElement::MicromagFaceElement()",
-    // 				  OOMPH_EXCEPTION_LOCATION);
-    // 	    }
-    // 	  else
-    // 	    {
-    // 	      // Read the indicies from the (cast) bulk element
-    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-    // 	    }
-    // 	}
-    // 	break;
-
-    // 	//Two dimensional problem
-    //   case 2:
-    // 	{
-    // 	  MicromagEquations<2>* eqn_pt = dynamic_cast<MicromagEquations<2>*>(bulk_el_pt);
-    // 	  //If the cast has failed die
-    // 	  if(eqn_pt==0)
-    // 	    {
-    // 	      throw OomphLibError("Cannot cast the bulk element.",
-    // 				  "MicromagFaceElement::MicromagFaceElement()",
-    // 				  OOMPH_EXCEPTION_LOCATION);
-    // 	    }
-    // 	  else
-    // 	    {
-    // 	      // Read the indicies from the (cast) bulk element
-    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-    // 	    }
-    // 	}
-    // 	break;
-
-    // 	//Three dimensional problem
-    //   case 3:
-    // 	{
-    // 	  MicromagEquations<3>* eqn_pt = dynamic_cast<MicromagEquations<3>*>(bulk_el_pt);
-    // 	  //If the cast has failed die
-    // 	  if(eqn_pt==0)
-    // 	    {
-    // 	      throw OomphLibError("Cannot cast the bulk element.",
-    // 				  "MicromagFaceElement::MicromagFaceElement()",
-    // 				  OOMPH_EXCEPTION_LOCATION);
-    // 	    }
-    // 	  else
-    // 	    {
-    // 	      // Read the indicies from the (cast) bulk element
-    // 	      Phi_1_index_micromag = eqn_pt->phi_1_index_micromag();
-    // 	      Phi_2_index_micromag = eqn_pt->phi_2_index_micromag();
-    // 	    }
-    // 	}
-    // 	break;
-
-    // 	//Any other case is an error
-    //   default:
-    // 	std::ostringstream error_stream;
-    // 	error_stream <<  "Dimension of node is " << Node_dim
-    // 		     << ". It should be 1,2, or 3!" << std::endl;
-
-    // 	throw OomphLibError(error_stream.str(),
-    // 			    "MicromagFaceElement::MicromagFaceElement()",
-    // 			    OOMPH_EXCEPTION_LOCATION);
-    // 	break;
-    //   }
   }
 
-  // ??ds Adaptive version:
+  /// Get boundary element matrix contributions for this element using
+  /// QUADPACK routines (probably very inefficient).
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
-  be_fill_in_adaptive_gauss_legendre(DenseMatrix<double> &boundary_matrix)
+  fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix)
     const
   {
-    // not yet implemented
 
-    // basically decide an order then gauss it (brute force-esque)
   }
 
-
-  // ??ds Adaptive version:
+  /// Get boundary element matrix contributions for this element using
+  /// an adaptive scheme.
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
-  be_fill_in_adaptive_clenshaw_curtis(DenseMatrix<double> &boundary_matrix)
+  fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix)
     const
   {
     // Find out dimension of element
@@ -462,7 +367,7 @@ namespace oomph
   //=======================================================================
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
-  fill_in_boundary_element_contribution_micromag(DenseMatrix<double> &boundary_matrix)
+  fill_in_be_contribution(DenseMatrix<double> &boundary_matrix)
     const
   {
     // Find out dimension of element
@@ -545,9 +450,6 @@ namespace oomph
       }
 
     //??ds need to seperately add the contribution at each node from angles
-
-    //??ds probably need to seperately calculate for the elements near the current one eventually
-
   }
 
   //======================================================================
