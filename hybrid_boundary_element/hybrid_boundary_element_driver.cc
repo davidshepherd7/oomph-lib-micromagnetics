@@ -425,12 +425,16 @@ int main(int argc, char* argv[])
   TwoDMicromagProblem<QMicromagElement<dim,nnode_1d>, MicromagFaceElement>
     problem(n_x,n_y);
 
+  std::cout << "Constructor done." << std::endl;
+
   // Setup doc info
   DocInfo doc_info;
   doc_info.set_directory("results");
 
-  // Run self tests on problem and boundary problem:
-  problem.self_test();
+  // // Self tests are REALLLY slow - dominates exectution time, so disable them
+  // // for now.
+  // // Run self tests on problem and boundary problem:
+  // problem.self_test();
 
   // // // Dump boundary mesh positions
   // unsigned n_node = problem.face_mesh_pt()->nnode();
@@ -460,39 +464,52 @@ int main(int argc, char* argv[])
       finite_element_pt->set_integration_scheme(&quadrature_scheme);
     }
 
-  // unsigned max_order = 30;
-
+  // Set very high precision output
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout.precision(16);
 
+  // unsigned max_order = 30;
   // for(unsigned order=2; order<max_order; order++)
-  int order = -1;
-    {
+  //   {
 
-      // // Set the integration scheme order
-      // quadrature_scheme.set_order(order);
+  //   // Set the integration scheme order
+  //   quadrature_scheme.set_order(order);
 
-      // // Create + start timer
-      // double start_time = TimingHelpers::timer();
+  //   // Create + start timer
+  //   double start_time = TimingHelpers::timer();
 
-      // Get the boundary matrix
-      problem.get_boundary_matrix();
+  //   // Get the boundary matrix
+  //   problem.get_boundary_matrix();
 
-      // // output timer result
-      // double stop_time = TimingHelpers::timer();
-      // std::cout << order << " " << stop_time - start_time << std::endl;
+  //   // output timer result
+  //   double stop_time = TimingHelpers::timer();
+  //   std::cout << order << " " << stop_time - start_time << std::endl;
 
-      // dump for testing
-      std::ofstream matrix_file;
-      matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
-      matrix_file.precision(16);
-      char filename[100];
-      sprintf(filename,"results/boundary_matrix_%u",order);
-      matrix_file.open(filename);
-      problem.boundary_matrix_pt()->output(matrix_file);
-      matrix_file.close();
-      }
+  //   // dump for testing
+  //   std::ofstream matrix_file;
+  //   matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
+  //   matrix_file.precision(16);
+  //   char filename[100];
+  //   sprintf(filename,"results/boundary_matrix_%u",order);
+  //   matrix_file.open(filename);
+  //   problem.boundary_matrix_pt()->output(matrix_file);
+  //   matrix_file.close();
+  // }
 
+  // For testing adaptive schemes:
+  {
+    problem.get_boundary_matrix();
+
+    // dump for testing
+    std::ofstream matrix_file;
+    matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
+    matrix_file.precision(16);
+    char filename[100];
+    sprintf(filename,"results/boundary_matrix_adaptive");
+    matrix_file.open(filename);
+    problem.boundary_matrix_pt()->output(matrix_file);
+    matrix_file.close();
+  }
 
   return 0;
 } //end of main
