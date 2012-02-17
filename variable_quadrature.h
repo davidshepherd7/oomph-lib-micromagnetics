@@ -178,6 +178,13 @@ namespace oomph
 #endif
       return GaussLegendreKnots[Dim][Order][i][j];
     }
+
+    /// Get the next highest order
+    inline void adaptive_scheme_next_order()
+    {
+      // No reason for picking +5, just because...
+      Order += 5;
+    }
   };
 
   //============================================================
@@ -211,6 +218,7 @@ namespace oomph
 #endif
       return TGaussLegendreKnots[Dim][Order][i][j];
     }
+
   };
 
   //============================================================

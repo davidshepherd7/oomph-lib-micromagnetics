@@ -15,9 +15,6 @@ using namespace MathematicalConstants;
 namespace oomph
 {
 
-  double integrand(const std::vector<double> s, const std::vector<double> x_sn,
-		   const unsigned l) const;
-
   //===========================================================================
   ///
   //===========================================================================
@@ -73,7 +70,8 @@ namespace oomph
     {
       // fill_in_be_contribution(boundary_matrix);
       // fill_in_be_contribution_functionals(boundary_matrix);
-      fill_in_be_contribution_adaptive(boundary_matrix);
+      // fill_in_be_contribution_adaptive(boundary_matrix);
+      fill_in_be_contribution_adaptive_not_stored(boundary_matrix);
       // fill_in_be_contribution_quadpack(boundary_matrix);
     }
 
@@ -153,9 +151,14 @@ namespace oomph
 
     /// Add the element's contribution to the boundary element matrix using adaptive quadrature.
     void fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix) const;
+    void fill_in_be_contribution_adaptive_not_stored(DenseMatrix<double> &boundary_matrix)
+      const;
 
     /// Add the element's contribution to the boundary element matrix using QUADPACK algorithms.
     void fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix) const;
+
+    double integrand(const std::vector<double> s, const std::vector<double> x_sn,
+		     const unsigned l) const;
 
     // void fill_in_be_contribution_functionals(DenseMatrix<double> &boundary_matrix) const;
 
@@ -539,6 +542,158 @@ namespace oomph
       } // End of loop over source nodes
 
   } // End of function
+
+
+  /// Get boundary element matrix contributions for this element using
+  /// an adaptive scheme.
+  template<class ELEMENT>
+  void MicromagFaceElement<ELEMENT>::
+  fill_in_be_contribution_adaptive_not_stored(DenseMatrix<double> &boundary_matrix)
+    const
+  {
+    // Find out dimension of element
+    const unsigned el_dim = dim(), node_dim = nodal_dimension();
+
+    //Find out how many nodes there are
+    const unsigned n_element_node = nnode();
+
+    // Cast pointer to the Clenshaw-Curtis integration scheme
+#ifdef PARANOID
+    // Dynamic casts are slow but type checked
+    //??ds put try/catch in here and call oomphlib error if fails?
+    VariableGaussLegendre* variable_int_pt =
+      dynamic_cast<VariableGaussLegendre*>(integral_pt());
+#else
+    VariableGaussLegendre* variable_int_pt =
+      static_cast<VariableGaussLegendre*>(integral_pt());
+#endif
+
+    // Set parameters for adaptive integration
+    unsigned max_order = variable_int_pt->max_order();
+    unsigned min_order = variable_int_pt->min_order();
+    double abstol = 1e-3;
+
+    // Start of adaptive integration scheme
+    //====================================
+
+    std::cout << "Element nodes at";
+    for(unsigned l=0; l<n_element_node; l++)
+      std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")";
+    std::cout << std::endl;
+
+    // Loop over all source nodes on the boundary
+    unsigned n_boundary_node = boundary_mesh_pt()->nnode();
+    for(unsigned i_sn=0; i_sn<n_boundary_node; i_sn++)
+      {
+  	// Get coordinates of source node
+  	Vector<double> source_node_x(node_dim,0.0);
+  	boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
+
+
+	// Use an adaptive scheme: calculate at two lowest orders allowed
+	// and compare. If they are close accept otherwise calculate the next
+	// and compare... etc.
+	unsigned adapt_order;
+	double diff;
+	Vector<double> temp_bm_prev(n_element_node,0.0),
+	  temp_bm(n_element_node,5.0);
+
+	// Reset the quadrature scheme order (magic number: 0 =
+	// automatically select min_order when
+	// adaptive_scheme_next_order is used)
+	variable_int_pt->set_order(0);
+
+	std::cout << "Source at "
+		  << source_node_x[0] << " " << source_node_x[1] << std::endl;
+
+	do
+	  {
+	    // Copy the previous result into another vector (for comparison later)
+	    for(unsigned l=0; l<n_element_node; l++)
+	      temp_bm_prev[l] = temp_bm[l];
+
+	    // Move to next adaptive scheme order
+	    variable_int_pt->adaptive_scheme_next_order();
+	    adapt_order = variable_int_pt->order();
+
+	    // Loop over the knots used in this quadrature order
+	    for(unsigned kn=0; kn<variable_int_pt->nweight(); kn++)
+	      {
+
+		// Set up vectors to store data
+		double J(0.0);
+		Vector<double> s(el_dim,0.0),
+		  interpolated_x(node_dim,0.0),
+		  normal(node_dim,0.0);
+
+		// Get the local coordinate at this knot
+		for(unsigned j=0; j<el_dim; j++)
+		  s[j] = variable_int_pt->knot(kn,j);
+
+		// Get the derivatives of the shape and test functions
+		Shape psi(n_element_node), test(n_element_node);
+		J = shape_and_test(s,psi,test);
+
+		// Compute the normal vector
+		// ??ds not sure how this works - might be far too slow
+		outer_unit_normal(s,normal);
+
+		// Get values of x (global coordinate)
+		for(unsigned j=0; j<el_dim; j++)
+		  for(unsigned l=0; l<n_element_node; l++)
+		    interpolated_x[j] += nodal_position(l,j)*psi[l];
+
+		// Calculate dGreendn between source node and integration point
+		double dgreendn = green_normal_derivative
+		  (interpolated_x,source_node_x,normal);
+
+		// Loop over test functions (i.e. local nodes)
+		for(unsigned l=0; l<n_element_node; l++)
+		  {
+		    // Add contribution to integral (note dGreendn is
+		    // negative in our definition). See write up for
+		    // details.
+		    temp_bm[l] = -dgreendn * test(l)
+		      * J * variable_int_pt->weight(kn);
+		  }
+	      }
+
+	    // Get the worst case difference between the the results
+	    // from the last two quadrature schemes tried.
+	    Vector<double> diff_bm(n_element_node);
+	    for(unsigned l=0; l<n_element_node; l++)
+	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
+	    diff = *max_element(diff_bm.begin(),diff_bm.end());
+
+	    std::cout << "Order = " << adapt_order << ", error = " << diff;
+	    for(unsigned l=0; l<n_element_node; l++)
+	      std::cout << " value[" << l << "] = " << temp_bm[l];
+	    std::cout << std::endl;
+	  }
+	while(((diff>abstol) && (adapt_order<max_order))
+	      || (adapt_order==min_order));
+	// Repeat unless the difference is small (i.e. quadrature has converged)
+	// terminate if max_order has been reached
+	// continue anyway if we are still on the first order.
+
+	std::cout << std::endl;
+
+	// If we hit the order limit without being accurate enough give an error
+	if (adapt_order >= max_order)
+	  {
+	    throw OomphLibError("Quadrature order not high enough.",
+				"....",
+				OOMPH_EXCEPTION_LOCATION);
+	  }
+
+	// When done add the values in the temp vector to the real boundary matrix
+	for(unsigned l=0; l<n_element_node; l++)
+	  boundary_matrix(l,i_sn) += temp_bm[l];
+
+      } // End of loop over source nodes
+
+  } // End of function
+
 
   //=======================================================================
   /// Not actually getting residuals - getting boundary element matrix but using
