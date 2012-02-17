@@ -7,7 +7,6 @@
 #include "../micromagnetics_element.cc"
 #include "./variable_quadrature.h"
 #include <functional>
-#include "../../gsl/gsl-1.9/integration/gsl_integration.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -226,62 +225,62 @@ namespace oomph
     return green_normal_derivative(x,x_sn,normal) * J * test(l);
   }
 
-  /// Get boundary element matrix contributions for this element using
-  /// QUADPACK routines (very very inefficient because doesn't
-  /// optimise for the fact that we have multiple test functions and
-  /// many many source nodes at each point).
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
-  fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix)
-    const
-  {
-    unsigned node_dim = nodal_dimension();
+  // /// Get boundary element matrix contributions for this element using
+  // /// QUADPACK routines (very very inefficient because doesn't
+  // /// optimise for the fact that we have multiple test functions and
+  // /// many many source nodes at each point).
+  // template<class ELEMENT>
+  // void MicromagFaceElement<ELEMENT>::
+  // fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix)
+  //   const
+  // {
+  //   unsigned node_dim = nodal_dimension();
 
-    // Loop over test functions
-    for(unsigned l=0; l<nnode(); l++)
-      {
-	// Loop over source nodes
-	for(unsigned i_sn=0; i_sn<boundary_mesh_pt()->nnode(); i_sn++)
-	  {
-	    //Get source node location
-	    Vector<double> x_sn(node_dim,0.0);
-	    boundary_mesh_pt()->node_pt(i_sn)->position(x_sn);
+  //   // Loop over test functions
+  //   for(unsigned l=0; l<nnode(); l++)
+  //     {
+  // 	// Loop over source nodes
+  // 	for(unsigned i_sn=0; i_sn<boundary_mesh_pt()->nnode(); i_sn++)
+  // 	  {
+  // 	    //Get source node location
+  // 	    Vector<double> x_sn(node_dim,0.0);
+  // 	    boundary_mesh_pt()->node_pt(i_sn)->position(x_sn);
 
-	    // Construct final function to integrate
-	    std::function<double(const std::vector<double>)>
-	      final_integrand = [x_sn,l](const std::vector<double> x)
-	      {return integrand(x,x_sn,l);};
-	    //??ds convert to function pt or whatever quadpack uses
+  // 	    // Construct final function to integrate
+  // 	    std::function<double(const std::vector<double>)>
+  // 	      final_integrand = [x_sn,l](const std::vector<double> x)
+  // 	      {return integrand(x,x_sn,l);};
+  // 	    //??ds convert to function pt or whatever quadpack uses
 
-	    // QUADPACK it and add to boundary matrix
-	    double abs_error_tol = 1e-8, rel_error_tol = 0.01; // errors picked at semi-random
-	    int subinterval_limit = 50;
-	    gsl_integration_workspace* workspace_pt =
-	      new gsl_integration_workspace[subinterval_limit+10];
-	    //??ds size picked at random
-	    double* result_pt, *abserr_pt;
-	    gsl_function* final_integrand_pt = &final_integrand;
+  // 	    // QUADPACK it and add to boundary matrix
+  // 	    double abs_error_tol = 1e-8, rel_error_tol = 0.01; // errors picked at semi-random
+  // 	    int subinterval_limit = 50;
+  // 	    gsl_integration_workspace* workspace_pt =
+  // 	      new gsl_integration_workspace[subinterval_limit+10];
+  // 	    //??ds size picked at random
+  // 	    double* result_pt, *abserr_pt;
+  // 	    gsl_function* final_integrand_pt = &final_integrand;
 
-	    // Using a very general routine for now
-	    gsl_integration_qags(final_integrand_pt,
-				 -1,+1, // a and b (endpoints)
-				 abs_error_tol, rel_error_tol, // error tolerences
-				 subinterval_limit, // max number of subintervals allowed
-				 workspace_pt,
-				 result_pt, // result out
-				 abserr_pt // Error estimate out
-				 );
-	    // std::cout << *abserr_pt << std::endl;
+  // 	    // Using a very general routine for now
+  // 	    gsl_integration_qags(final_integrand_pt,
+  // 				 -1,+1, // a and b (endpoints)
+  // 				 abs_error_tol, rel_error_tol, // error tolerences
+  // 				 subinterval_limit, // max number of subintervals allowed
+  // 				 workspace_pt,
+  // 				 result_pt, // result out
+  // 				 abserr_pt // Error estimate out
+  // 				 );
+  // 	    // std::cout << *abserr_pt << std::endl;
 
-	    delete[] workspace_pt;
+  // 	    delete[] workspace_pt;
 
-	    boundary_matrix(l,i_sn) += *result_pt;
+  // 	    boundary_matrix(l,i_sn) += *result_pt;
 
-	  }
+  // 	  }
 
-      } // End of loop over test functions
+  //     } // End of loop over test functions
 
-  } //End of function
+// } //End of function
 
   // // ??ds Not yet done
   // template<class ELEMENT>
@@ -502,7 +501,7 @@ namespace oomph
 		    // Add contribution to integral (note dGreendn is
 		    // negative in our definition). See write up for
 		    // details.
-		    temp_bm[l] = -dgreendn * test(l)
+		    temp_bm[l] -= dgreendn * test(l)
 		      * J[i] * variable_int_pt->weight(kn);
 		  }
 	      }
@@ -514,7 +513,7 @@ namespace oomph
 	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
 	    diff = *max_element(diff_bm.begin(),diff_bm.end());
 
-	    std::cout << "Order = " << adapt_order << ", error = " << diff;
+	    std::cout << "Order = " << adapt_order << ", absolute error = " << diff;
 	    for(unsigned l=0; l<n_element_node; l++)
 	      std::cout << " value[" << l << "] = " << temp_bm[l];
 	    std::cout << std::endl;
@@ -557,7 +556,7 @@ namespace oomph
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
 
-    // Cast pointer to the Clenshaw-Curtis integration scheme
+    // Cast pointer to the final integration scheme
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
@@ -568,109 +567,160 @@ namespace oomph
       static_cast<VariableGaussLegendre*>(integral_pt());
 #endif
 
-    // Set parameters for adaptive integration
-    unsigned max_order = variable_int_pt->max_order();
-    unsigned min_order = variable_int_pt->min_order();
-    double abstol = 1e-3;
-
     // Start of adaptive integration scheme
     //====================================
 
-    std::cout << "Element nodes at";
-    for(unsigned l=0; l<n_element_node; l++)
-      std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")";
-    std::cout << std::endl;
+    // Set parameters for adaptive integration
+    unsigned max_order = variable_int_pt->max_order();
+    unsigned min_order = variable_int_pt->min_order();
+    double reltol = 1e-14, reldiff;
 
     // Loop over all source nodes on the boundary
     unsigned n_boundary_node = boundary_mesh_pt()->nnode();
     for(unsigned i_sn=0; i_sn<n_boundary_node; i_sn++)
       {
-  	// Get coordinates of source node
-  	Vector<double> source_node_x(node_dim,0.0);
-  	boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
 
+	// Get coordinates of source node
+	Vector<double> source_node_x(node_dim,0.0);
+	boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
 
-	// Use an adaptive scheme: calculate at two lowest orders allowed
-	// and compare. If they are close accept otherwise calculate the next
-	// and compare... etc.
-	unsigned adapt_order;
-	double diff;
-	Vector<double> temp_bm_prev(n_element_node,0.0),
-	  temp_bm(n_element_node,5.0);
-
-	// Reset the quadrature scheme order (magic number: 0 =
-	// automatically select min_order when
-	// adaptive_scheme_next_order is used)
+	// Reset the quadrature scheme order (magic number: 0 = automatically
+	// select min_order when adaptive_scheme_next_order is used)
 	variable_int_pt->set_order(0);
+
+	std::cout << "Element nodes at";
+	for(unsigned l=0; l<n_element_node; l++)
+	  std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")    ";
 
 	std::cout << "Source at "
 		  << source_node_x[0] << " " << source_node_x[1] << std::endl;
 
+
+	// Use an adaptive scheme: calculate at two lowest orders allowed and
+	// compare. If they are close accept otherwise calculate the next and
+	// compare... etc.
+	unsigned adapt_order;
+	Vector<double> temp_bm_prev(n_element_node,0.0), temp_bm(n_element_node,5000);
 	do
 	  {
 	    // Copy the previous result into another vector (for comparison later)
+	    // and initialise current result vector.
 	    for(unsigned l=0; l<n_element_node; l++)
-	      temp_bm_prev[l] = temp_bm[l];
+	      {
+		temp_bm_prev[l] = temp_bm[l];
+		temp_bm[l] = 0.0;
+	      }
 
 	    // Move to next adaptive scheme order
 	    variable_int_pt->adaptive_scheme_next_order();
 	    adapt_order = variable_int_pt->order();
 
-	    // Loop over the knots used in this quadrature order
-	    for(unsigned kn=0; kn<variable_int_pt->nweight(); kn++)
+	    // // Loop over the knots used in this quadrature order
+	    // for(unsigned kn=0; kn<variable_int_pt->nweight(); kn++)
+	    //   {
+	    // 	// Get the local coordinate at this knot
+	    // 	  Vector<double> s(el_dim,0.0);
+	    // 	for(unsigned j=0; j<el_dim; j++)
+	    // 	  s[j] = variable_int_pt->knot(kn,j);
+
+	    // 	// Get the shape and test functions
+	    // 	Shape psi(n_element_node), test(n_element_node);
+	    // 	double J = shape_and_test(s,psi,test);
+
+	    // 	// Compute the normal vector
+	    // 	//??ds not sure how this works - might not work for curved boundaries?
+	    // 	Vector<double> normal(node_dim,0.0);
+	    // 	outer_unit_normal(s,normal);
+
+	    // 	// Get values of x (global coordinate)
+	    // 	Vector<double> interpolated_x(node_dim,0.0);
+	    // 	for(unsigned j=0; j<el_dim; j++)
+	    // 	  {
+	    // 	    for(unsigned l=0; l<n_element_node; l++)
+	    // 	      interpolated_x[j] += nodal_position(l,j)*psi[l];
+	    // 	  }
+
+	    // 	// Calculate dGreendn between source node and integration point
+	    // 	double dgreendn = green_normal_derivative(interpolated_x,source_node_x,normal);
+
+	    // 	// Loop over test functions (i.e. local nodes)
+	    // 	for(unsigned l=0; l<n_element_node; l++)
+	    // 	  {
+	    // 	    // Add contribution to integral (note dGreendn is negative
+	    // 	    // in our definition). See write up for details.
+	    // 	    temp_bm[l] -= dgreendn * test(l)
+	    // 	      * J * variable_int_pt->weight(kn);
+	    // 	  }
+	    //   }
+
+	    //Loop over the integration points
+	    double n_knot = variable_int_pt->nweight();
+	    for(unsigned kn=0;kn<n_knot;kn++)
 	      {
+		// Get values of s (local coordinate)
+		Vector<double> s(el_dim,0.0);
+		for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(kn,j);}
 
-		// Set up vectors to store data
-		double J(0.0);
-		Vector<double> s(el_dim,0.0),
-		  interpolated_x(node_dim,0.0),
-		  normal(node_dim,0.0);
+		//Get the integral weight
+		double w = integral_pt()->weight(kn);
 
-		// Get the local coordinate at this knot
-		for(unsigned j=0; j<el_dim; j++)
-		  s[j] = variable_int_pt->knot(kn,j);
-
-		// Get the derivatives of the shape and test functions
+		//Call the derivatives of the shape and test functions
 		Shape psi(n_element_node), test(n_element_node);
-		J = shape_and_test(s,psi,test);
+		double J = shape_and_test(s,psi,test);
 
-		// Compute the normal vector
-		// ??ds not sure how this works - might be far too slow
-		outer_unit_normal(s,normal);
+		//Premultiply the weights and the Jacobian
+		double W = w*J;
 
 		// Get values of x (global coordinate)
-		for(unsigned j=0; j<el_dim; j++)
-		  for(unsigned l=0; l<n_element_node; l++)
-		    interpolated_x[j] += nodal_position(l,j)*psi[l];
-
-		// Calculate dGreendn between source node and integration point
-		double dgreendn = green_normal_derivative
-		  (interpolated_x,source_node_x,normal);
-
-		// Loop over test functions (i.e. local nodes)
+		Vector<double> interpolated_x(node_dim,0.0);
 		for(unsigned l=0; l<n_element_node; l++)
 		  {
-		    // Add contribution to integral (note dGreendn is
-		    // negative in our definition). See write up for
-		    // details.
-		    temp_bm[l] = -dgreendn * test(l)
-		      * J * variable_int_pt->weight(kn);
+		    for(unsigned i=0; i<node_dim; i++)
+		      interpolated_x[i] += nodal_position(l,i)*psi[l];
 		  }
-	      }
 
-	    // Get the worst case difference between the the results
+		// Compute the normal vector
+		//??ds not sure how this works - might not work for curved boundaries?
+		Vector<double> normal(node_dim,0.0);
+		outer_unit_normal(s,normal);
+
+		// Calculate dGreendn between source node and integration point
+		double dgreendn = green_normal_derivative(interpolated_x,source_node_x,normal);
+
+		// Loop over test functions, i.e. local/target nodes, adding contributions
+		for(unsigned l=0; l<n_element_node; l++)
+		  {
+		    // Add contribution to integral (note dGreendn is negative in our definition)
+		    // See write up for details.
+		    temp_bm[l] -= dgreendn * test(l) * W;
+		    // boundary_matrix(l,i_sn) += 1;
+		  }
+
+	      }
+	    /////////////////////////////////////////////////////////////
+
+	    // Get the differences between the the results
 	    // from the last two quadrature schemes tried.
 	    Vector<double> diff_bm(n_element_node);
 	    for(unsigned l=0; l<n_element_node; l++)
 	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
-	    diff = *max_element(diff_bm.begin(),diff_bm.end());
 
-	    std::cout << "Order = " << adapt_order << ", error = " << diff;
+	    // Get the worst case error (the maximum) and calculate the relative
+	    // error (divide error by the appropriate integral value).
+	    Vector<double>::iterator worst_error_it
+	      = max_element(diff_bm.begin(),diff_bm.end());
+	    reldiff = *worst_error_it
+	      /temp_bm[worst_error_it - diff_bm.begin()];
+	    //??ds need to put in something special to handle zero integrals
+
+	    // Dump output
+	    std::cout << "Order = " << adapt_order << ", relative error = " << reldiff;
 	    for(unsigned l=0; l<n_element_node; l++)
 	      std::cout << " value[" << l << "] = " << temp_bm[l];
 	    std::cout << std::endl;
+
 	  }
-	while(((diff>abstol) && (adapt_order<max_order))
+	while(((reldiff>reltol) && (adapt_order<max_order))
 	      || (adapt_order==min_order));
 	// Repeat unless the difference is small (i.e. quadrature has converged)
 	// terminate if max_order has been reached
@@ -678,6 +728,7 @@ namespace oomph
 
 	std::cout << std::endl;
 
+	//??ds disable for some testing
 	// If we hit the order limit without being accurate enough give an error
 	if (adapt_order >= max_order)
 	  {
