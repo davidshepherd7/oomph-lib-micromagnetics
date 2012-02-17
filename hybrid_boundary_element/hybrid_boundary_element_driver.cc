@@ -133,7 +133,7 @@ namespace oomph
 	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT> *>(face_mesh_pt()->element_pt(i));
 
 	// Set boundary mesh pointer in element
-	elem_pt->set_mesh_pt(face_mesh_pt());
+	elem_pt->set_boundary_mesh_pt(face_mesh_pt());
       }
 
     // Setup equation numbering scheme
@@ -465,21 +465,22 @@ int main(int argc, char* argv[])
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout.precision(16);
 
-  //  for(unsigned order=2; order<max_order; order++)
+  // for(unsigned order=2; order<max_order; order++)
   int order = -1;
     {
-      // Set the integration scheme order
-      //  quadrature_scheme.set_order(order);
 
-      // Create + start timer
-      double start_time = TimingHelpers::timer();
+      // // Set the integration scheme order
+      // quadrature_scheme.set_order(order);
+
+      // // Create + start timer
+      // double start_time = TimingHelpers::timer();
 
       // Get the boundary matrix
       problem.get_boundary_matrix();
 
-      // output timer result
-      double stop_time = TimingHelpers::timer();
-      std::cout << order << " " << stop_time - start_time << std::endl;
+      // // output timer result
+      // double stop_time = TimingHelpers::timer();
+      // std::cout << order << " " << stop_time - start_time << std::endl;
 
       // dump for testing
       std::ofstream matrix_file;

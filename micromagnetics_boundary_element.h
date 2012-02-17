@@ -6,12 +6,17 @@
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
 #include "./variable_quadrature.h"
+#include <functional>
+#include "../../gsl/gsl-1.9/integration/gsl_integration.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
 
 namespace oomph
 {
+
+  double integrand(const std::vector<double> s, const std::vector<double> x_sn,
+		   const unsigned l) const;
 
   //===========================================================================
   ///
@@ -67,6 +72,7 @@ namespace oomph
 						 DenseMatrix<double> &boundary_matrix)
     {
       // fill_in_be_contribution(boundary_matrix);
+      // fill_in_be_contribution_functionals(boundary_matrix);
       fill_in_be_contribution_adaptive(boundary_matrix);
       // fill_in_be_contribution_quadpack(boundary_matrix);
     }
@@ -103,10 +109,11 @@ namespace oomph
 				   const Vector<double>& n) const;
 
     /// Const access function for mesh pointer
-    inline Mesh* mesh_pt() const {return Mesh_pt;}
+    inline Mesh* boundary_mesh_pt() const {return Boundary_mesh_pt;}
 
     /// Set function for mesh pointer
-    inline void set_mesh_pt(Mesh* mesh_pointer) {Mesh_pt = mesh_pointer;}
+    inline void set_boundary_mesh_pt(Mesh* boundary_mesh_pointer)
+    {Boundary_mesh_pt = boundary_mesh_pointer;}
 
   protected:
 
@@ -150,13 +157,14 @@ namespace oomph
     /// Add the element's contribution to the boundary element matrix using QUADPACK algorithms.
     void fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix) const;
 
+    // void fill_in_be_contribution_functionals(DenseMatrix<double> &boundary_matrix) const;
+
+    // void basic_quadrature(Vector<double> residual_out,
+    // 			  const std::vector< std::function<double(std::vector<double>)> > integrand_fns) const;
+
     /// \short Pointer to the boundary mesh (needed to access nodes
     /// outside of this element for calculation of boundary matrix).
-    Mesh* Mesh_pt;
-
-    /// The dimension of the element surface/volume (i.e. one less
-    /// than the dimension of the nodes.
-    unsigned Node_dim;
+    Mesh* Boundary_mesh_pt;
 
     /// The index at which phi_1 is stored
     unsigned Phi_1_index_micromag;
@@ -186,21 +194,176 @@ namespace oomph
     // to its nodes (by referring to the appropriate nodes in the bulk
     // element), etc.
     bulk_el_pt->build_face_element(face_index,this);
+  }
 
-    // Extract the nodal dimension of the problem from the dimension of
-    // the first (face) node.
-    Node_dim = this->node_pt(0)->ndim();
+
+  // Construct integrand for use in QUADPACK functions
+  template<class ELEMENT>
+  double MicromagFaceElement<ELEMENT>::
+  integrand(const std::vector<double> s, const std::vector<double> x_sn, const unsigned l) const
+  {
+    // Get some consts
+    unsigned n_node = nnode(), node_dim = nodal_dimension();
+
+    // Get Jacobian and shape and test functions
+    Shape psi(n_node), test(n_node);
+    double J = shape_and_test(s,psi,test);
+
+    // Get x
+    Vector<double> x(node_dim,0.0);
+    for(unsigned j=0; j<nodal_dimension(); j++)
+      for(unsigned l=0; l<nnode(); l++)
+	x += nodal_position(l,j)*psi[l];
+
+    // Get normal
+    Vector<double> normal(node_dim,0.0);
+    outer_unit_normal(s,normal);
+
+    // Combine everything
+    return green_normal_derivative(x,x_sn,normal) * J * test(l);
   }
 
   /// Get boundary element matrix contributions for this element using
-  /// QUADPACK routines (probably very inefficient).
+  /// QUADPACK routines (very very inefficient because doesn't
+  /// optimise for the fact that we have multiple test functions and
+  /// many many source nodes at each point).
   template<class ELEMENT>
   void MicromagFaceElement<ELEMENT>::
   fill_in_be_contribution_quadpack(DenseMatrix<double> &boundary_matrix)
     const
   {
+    unsigned node_dim = nodal_dimension();
 
-  }
+    // Loop over test functions
+    for(unsigned l=0; l<nnode(); l++)
+      {
+	// Loop over source nodes
+	for(unsigned i_sn=0; i_sn<boundary_mesh_pt()->nnode(); i_sn++)
+	  {
+	    //Get source node location
+	    Vector<double> x_sn(node_dim,0.0);
+	    boundary_mesh_pt()->node_pt(i_sn)->position(x_sn);
+
+	    // Construct final function to integrate
+	    std::function<double(const std::vector<double>)>
+	      final_integrand = [x_sn,l](const std::vector<double> x)
+	      {return integrand(x,x_sn,l);};
+	    //??ds convert to function pt or whatever quadpack uses
+
+	    // QUADPACK it and add to boundary matrix
+	    double abs_error_tol = 1e-8, rel_error_tol = 0.01; // errors picked at semi-random
+	    int subinterval_limit = 50;
+	    gsl_integration_workspace* workspace_pt =
+	      new gsl_integration_workspace[subinterval_limit+10];
+	    //??ds size picked at random
+	    double* result_pt, *abserr_pt;
+	    gsl_function* final_integrand_pt = &final_integrand;
+
+	    // Using a very general routine for now
+	    gsl_integration_qags(final_integrand_pt,
+				 -1,+1, // a and b (endpoints)
+				 abs_error_tol, rel_error_tol, // error tolerences
+				 subinterval_limit, // max number of subintervals allowed
+				 workspace_pt,
+				 result_pt, // result out
+				 abserr_pt // Error estimate out
+				 );
+	    // std::cout << *abserr_pt << std::endl;
+
+	    delete[] workspace_pt;
+
+	    boundary_matrix(l,i_sn) += *result_pt;
+
+	  }
+
+      } // End of loop over test functions
+
+  } //End of function
+
+  // // ??ds Not yet done
+  // template<class ELEMENT>
+  // void MicromagFaceElement<ELEMENT>::
+  // basic_quadrature(Vector<double> integral_out,
+  // 		   const std::function<double(std::vector<double>)> integrand_fn)
+  //   const
+  // {
+  //   // Get dimensions
+  //   const unsigned el_dim = dim(), node_dim = nodal_dimension();
+
+  //   // Get the quadrature scheme
+  //   Integral* quadrature_pt = integral_pt();
+
+  //   // Get the number of knots
+  //   const unsigned n_knot = quadrature_pt->nweight();
+
+  //   // Loop over the knots add contribution from each
+  //   for(unsigned kn=0; kn<n_knot; kn++)
+  //     {
+  // 	// Get local coordinate
+  // 	Vector<double> s(el_dim,0.0); //??ds fix to use element_dim?
+  // 	for(unsigned j=0; j<s.size(); j++)
+  // 	  s[j] = quadrature_pt->knot(kn,j);
+
+  // 	// Get test and shape functions and Jacobian at this knot
+  // 	Shape psi(nnode()), test(nnode());
+  // 	double Jacobian = shape_and_test(s,psi,test);
+
+  // 	// Get global coordinate
+  // 	Vector<double> x(node_dim,0.0);
+  // 	for(unsigned j=0; j<x.size(); j++)
+  // 	  {
+  // 	    for(unsigned l=0; l<nnode(); l++)
+  // 	      x[j] += nodal_position(l,j)*psi[l];;
+  // 	  }
+
+  // 	// Evaluate this integrand at this knot then multiply by weight and Jacobian
+  // 	double evaluated_integrand = (integrand_fns[i])(x)
+  // 	  * Jacobian * quadrature_pt->weight(kn);
+
+  // 	// Loop over the list of source nodes
+  // 	for(unsigned i_sn=0; i_sn<n_sn; i_sn++)
+  // 	  {
+  // 	    // Loop over test functions and add contribution to each node
+  // 	    for(unsigned l=0; l<nnode(); l++)
+  // 	      integral_out[i_sn] += evaluated_integrand * test(l);
+  // 	  }
+
+  //     } // End of loop over knots
+
+  // }
+
+  // template<class ELEMENT>
+  // void MicromagFaceElement<ELEMENT>::
+  // fill_in_be_contribution_functionals(DenseMatrix<double> &boundary_matrix)
+  //   const
+  // {
+  //   // Get the number of source nodes present
+  //   unsigned n_sn = boundary_mesh_pt()->nnode();
+
+  //   // Get normal unit vector
+  //   unsigned node_dim = nodal_dimension();
+  //   Vector<double> normal(node_dim,0.0);
+  //   outer_unit_normal(s,normal);
+
+  //   // Create the vector of integrand functions (??ds optimise better?)
+  //   std::function< double(std::vector<double>,
+  // 			  std::vector<double>)
+  // 		   > integrand;
+  // 	// Construct the function
+  //   integrand[i_sn] = [x_sn](const Vector<double> x)
+  //     {
+  // 	// Return the integrand
+  // 	return green_normal_derivative(x, x_sn, normal);
+  //     }
+
+  //   // Call quadrature scheme
+  //   Vector<double> output(235123,0.0);
+  //   basic_quadrature(output,integrands);
+
+  //   // Add results to boundary element matrix
+
+  // }
+
 
   /// Get boundary element matrix contributions for this element using
   /// an adaptive scheme.
@@ -210,7 +373,7 @@ namespace oomph
     const
   {
     // Find out dimension of element
-    const unsigned el_dim = Node_dim - 1;
+    const unsigned el_dim = dim(), node_dim = nodal_dimension();
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
@@ -239,8 +402,6 @@ namespace oomph
       std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")";
     std::cout << std::endl;
 
-
-
     // Pre-calculate everything at these points for the highest order:
     variable_int_pt->set_order(max_order);
 
@@ -250,8 +411,8 @@ namespace oomph
     // Set up vectors to store data at all knots
     Vector<double> J(n_knot_max,0.0);
     Vector<Vector<double> > s(n_knot_max,Vector<double>(el_dim,0.0)),
-      interpolated_x(n_knot_max,Vector<double>(Node_dim,0.0)),
-      normal(n_knot_max,Vector<double>(Node_dim,0.0));
+      interpolated_x(n_knot_max,Vector<double>(node_dim,0.0)),
+      normal(n_knot_max,Vector<double>(node_dim,0.0));
 
     //??ds how can I make vectors of shape functions work?
     // Vector<Shape> psiv(n_knot_max, Shape(n_element_node)),
@@ -281,12 +442,12 @@ namespace oomph
       }
 
     // Loop over all source nodes on the boundary
-    unsigned n_boundary_node = mesh_pt()->nnode();
+    unsigned n_boundary_node = boundary_mesh_pt()->nnode();
     for(unsigned i_sn=0; i_sn<n_boundary_node; i_sn++)
       {
   	// Get coordinates of source node
-  	Vector<double> source_node_x(Node_dim,0.0);
-  	mesh_pt()->node_pt(i_sn)->position(source_node_x);
+  	Vector<double> source_node_x(node_dim,0.0);
+  	boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
 
 	// Use an adaptive scheme: calculate at two lowest orders allowed
 	// and compare. If they are close accept otherwise calculate the next
@@ -393,7 +554,7 @@ namespace oomph
     const
   {
     // Find out dimension of element
-    const unsigned el_dim = Node_dim - 1;
+    const unsigned el_dim = dim(), node_dim = nodal_dimension();
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
@@ -424,10 +585,10 @@ namespace oomph
     	double W = w*J;
 
     	// Get values of x (global coordinate)
-    	Vector<double> interpolated_x(Node_dim,0.0);
+    	Vector<double> interpolated_x(node_dim,0.0);
     	for(unsigned l=0; l<n_element_node; l++)
     	  {
-    	    for(unsigned i=0; i<Node_dim; i++)
+    	    for(unsigned i=0; i<node_dim; i++)
     	      interpolated_x[i] += nodal_position(l,i)*psi[l];
     	  }
 
@@ -436,16 +597,16 @@ namespace oomph
 
     	// Compute the normal vector
     	//??ds not sure how this works - might not work for curved boundaries?
-    	Vector<double> normal(Node_dim,0.0);
+    	Vector<double> normal(node_dim,0.0);
     	outer_unit_normal(s,normal);
 
     	// Loop over ALL nodes on in boundary mesh (except the current ones?) (source_node)
-    	unsigned n_boundary_node = mesh_pt()->nnode();
+    	unsigned n_boundary_node = boundary_mesh_pt()->nnode();
     	for(unsigned i_sn=0; i_sn<n_boundary_node; i_sn++)
     	  {
     	    // Get coordinates of source node
-    	    Vector<double> source_node_x(Node_dim,0.0);
-    	    mesh_pt()->node_pt(i_sn)->position(source_node_x);
+    	    Vector<double> source_node_x(node_dim,0.0);
+    	    boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
 
     	    // // Debugguging output:
     	    // std::cout << std::endl;
@@ -480,6 +641,8 @@ namespace oomph
 			  const Vector<double>& y,
 			  const Vector<double>& n) const
   {
+    // Get dimensions
+    const unsigned node_dim = nodal_dimension();
 
 #ifdef PARANOID
     //??ds check that n is a unit vector
@@ -487,7 +650,7 @@ namespace oomph
 
     // Calculate the distance r from x to y.
     double r(0.0), r_sq(0.0);
-    for(unsigned i=0; i<Node_dim; i++)
+    for(unsigned i=0; i<node_dim; i++)
       r_sq += pow((x[i] - y[i]),2);
 
     r = sqrt(r_sq);
@@ -504,8 +667,8 @@ namespace oomph
       }
 
     // Calculate the unit vector in direction r = x - y
-    Vector<double> r_unit(Node_dim,0.0);
-    for(unsigned i=0; i<Node_dim; i++)
+    Vector<double> r_unit(node_dim,0.0);
+    for(unsigned i=0; i<node_dim; i++)
       r_unit[i] = (x[i] - y[i])/r;
 
 
@@ -515,7 +678,7 @@ namespace oomph
 
     // Calculate dot product of n with the unit vector in direction r.
     double ndotr(0.0);
-    for(unsigned i=0; i<Node_dim; i++)
+    for(unsigned i=0; i<node_dim; i++)
       ndotr += r_unit[i]*n[i];
 
     // std::cout << "ndotr = " << ndotr << std::endl;
