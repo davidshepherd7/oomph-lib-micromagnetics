@@ -3,7 +3,7 @@
 // Test chosen integration scheme on a variety of functions with known analytic values.
 // C++0x only (used lambda functions to simplify defining the long list of testing functions).
 
-#include "../variable_quadrature.h"
+#include "../../variable_quadrature.h"
 #include <functional>
 #include <cmath>
 
@@ -38,11 +38,14 @@ namespace oomph
   {
     std::function<double(double)> Function;
     double Answer;
+    std::string Label;
 
-    TestingFn(const std::function<double(double)> &function, const double &answer)
+    TestingFn(const std::function<double(double)> &function,
+	      const double &answer, const std::string label)
     {
       Function = function;
       Answer = answer;
+      Label = label;
     }
   };
 
@@ -57,29 +60,34 @@ int main()
   std::vector<TestingFn > function_list =
     {
       // Some very simple functions:
-      TestingFn([] (double x) {return 1.0;}, 2.0),
-      TestingFn([] (double x) {return x;}, 0.0),
+      TestingFn([] (double x) {return 1.0;}, 2.0, "1.0"),
+      TestingFn([] (double x) {return x;}, 0.0, "x"),
 
       // Functions from Trefethen2008:
-      TestingFn([] (double x) {return pow(x,20);}, 2.0/21),
-      TestingFn([] (double x) {return exp(x);}, 2.3504023872876029138),
-      TestingFn([] (double x) {return exp(-pow(x,2));}, 1.4936482656248540508),
-      TestingFn([] (double x) {return 1/(1 + 16*x*x);}, 0.66290883183401623253),
-      TestingFn([] (double x) {return exp(-1/(x*x));}, 0.17814771178156069019),
-      TestingFn([] (double x) {return fabs(x*x*x);}, 0.5),
+      TestingFn([] (double x) {return pow(x,20);}, 2.0/21, "x^20"),
+      TestingFn([] (double x) {return exp(x);}, 2.3504023872876029138, "exp(x)"),
+      TestingFn([] (double x) {return exp(-pow(x,2));}, 1.4936482656248540508, "exp(-x^2)"),
+      TestingFn([] (double x) {return 1/(1 + 16*x*x);},
+		0.66290883183401623253, "1/(1 + 16 x^2)"),
+      TestingFn([] (double x) {return exp(-1/(x*x));},
+		0.17814771178156069019, "exp(-1/(x^2))"),
+      TestingFn([] (double x) {return fabs(x*x*x);}, 0.5, "|x^3|"),
 
       // Functions related to the hybrid FEM/BEM for micromagnetics
       // =================================================================
 
       // 1/r
-      TestingFn([] (double x) {return 1/fabs(x-2);}, 1.0986122886681096914),
-      TestingFn([] (double x) {return 1/fabs(x-5);}, 0.40546510810816438198),
-      TestingFn([] (double x) {return 1/fabs(x-20);}, 0.10008345855698253649),
+      TestingFn([] (double x) {return 1/fabs(x-2);}, 1.0986122886681096914, "1/|x-2|"),
+      TestingFn([] (double x) {return 1/fabs(x-5);}, 0.40546510810816438198, "1/|x-5|"),
+      TestingFn([] (double x) {return 1/fabs(x-20);}, 0.10008345855698253649, "1/|x-20|"),
 
       // 1/(r^2)
-      TestingFn([] (double x) {return 1/pow(fabs(x-2),2);}, 0.66666666666666666667),
-      TestingFn([] (double x) {return 1/pow(fabs(x-5),2);}, 0.083333333333333333333),
-      TestingFn([] (double x) {return 1/pow(fabs(x-20),2);}, 0.0050125313283208020050),
+      TestingFn([] (double x) {return 1/pow(fabs(x-2),2);},
+		0.6666666666666666666, "1/|x-2|^2"),
+      TestingFn([] (double x) {return 1/pow(fabs(x-5),2);},
+		0.083333333333333333333, "1/|x-5|^2"),
+      TestingFn([] (double x) {return 1/pow(fabs(x-20),2);},
+		0.0050125313283208020050, "1/|x-20|^2"),
     };
 
   // Create a list of integration methods to test:
@@ -87,6 +95,9 @@ int main()
   integration_methods[0] = new VariableGaussLegendre();
   integration_methods[1] = new VariableFejerSecond();
   integration_methods[2] = new VariableClenshawCurtis();
+
+  // The highest order available:
+  unsigned max_order = 50;
 
   // Loop over the integration methods
   for(unsigned int_meth=0; int_meth<integration_methods.size(); int_meth++)
@@ -100,15 +111,21 @@ int main()
       char filename[100]; sprintf(filename,"results/integration_method_%u",int_meth);
       outfile.open(filename);
 
+      // Output list of function labels as first line of file
+      outfile << "\"order\" ";
+      for(unsigned i=0; i<function_list.size(); i++)
+	outfile << "\"" << function_list[i].Label << "\" ";
+      outfile << std::endl;
+
       // Loop over orders of the integration scheme
-      for(unsigned k=0; k<50; k++)
+      for(unsigned k=0; k<=max_order; k++)
 	{
 	  integration_methods[int_meth]->set_order(k);
 
 	  outfile << k << " ";
 
 	  // Calculate each of th integrals using this method and output the error
-	  for(unsigned i=8; i<function_list.size(); i++)
+	  for(unsigned i=0; i<function_list.size(); i++)
 	    {
 	      double integral_value =
 		integrate_function_1D(function_list[i].Function, *integration_methods[int_meth]);
