@@ -2,25 +2,39 @@ Index: /home/david/oomph-lib/trunk/src/generic/shape.h
 ===================================================================
 --- /home/david/oomph-lib/trunk/src/generic/shape.h	(revision 253)
 +++ /home/david/oomph-lib/trunk/src/generic/shape.h	(working copy)
-@@ -122,6 +122,9 @@
- 
- public:
- 
-+ /// Empty constructor to allow use of vectors of shape functions
-+ Shape(){}
-+
-  /// Constructor for a single-index set of shape functions.
-  Shape(const unsigned &N) : Index1(N), Index2(1) 
-   {Allocated_storage = new double[N]; Psi = Allocated_storage;}
-@@ -131,7 +134,7 @@
+@@ -130,9 +130,20 @@
+  Shape(const unsigned &N, const unsigned &M) : Index1(N), Index2(M) 
    {Allocated_storage = new double[N*M]; Psi = Allocated_storage;}
  
-  /// Broken copy constructor
+- /// Broken copy constructor
 - Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
-+ //Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
++  /// Default constructor to allow vectors of Shapes
++  Shape() {}
  
++  /// Deep copy constructor
++  //??ds added by me, this is probably a bad thing to have in final oomph-lib
++  //code but it is needed to use vector.push_back with Shapes.
++  Shape(const Shape &shape) : Index1(shape.Index1), Index2(shape.Index2)
++  {
++    Allocated_storage = new double[Index1*Index2];
++    Psi = Allocated_storage;
++    for(unsigned i=0; i<Index1*Index2; i++)
++      Psi[i] = shape.Psi[i];
++  }
++
   /// The assignment operator does a shallow copy 
   /// (resets the pointer to the data)
+  void operator=(const Shape &shape)
+@@ -181,7 +192,8 @@
+   }
+ 
+  /// Destructor, clear up the memory allocated by the object
+- ~Shape() {delete[] Allocated_storage; Allocated_storage=0;}
++  ~Shape()
++  {delete[] Allocated_storage; Allocated_storage=0;}
+ 
+  /// Overload the bracket operator to provide access to values.
+  inline double & operator[](const unsigned &i) 
 Index: /home/david/oomph-lib/trunk/src/generic/Makefile.am
 ===================================================================
 --- /home/david/oomph-lib/trunk/src/generic/Makefile.am	(revision 253)
