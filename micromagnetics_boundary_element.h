@@ -380,7 +380,7 @@ namespace oomph
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
 
-    // Cast pointer to the Clenshaw-Curtis integration scheme
+    // Cast pointer to the Gauss-Legendre integration scheme
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
@@ -573,7 +573,7 @@ namespace oomph
     // Set parameters for adaptive integration
     unsigned max_order = variable_int_pt->max_order();
     unsigned min_order = variable_int_pt->min_order();
-    double reltol = 1e-14, reldiff;
+    double reltol = 1e-6, reldiff;
 
     // Loop over all source nodes on the boundary
     unsigned n_boundary_node = boundary_mesh_pt()->nnode();
@@ -588,13 +588,12 @@ namespace oomph
 	// select min_order when adaptive_scheme_next_order is used)
 	variable_int_pt->set_order(0);
 
-	std::cout << "Element nodes at";
-	for(unsigned l=0; l<n_element_node; l++)
-	  std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")    ";
+	// std::cout << "Element nodes at";
+	// for(unsigned l=0; l<n_element_node; l++)
+	//   std::cout << " (" << nodal_position(l,0) << "," << nodal_position(l,1) << ")    ";
 
-	std::cout << "Source at "
-		  << source_node_x[0] << " " << source_node_x[1] << std::endl;
-
+	// std::cout << "Source at "
+	// 	  << source_node_x[0] << " " << source_node_x[1] << std::endl;
 
 	// Use an adaptive scheme: calculate at two lowest orders allowed and
 	// compare. If they are close accept otherwise calculate the next and
@@ -713,11 +712,11 @@ namespace oomph
 	      /temp_bm[worst_error_it - diff_bm.begin()];
 	    //??ds need to put in something special to handle zero integrals
 
-	    // Dump output
-	    std::cout << "Order = " << adapt_order << ", relative error = " << reldiff;
-	    for(unsigned l=0; l<n_element_node; l++)
-	      std::cout << " value[" << l << "] = " << temp_bm[l];
-	    std::cout << std::endl;
+	    // // Dump output
+	    // std::cout << "Order = " << adapt_order << ", relative error = " << reldiff;
+	    // for(unsigned l=0; l<n_element_node; l++)
+	    //   std::cout << " value[" << l << "] = " << temp_bm[l];
+	    // std::cout << std::endl;
 
 	  }
 	while(((reldiff>reltol) && (adapt_order<max_order))
@@ -726,7 +725,7 @@ namespace oomph
 	// terminate if max_order has been reached
 	// continue anyway if we are still on the first order.
 
-	std::cout << std::endl;
+	// std::cout << std::endl;
 
 	//??ds disable for some testing
 	// If we hit the order limit without being accurate enough give an error

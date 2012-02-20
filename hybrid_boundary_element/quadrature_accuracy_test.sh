@@ -25,8 +25,8 @@ done
 
 # Compare each matrix with the previous (using octave)
 for (( i=2; i<=$max_i; i++ )); do
-    echo "max_diff($i) = max(max(abs(boundary_matrix_$i - boundary_matrix_$max_i)))" >> octave_script.m
-    echo "mean_diff($i) = mean(mean(abs(boundary_matrix_$i - boundary_matrix_$max_i)))" >> octave_script.m
+    echo "max_diff($i) = max(max(abs(boundary_matrix_$i - boundary_matrix_$max_i)));" >> octave_script.m
+    echo "mean_diff($i) = mean(mean(abs(boundary_matrix_$i - boundary_matrix_$max_i)));" >> octave_script.m
 done
 
 # load results from gauss-legendre quadrature

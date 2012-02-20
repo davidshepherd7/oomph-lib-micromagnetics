@@ -184,8 +184,12 @@ namespace oomph
     /// Get the next highest order
     inline void adaptive_scheme_next_order()
     {
-      // No reason for picking +5, just because...
-      Order += 5;
+      if(Order == 0)
+	Order = 2;
+      else
+      // No reason for picking
+	Order *= 2;
+
     }
   };
 

@@ -468,8 +468,8 @@ int main(int argc, char* argv[])
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout.precision(16);
 
-  // unsigned max_order = 30;
-  // for(unsigned order=2; order<max_order; order++)
+  // unsigned max_order = 50;
+  // for(unsigned order=2; order<=max_order; order++)
   //   {
 
   //   // Set the integration scheme order
@@ -498,7 +498,16 @@ int main(int argc, char* argv[])
 
   // For testing adaptive schemes:
   {
+
+    // Start timer
+    double start_time = TimingHelpers::timer();
+
+    // Get the matrix
     problem.get_boundary_matrix();
+
+    // output timer result
+    double stop_time = TimingHelpers::timer();
+    std::cout << stop_time - start_time << std::endl;
 
     // dump for testing
     std::ofstream matrix_file;
