@@ -12,8 +12,8 @@ using namespace oomph;
 namespace oomph
 {
 
-  // Integrate a given function using the given scheme
-  // (no check is made that the scheme integrates between -1 and +1, watch out.)
+  // Integrate a given function using the given scheme (no check is made that
+  // the scheme integrates between -1 and +1 - watch out).
   double integrate_function_1D(const std::function<double(double)> &function,
 			       const Integral &integral)
   {
@@ -36,10 +36,12 @@ namespace oomph
   // Structure to store the information about each testing function
   struct TestingFn
   {
+    // Stored values
     std::function<double(double)> Function;
     double Answer;
     std::string Label;
 
+    // Constructor
     TestingFn(const std::function<double(double)> &function,
 	      const double &answer, const std::string label)
     {
@@ -54,8 +56,8 @@ namespace oomph
 int main()
 {
 
-  // Create a list of testing functions and their exact solutions
-  // Exact solutions are taken from Mathematica using the command:
+  // Create a list of testing functions and their exact solutions Exact
+  // solutions are taken from Mathematica using the command:
   // N[Integrate[...fn..., {x, -1, +1}], 20]
   std::vector<TestingFn > function_list =
     {
@@ -65,8 +67,10 @@ int main()
 
       // Functions from Trefethen2008:
       TestingFn([] (double x) {return pow(x,20);}, 2.0/21, "x^20"),
-      TestingFn([] (double x) {return exp(x);}, 2.3504023872876029138, "exp(x)"),
-      TestingFn([] (double x) {return exp(-pow(x,2));}, 1.4936482656248540508, "exp(-x^2)"),
+      TestingFn([] (double x) {return exp(x);},
+		2.3504023872876029138, "exp(x)"),
+      TestingFn([] (double x) {return exp(-pow(x,2));},
+		1.4936482656248540508, "exp(-x^2)"),
       TestingFn([] (double x) {return 1/(1 + 16*x*x);},
 		0.66290883183401623253, "1/(1 + 16 x^2)"),
       TestingFn([] (double x) {return exp(-1/(x*x));},
@@ -77,9 +81,12 @@ int main()
       // =================================================================
 
       // 1/r
-      TestingFn([] (double x) {return 1/fabs(x-2);}, 1.0986122886681096914, "1/|x-2|"),
-      TestingFn([] (double x) {return 1/fabs(x-5);}, 0.40546510810816438198, "1/|x-5|"),
-      TestingFn([] (double x) {return 1/fabs(x-20);}, 0.10008345855698253649, "1/|x-20|"),
+      TestingFn([] (double x) {return 1/fabs(x-2);},
+		1.0986122886681096914, "1/|x-2|"),
+      TestingFn([] (double x) {return 1/fabs(x-5);},
+		0.40546510810816438198, "1/|x-5|"),
+      TestingFn([] (double x) {return 1/fabs(x-20);},
+		0.10008345855698253649, "1/|x-20|"),
 
       // 1/(r^2)
       TestingFn([] (double x) {return 1/pow(fabs(x-2),2);},
@@ -127,17 +134,21 @@ int main()
 	  // Calculate each of th integrals using this method and output the error
 	  for(unsigned i=0; i<function_list.size(); i++)
 	    {
-	      double integral_value =
-		integrate_function_1D(function_list[i].Function, *integration_methods[int_meth]);
+	      // Do the quadrature
+	      double integral_value = integrate_function_1D
+		(function_list[i].Function, *integration_methods[int_meth]);
+
+	      // Output the error
 	      outfile << " " << fabs(integral_value - function_list[i].Answer);
 	    }
 
 	  outfile << std::endl;
 	}
 
+      // Done with this integration method so close the file
       outfile.close();
-      outfile << std::endl;
     }
+
 
   // Clean up the integration methods vector
   for(unsigned i=0; i<integration_methods.size(); i++)
