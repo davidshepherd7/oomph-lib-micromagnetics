@@ -4,7 +4,11 @@
 #include <map>
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
+
+// Various meshes
 #include "meshes/rectangular_quadmesh.h"
+#include "meshes/collapsible_channel_mesh.h"
+
 
 // My variable gauss quadrature header
 #include "../variable_quadrature.h"
@@ -14,6 +18,56 @@ using namespace MathematicalConstants;
 
 namespace oomph
 {
+  /////////////////////////////////////// stolen from NS collapsible channel:
+  //=========================================================================
+  class NonOscillatingWall : public GeomObject
+  {
+
+  public:
+
+    /// \short Constructor : It's a 2D object, parametrised by
+    /// one Lagrangian coordinate. Arguments: height at ends, x-coordinate of
+    /// left end and length.
+    NonOscillatingWall(const double& h, const double& x_left, const double& l,
+		       const double &a) :
+      GeomObject(1,2), H(h), Length(l), X_left(x_left), A(a), B(0.0)
+    {}
+
+    /// Destructor:  Empty
+    ~NonOscillatingWall(){}
+
+    /// \short Position vector at Lagrangian coordinate zeta
+    /// at time level t.
+    void position(const unsigned& t, const Vector<double>&zeta,
+		  Vector<double>& r) const
+    {
+      using namespace MathematicalConstants;
+      // Position vector
+      r[0] = zeta[0]+X_left - A*B*sin(2.0*Pi*zeta[0]/Length);
+      r[1] = H + A*((Length-zeta[0])*zeta[0])/pow(0.5*Length,2);
+    }
+
+    /// \short "Current" position vector at Lagrangian coordinate zeta
+    void position(const Vector<double>&zeta, Vector<double>& r) const
+    {position (0, zeta, r);}
+
+    /// Number of geometric Data in GeomObject: None.
+    unsigned ngeom_data() const {return 0;}
+
+  private:
+    /// Height at ends
+    double H;
+    /// Length
+    double Length;
+    /// x-coordinate of left end
+    double X_left;
+    /// Amplitude of bump in wall
+    double A;
+    /// Relative amplitude of horizontal wall motion
+    double B;
+
+  }; // end of non-oscillating wall
+
   //=====start_of_TwoDMicromagProblem===============================================
   /// A problem class to solve the LLG equation using a hybrid BEM/FEM.
   //========================================================================
@@ -104,16 +158,38 @@ namespace oomph
   TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
   TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   {
-    // Set domain size
-    double l_x = 2.0;
-    double l_y = 2.0;
-
     // Allocate steady state timestepper
     add_time_stepper_pt(new Steady<2>);
 
-    // Build mesh
-    mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
-      (n_x,n_y,l_x,l_y,time_stepper_pt());
+    // // Build rectangular mesh
+    // mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
+    //   (n_x,n_y,2.0,2.0,time_stepper_pt());
+
+    // Build mesh collapsible channel mesh
+    {
+      //Create the geometric object that represents the wall
+      double height = 1.0, x_left = 1.0, length = 1.0, a = 0.01;
+      GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
+
+      // Number of elements and lengths of parts of the mesh
+      unsigned nup = 5, ndown = 5, ncollapsible = 5, ny = 5;
+      double lup = x_left, ldown = 1.0, lcollapsible = length, ly = height;
+      mesh_pt() = new
+	CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, ny,
+					     lup, lcollapsible, ldown, ly,
+					     Wall_pt, time_stepper_pt());
+    }
+
+    // dump mesh for testing
+    unsigned n_nd = mesh_pt()->nnode();
+    std::ofstream mesh_plot;
+    mesh_plot.open("./mesh_points");
+    for(unsigned nd=0; nd<n_nd; nd++)
+      {
+	mesh_plot << mesh_pt()->node_pt(nd)->x(0) << " "
+		    << mesh_pt()->node_pt(nd)->x(1) << std::endl;
+      }
+    mesh_plot.close();
 
     // Create empty face mesh
     Face_mesh_pt = new Mesh;
@@ -386,7 +462,7 @@ namespace oomph
     	    // the source node (relationship is given by the boundary matrix).
     	    //??ds check consistency of boundary matrix numbering
 	    target_phi_2_value += Boundary_matrix(target_number,source_number)
-    	      * source_node_pt->value(0);
+    	      * source_node_pt->value(0); //??ds replace this with actual phi_1_index
     	  }
 	// Save the total into the target node
 	target_node_pt->set_value(phi_2_index,target_phi_2_value);
