@@ -1,7 +1,47 @@
-Index: /home/david/oomph-lib/trunk/src/generic/shape.h
+Index: src/meshes/collapsible_channel_mesh.template.cc
 ===================================================================
---- /home/david/oomph-lib/trunk/src/generic/shape.h	(revision 253)
-+++ /home/david/oomph-lib/trunk/src/generic/shape.h	(working copy)
+--- src/meshes/collapsible_channel_mesh.template.cc	(revision 253)
++++ src/meshes/collapsible_channel_mesh.template.cc	(working copy)
+@@ -157,7 +157,7 @@
+      for (unsigned i=0;i<nnode_1d;i++)
+       {
+        add_boundary_node(4,
+-                         this->finite_element_pt(e)->node_pt(2*nnode_1d+i));
++                         this->finite_element_pt(e)->node_pt((nnode_1d-1)*nnode_1d+i));
+       }
+     }
+    // Collapsible bit
+@@ -167,7 +167,7 @@
+      for (unsigned i=0;i<nnode_1d;i++)
+       {
+        add_boundary_node(3,
+-                         this->finite_element_pt(e)->node_pt(2*nnode_1d+i));
++                         this->finite_element_pt(e)->node_pt((nnode_1d-1)*nnode_1d+i));
+        
+        // What column of elements are we in?
+        unsigned ix=e-first_collapsible;
+@@ -176,7 +176,7 @@
+        zeta[0]=double(ix)*dzeta+double(i)*dzeta/double(nnode_1d-1);
+        
+        // Set boundary coordinate
+-       this->finite_element_pt(e)->node_pt(2*nnode_1d+i)->
++       this->finite_element_pt(e)->node_pt((nnode_1d-1)*nnode_1d+i)->
+         set_coordinates_on_boundary(3,zeta);
+       }
+     }
+@@ -187,7 +187,7 @@
+      for (unsigned i=0;i<nnode_1d;i++)
+       {
+        add_boundary_node(2,
+-                         this->finite_element_pt(e)->node_pt(2*nnode_1d+i));
++                         this->finite_element_pt(e)->node_pt((nnode_1d-1)*nnode_1d+i));
+       }
+     }
+    // Left end
+Index: src/generic/shape.h
+===================================================================
+--- src/generic/shape.h	(revision 253)
++++ src/generic/shape.h	(working copy)
 @@ -130,9 +130,20 @@
   Shape(const unsigned &N, const unsigned &M) : Index1(N), Index2(M) 
    {Allocated_storage = new double[N*M]; Psi = Allocated_storage;}
@@ -35,10 +75,10 @@ Index: /home/david/oomph-lib/trunk/src/generic/shape.h
  
   /// Overload the bracket operator to provide access to values.
   inline double & operator[](const unsigned &i) 
-Index: /home/david/oomph-lib/trunk/src/generic/Makefile.am
+Index: src/generic/Makefile.am
 ===================================================================
---- /home/david/oomph-lib/trunk/src/generic/Makefile.am	(revision 253)
-+++ /home/david/oomph-lib/trunk/src/generic/Makefile.am	(working copy)
+--- src/generic/Makefile.am	(revision 253)
++++ src/generic/Makefile.am	(working copy)
 @@ -139,8 +139,11 @@
  
  # Need to worry about these for dependency but they shouldn't
@@ -52,10 +92,10 @@ Index: /home/david/oomph-lib/trunk/src/generic/Makefile.am
  # Define name of library 
  libname = generic
  
-Index: /home/david/oomph-lib/trunk/src/generic/elements.h
+Index: src/generic/elements.h
 ===================================================================
---- /home/david/oomph-lib/trunk/src/generic/elements.h	(revision 253)
-+++ /home/david/oomph-lib/trunk/src/generic/elements.h	(working copy)
+--- src/generic/elements.h	(revision 253)
++++ src/generic/elements.h	(working copy)
 @@ -1107,7 +1107,7 @@
    private:
  
@@ -100,10 +140,10 @@ Index: /home/david/oomph-lib/trunk/src/generic/elements.h
   /// \short Calculate the geometric shape functions 
   /// at local coordinate s. This function must be overloaded for each specific 
   /// geometric element.
-Index: /home/david/oomph-lib/trunk/src/generic/elements.cc
+Index: src/generic/elements.cc
 ===================================================================
---- /home/david/oomph-lib/trunk/src/generic/elements.cc	(revision 253)
-+++ /home/david/oomph-lib/trunk/src/generic/elements.cc	(working copy)
+--- src/generic/elements.cc	(revision 253)
++++ src/generic/elements.cc	(working copy)
 @@ -2811,7 +2811,7 @@
   void FiniteElement::set_integration_scheme(Integral* const &integral_pt) 
   {
@@ -113,7 +153,52 @@ Index: /home/david/oomph-lib/trunk/src/generic/elements.cc
   }
  
  //=========================================================================
-@@ -4828,9 +4828,7 @@
+@@ -3606,13 +3606,11 @@
+   assemble_eulerian_base_vectors(dpsids,interpolated_G);
+  
+   //Calculate the metric tensor of the element
+-  DenseMatrix<double> G(n_dim_element);
++  DenseMatrix<double> G(n_dim_element,0.0);
+   for(unsigned i=0;i<n_dim_element;i++)
+    {
+     for(unsigned j=0;j<n_dim_element;j++)
+      {
+-      //Initialise to zero
+-      G(i,j) = 0.0;
+       for(unsigned k=0;k<n_dim_node;k++) 
+        {
+         G(i,j) += interpolated_G(i,k)*interpolated_G(j,k);
+@@ -3681,13 +3679,11 @@
+   assemble_eulerian_base_vectors(dpsids,interpolated_G);
+  
+   //Calculate the metric tensor of the element
+-  DenseMatrix<double> G(n_dim_element);
++  DenseMatrix<double> G(n_dim_element,0.0);
+   for(unsigned i=0;i<n_dim_element;i++)
+    {
+     for(unsigned j=0;j<n_dim_element;j++)
+      {
+-      //Initialise to zero
+-      G(i,j) = 0.0;
+       for(unsigned k=0;k<n_dim_node;k++) 
+        {
+         G(i,j) += interpolated_G(i,k)*interpolated_G(j,k);
+@@ -4577,13 +4573,11 @@
+      }
+    }
+   //Now find the local deformed metric tensor from the tangent Vectors
+-  DenseMatrix<double> A(n_dim_el);
++  DenseMatrix<double> A(n_dim_el,0.0);
+   for(unsigned i=0;i<n_dim_el;i++)
+    {
+     for(unsigned j=0;j<n_dim_el;j++)
+      {
+-      //Initialise surface metric tensor to zero
+-      A(i,j) = 0.0;
+       //Take the dot product
+       for(unsigned k=0;k<n_dim;k++)
+        { 
+@@ -4828,9 +4822,7 @@
   
      //Calculate all derivatives of the spatial coordinates wrt 
      //local coordinates
@@ -124,7 +209,7 @@ Index: /home/david/oomph-lib/trunk/src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4881,10 +4879,7 @@
+@@ -4881,10 +4873,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -136,7 +221,7 @@ Index: /home/david/oomph-lib/trunk/src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4988,10 +4983,7 @@
+@@ -4988,10 +4977,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -148,168 +233,3 @@ Index: /home/david/oomph-lib/trunk/src/generic/elements.cc
      
      //Loop over all nodes
      for(unsigned l=0;l<n_node;l++)
-Index: /home/david/oomph-lib/trunk/config/configure.ac_scripts/user_drivers.dir_list
-===================================================================
---- /home/david/oomph-lib/trunk/config/configure.ac_scripts/user_drivers.dir_list	(revision 253)
-+++ /home/david/oomph-lib/trunk/config/configure.ac_scripts/user_drivers.dir_list	(working copy)
-@@ -1,2 +1,15 @@
-+user_drivers/david_shepherd/discontinuity_tests
-+user_drivers/david_shepherd/hybrid_boundary_element
-+user_drivers/david_shepherd/one_d_demag_testing
-+user_drivers/david_shepherd
-+user_drivers/david_shepherd/one_d_boundaries_multi_mesh
-+user_drivers/david_shepherd/two_d_micromag
-+user_drivers/david_shepherd/one_d_cryst_anis
-+user_drivers/david_shepherd/three_d_micromag
-+user_drivers/david_shepherd/one_d_exchange_testing
-+user_drivers/david_shepherd/one_d_micromag
-+user_drivers/david_shepherd/integration_tests/quadrature_accuracy_check
-+user_drivers/david_shepherd/integration_tests/find_corresponding_knot_check
-+user_drivers/david_shepherd/singular_quadrature
-+user_drivers/jack_cool
- user_drivers/joe_cool
--user_drivers/jack_cool
-Index: /home/david/oomph-lib/trunk/config/configure_options/current
-===================================================================
---- /home/david/oomph-lib/trunk/config/configure_options/current	(revision 253)
-+++ /home/david/oomph-lib/trunk/config/configure_options/current	(working copy)
-@@ -1,111 +1,5 @@
--#=====================================================================
--# File that specifies options and compile/link flags for 
--# autogen.sh script: Needs to be processed with autogen-setup.sh
--# and creates the shell script autogen-configure.sh that is executed
--# by autogen.sh. 
--#
--#  NOTE: Options need to go first!
--#
--# A few options:    [type ./configure --help to see the full list] 
--# --------------
--#
--#         --enable-MPI   includes all MPI sources into the build
--#                        (you will probably have to specify
--#                        your MPI libraries and include directories
--#                        in the compiler/linker options; see the 
--#                        examples enclosed below).
--#         --enable-suppress-doc  Don't build the documentation (can take a long
--#                        and uses quite a bit of diskspace. You might
--#                        prefer to consult the online documentation at
--#                        http://www.oomph-lib.org
--#         --enable-suppress-demo Don't build the demo codes/self test  
--#
--# Common compiler/linker flags:
--# -----------------------------            
--#
--# - CXX =  C++ compiler (defaults to gcc/g++ if not specified)
--# - CC  =  C compiler (defaults to gcc if not specified)
--# - F77 =  F77 compiler (defaults to gcc/g77 if not specified)
--# 
--# - CXXFLAGS = flags for the C++ compiler. Specify optmisation flags
--#              for your compiler (e.g. -O6 for maximum optimisation
--#              with the gcc compiler suite, enable debugging (-g for
--#              the gcc compilers), etc.)
--#
--#              Here's a list of useful oomph-lib related flags:
--#              
--#              -DPARANOID enables "general paranoia", allowing the
--#                         code to perform various sanity checks
--#                         during execution. Incurs a moderate run-time
--#                         overhead.
--#              -DRANGE_CHECKING switches on bounds checking in
--#                         oomph-lib's Vector class (a wrapper to the
--#                         the STL vector class). This is VERY costly
--#                         in terms of run time but very useful for
--#                         tracking down the source of otherwise
--#                         inexcplicable segmentation faults...
--#              -DLEAK_CHECK mainly used during code developement. Used
--#                         to allow optional checks that objects are 
--#                         deleted to avoid memory leaks.
--#              -DWARN_ABOUT_SUBTLY_CHANGED_OOMPH_INTERFACES throws
--#                         an oomph-lib warning whenever a function
--#                         whose interface has been changed "subtly"
--#                         (i.e. in a way that the compiler can't detect,
--#                         e.g. a change in the order of two arguments
--#                         of the same type) during some revision is called.
--#                         Use this only (!) if your code behaves
--#                         oddly after upgrading to a newer release
--#                         of the library.
--# 
--# - CFLAGS   = flags for the C compiler. Specify optimisation flags
--#              for your compiler (e.g. -O6 for maximum optimisation
--#              with the gcc compiler suite, enable debugging (-g for
--#              the gcc compilers), etc.) The C-compiler is only used
--#              to compile certain external libraries, such as superlu.
--#              Therefore it is not necessary to specify any of 
--#              oomph-lib's own compilation flags.
--# 
--# - FFLAGS   = flags for the f77 compiler. Specify optimisation flags
--#              for your compiler (e.g. -O6 for maximum optimisation
--#              with the gcc compiler suite, enable debugging (-g for
--#              the gcc compilers), etc.) The f77-compiler is only used
--#              to compile certain external libraries, such as the
--#              frontal solver from the hsl library.
--#              Therefore it is not necessary to specify any of 
--#              oomph-lib's own compilation flags.
--#
--# - LIBS     = Specify any additional libraries that you might have
--#              to link against -- typically only required if  mpi is
--#              used. autoconf should automatically detect any 
--#              other libraries.
--#=====================================================================
--#
--# gcc-based compilation with full optimisation.
--# Library headers in the build directory are replaced by symbolic
--# links to the src directory -- this ensures that you don't
--# accidentally edit a file in the include directory only to have
--# it immediately wiped out when you re-install the library after
--# finishing your changes. We specify the location of the blas,
--# lapack, hypre and trilinos libraries, the latter two assumed
--# to have been compiled with mpi support. 
--#
--#--enable-suppress-doc
----enable-MPI
- --enable-symbolic-links-for-headers
----with-blacs=/home/mheil/local/lib/blacs_with_copy
----with-scalapack=/home/mheil/local/lib/scalapack/libscalapack.a
----with-pord=/home/mheil/local/pord/lib/libpord.a 
----with-mumps=/home/mheil/local/mumps
----with-blas=/home/mheil/local/lib/blas/blas.a
----with-lapack=/home/mheil/local/lib/lapack/lapack.a
----with-hypre=/home/mheil/local/hypre_default_installation_mpi
----with-trilinos=/home/mheil/local/trilinos_default_installation_mpi
----with-mpi-self-tests="mpirun -np 2"
--CXXFLAGS="-O6 -Wall"
--CFLAGS="-O6"
--FFLAGS="-O6"
--CXX=mpic++
--CC=mpicc
--F77=mpif77
--LD=mpif77
--
-+--enable-suppress-doc
-+CXXFLAGS="-g -DPARANOID -Wall -Wconversion --std=c++0x"
-+CFLAGS="-g -Wall"
-+FFLAGS="-g -Wall"
-Index: /home/david/oomph-lib/trunk/autogen.sh
-===================================================================
---- /home/david/oomph-lib/trunk/autogen.sh	(revision 253)
-+++ /home/david/oomph-lib/trunk/autogen.sh	(working copy)
-@@ -2,8 +2,6 @@
- 
- 
- 
--
--
- #====================================================================
- # A few helper functions
- #====================================================================
-Index: /home/david/oomph-lib/trunk/user_drivers/Makefile.am
-===================================================================
---- /home/david/oomph-lib/trunk/user_drivers/Makefile.am	(revision 253)
-+++ /home/david/oomph-lib/trunk/user_drivers/Makefile.am	(working copy)
-@@ -11,4 +11,4 @@
- 	rm -f *~
- 
- doc_dirs:
--	echo $(USER_DRIVER_SUBDIRECTORIES)
-\ No newline at end of file
-+echo $(USER_DRIVER_SUBDIRECTORIES)
