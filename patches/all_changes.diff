@@ -1,6 +1,6 @@
 Index: src/meshes/collapsible_channel_mesh.template.cc
 ===================================================================
---- src/meshes/collapsible_channel_mesh.template.cc	(revision 253)
+--- src/meshes/collapsible_channel_mesh.template.cc	(revision 258)
 +++ src/meshes/collapsible_channel_mesh.template.cc	(working copy)
 @@ -157,7 +157,7 @@
       for (unsigned i=0;i<nnode_1d;i++)
@@ -40,9 +40,9 @@ Index: src/meshes/collapsible_channel_mesh.template.cc
     // Left end
 Index: src/generic/shape.h
 ===================================================================
---- src/generic/shape.h	(revision 253)
+--- src/generic/shape.h	(revision 258)
 +++ src/generic/shape.h	(working copy)
-@@ -130,9 +130,20 @@
+@@ -130,9 +130,18 @@
   Shape(const unsigned &N, const unsigned &M) : Index1(N), Index2(M) 
    {Allocated_storage = new double[N*M]; Psi = Allocated_storage;}
  
@@ -52,8 +52,6 @@ Index: src/generic/shape.h
 +  Shape() {}
  
 +  /// Deep copy constructor
-+  //??ds added by me, this is probably a bad thing to have in final oomph-lib
-+  //code but it is needed to use vector.push_back with Shapes.
 +  Shape(const Shape &shape) : Index1(shape.Index1), Index2(shape.Index2)
 +  {
 +    Allocated_storage = new double[Index1*Index2];
@@ -65,19 +63,9 @@ Index: src/generic/shape.h
   /// The assignment operator does a shallow copy 
   /// (resets the pointer to the data)
   void operator=(const Shape &shape)
-@@ -181,7 +192,8 @@
-   }
- 
-  /// Destructor, clear up the memory allocated by the object
-- ~Shape() {delete[] Allocated_storage; Allocated_storage=0;}
-+  ~Shape()
-+  {delete[] Allocated_storage; Allocated_storage=0;}
- 
-  /// Overload the bracket operator to provide access to values.
-  inline double & operator[](const unsigned &i) 
 Index: src/generic/Makefile.am
 ===================================================================
---- src/generic/Makefile.am	(revision 253)
+--- src/generic/Makefile.am	(revision 258)
 +++ src/generic/Makefile.am	(working copy)
 @@ -139,8 +139,11 @@
  
@@ -94,7 +82,7 @@ Index: src/generic/Makefile.am
  
 Index: src/generic/elements.h
 ===================================================================
---- src/generic/elements.h	(revision 253)
+--- src/generic/elements.h	(revision 258)
 +++ src/generic/elements.h	(working copy)
 @@ -1107,7 +1107,7 @@
    private:
@@ -142,7 +130,7 @@ Index: src/generic/elements.h
   /// geometric element.
 Index: src/generic/elements.cc
 ===================================================================
---- src/generic/elements.cc	(revision 253)
+--- src/generic/elements.cc	(revision 258)
 +++ src/generic/elements.cc	(working copy)
 @@ -2811,7 +2811,7 @@
   void FiniteElement::set_integration_scheme(Integral* const &integral_pt) 
