@@ -67,86 +67,35 @@ Index: src/generic/Makefile.am
 ===================================================================
 --- src/generic/Makefile.am	(revision 258)
 +++ src/generic/Makefile.am	(working copy)
-@@ -139,8 +139,11 @@
+@@ -96,7 +96,8 @@
+ preconditioner.h \
+ general_purpose_preconditioners.h block_preconditioner.h \
+ general_purpose_block_preconditioners.h SuperLU_preconditioner.h \
+-matrix_vector_product.h projection.h line_visualiser.h stacktrace.h
++matrix_vector_product.h projection.h line_visualiser.h stacktrace.h \
++cfortran.h
+ 
+ if OOMPH_HAS_MUMPS
+ headers+=mumps_solver.h
+@@ -139,7 +140,7 @@
  
  # Need to worry about these for dependency but they shouldn't
  # be included into the include directory
 -extra_headers = cfortran.h frontal.h arpack.h lapack_qz.h mumps.h
 +extra_headers = frontal.h arpack.h lapack_qz.h mumps.h
  
-+# Need fortran wrappers accesable from driver codes so add them to the nomal headers list (instead of "extra headers")
-+headers += cfortran.h
-+
  # Define name of library 
  libname = generic
- 
-Index: src/generic/elements.h
-===================================================================
---- src/generic/elements.h	(revision 258)
-+++ src/generic/elements.h	(working copy)
-@@ -1107,7 +1107,7 @@
-   private:
- 
-  /// Pointer to the spatial integration scheme
-- Integral* Integral_pt;
-+  Vector<Integral*> Integral_pt;
-  
-  /// Storage for pointers to the nodes in the element
-  Node** Node_pt;
-@@ -1221,7 +1221,7 @@
- 
-  /// \short Return the local equation number corresponding to the i-th
-  /// value at the n-th local node.
-- inline int nodal_local_eqn(const unsigned &n, const unsigned &i)
-+  inline int nodal_local_eqn(const unsigned &n, const unsigned &i) const
-   {
- #ifdef RANGE_CHECKING
-    if(n >= Nnode)
-@@ -1569,7 +1569,7 @@
-  static bool Suppress_output_while_checking_for_inverted_elements;
- 
-  /// Constructor
-- FiniteElement() : GeneralisedElement(), Integral_pt(0), 
-+ FiniteElement() : GeneralisedElement(), Integral_pt(1),
-   Node_pt(0), Nodal_local_eqn(0), Nnode(0),
-   Elemental_dimension(0), Nodal_dimension(0), Nnodal_position_type(1),
-   Macro_elem_pt(0) {}
-@@ -1722,8 +1722,15 @@
-  virtual void set_integration_scheme(Integral* const &integral_pt); 
- 
-  /// Return the pointer to the integration scheme (const version)
-- Integral* const &integral_pt() const {return Integral_pt;}
-+  Integral* const &integral_pt() const {return Integral_pt[0];}
-  
-+  ///Set the n'th spatial integration scheme
-+  virtual void set_integration_scheme(Integral* const &integral_pt, const unsigned &n)
-+  {Integral_pt[n] = integral_pt;}
-+
-+  /// Return the pointer to the n'th integration scheme
-+  Integral* const &integral_pt(unsigned n) const {return Integral_pt[n];}
-+
-  /// \short Calculate the geometric shape functions 
-  /// at local coordinate s. This function must be overloaded for each specific 
-  /// geometric element.
 Index: src/generic/elements.cc
 ===================================================================
 --- src/generic/elements.cc	(revision 258)
 +++ src/generic/elements.cc	(working copy)
-@@ -2811,7 +2811,7 @@
-  void FiniteElement::set_integration_scheme(Integral* const &integral_pt) 
-  {
-   //Assign the integration scheme
--  Integral_pt = integral_pt;
-+  Integral_pt[0] = integral_pt;
-  }
- 
- //=========================================================================
 @@ -3606,13 +3606,11 @@
    assemble_eulerian_base_vectors(dpsids,interpolated_G);
   
    //Calculate the metric tensor of the element
 -  DenseMatrix<double> G(n_dim_element);
-+  DenseMatrix<double> G(n_dim_element,0.0);
++  DenseMatrix<double> G(n_dim_element,n_dim_element,0.0);
    for(unsigned i=0;i<n_dim_element;i++)
     {
      for(unsigned j=0;j<n_dim_element;j++)
@@ -161,7 +110,7 @@ Index: src/generic/elements.cc
   
    //Calculate the metric tensor of the element
 -  DenseMatrix<double> G(n_dim_element);
-+  DenseMatrix<double> G(n_dim_element,0.0);
++  DenseMatrix<double> G(n_dim_element,n_dim_element,0.0);
    for(unsigned i=0;i<n_dim_element;i++)
     {
      for(unsigned j=0;j<n_dim_element;j++)
@@ -176,7 +125,7 @@ Index: src/generic/elements.cc
     }
    //Now find the local deformed metric tensor from the tangent Vectors
 -  DenseMatrix<double> A(n_dim_el);
-+  DenseMatrix<double> A(n_dim_el,0.0);
++  DenseMatrix<double> A(n_dim_el,n_dim_el,0.0);
    for(unsigned i=0;i<n_dim_el;i++)
     {
      for(unsigned j=0;j<n_dim_el;j++)
@@ -186,7 +135,22 @@ Index: src/generic/elements.cc
        //Take the dot product
        for(unsigned k=0;k<n_dim;k++)
         { 
-@@ -4828,9 +4822,7 @@
+@@ -4665,13 +4659,11 @@
+    }
+ 
+   //Now find the local deformed metric tensor from the tangent Vectors
+-  DenseMatrix<double> A(n_dim_el);
++  DenseMatrix<double> A(n_dim_el,n_dim_el,0.0);
+   for(unsigned i=0;i<n_dim_el;i++)
+    {
+     for(unsigned j=0;j<n_dim_el;j++)
+      {
+-      //Initialise surface metric tensor to zero
+-      A(i,j) = 0.0;
+       //Take the dot product
+       for(unsigned k=0;k<n_dim;k++)
+        { 
+@@ -4828,9 +4820,7 @@
   
      //Calculate all derivatives of the spatial coordinates wrt 
      //local coordinates
@@ -197,7 +161,7 @@ Index: src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4881,10 +4873,7 @@
+@@ -4881,10 +4871,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -209,7 +173,7 @@ Index: src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4988,10 +4977,7 @@
+@@ -4988,10 +4975,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -221,3 +185,18 @@ Index: src/generic/elements.cc
      
      //Loop over all nodes
      for(unsigned l=0;l<n_node;l++)
+@@ -6011,13 +5995,11 @@
+    shape(s,psi);
+ 
+    // Get Lagrangian coordinate
+-   Vector<double> xi(n_lagrangian);
++   Vector<double> xi(n_lagrangian,0.0);
+ 
+    //Loop over the number of lagrangian coordinates
+    for(unsigned i=0;i<n_lagrangian;i++)
+     {
+-     //Initialise component to zero
+-     xi[i] = 0.0;
+      //Loop over the local nodes
+      for(unsigned l=0;l<n_node;l++) 
+       {
