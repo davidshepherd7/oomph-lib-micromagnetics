@@ -2,11 +2,11 @@
 # include <fstream>
 # include <vector>
 
-# include "../quadrule.h"
+# include "./quadrule.h"
 
 /*
   Compile using:
-  g++ gauss_legendre_driver.cc quadrule.cc -Wall -g -Wconversion --std=c++0x
+  g++ generate_quadrature_rules_driver.cc quadrule.cc -Wall -g -Wconversion --std=c++0x
 
   To get other rules search replace legendre_dr_compute with
   clenshaw_curtis_compute or fejer2_compute (or other rules) as appropriate.
@@ -74,11 +74,12 @@ int main()
   rules_stream.open(filename);
 
   // Set maximum order to calculate
-  const unsigned max_order = 5;
+  const unsigned max_order = 50;
 
   //============================================================
   /// Pre-calculate weights + knots in 1D
   //============================================================
+
   std::vector<std::vector<double> > weight_1d(max_order+1), knot_1d(max_order+1);
   for(unsigned order=1; order<=max_order; order++)
     {
@@ -94,16 +95,17 @@ int main()
 	}
     }
 
+
   //=================================================================
   // Calculate + output weights in 1 to 3D
   //=================================================================
-
 
   // Write some array structure stuff and dim 0
   rules_stream << "{" << std::endl
 	       << "// Dim = 0" << std::endl
 	       << "{{}}," << std::endl
 	       << std::endl;
+
 
   // Calculate and output the weights for dimension 1
   rules_stream << "{" << std::endl
@@ -162,10 +164,10 @@ int main()
   rules_stream << "}" << std::endl
 	       << std::endl;
 
+
   //=================================================================
   // Calculate + output knots in 1 to 3D
   //=================================================================
-
 
   // Write some array structure stuff and dim 0
   rules_stream << "{" << std::endl
@@ -242,9 +244,8 @@ int main()
   rules_stream << "}" << std::endl
 	       << std::endl;
 
-  //============================================================
-  /// Done so clean up
-  //============================================================
+
+  // Done so close output file
   rules_stream.close();
   return 0;
 }
