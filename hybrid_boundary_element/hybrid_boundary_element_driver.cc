@@ -167,15 +167,16 @@ namespace oomph
 
     // Build mesh collapsible channel mesh
     {
-      //Create the geometric object that represents the wall
-      double height = 1.0, x_left = 1.0, length = 1.0, a = 0.01;
+      //Create the geometric object that represents the wall Parameters chosen
+      // to make it very similar to the 2x2 square used before (if a = 0).
+      double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.0;
       GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
       // Number of elements and lengths of parts of the mesh
-      unsigned nup = 5, ndown = 5, ncollapsible = 5, ny = 5;
-      double lup = x_left, ldown = 1.0, lcollapsible = length, ly = height;
+      unsigned nup = unsigned(n_x/3), ndown = nup, ncollapsible = nup;
+      double lup = x_left, ldown = 2.0/3, lcollapsible = length, ly = height;
       mesh_pt() = new
-	CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, ny,
+	CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, n_y,
 					     lup, lcollapsible, ldown, ly,
 					     Wall_pt, time_stepper_pt());
     }
