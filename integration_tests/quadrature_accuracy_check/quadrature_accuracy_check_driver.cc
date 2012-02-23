@@ -15,19 +15,19 @@ namespace oomph
   // Integrate a given function using the given scheme (no check is made that
   // the scheme integrates between -1 and +1 - watch out).
   double integrate_function_1D(const std::function<double(double)> &function,
-			       const Integral &integral)
+			       const VariableOrderQuadrature &integral, const unsigned &order)
   {
     double integral_value = 0;
 
     // Loop over integration points
-    unsigned n_weights = integral.nweight();
+    unsigned n_weights = integral.nweight(order);
     for(unsigned i=0; i<n_weights; i++)
       {
 	// Get knot location
-	double x = integral.knot(i,0);
+	double x = integral.knot(i,0,order);
 
 	// Add contribution from this knot
-	integral_value += function(x) * integral.weight(i);
+	integral_value += function(x) * integral.weight(i,order);
       }
 
     return integral_value;
@@ -98,10 +98,10 @@ int main()
     };
 
   // Create a list of integration methods to test:
-  Vector<VariableQuadrature*> integration_methods(3);
-  integration_methods[0] = new VariableGaussLegendre();
-  integration_methods[1] = new VariableFejerSecond();
-  integration_methods[2] = new VariableClenshawCurtis();
+  Vector<VariableOrderQuadrature*> integration_methods(3);
+  integration_methods[0] = new VariableOrderGaussLegendre();
+  integration_methods[1] = new VariableOrderFejerSecond();
+  integration_methods[2] = new VariableOrderClenshawCurtis();
 
   // The highest order available:
   unsigned max_order = 50;
@@ -127,8 +127,6 @@ int main()
       // Loop over orders of the integration scheme
       for(unsigned k=0; k<=max_order; k++)
 	{
-	  integration_methods[int_meth]->set_order(k);
-
 	  outfile << k << " ";
 
 	  // Calculate each of th integrals using this method and output the error
@@ -136,7 +134,7 @@ int main()
 	    {
 	      // Do the quadrature
 	      double integral_value = integrate_function_1D
-		(function_list[i].Function, *integration_methods[int_meth]);
+		(function_list[i].Function, *integration_methods[int_meth],k);
 
 	      // Output the error
 	      outfile << " " << fabs(integral_value - function_list[i].Answer);

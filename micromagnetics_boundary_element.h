@@ -207,7 +207,6 @@ namespace oomph
 
     // Set parameters for adaptive integration
     unsigned max_order = variable_int_pt->max_order();
-    unsigned min_order = variable_int_pt->min_order();
     unsigned highest_order_used = 0;
     double reltol = 1e-4, reldiff;
 
@@ -226,9 +225,8 @@ namespace oomph
 
 	// Reset the quadrature scheme order (magic number: 0 = automatically
 	// select min_order when adaptive_scheme_next_order is used)
-	variable_int_pt->set_order(0);
+	unsigned adapt_order = 0;
 
-	unsigned adapt_order;
 	Vector<double> temp_bm_prev(n_element_node,0.0), temp_bm(n_element_node,5000);
 	do
 	  {
@@ -242,8 +240,7 @@ namespace oomph
 	      }
 
 	    // Move to next adaptive scheme order
-	    variable_int_pt->adaptive_scheme_next_order();
-	    adapt_order = variable_int_pt->order();
+	    adapt_order = variable_int_pt->adaptive_scheme_next_order(adapt_order);
 
 	    ////////////////////////////////////////
 	    // Precalculations (if needed)
@@ -252,7 +249,7 @@ namespace oomph
 	    if( !(adapt_order <= highest_order_used))
 	      {
 		// Get the number of knots at this order
-		unsigned n_knot = variable_int_pt->nweight();
+		unsigned n_knot = variable_int_pt->nweight(adapt_order);
 
 		// Resize the vectors to store the data for the new order
 		x_kn.resize(adapt_order+1);
@@ -265,7 +262,8 @@ namespace oomph
 		  {
 		    // Get the local coordinate
 		    Vector<double> s(el_dim,0.0);
-		    for(unsigned j=0; j<el_dim; j++) {s[j] = integral_pt()->knot(kn,j);}
+		    for(unsigned j=0; j<el_dim; j++)
+		      s[j] = variable_int_pt->knot(kn,j,adapt_order);
 
 		    // Get the unit normal
 		    Vector<double> local_normal(node_dim,0.0);
@@ -274,7 +272,7 @@ namespace oomph
 
 		    // Get the Jacobian*weight
 		    jw[adapt_order].push_back(J_eulerian(s)
-					      * variable_int_pt->weight(kn));
+					      * variable_int_pt->weight(kn,adapt_order));
 
 		    // Get shape and test(=shape) functions
 		    Shape psi_local(n_element_node);
@@ -294,13 +292,13 @@ namespace oomph
 		  }
 
 		// Set the new highest order
-		highest_order_used = variable_int_pt->order();
+		highest_order_used = adapt_order;
 	      }
 
 	    ////////////////////////////////////
 	    // The calculation itself
 
-		double n_knot = variable_int_pt->nweight();
+		double n_knot = variable_int_pt->nweight(adapt_order);
 		for(unsigned kn=0;kn<n_knot;kn++)
 		  {
 		    double dgreendn =
@@ -331,7 +329,7 @@ namespace oomph
 
 	  }
 	while(((reldiff>reltol) && (adapt_order<max_order))
-	      || (adapt_order==min_order));
+	      || (adapt_order==variable_int_pt->adaptive_scheme_next_order(0)));
 	// Repeat unless the difference is small (i.e. quadrature has
 	// converged), terminate if max_order has been reached, continue anyway
 	// if we are still on the first order.
