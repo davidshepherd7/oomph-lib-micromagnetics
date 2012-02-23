@@ -785,7 +785,7 @@ char ch_cap ( char ch )
 {
   if ( 97 <= ch && ch <= 122 )
   {
-    ch = ch - 32;
+    ch = char(int(ch) - 32);
   }
 
   return ch;
@@ -3282,7 +3282,6 @@ double gegenbauer_integral ( int expon, double alpha )
   double arg3;
   double arg4;
   double c;
-  double s;
   double value;
   double value1;
 
@@ -11229,8 +11228,6 @@ void laguerre_ss_compute ( int order, double xtab[], double weight[] )
   double p1;
   double prod;
   double r1;
-  double r2;
-  double ratio;
   double x;
 
   b = new double[order];
@@ -19832,7 +19829,6 @@ void nco_compute_weights ( int n, double w[] )
 //    Output, double W[N], the weights.
 //
 {
-  int i;
   double *x;
   double x_max = 1.0;
   double x_min = -1.0;
@@ -20152,7 +20148,6 @@ void ncoh_compute_weights ( int n, double w[] )
 //    Output, double W[N], the weights.
 //
 {
-  int i;
   double *x;
   const double x_max = 1.0;
   const double x_min = -1.0;
