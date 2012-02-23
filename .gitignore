@@ -2,16 +2,28 @@
 # Lines that start with '#' are comments.
 # For a project mostly in C, the following would be a good set of
 # exclude patterns (uncomment them if you want to use them):
-*.[oa]
-*.out
-*~
+
+# build files
 Makefile
 Makefile.in
 .deps/
-*/results/
-.emacs.*
+*.[oa]
+*.out
 *_driver
+
+# backups/emacs files
+.emacs.*
+*~
 \#*\#
+
+# outputs
+results/
 rules
+
+# plot scripts
 plotscript.gplot
 *.gplot
+
+# computation scripts
+*go*.sh
+*octave*.m
