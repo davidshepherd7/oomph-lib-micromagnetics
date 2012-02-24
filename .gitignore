@@ -19,6 +19,11 @@ Makefile.in
 # outputs
 results/
 rules
+*.pdf
+*.png
+*.eps
+*.gif
+
 
 # plot scripts
 plotscript.gplot
