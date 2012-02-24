@@ -9,8 +9,9 @@
   Compile using:
   g++ generate_quadrature_rules_driver.cc quadrule.cc -Wall -g -Wconversion --std=c++0x
 
-  To get other rules search replace legendre_dr_compute with
-  clenshaw_curtis_compute or fejer2_compute (or other rules) as appropriate.
+  Sorry this code is such a mess, it was written to work for all dimensions but
+  the resulting file was far too large so it is rather overcomplicating things
+  for just 1D calculations.
 
   Details of the function used (from quadrule.cpp):
 
@@ -40,31 +41,17 @@
   Output, double WEIGHT[ORDER], the weights.
 */
 
-void output_weight(const std::vector<double> &weight, const unsigned &length,
-		   std::ofstream &output_stream)
-{
-  output_stream << "{";
-  for(unsigned i=0; i<length; i++)
-    output_stream << weight[i] << ",";
-  output_stream << "}," << std::endl;
-}
-
-void output_knot(const std::vector<std::vector<double> > &knot, const unsigned &length,
-		 const unsigned &dim, std::ofstream &output_stream)
-{
-  output_stream << "{";
-  for(unsigned i=0; i<length; i++)
-    {
-      output_stream << "{";
-      for(unsigned j=0; j<dim; j++)
-	output_stream << knot[i][j] << ",";
-      output_stream << "}, ";
-    }
-  output_stream << "}," << std::endl;
-}
+// void output_weight_knot(const std::vector<double> &weight, const unsigned &length,
+// 			std::ofstream &rules_stream)
+// {
+//   rules_stream << "{";
+//   for(unsigned i=0; i<length; i++)
+//     rules_stream << weight[i] << ",";
+//   rules_stream << "}," << std::endl;
+// }
 
 void quad_compute_weights(const std::function<void(unsigned,double*,double*)>
-			 &one_d_weights_compute,
+			  &one_d_weights_compute,
 			  std::ofstream &rules_stream, const unsigned &max_order)
 {
 
@@ -85,71 +72,21 @@ void quad_compute_weights(const std::function<void(unsigned,double*,double*)>
 
 
   //=================================================================
-  // Calculate + output weights in 1 to 3D
+  // Output weights in 1D
   //=================================================================
 
-  // Write some array structure stuff and dim 0
+  // Output the weights for dimension 1
   rules_stream << "{" << std::endl
-	       << "// Dim = 0" << std::endl
-	       << "{{}}," << std::endl
-	       << std::endl;
-
-
-  // Calculate and output the weights for dimension 1
-  rules_stream << "{" << std::endl
-	       << "//Dim = 1" << std::endl
-	       << "{}, // order 0" << std::endl;
+	       << "{}," << std::endl;
   for(unsigned order=1; order<=max_order; order++)
     {
       // Dump weights
-      output_weight(weight_1d[order],order,rules_stream);
-    }
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-
-  // Calculate and output weights for dimension 2
-  rules_stream << "{" << std::endl
-	       << "//Dim = 2" << std::endl
-	       << "{}, // order 0" << std::endl;
-  for(unsigned order=1; order<=max_order; order++)
-    {
-      // Calculate the tensor product to get dimension 2
-      std::vector<double> weight_2d(order*order,0.0);
+      rules_stream << "{";
       for(unsigned i=0; i<order; i++)
-	for(unsigned j=0; j<order; j++)
-	  weight_2d[order*i + j] = weight_1d[order][i]*weight_1d[order][j];
-
-      // Dump weights
-      output_weight(weight_2d,order*order,rules_stream);
+	rules_stream << weight_1d[order][i] << ",";
+      rules_stream << "}," << std::endl;
     }
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-
-  // Calculate and output weights for dimension 3
-  rules_stream << "{" << std::endl
-	       << "//Dim = 3" << std::endl
-	       << "{}, // order 0" << std::endl;
-  for(unsigned order=1; order<=max_order; order++)
-    {
-      // Calculate the tensor product to get dimension 3
-      std::vector<double> weight_3d(order*order*order,0.0);
-      for(unsigned i=0; i<order; i++)
-	for(unsigned j=0; j<order; j++)
-	  for(unsigned k=0; k<order; k++)
-	    {
-	      weight_3d[order*order*i + order*j + k]
-		= weight_1d[order][i]*weight_1d[order][j]*weight_1d[order][k];
-	    }
-
-      // Dump weights
-      output_weight(weight_3d,order*order*order,rules_stream);
-    }
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-  rules_stream << "}" << std::endl
+  rules_stream << "};" << std::endl
 	       << std::endl;
 }
 
@@ -175,92 +112,27 @@ void quad_compute_knots(const std::function<void(unsigned,double*,double*)>
 
 
   //=================================================================
-  // Calculate + output knots in 1 to 3D
+  // Calculate + output knots in 1D
   //=================================================================
 
-  // Write some array structure stuff and dim 0
-  rules_stream << "{" << std::endl
-	       << "// Dim = 0" << std::endl
-	       << "{{{}}}," << std::endl
-	       << std::endl;
-
-
-  // Calculate and output the knots (dimension 1)
+  // Output the knots (dimension 1)
   rules_stream << "{" <<std::endl
-  	       << "// Dim = 1" << std::endl
-  	       << "{{}} // order 0" << std::endl;
+  	       << "{}," << std::endl;
   for(unsigned order=1; order<=max_order; order++)
     {
-      // Convert to a vector of vectors (to use output function)
-      std::vector<std::vector<double> > knot_1d_out;
-      for(unsigned i=0; i<order; i++)
-  	knot_1d_out.push_back(std::vector<double>(1,knot_1d[order][i]));
-
       // Dump knots
-      output_knot(knot_1d_out, order, 1, rules_stream);
-    }
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-
-  // Calculate and output the knots (dimension 2)
-  rules_stream << "{" <<std::endl
-	       << "// Dim = 2" << std::endl
-	       << "{{}} // order 0" << std::endl;
-  for(unsigned order=1; order<=max_order; order++)
-    {
-      // Get tensor product for 2d
-      std::vector<std::vector<double> > knot_2d(order*order);
+      rules_stream << "{";
       for(unsigned i=0; i<order; i++)
-	for(unsigned j=0; j<order; j++)
-	  {
-	    knot_2d[i*order +j] = std::vector<double>(2,0.0);
-	    knot_2d[i*order +j][0] = knot_1d[order][i];
-	    knot_2d[i*order +j][1] = knot_1d[order][j];
-	  }
-
-      // Output
-      output_knot(knot_2d, order*order, 2, rules_stream);
+	rules_stream << knot_1d[order][i] << ",";
+      rules_stream << "}," << std::endl;
     }
-  rules_stream << "}" << std::endl
+  rules_stream << "};" << std::endl
 	       << std::endl;
-
-
-  // Calculate and output the knots (dimension 3)
-  rules_stream << "{" <<std::endl
-	       << "// Dim = 3" << std::endl
-	       << "{{}} // order 0" << std::endl;
-  for(unsigned order=1; order<=max_order; order++)
-    {
-      // Get tensor product for 3d
-      std::vector<std::vector<double> > knot_3d(order*order*order);
-      for(unsigned i=0; i<order; i++)
-	for(unsigned j=0; j<order; j++)
-	  for(unsigned k=0; k<order; k++)
-	    {
-	      knot_3d[i*order*order + j*order + k] = std::vector<double>(3,0.0);
-	      knot_3d[i*order*order + j*order + k][0] = knot_1d[order][i];
-	      knot_3d[i*order*order + j*order + k][1] = knot_1d[order][j];
-	      knot_3d[i*order*order + j*order + k][1] = knot_1d[order][k];
-	    }
-
-      // Output
-      output_knot(knot_3d, order*order*order, 3, rules_stream);
-    }
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-  rules_stream << "}" << std::endl
-	       << std::endl;
-
-
-  // Done so close output file
-  rules_stream.close();
 }
 
 int main()
 {
-  const unsigned max_order = 5;
+  const unsigned max_order = 50;
 
   // Set up filename
   char filename[100];
@@ -303,4 +175,5 @@ int main()
       quad_compute_knots(function[i], rules_stream, max_order);
     }
 
+  rules_stream.close();
 }
