@@ -86,6 +86,19 @@ Index: src/generic/Makefile.am
  
  # Define name of library 
  libname = generic
+Index: src/generic/elements.h
+===================================================================
+--- src/generic/elements.h	(revision 258)
++++ src/generic/elements.h	(working copy)
+@@ -1221,7 +1221,7 @@
+ 
+  /// \short Return the local equation number corresponding to the i-th
+  /// value at the n-th local node.
+- inline int nodal_local_eqn(const unsigned &n, const unsigned &i)
++ inline int nodal_local_eqn(const unsigned &n, const unsigned &i) const
+   {
+ #ifdef RANGE_CHECKING
+    if(n >= Nnode)
 Index: src/generic/elements.cc
 ===================================================================
 --- src/generic/elements.cc	(revision 258)
