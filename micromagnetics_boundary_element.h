@@ -195,11 +195,11 @@ namespace oomph
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
-    VariableGaussLegendre* variable_int_pt =
-      dynamic_cast<VariableGaussLegendre*>(integral_pt());
+    VariableOrderGaussLegendre* variable_int_pt =
+      dynamic_cast<VariableOrderGaussLegendre*>(integral_pt());
 #else
-    VariableGaussLegendre* variable_int_pt =
-      static_cast<VariableGaussLegendre*>(integral_pt());
+    VariableOrderGaussLegendre* variable_int_pt =
+      static_cast<VariableOrderGaussLegendre*>(integral_pt());
 #endif
 
     // Start of adaptive integration scheme

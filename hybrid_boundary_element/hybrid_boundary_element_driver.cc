@@ -528,7 +528,7 @@ int main(int argc, char* argv[])
 
 
   // // ??ds testing my variable gaussian scheme
-  VariableGaussLegendre quadrature_scheme;
+  VariableOrderGaussLegendre quadrature_scheme;
   quadrature_scheme.set_dim(1);
 
 
