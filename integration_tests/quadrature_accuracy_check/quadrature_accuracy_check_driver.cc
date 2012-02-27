@@ -3,7 +3,7 @@
 // Test chosen integration scheme on a variety of functions with known analytic values.
 // C++0x only (used lambda functions to simplify defining the long list of testing functions).
 
-#include "../../variable_quadrature.h"
+#include "../../variable_order_quadrature.h"
 #include <functional>
 #include <cmath>
 
@@ -15,7 +15,7 @@ namespace oomph
   // Integrate a given function using the given scheme (no check is made that
   // the scheme integrates between -1 and +1 - watch out).
   double integrate_function_1D(const std::function<double(double)> &function,
-			       const VariableOrderQuadrature &integral, const unsigned &order)
+			       const VariableOrderQuadrature<1> &integral, const unsigned &order)
   {
     double integral_value = 0;
 
@@ -98,10 +98,10 @@ int main()
     };
 
   // Create a list of integration methods to test:
-  Vector<VariableOrderQuadrature*> integration_methods(3);
-  integration_methods[0] = new VariableOrderGaussLegendre();
-  integration_methods[1] = new VariableOrderFejerSecond();
-  integration_methods[2] = new VariableOrderClenshawCurtis();
+  Vector<VariableOrderQuadrature<1>*> integration_methods(3);
+  integration_methods[0] = new VariableOrderGaussLegendre<1>();
+  integration_methods[1] = new VariableOrderFejerSecond<1>();
+  integration_methods[2] = new VariableOrderClenshawCurtis<1>();
 
   // The highest order available:
   unsigned max_order = 50;
@@ -109,8 +109,6 @@ int main()
   // Loop over the integration methods
   for(unsigned int_meth=0; int_meth<integration_methods.size(); int_meth++)
     {
-      integration_methods[int_meth]->set_dim(1);
-
       // Set up output file
       std::ofstream outfile;
       outfile.setf(std::ios::fixed,std::ios::floatfield);
