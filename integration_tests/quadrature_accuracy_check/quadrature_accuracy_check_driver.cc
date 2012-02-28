@@ -1,7 +1,6 @@
 
 
 // Test chosen integration scheme on a variety of functions with known analytic values.
-// C++0x only (used lambda functions to simplify defining the long list of testing functions).
 
 #include "../../variable_order_quadrature.h"
 #include <functional>
@@ -12,9 +11,12 @@ using namespace oomph;
 namespace oomph
 {
 
+  // Function typedef
+  typedef double (*fndoubletodouble)(const double&);
+
   // Integrate a given function using the given scheme (no check is made that
   // the scheme integrates between -1 and +1 - watch out).
-  double integrate_function_1D(const std::function<double(double)> &function,
+  double integrate_function_1D(const fndoubletodouble &function,
 			       const VariableOrderQuadrature<1> &integral, const unsigned &order)
   {
     double integral_value = 0;
@@ -37,12 +39,12 @@ namespace oomph
   struct TestingFn
   {
     // Stored values
-    std::function<double(double)> Function;
+    fndoubletodouble Function;
     double Answer;
     std::string Label;
 
     // Constructor
-    TestingFn(const std::function<double(double)> &function,
+    TestingFn(const fndoubletodouble function,
 	      const double &answer, const std::string label)
     {
       Function = function;
@@ -51,51 +53,62 @@ namespace oomph
     }
   };
 
+  // Some analytically known functions for testing:
+  //============================================================
+
+  double one(const double &x) {return 1.0;}
+  double justx(const double &x) {return x;}
+
+  // Functions from Trefethen2008:
+  double xtothe20(const double &x) {return pow(x,20);}
+  double expx(const double &x) {return exp(x);}
+  double expxmsq(const double &x) {return exp(-pow(x,2));}
+  double oneovpoly(const double &x) {return 1/(1 + 16*x*x);}
+  double exp1ovxsq(const double &x) {return exp(-1/(x*x));}
+  double absxcubed(const double &x) {return fabs(x*x*x);}
+
+  // near 1/r singularity
+  double sing2(const double &x) {return 1/fabs(x-2);}
+  double sing5(const double &x) {return 1/fabs(x-5);}
+  double sing20(const double &x) {return 1/fabs(x-20);}
+
+  // near 1/(r^2) singularity
+  double sqsing2(const double &x) {return 1/pow(fabs(x-2),2);}
+  double sqsing5(const double &x) {return 1/pow(fabs(x-5),2);}
+  double sqsing20(const double &x) {return 1/pow(fabs(x-20),2);}
+
 }
 
 int main()
 {
 
-  // Create a list of testing functions and their exact solutions Exact
-  // solutions are taken from Mathematica using the command:
+  // Create a list of testing functions, their exact solutions and a
+  // label. Exact solutions are taken from Mathematica using the command:
   // N[Integrate[...fn..., {x, -1, +1}], 20]
-  std::vector<TestingFn > function_list =
-    {
-      // Some very simple functions:
-      TestingFn([] (double x) {return 1.0;}, 2.0, "1.0"),
-      TestingFn([] (double x) {return x;}, 0.0, "x"),
+  std::vector<TestingFn > function_list;
 
-      // Functions from Trefethen2008:
-      TestingFn([] (double x) {return pow(x,20);}, 2.0/21, "x^20"),
-      TestingFn([] (double x) {return exp(x);},
-		2.3504023872876029138, "exp(x)"),
-      TestingFn([] (double x) {return exp(-pow(x,2));},
-		1.4936482656248540508, "exp(-x^2)"),
-      TestingFn([] (double x) {return 1/(1 + 16*x*x);},
-		0.66290883183401623253, "1/(1 + 16 x^2)"),
-      TestingFn([] (double x) {return exp(-1/(x*x));},
-		0.17814771178156069019, "exp(-1/(x^2))"),
-      TestingFn([] (double x) {return fabs(x*x*x);}, 0.5, "|x^3|"),
+  function_list.push_back(TestingFn(one, 2.0, "1.0"));
+  function_list.push_back(TestingFn(justx, 0.0, "x"));
 
-      // Functions related to the hybrid FEM/BEM for micromagnetics
-      // =================================================================
+  // Functions from Trefethen2008:
+  function_list.push_back(TestingFn(xtothe20, 2.0/21, "x^20"));
+  function_list.push_back(TestingFn(expx, 2.3504023872876029138, "exp(x)"));
+  function_list.push_back(TestingFn(expxmsq, 1.4936482656248540508, "exp(-x^2)"));
+  function_list.push_back(TestingFn(oneovpoly, 0.66290883183401623253, "1/(1 + 16 x^2)"));
+  function_list.push_back(TestingFn(exp1ovxsq, 0.17814771178156069019, "exp(-1/(x^2))"));
+  function_list.push_back(TestingFn(absxcubed, 0.5, "|x^3|"));
 
-      // 1/r
-      TestingFn([] (double x) {return 1/fabs(x-2);},
-		1.0986122886681096914, "1/|x-2|"),
-      TestingFn([] (double x) {return 1/fabs(x-5);},
-		0.40546510810816438198, "1/|x-5|"),
-      TestingFn([] (double x) {return 1/fabs(x-20);},
-		0.10008345855698253649, "1/|x-20|"),
+  // 1/r near singularities
+  function_list.push_back(TestingFn(sing2, 1.0986122886681096914, "1/|x-2|"));
+  function_list.push_back(TestingFn(sing5, 0.40546510810816438198, "1/|x-5|"));
+  function_list.push_back(TestingFn(sing20, 0.10008345855698253649, "1/|x-20|"));
 
-      // 1/(r^2)
-      TestingFn([] (double x) {return 1/pow(fabs(x-2),2);},
-		0.6666666666666666666, "1/|x-2|^2"),
-      TestingFn([] (double x) {return 1/pow(fabs(x-5),2);},
-		0.083333333333333333333, "1/|x-5|^2"),
-      TestingFn([] (double x) {return 1/pow(fabs(x-20),2);},
-		0.0050125313283208020050, "1/|x-20|^2"),
-    };
+  // 1/(r^2) near singularities
+  function_list.push_back(TestingFn(sqsing2, 0.6666666666666666666, "1/|x-2|^2"));
+  function_list.push_back(TestingFn(sqsing5, 0.083333333333333333333, "1/|x-5|^2"));
+  function_list.push_back(TestingFn(sqsing20, 0.0050125313283208020050, "1/|x-20|^2"));
+
+
 
   // Create a list of integration methods to test:
   Vector<VariableOrderQuadrature<1>*> integration_methods(3);
