@@ -16,28 +16,55 @@ namespace oomph
 {
 
 
-  // //============================================================
-  // /// A structure to hold the weights/knots data. We need this so we can have a
-  // /// constructor to initialise the const static data structures.
-  // //============================================================
-  // struct weights_data_structure
-  // {
-  // public:
+  //============================================================
+  /// A structure to hold the weights/knots data. We need this so we can have a
+  /// constructor to initialise the const static data structures.
+  //============================================================
+  //??ds Had to use std::vector because our Vector class lacks some constructors.
+  //??ds Ask if I can add them?
+  struct weights_data_structure
+  {
 
-  //   std::map<unsigned,Vector<double> > data;
+  private:
 
-  //   weights_data_structure(std::map<unsigned,Vector<double> > data)
-  //   {
-  //     //??ds does the default copy constructor work?
+    /// Typedef to keep code lines reasonable and allow easy swapping between
+    /// std::vector and oomph::Vector if needed.
+    typedef std::vector<double> vdb;
 
-  //     // for(unsigned order=0; order<array_size; order++)
-  //     // 	{
-  //     // 	  // By definition the number of weights/knots in the order-th rule is order
-  //     // 	  data[order].reserve(order);
-  //     // 	  data[order].assign(data_array[order], data_array[order] + order);
-  //     // 	}
-  //   }
-  // };
+  public:
+
+    /// The data structure itself
+    std::map<unsigned,vdb > data;
+
+    /// Constructor - to allow construction of static constants
+    weights_data_structure(const double data_array[],
+			   const unsigned order_array[],
+			   const unsigned &order_array_length)
+    {
+      // Keep track of where we are up to in the (1D) input array
+      unsigned k = 0;
+
+      // Keep track of where we are up to in the map
+      std::map<unsigned,vdb >::iterator it = data.begin();
+
+      // for each order in the input order_array
+      for(unsigned i=0; i<order_array_length; i++)
+	{
+	  // Get this order from order_array
+	  unsigned order = order_array[i];
+
+	  // Put 'order' values from data_array into a vector
+	  vdb temp(data_array[k], data_array[k+order]);
+
+	  // Insert data for this order into map just after last insertion
+	  it = data.insert(it, std::pair<unsigned,vdb>(order, temp));
+
+	  // Increase k ready for next order
+	  k+=order;
+	}
+    }
+
+  };
 
 
   //==============================================================================
