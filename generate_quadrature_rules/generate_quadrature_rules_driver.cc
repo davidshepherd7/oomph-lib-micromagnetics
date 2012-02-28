@@ -130,20 +130,20 @@ using namespace oomph_compute_weights;
 int main()
 {
 
-  // // Create the list of order_list to compute rules for (1-50 + some powers of 2)
-  // std::vector<unsigned> order_list;
-  // for(unsigned i=1; i<51; i++)
-  //   order_list.push_back(i);
-  // order_list.push_back(64); order_list.push_back(128); order_list.push_back(256);
-
-  // Code for testing (few orders)
+  // Create the list of order_list to compute rules for (1-50 + some powers of 2)
   std::vector<unsigned> order_list;
-  order_list.push_back(1);
-  order_list.push_back(2);
-  order_list.push_back(3);
+  for(unsigned i=1; i<51; i++)
+    order_list.push_back(i);
+  order_list.push_back(64); order_list.push_back(128); order_list.push_back(256);
 
-  for(unsigned i=0; i<order_list.size(); i++)
-    std::cout << order_list[i] << ", ";
+  // // Code for testing (few orders)
+  // std::vector<unsigned> order_list;
+  // order_list.push_back(1);
+  // order_list.push_back(2);
+  // order_list.push_back(3);
+
+  // for(unsigned i=0; i<order_list.size(); i++)
+  //   std::cout << order_list[i] << ", ";
 
 
 
@@ -174,28 +174,41 @@ int main()
 	       << "//See https://github.com/davidshepherd7/oomph-lib-additions/tree/master/generate_quadrature_rules ."
 	       << std::endl;
 
+  rules_stream << "weights_data_structure::weights_data_structure(const unsigned scheme, const bool weights)"
+	       << std::endl
+	       << "{\nswitch(scheme)\n{" << std::endl;
 
   // Create and output to file the quadrature rules for all QElement schemes:
   for(unsigned i=0; i<function.size(); i++)
     {
-      rules_stream << std::endl
-		   << "// Enclose in braces to keep all these temporary arrays contained."
-		   << std::endl << "{" << std::endl;;
+      rules_stream << "case " << i << " : \n{\n" << std::endl;
 
       // Compute and output as arrays
       quad_compute_weights_knots(function[i], order_list, rules_stream);
 
-      // Insert arrays into constructor
-      rules_stream << template<unsigned DIM> << std::endl
-		   << "const weights_data_structure " << class_name[i] << "<DIM>::" <<std::endl
-		   << "Weights(weights_data_array,order_array,order_array_length);" << std::endl;
+      // Write the arrays into the object
+      rules_stream << "\n// Construct the weights or knots as requested\nif(weights)\nconstruction_helper(weights_data_array, order_array, order_array_length);\nelse\nconstruction_helper(knots_data_array, order_array, order_array_length);\n"
+		   << std::endl;
 
-      rules_stream << template<unsigned DIM> << std::endl
-		   << "const weights_data_structure " << class_name[i] << "<DIM>::" <<std::endl
-		   << "Knots(knots_data_array,order_array,order_array_length);" << std::endl;
+      rules_stream << "break;\n}\n\n" << std::endl;
+    }
 
-      rules_stream << "}" << std::endl << std::endl;
+  rules_stream << "default : " <<std::endl
+	       << "throw OomphLibError(\"The given quadrature scheme does not exist.\",\n"
+	       << "\"weights_data_structure::weights_data_structure\",\n"
+	       << "\"OOMPHEXCEPTIONLOCATION\");" << std::endl;
 
+  rules_stream << "}\n}\n\n" << std::endl;
+
+  // Create the function calls to actually create the static objects
+  rules_stream << "// Call the constructors." << std::endl;
+  for(unsigned i=0; i<function.size(); i++)
+    {
+      rules_stream << "const weights_data_structure " << class_name[i] << "::"
+		   << "Weights(" << i << ",1);" <<std::endl;
+
+      rules_stream << "const weights_data_structure " << class_name[i] << "::"
+		   << "Knots(" << i << ",0);" <<std::endl;
     }
 
   rules_stream.close();
