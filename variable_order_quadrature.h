@@ -113,9 +113,7 @@ namespace oomph
     unsigned max_order() const {return Max_order;}
 
     /// Get the number of weights for given order (must be implemented in derived class).
-    /// This must be overloaded for non-QElement schemes.
-    inline virtual unsigned nweight(const unsigned &order) const
-    {return unsigned(pow(order,dim()));}
+    virtual unsigned nweight(const unsigned &order) const = 0;
 
     /// Get the weights for given order (must be implemented in derived class).
     /// This must be overloaded for non-QElement schemes.
@@ -251,6 +249,9 @@ namespace oomph
     }
 
     inline unsigned dim() const {return 1;}
+
+    inline virtual unsigned nweight(const unsigned &order) const
+    {return order;}
   };
 
 
@@ -288,6 +289,9 @@ namespace oomph
     }
 
     inline unsigned dim() const {return 2;}
+
+    inline virtual unsigned nweight(const unsigned &order) const
+    {return order*order;}
 
   };
 
@@ -333,6 +337,9 @@ namespace oomph
     }
 
     inline unsigned dim() const {return 3;}
+
+    inline virtual unsigned nweight(const unsigned &order) const
+    {return order*order*order;}
 
   };
 
