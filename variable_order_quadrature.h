@@ -76,26 +76,27 @@ namespace oomph
 
 
   //==============================================================================
-  /// A generic base class for Gaussian quadrature of any order and any dimension
+  /// An abstract base class for Gaussian quadrature. Does the error checking and
+  /// declares all the virtual functions that will be needed.
   //==============================================================================
-  class VariableOrderQuadratureHelper : public Integral
+  class BaseVariableOrderQuadrature : public Integral
   {
 
   public:
 
     /// Default construtor
-    VariableOrderQuadratureHelper(){}
+    BaseVariableOrderQuadrature(){}
 
     /// Broken copy constructor
-    VariableOrderQuadratureHelper(const VariableOrderQuadratureHelper& dummy)
-    {BrokenCopy::broken_copy("VariableOrderQuadratureHelper");}
+    BaseVariableOrderQuadrature(const BaseVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("BaseVariableOrderQuadrature");}
 
     /// Broken assignment operator
-    void operator=(const VariableOrderQuadratureHelper& dummy)
-    {BrokenCopy::broken_assign("VariableOrderQuadratureHelper");}
+    void operator=(const BaseVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("BaseVariableOrderQuadrature");}
 
     /// Destructor
-    ~VariableOrderQuadratureHelper(){};
+    ~BaseVariableOrderQuadrature(){};
 
     /// Get the current Dim
     virtual unsigned dim() const = 0;
@@ -109,18 +110,12 @@ namespace oomph
     virtual bool order_existence(const unsigned &order) const = 0;
 
     /// Get the number of weights for given order (must be implemented in derived class).
-    /// This must be overloaded for non-QElement schemes.
-    inline virtual unsigned nweight(const unsigned &order) const
-    {return unsigned(pow(order,dim()));}
+    virtual unsigned nweight(const unsigned &order) const = 0;
 
     /// Get the weights for given order (must be implemented in derived class).
-    /// This must be overloaded for non-QElement schemes.
-    // ??ds ideally we should probably template this since it's likely to be a
-    // central part of the code and a bunch of "if"s are probably slow.
     virtual double weight(const unsigned &i, const unsigned &order) const = 0;
 
     /// Get the location of knots for given order (must be implemented in derived class).
-    /// This must be overloaded for non-QElement schemes.
     virtual double knot(const unsigned &i, const unsigned &j,
 			const unsigned &order) const = 0;
 
@@ -134,32 +129,31 @@ namespace oomph
     virtual unsigned nweight() const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-			  "VariableOrderQuadratureHelper::nweight", OOMPH_EXCEPTION_LOCATION);
+			  "BaseVariableOrderQuadrature::nweight", OOMPH_EXCEPTION_LOCATION);
     }
 
     /// Dummy function to override the virtual one from Integral class
     virtual double weight(const unsigned &i) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-			  "VariableOrderQuadratureHelper::weight", OOMPH_EXCEPTION_LOCATION);
+			  "BaseVariableOrderQuadrature::weight", OOMPH_EXCEPTION_LOCATION);
     }
 
     /// Dummy function to override the virtual one from Integral class
     virtual double knot(const unsigned &i,const unsigned &j) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-			  "VariableOrderQuadratureHelper::weight", OOMPH_EXCEPTION_LOCATION);
+			  "BaseVariableOrderQuadrature::weight", OOMPH_EXCEPTION_LOCATION);
     }
 
   };
 
   //============================================================
-  /// Class to hold (speed critical) dimension dependant functions. To avoid
-  /// replicating large chunks of code we inherit the dimension independant
-  /// parts. This empty class just establishes template parameters.
+  /// The geometry dependant parts of the variable order quadrature for
+  /// QElements.
   //============================================================
   template<unsigned DIM>
-  class VariableOrderQuadrature : public VariableOrderQuadratureHelper
+  class QVariableOrderQuadrature : public BaseVariableOrderQuadrature
   {};
 
 
@@ -167,27 +161,27 @@ namespace oomph
   /// Specialisation of VariableOrderQuadrature to 1D.
   //============================================================
   template<>
-  class VariableOrderQuadrature<1> : public VariableOrderQuadratureHelper
+  class QVariableOrderQuadrature<1> : public BaseVariableOrderQuadrature
   {
   public:
 
     /// Default construtor
-    VariableOrderQuadrature(){}
+    QVariableOrderQuadrature(){}
 
     /// Broken copy constructor
-    VariableOrderQuadrature(const VariableOrderQuadrature& dummy)
-    {BrokenCopy::broken_copy("VariableOrderQuadrature");}
+    QVariableOrderQuadrature(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("QVariableOrderQuadrature");}
 
     /// Broken assignment operator
-    void operator=(const VariableOrderQuadrature& dummy)
-    {BrokenCopy::broken_assign("VariableOrderQuadrature");}
+    void operator=(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("QVariableOrderQuadrature");}
 
 
     inline double weight(const unsigned &i, const unsigned &order) const
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"VariableOrderQuadrature::weight");
+      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
 #endif
       return weight_1d(i,order);
     }
@@ -201,22 +195,37 @@ namespace oomph
     }
 
     inline unsigned dim() const {return 1;}
+
+    inline unsigned nweight(const unsigned &order) const
+    {return order;}
+
   };
 
 
   //============================================================
-  /// Specialisation of VariableOrderQuadrature to 2D.
+  /// Specialisation of QVariableOrderQuadrature to 2D.
   //============================================================
   template<>
-  class VariableOrderQuadrature<2> : public VariableOrderQuadratureHelper
+  class QVariableOrderQuadrature<2> : public BaseVariableOrderQuadrature
   {
   public:
+
+    /// Default construtor
+    QVariableOrderQuadrature(){}
+
+    /// Broken copy constructor
+    QVariableOrderQuadrature(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("QVariableOrderQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("QVariableOrderQuadrature");}
 
     inline double weight(const unsigned &i, const unsigned &order) const
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"VariableOrderQuadrature::weight");
+      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
 #endif
       unsigned i_y = i%order;
       unsigned i_x = i - i_y*order;
@@ -239,22 +248,35 @@ namespace oomph
 
     inline unsigned dim() const {return 2;}
 
+    inline unsigned nweight(const unsigned &order) const
+    {return order*order;}
   };
 
 
   //============================================================
-  /// Specialisation of VariableOrderQuadrature to 3D.
+  /// Specialisation of QVariableOrderQuadrature to 3D.
   //============================================================
   template<>
-  class VariableOrderQuadrature<3> : public VariableOrderQuadratureHelper
+  class QVariableOrderQuadrature<3> : public BaseVariableOrderQuadrature
   {
   public:
+
+    /// Default construtor
+    QVariableOrderQuadrature(){}
+
+    /// Broken copy constructor
+    QVariableOrderQuadrature(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("QVariableOrderQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const QVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("QVariableOrderQuadrature");}
 
     inline double weight(const unsigned &i, const unsigned &order) const
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"VariableOrderQuadrature::weight");
+      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
 #endif
       unsigned i_z = i%(order*order);
       unsigned i_y = (i-i_z*order*order)%order;
@@ -284,6 +306,8 @@ namespace oomph
 
     inline unsigned dim() const {return 3;}
 
+    inline unsigned nweight(const unsigned &order) const
+    {return order*order*order;}
   };
 
 
@@ -291,8 +315,7 @@ namespace oomph
   /// Gauss-Legendre quadrature (the standard Gaussian quadrature used
   /// in oomph-lib).
   //============================================================
-  template<unsigned DIM>
-  class VariableOrderGaussLegendre : public VariableOrderQuadrature<DIM>
+  class VariableOrderGaussLegendre
   {
   private:
 
@@ -317,7 +340,7 @@ namespace oomph
     {return Weights.order_existence(order);}
 
     /// Get the next order to use in an adaptive scheme.
-    inline unsigned adaptive_scheme_next_order(const unsigned &order)
+    inline unsigned adaptive_scheme_next_order(const unsigned &order) const
     {
       if(order == 0) return 2;
       else return 2*order;
@@ -330,8 +353,7 @@ namespace oomph
   /// Clenshaw-Curtis quadrature
   /// Advantage: higher order methods re-use the same knots.
   //============================================================
-  template<unsigned DIM>
-  class VariableOrderClenshawCurtis : public VariableOrderQuadrature<DIM>
+  class VariableOrderClenshawCurtis
   {
   private:
 
@@ -403,7 +425,7 @@ namespace oomph
     {
       if(order ==0) return 2;
       if(order == 2) return 4;
-      else return (2*order) -1;
+      else return (2*order) - 1;
     }
   };
 
@@ -415,8 +437,7 @@ namespace oomph
   /// are not included so it can be used for integrals with endpoint
   /// singularities.
   //============================================================
-  template<unsigned DIM>
-  class VariableOrderFejerSecond : public VariableOrderQuadrature<DIM>
+   class VariableOrderFejerSecond
   {
 
     /// Weights for all orders and knots
@@ -487,13 +508,69 @@ namespace oomph
     }
   };
 
+
+  //============================================================
+  /// The final class for GaussLegendre on a QElement
+  //============================================================
+  template <unsigned DIM>
+  class QVariableOrderGaussLegendre : public VariableOrderGaussLegendre,
+				      public QVariableOrderQuadrature<DIM>
+  {
+    // Just make sure we are calling the right functions
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderGaussLegendre::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderGaussLegendre::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderGaussLegendre::order_existence(order);}
+  };
+
+
+  //============================================================
+  /// The final class for ClenshawCurtis on a QElement
+  //============================================================
+  template <unsigned DIM>
+  class QVariableOrderClenshawCurtis : public VariableOrderClenshawCurtis,
+				       public QVariableOrderQuadrature<DIM>
+  {
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderClenshawCurtis::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderClenshawCurtis::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderClenshawCurtis::order_existence(order);}
+  };
+
+
+  //============================================================
+  /// The final class for FejerSecond on a QElement
+  //============================================================
+  template <unsigned DIM>
+  class QVariableOrderFejerSecond : public VariableOrderFejerSecond,
+				    public QVariableOrderQuadrature<DIM>
+  {
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderFejerSecond::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderFejerSecond::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderFejerSecond::order_existence(order);}
+  };
+
+
   // this should go into the .cc file eventually
   //////////////////////////////////////////////////////////////////////////////
 
   //============================================================
   /// General range checking function for use in all weight and knot functions.
   //============================================================
-  void VariableOrderQuadratureHelper::
+  void BaseVariableOrderQuadrature::
   error_check(const unsigned &i, const unsigned &j,
   	      const unsigned &order, const std::string &function_name) const
   {
@@ -539,33 +616,33 @@ namespace oomph
   // Automatically generated by generate_quadrature_rules_driver, based on QUADRULE.
   //See https://github.com/davidshepherd7/oomph-lib-additions/tree/master/generate_quadrature_rules .
 
-  template<unsigned DIM>
-  void VariableOrderGaussLegendre<DIM>::intialise_gauss_legendre_weights()
-  {
-    double weights_data_array[] =
-      {
-	2,
-	0.9999999999999998,0.9999999999999998,
-	0.5555555555555556,0.8888888888888888,0.5555555555555556,
-      };
+  // void VariableOrderGaussLegendre::intialise_gauss_legendre_weights()
+  // {
+  //   double weights_data_array[] =
+  //     {
+  // 	2,
+  // 	0.9999999999999998,0.9999999999999998,
+  // 	0.5555555555555556,0.8888888888888888,0.5555555555555556,
+  //     };
 
-    double knots_data_array[] =
-      {
-	0,
-	-0.5773502691896257,0.5773502691896257,
-	-0.7745966692414834,0,0.7745966692414834,
-      };
+  //   double knots_data_array[] =
+  //     {
+  // 	0,
+  // 	-0.5773502691896257,0.5773502691896257,
+  // 	-0.7745966692414834,0,0.7745966692414834,
+  //     };
 
-    unsigned order_array[] = {1,2,3,};
-    unsigned order_array_length = 3;
+  //   unsigned order_array[] = {1,2,3,};
+  //   unsigned order_array_length = 3;
 
-    const weights_data_structure
-      Weights(weights_data_array,order_array,order_array_length);
+  //   const weights_data_structure
+  //     Weights(weights_data_array,order_array,order_array_length);
 
-    const weights_data_structure
-      Knots(knots_data_array,order_array,order_array_length);
-  }
-  VariableOrderGaussLegendre<1>::intialise_gauss_legendre_weights()
+  //   const weights_data_structure
+  //     Knots(knots_data_array,order_array,order_array_length);
+  // }
+
+  // VariableOrderGaussLegendre<1>::intialise_gauss_legendre_weights()
 
 
 

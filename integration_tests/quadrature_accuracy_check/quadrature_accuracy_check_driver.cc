@@ -17,7 +17,8 @@ namespace oomph
   // Integrate a given function using the given scheme (no check is made that
   // the scheme integrates between -1 and +1 - watch out).
   double integrate_function_1D(const fndoubletodouble &function,
-			       const VariableOrderQuadrature<1> &integral, const unsigned &order)
+			       const QVariableOrderQuadrature<1> &integral,
+			       const unsigned &order)
   {
     double integral_value = 0;
 
@@ -111,10 +112,10 @@ int main()
 
 
   // Create a list of integration methods to test:
-  Vector<VariableOrderQuadrature<1>*> integration_methods(3);
-  integration_methods[0] = new VariableOrderGaussLegendre<1>();
-  integration_methods[1] = new VariableOrderFejerSecond<1>();
-  integration_methods[2] = new VariableOrderClenshawCurtis<1>();
+  Vector<QVariableOrderQuadrature<1>*> integration_methods(3);
+  integration_methods[0] = new QVariableOrderGaussLegendre<1>();
+  integration_methods[1] = new QVariableOrderFejerSecond<1>();
+  integration_methods[2] = new QVariableOrderClenshawCurtis<1>();
 
   // The highest order available:
   unsigned max_order = 50;
