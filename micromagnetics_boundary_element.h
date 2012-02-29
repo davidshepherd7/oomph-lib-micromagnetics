@@ -5,7 +5,7 @@
 #include "generic.h"
 #include "../micromagnetics_element.h"
 #include "../micromagnetics_element.cc"
-#include "./variable_quadrature.h"
+#include "./variable_order_quadrature.h"
 #include <functional>
 
 using namespace oomph;
@@ -17,7 +17,7 @@ namespace oomph
   //===========================================================================
   ///
   //===========================================================================
-  template<class ELEMENT>
+  template<class ELEMENT,unsigned DIM>
   class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
 			      public virtual FaceElement
   {
@@ -108,6 +108,10 @@ namespace oomph
     inline void set_boundary_mesh_pt(Mesh* boundary_mesh_pointer)
     {Boundary_mesh_pt = boundary_mesh_pointer;}
 
+    /// Get the max difference between two vectors relative to that element of vector1
+    double max_rel_error(const Vector<double> &vector1,
+				   const Vector<double> &vector2) const;
+
   protected:
 
     /// \short Function to compute the shape and test functions and to return
@@ -167,8 +171,8 @@ namespace oomph
   /// at the max. or min. value of the "fixed" local coordinate
   /// in the bulk element.
   //===========================================================================
-  template<class ELEMENT>
-  MicromagFaceElement<ELEMENT>::
+  template<class ELEMENT,unsigned DIM>
+  MicromagFaceElement<ELEMENT,DIM>::
   MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index)
     : FaceGeometry<ELEMENT>(), FaceElement()
   {
@@ -180,40 +184,43 @@ namespace oomph
 
   /// Get boundary element matrix contributions for this element using
   /// an adaptive scheme.
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
+  template<class ELEMENT,unsigned DIM>
+  void MicromagFaceElement<ELEMENT,DIM>::
   fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix)
     const
   {
-     // Find out dimension of element
-    const unsigned el_dim = dim(), node_dim = nodal_dimension();
+    // Find out dimension of element
+    const unsigned el_dim = DIM-1, node_dim = nodal_dimension();
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
 
- // Cast pointer to the final integration scheme
+    // Cast pointer to the final integration scheme
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
-    VariableOrderGaussLegendre* variable_int_pt =
-      dynamic_cast<VariableOrderGaussLegendre*>(integral_pt());
+    QVariableOrderGaussLegendre<el_dim>* v_int_pt =
+      dynamic_cast<QVariableOrderGaussLegendre<el_dim>* >(integral_pt());
 #else
-    VariableOrderGaussLegendre* variable_int_pt =
-      static_cast<VariableOrderGaussLegendre*>(integral_pt());
+    QVariableOrderGaussLegendre<el_dim>* v_int_pt =
+      static_cast<QVariableOrderGaussLegendre<el_dim>*>(integral_pt());
 #endif
 
     // Start of adaptive integration scheme
     //====================================
 
-    // Set parameters for adaptive integration
-    unsigned max_order = variable_int_pt->max_order();
-    unsigned highest_order_used = 0;
+    // Setup error parameters for adaptive integration
     double reltol = 1e-4, reldiff;
 
+    // Set up storage to keep track of orders used:
+    std::vector<unsigned> order_list = {2,4,8,16,32,64,128,256,};
+    unsigned n_order = order_list.size();
+    Vector<unsigned> order_is_calculated(n_order,0);
+
     // Set up storage for data at each knot for each order
-    Vector< Vector< Vector<double> > > x_kn, normal;
-    Vector< Vector<double> > jw;
-    Vector< Vector<Shape> > psi, test;
+    Vector< Vector< Vector<double> > > x_kn(n_order), normal(n_order);
+    Vector< Vector<double> > jw(n_order);
+    Vector< Vector<Shape> > test(n_order), psi(n_order);
 
     // Loop over all source nodes on the boundary
     unsigned n_boundary_node = boundary_mesh_pt()->nnode();
@@ -223,10 +230,10 @@ namespace oomph
 	Vector<double> source_node_x(node_dim,0.0);
 	boundary_mesh_pt()->node_pt(i_sn)->position(source_node_x);
 
-	// Reset the quadrature scheme order (magic number: 0 = automatically
-	// select min_order when adaptive_scheme_next_order is used)
-	unsigned adapt_order = 0;
+	// Reset the quadrature order
+	unsigned i_order = 0;
 
+	// Temporary storage for the values computed
 	Vector<double> temp_bm_prev(n_element_node,0.0), temp_bm(n_element_node,5000);
 	do
 	  {
@@ -235,107 +242,117 @@ namespace oomph
 	    //??ds do the initilisation better?
 	    temp_bm_prev = temp_bm;
 	    for(unsigned l=0; l<n_element_node; l++)
-	      {
-		temp_bm[l] = 0.0;
-	      }
-
-	    // Move to next adaptive scheme order
-	    adapt_order = variable_int_pt->adaptive_scheme_next_order(adapt_order);
+	      temp_bm[l] = 0.0;
 
 	    ////////////////////////////////////////
 	    // Precalculations (if needed)
 
 	    // Check if this order of integration has been used yet, if not calculate things
-	    if( !(adapt_order <= highest_order_used))
+	    if( order_is_calculated[i_order] != 1)
 	      {
+		// Get new order
+		unsigned new_order = order_list[i_order];
+
 		// Get the number of knots at this order
-		unsigned n_knot = variable_int_pt->nweight(adapt_order);
+		unsigned n_knot = v_int_pt->nweight(new_order);
 
-		// Resize the vectors to store the data for the new order
-		x_kn.resize(adapt_order+1);
-		normal.resize(adapt_order+1);
-		psi.resize(adapt_order+1);
-		test.resize(adapt_order+1);
-		jw.resize(adapt_order+1);
-
+		// Calculate and push back values at each knot
 		for(unsigned kn=0; kn<n_knot; kn++)
 		  {
 		    // Get the local coordinate
 		    Vector<double> s(el_dim,0.0);
 		    for(unsigned j=0; j<el_dim; j++)
-		      s[j] = variable_int_pt->knot(kn,j,adapt_order);
+		      s[j] = v_int_pt->knot(kn,j,new_order);
 
 		    // Get the unit normal
 		    Vector<double> local_normal(node_dim,0.0);
 		    outer_unit_normal(s,local_normal);
-		    normal[adapt_order].push_back(local_normal);
+		    normal[i_order].push_back(local_normal);
 
 		    // Get the Jacobian*weight
-		    jw[adapt_order].push_back(J_eulerian(s)
-					      * variable_int_pt->weight(kn,adapt_order));
+		    jw[i_order].push_back(J_eulerian(s)
+					  * v_int_pt->weight(kn,new_order));
 
 		    // Get shape and test(=shape) functions
 		    Shape psi_local(n_element_node);
 		    shape(s,psi_local);
-		    psi[adapt_order].push_back(psi_local);
-		    test[adapt_order].push_back(psi_local);
+		    psi[i_order].push_back(psi_local);
+		    test[i_order].push_back(psi_local);
 
 		    // Get the global coordinate
 		    Vector<double> x_local(node_dim,0.0);
 		    for(unsigned l=0; l<n_element_node; l++)
 		      {
 			for(unsigned j=0; j<node_dim; j++)
-			  x_local[j] += nodal_position(l,j)*psi[adapt_order][kn][l];
+			  x_local[j] += nodal_position(l,j)*psi[i_order][kn][l];
 		      }
-		    x_kn[adapt_order].push_back(x_local);
+		    x_kn[i_order].push_back(x_local);
 
 		  }
 
-		// Set the new highest order
-		highest_order_used = adapt_order;
+		// Record that the new order has been calculated
+		order_is_calculated[i_order] = 1;
 	      }
 
-	    ////////////////////////////////////
+	    ////////////////////////////////////////////////////////////
 	    // The calculation itself
 
-		double n_knot = variable_int_pt->nweight(adapt_order);
-		for(unsigned kn=0;kn<n_knot;kn++)
-		  {
-		    double dgreendn =
-		      green_normal_derivative(x_kn[adapt_order][kn],source_node_x,
-					      normal[adapt_order][kn]);
+	    unsigned order = order_list[i_order];
 
-		    // Loop over test functions, i.e. local/target nodes, adding contributions
-		    for(unsigned l=0; l<n_element_node; l++)
-		      temp_bm[l] -= dgreendn * test[adapt_order][kn][l]*jw[adapt_order][kn];
-		  }
+	    double n_knot = v_int_pt->nweight(order);
+	    for(unsigned kn=0;kn<n_knot;kn++)
+	      {
+		double dgreendn =
+		  green_normal_derivative(x_kn[i_order][kn],source_node_x,
+					  normal[i_order][kn]);
 
-	    ////////////////////////////////////////////
-	    // Evaluate the results
+		// Loop over test functions, i.e. local/target nodes, adding contributions
+		for(unsigned l=0; l<n_element_node; l++)
+		  temp_bm[l] -= dgreendn * test[i_order][kn][l]*jw[i_order][kn];
+	      }
+	    ////////////////////////////////////////////////////////////
 
-	    // Get the differences between the the results from the last two
-	    // quadrature schemes tried.
-	    Vector<double> diff_bm(n_element_node);
-	    for(unsigned l=0; l<n_element_node; l++)
-	      diff_bm[l] = fabs(temp_bm_prev[l] - temp_bm[l]);
+	    // Compare with previous result
+	    reldiff = max_rel_error(temp_bm,temp_bm_prev);
 
-	    // Get the worst case error (the maximum) and calculate the relative
-	    // error (divide error by the appropriate integral value).
-	    Vector<double>::iterator worst_error_it
-	      = max_element(diff_bm.begin(),diff_bm.end());
-	    reldiff = *worst_error_it
-	      / temp_bm[worst_error_it - diff_bm.begin()];
-	    //??ds need to put in something special to handle zero integrals
+	    // if(i_order > 4)
+	    //   {
+	    // 	std::cout << "i_order = " << i_order << std::endl;
+	    // 	std::cout << "i_sn = " << i_sn << std::endl;
 
+	    // 	std::cout << "source node location = ";
+	    // 	for(unsigned i=0; i<source_node_x.size(); i++)
+	    // 	  std::cout << source_node_x[i] << ",";
+	    // 	std::cout << std::endl;
+
+	    // 	std::cout << "rough element location = ";
+	    // 	for(unsigned i=0; i<x_kn[0][0].size(); i++)
+	    // 	  std::cout << x_kn[0][0][i] << ",";
+	    // 	std::cout << std::endl;
+
+	    // 	std::cout << "previous estimates: ";
+	    // 	for(unsigned i=0; i<temp_bm_prev.size(); i++)
+	    // 	  std::cout << temp_bm_prev[i] << ",";
+	    // 	std::cout << std::endl;
+
+	    // 	std::cout << "current estimates : ";
+	    // 	for(unsigned i=0; i<temp_bm.size(); i++)
+	    // 	  std::cout << temp_bm[i] << ",";
+	    // 	std::cout << std::endl;
+
+	    // 	std::cout << "reldiff = " << reldiff << std::endl  << std::endl << std::endl;
+	    //   }
+
+	    // Go to the next order
+	    i_order++;
 	  }
-	while(((reldiff>reltol) && (adapt_order<max_order))
-	      || (adapt_order==variable_int_pt->adaptive_scheme_next_order(0)));
-	// Repeat unless the difference is small (i.e. quadrature has
-	// converged), terminate if max_order has been reached, continue anyway
-	// if we are still on the first order.
+	// Repeat while the difference is too large and the order is small enough
+	while(( (reldiff>reltol) && (i_order < n_order) )
+	      // Always repeat at least once to get a real reldiff value.
+	      || (i_order == 0));
 
 	// If we hit the order limit without being accurate enough give an error
-	if (adapt_order >= max_order)
+	if (i_order >= n_order)
 	  {
 	    throw OomphLibError("Quadrature order not high enough.",
 				"MicromagFaceElement::fill_in_be_contribution_adaptive",
@@ -350,11 +367,46 @@ namespace oomph
 
   } // End of function
 
+  //============================================================
+  /// Get the maximum elementwise difference between two vectors relative to the
+  /// appropriate element of v1.
+  //============================================================
+  template<class ELEMENT,unsigned DIM>
+  double MicromagFaceElement<ELEMENT,DIM>::
+  max_rel_error(const Vector<double> &v1, const Vector<double> &v2) const
+  {
+#ifdef PARANOID
+    if(v1.size() != v2.size())
+      {
+	std::cerr << "Vectors are of different sizes." << std::endl;
+      }
+#endif
+
+    // Get the element-wise difference between the vectors
+    Vector<double> diff(v1.size());
+    for(unsigned l=0; l<v1.size(); l++)
+      diff[l] = std::abs(v1[l] - v2[l]);
+
+    // Find the location of the maximum difference
+    Vector<double>::iterator worst_error_it
+      = max_element(diff.begin(),diff.end());
+
+    // If the worst absolute error is close to zero return zero. This is sort of
+    // a hack - if the actual values are tiny then this is wrong, but if the
+    // absolute values are tiny things will go wrong anyway and/or the values
+    // are unimportant.
+    if( v1[worst_error_it - diff.begin()] < 1e-9)
+      return 0.0;
+
+    // Divide the maximum difference by the corresponding element of v1.
+    return (*worst_error_it) / v1[worst_error_it - diff.begin()];
+  }
+
   //======================================================================
   ///
   //======================================================================
-  template<class ELEMENT>
-  double MicromagFaceElement<ELEMENT>::
+  template<class ELEMENT,unsigned DIM>
+  double MicromagFaceElement<ELEMENT,DIM>::
   green_normal_derivative(const Vector<double>& x,
 			  const Vector<double>& y,
 			  const Vector<double>& n) const

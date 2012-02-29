@@ -11,7 +11,7 @@
 
 
 // My variable gauss quadrature header
-#include "../variable_quadrature.h"
+#include "../variable_order_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -71,7 +71,9 @@ namespace oomph
   //=====start_of_TwoDMicromagProblem===============================================
   /// A problem class to solve the LLG equation using a hybrid BEM/FEM.
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
+  template<class BULK_ELEMENT,
+	   template<class BULK_ELEMENT,unsigned DIM> class FACE_ELEMENT,
+	   unsigned DIM>
   class TwoDMicromagProblem : public Problem
   {
 
@@ -154,8 +156,8 @@ namespace oomph
   //=====start_of_constructor===============================================
   ///
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   {
     // Allocate steady state timestepper
@@ -169,7 +171,7 @@ namespace oomph
     {
       //Create the geometric object that represents the wall Parameters chosen
       // to make it very similar to the 2x2 square used before (if a = 0).
-      double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.0;
+      double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.3;
       GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
       // Number of elements and lengths of parts of the mesh
@@ -206,8 +208,8 @@ namespace oomph
     for(unsigned i=0;i<n_element;i++)
       {
 	// Upcast from GeneralisedElement to the face element
-	FACE_ELEMENT<BULK_ELEMENT>* elem_pt =
-	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT> *>(face_mesh_pt()->element_pt(i));
+	FACE_ELEMENT<BULK_ELEMENT,DIM>* elem_pt =
+	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
 
 	// Set boundary mesh pointer in element
 	elem_pt->set_boundary_mesh_pt(face_mesh_pt());
@@ -221,8 +223,8 @@ namespace oomph
   //=====================start_of_doc=======================================
   /// ??ds write this!
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   doc_solution(DocInfo& doc_info)
   {
 
@@ -253,8 +255,8 @@ namespace oomph
   //======start_of_convert_global_to_boundary_equation_number===============
   /// ??ds write this!
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   convert_global_to_boundary_equation_number(const unsigned &global_num)
   {
 #ifdef PARANOID
@@ -280,8 +282,8 @@ namespace oomph
   /// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
   /// of the mesh (which contains elements of type BULK_ELEMENT)
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   build_face_mesh(Mesh* face_mesh_pt) const
   {
     // Create a set to temporarily store the list of boundary nodes
@@ -306,7 +308,7 @@ namespace oomph
 	for(unsigned e=0;e<n_bound_element;e++)
 	  {
 	    //Create the corresponding FaceElement
-	    FACE_ELEMENT<BULK_ELEMENT>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT>
+	    FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
 	      (mesh_pt()->boundary_element_pt(b,e),
 	       mesh_pt()->face_index_at_boundary(b,e));
 
@@ -334,8 +336,8 @@ namespace oomph
   /// Note since we use the global equation number as a key the map will
   /// automatically reject duplicate entries.
   //========================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   create_global_boundary_equation_number_map()
   {
     // Initialise the map
@@ -365,8 +367,8 @@ namespace oomph
   //=============================================================================
   /// Get the fully assembled boundary matrix in dense storage.
   //=============================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   get_boundary_matrix()
   {
 
@@ -427,8 +429,8 @@ namespace oomph
   // of phi_1 on the boundary goes in here. This combined with
   // including it in the jacobian allows the solver to work as normal.
   //=============================================================================
-  template<class BULK_ELEMENT, template<class> class FACE_ELEMENT>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT>::
+  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
   update_boundary_phi_2()
   {
     // Get the index of phi_2
@@ -499,7 +501,9 @@ int main(int argc, char* argv[])
   const unsigned nnode_1d = 2;
 
   // Set up the bulk problem
-  TwoDMicromagProblem<QMicromagElement<dim,nnode_1d>, MicromagFaceElement>
+  TwoDMicromagProblem<QMicromagElement<dim,nnode_1d>,
+		      MicromagFaceElement,
+		      dim>
     problem(n_x,n_y);
 
   std::cout << "Constructor done." << std::endl;
@@ -526,11 +530,8 @@ int main(int argc, char* argv[])
   // Set up the boundary equation numbering system
   problem.create_global_boundary_equation_number_map();
 
-
   // // ??ds testing my variable gaussian scheme
-  VariableOrderGaussLegendre quadrature_scheme;
-  quadrature_scheme.set_dim(1);
-
+  QVariableOrderGaussLegendre<dim-1> quadrature_scheme;
 
   // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
@@ -542,7 +543,6 @@ int main(int argc, char* argv[])
     }
 
   // Set very high precision output
-  std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout.precision(16);
 
   // unsigned max_order = 50;
@@ -588,7 +588,6 @@ int main(int argc, char* argv[])
 
     // dump for testing
     std::ofstream matrix_file;
-    matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
     matrix_file.precision(16);
     char filename[100];
     sprintf(filename,"results/boundary_matrix_adaptive");
