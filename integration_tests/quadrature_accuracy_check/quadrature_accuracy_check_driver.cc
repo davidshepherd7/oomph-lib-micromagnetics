@@ -117,15 +117,15 @@ int main()
   integration_methods[1] = new QVariableOrderFejerSecond<1>();
   integration_methods[2] = new QVariableOrderClenshawCurtis<1>();
 
-  // The highest order available:
-  unsigned max_order = 50;
+  // The lsit of orders to test:
+  unsigned order_array_length = 53;
+  unsigned order_array[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,64,128,256,};
 
   // Loop over the integration methods
   for(unsigned int_meth=0; int_meth<integration_methods.size(); int_meth++)
     {
       // Set up output file
       std::ofstream outfile;
-      outfile.setf(std::ios::fixed,std::ios::floatfield);
       outfile.precision(16);
       char filename[100]; sprintf(filename,"results/integration_method_%u",int_meth);
       outfile.open(filename);
@@ -137,16 +137,18 @@ int main()
       outfile << std::endl;
 
       // Loop over orders of the integration scheme
-      for(unsigned k=0; k<=max_order; k++)
+      for(unsigned k=0; k<order_array_length; k++)
 	{
-	  outfile << k << " ";
+	  unsigned order = order_array[k];
+
+	  outfile << order << " ";
 
 	  // Calculate each of th integrals using this method and output the error
 	  for(unsigned i=0; i<function_list.size(); i++)
 	    {
 	      // Do the quadrature
 	      double integral_value = integrate_function_1D
-		(function_list[i].Function, *integration_methods[int_meth],k);
+		(function_list[i].Function, *integration_methods[int_meth],order);
 
 	      // Output the error
 	      outfile << " " << fabs(integral_value - function_list[i].Answer);
