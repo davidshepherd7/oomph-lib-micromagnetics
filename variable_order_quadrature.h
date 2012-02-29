@@ -255,6 +255,15 @@ namespace oomph
 	  unsigned i_x = i - i_y*order;
 	  return knot_1d(i_x,order);
 	}
+      else
+	{
+	  std::ostringstream error_stream;
+	  error_stream << "Requested knot coordinate in dimension " << j
+		       << " which does not exist in a scheme of dimension 2" << std::endl;
+	  throw OomphLibError(error_stream.str(),
+			      "QVariableOrderQuadrature<2>::knot",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
     }
 
     inline unsigned dim() const {return 2;}
@@ -313,6 +322,15 @@ namespace oomph
 	  unsigned i_x = i - i_z*order*order - i_y*order;
 	  return knot_1d(i_x,order);
 	}
+      else
+	{
+      std::ostringstream error_stream;
+      error_stream << "Requested knot coordinate in dimension " << j
+		   << " which does not exist in a scheme of dimension 3" << std::endl;
+      throw OomphLibError(error_stream.str(),
+			       "QVariableOrderQuadrature<3>::knot",
+			       OOMPH_EXCEPTION_LOCATION);
+	}
     }
 
     inline unsigned dim() const {return 3;}
@@ -350,11 +368,14 @@ namespace oomph
     inline bool order_existence(const unsigned &order) const
     {return Weights.order_existence(order);}
 
+    /// Get the first order to use in an adaptive scheme
+    inline unsigned adaptive_start_order() const
+    {return 2;}
+
     /// Get the next order to use in an adaptive scheme.
-    inline unsigned adaptive_scheme_next_order(const unsigned &order) const
+    inline unsigned adaptive_next_order(const unsigned &order) const
     {
-      if(order == 0) return 2;
-      else return 2*order;
+      return 2*order;
     }
 
   };
@@ -431,10 +452,13 @@ namespace oomph
       return i * unsigned(pow(2,unsigned(a)));
     }
 
+    /// Get the first order to use in an adaptive scheme
+    inline unsigned adaptive_start_order() const
+    {return 2;}
+
     /// Get the next highest order allowing reuse of all previous knots
-    inline unsigned adaptive_scheme_next_order(const unsigned &order) const
+    inline unsigned adaptive_next_order(const unsigned &order) const
     {
-      if(order ==0) return 2;
       if(order == 2) return 4;
       else return (2*order) - 1;
     }
@@ -510,12 +534,14 @@ namespace oomph
       return i * unsigned(pow(2,unsigned(a)));
     }
 
+    /// Get the first order to use in an adaptive scheme
+    inline unsigned adaptive_start_order() const
+    {return 2;}
+
     /// Get the next highest order allowing reuse of previous knots
-    inline unsigned adaptive_scheme_next_order(const unsigned &order) const
+    inline unsigned adaptive_next_order(const unsigned &order) const
     {
-      //??ds maybe should have an error check?
-      if(order==0) return 2;
-      else return (2*order) + 1;
+      return (2*order) + 1;
     }
   };
 
@@ -527,6 +553,7 @@ namespace oomph
   class QVariableOrderGaussLegendre : public VariableOrderGaussLegendre,
 				      public QVariableOrderQuadrature<DIM>
   {
+  public:
     // Just make sure we are calling the right functions
     //?? I think this shouldn't be necessary but it seems to be...
     double weight_1d(const unsigned &i, const unsigned &order) const
@@ -547,6 +574,7 @@ namespace oomph
   class QVariableOrderClenshawCurtis : public VariableOrderClenshawCurtis,
 				       public QVariableOrderQuadrature<DIM>
   {
+  public:
     double weight_1d(const unsigned &i, const unsigned &order) const
     {return VariableOrderClenshawCurtis::weight_1d(i,order);}
 
@@ -565,6 +593,7 @@ namespace oomph
   class QVariableOrderFejerSecond : public VariableOrderFejerSecond,
 				    public QVariableOrderQuadrature<DIM>
   {
+  public:
     double weight_1d(const unsigned &i, const unsigned &order) const
     {return VariableOrderFejerSecond::weight_1d(i,order);}
 
