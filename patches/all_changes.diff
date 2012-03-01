@@ -38,6 +38,239 @@ Index: src/meshes/collapsible_channel_mesh.template.cc
        }
      }
     // Left end
+Index: src/helmholtz/helmholtz_bc_elements.h
+===================================================================
+--- src/helmholtz/helmholtz_bc_elements.h	(revision 258)
++++ src/helmholtz/helmholtz_bc_elements.h	(working copy)
+@@ -408,8 +408,8 @@
+       
+       //Get the nodal value of the helmholtz unknown
+       const std::complex<double> u_value(
+-       this->raw_nodal_value(l,this->U_index_helmholtz.real()),
+-       this->raw_nodal_value(l,this->U_index_helmholtz.imag()));
++       this->raw_nodal_value(l,this->u_index_helmholtz().real()),
++       this->raw_nodal_value(l,this->u_index_helmholtz().imag()));
+ 
+       //Add to the interpolated value
+       interpolated_u += u_value*psi(l);         
+@@ -732,8 +732,8 @@
+       // Loop over real and imag part
+       //Get the nodal value of the helmholtz unknown
+       const std::complex<double> u_value(
+-       this->raw_nodal_value(l,this->U_index_helmholtz.real()),
+-       this->raw_nodal_value(l,this->U_index_helmholtz.imag()));
++       this->raw_nodal_value(l,this->u_index_helmholtz().real()),
++       this->raw_nodal_value(l,this->u_index_helmholtz().imag()));
+ 
+       interpolated_u += u_value*psi[l];
+ 
+@@ -753,9 +753,9 @@
+       for(unsigned l=0;l<n_node;l++)
+        {
+         local_eqn_real = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.real());
++	  (l,this->u_index_helmholtz().real());
+         local_eqn_imag = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.imag());
++	  (l,this->u_index_helmholtz().imag());
+         
+         // first, calculate the real part contrubution 
+         //-----------------------    
+@@ -775,10 +775,10 @@
+             //Loop over the shape functions again
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+-              local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
+-              local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++              local_unknown_real = this->nodal_local_eqn
++		(l2,this->u_index_helmholtz().real());
++              local_unknown_imag = this->nodal_local_eqn
++		(l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -815,10 +815,10 @@
+             //Loop over the shape functions again
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+-              local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
+-              local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++              local_unknown_real = this->nodal_local_eqn
++		(l2,this->u_index_helmholtz().real());
++              local_unknown_imag = this->nodal_local_eqn
++		(l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -846,9 +846,9 @@
+       for(unsigned l=0;l<n_node;l++)
+        {
+         local_eqn_real = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.real());
++         (l,this->u_index_helmholtz().real());
+         local_eqn_imag = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.imag());
++         (l,this->u_index_helmholtz().imag());
+          
+         // first, calculate the real part contrubution 
+         //-----------------------    
+@@ -873,9 +873,9 @@
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+               local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
++               l2,this->u_index_helmholtz().real());
+               local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++               l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -919,9 +919,9 @@
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+               local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
++               l2,this->u_index_helmholtz().real());
+               local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++               l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -952,9 +952,9 @@
+       for(unsigned l=0;l<n_node;l++)
+        {
+         local_eqn_real = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.real());
++         (l,this->u_index_helmholtz().real());
+         local_eqn_imag = this->nodal_local_eqn
+-         (l,this->U_index_helmholtz.imag());
++         (l,this->u_index_helmholtz().imag());
+          
+         // first, calculate the real part contrubution 
+         //-----------------------    
+@@ -979,9 +979,9 @@
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+               local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
++               l2,this->u_index_helmholtz().real());
+               local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++               l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -1028,9 +1028,9 @@
+             for(unsigned l2=0;l2<n_node;l2++)
+              {     
+               local_unknown_real = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.real());
++               l2,this->u_index_helmholtz().real());
+               local_unknown_imag = this->nodal_local_eqn(
+-               l2,this->U_index_helmholtz.imag());
++               l2,this->u_index_helmholtz().imag());
+               //If at a non-zero degree of freedom add in the entry
+               if(local_unknown_real >= 0)
+                {
+@@ -1239,9 +1239,9 @@
+      for(unsigned l=0;l<n_node;l++)
+       {
+        local_eqn_real = this->nodal_local_eqn
+-        (l,this->U_index_helmholtz.real());
++        (l,this->u_index_helmholtz().real());
+        local_eqn_imag = this->nodal_local_eqn
+-        (l,this->U_index_helmholtz.imag());
++        (l,this->u_index_helmholtz().imag());
+        
+        //IF it's not a boundary condition
+        if(local_eqn_real >= 0)
+@@ -1258,10 +1258,10 @@
+             { 
+              // Add the contribution of the local data
+              local_unknown_real = this->nodal_local_eqn(
+-              l2,this->U_index_helmholtz.real());
++              l2,this->u_index_helmholtz().real());
+              
+              local_unknown_imag = this->nodal_local_eqn(
+-              l2,this->U_index_helmholtz.imag());
++              l2,this->u_index_helmholtz().imag());
+              
+              //If at a non-zero degree of freedom add in the entry
+              if(local_unknown_real >= 0)
+@@ -1289,10 +1289,10 @@
+             { 
+              // Add the contribution of the local data
+              external_unknown_real = this->external_local_eqn(
+-              l2,this->U_index_helmholtz.real());
++              l2,this->u_index_helmholtz().real());
+              
+              external_unknown_imag = this->external_local_eqn(
+-              l2,this->U_index_helmholtz.imag());
++              l2,this->u_index_helmholtz().imag());
+              
+              //If at a non-zero degree of freedom add in the entry
+              if(external_unknown_real >= 0)
+@@ -1329,10 +1329,10 @@
+             { 
+              // Add the contribution of the local data
+              local_unknown_real = this->nodal_local_eqn(
+-              l2,this->U_index_helmholtz.real());
++              l2,this->u_index_helmholtz().real());
+              
+              local_unknown_imag = this->nodal_local_eqn(
+-              l2,this->U_index_helmholtz.imag());
++              l2,this->u_index_helmholtz().imag());
+ 
+              //If at a non-zero degree of freedom add in the entry
+              if(local_unknown_real >= 0)
+@@ -1360,10 +1360,10 @@
+             { 
+              // Add the contribution of the local data
+              external_unknown_real = this->external_local_eqn(
+-              l2,this->U_index_helmholtz.real());
++              l2,this->u_index_helmholtz().real());
+              
+              external_unknown_imag = this->external_local_eqn(
+-              l2,this->U_index_helmholtz.imag());
++              l2,this->u_index_helmholtz().imag());
+              
+              //If at a non-zero degree of freedom add in the entry
+              if(external_unknown_real >= 0)
+@@ -1480,8 +1480,8 @@
+       
+       //Get the nodal value of the helmholtz unknown
+       std::complex<double> u_value(
+-       this->raw_nodal_value(l,this->U_index_helmholtz.real()),
+-       this->raw_nodal_value(l,this->U_index_helmholtz.imag()));
++       this->raw_nodal_value(l,this->u_index_helmholtz().real()),
++       this->raw_nodal_value(l,this->u_index_helmholtz().imag()));
+ 
+       interpolated_u += u_value*psi(l);
+      } // End of loop over the nodes
+@@ -1506,7 +1506,7 @@
+      {
+       // Add the contribution of the real local data
+       local_unknown_real = this->nodal_local_eqn(
+-       l,this->U_index_helmholtz.real());
++       l,this->u_index_helmholtz().real());
+      if (local_unknown_real >= 0)
+       {   
+        global_unknown_real=this->eqn_number(local_unknown_real);
+@@ -1516,7 +1516,7 @@
+      
+      // Add the contribution of the imag local data
+      local_unknown_imag = this->nodal_local_eqn(
+-      l,this->U_index_helmholtz.imag());
++      l,this->u_index_helmholtz().imag());
+      if (local_unknown_imag >= 0)
+       {   
+        global_unknown_imag=this->eqn_number(local_unknown_imag);
 Index: src/generic/shape.h
 ===================================================================
 --- src/generic/shape.h	(revision 258)
