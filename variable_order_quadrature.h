@@ -238,8 +238,8 @@ namespace oomph
       unsigned dummy = 0;
       error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
 #endif
-      unsigned i_y = i%order;
-      unsigned i_x = i - i_y*order;
+      unsigned i_x = i%order;
+      unsigned i_y = i/order;
       return weight_1d(i_y,order)*weight_1d(i_x,order);
     }
 
@@ -248,12 +248,15 @@ namespace oomph
 #ifdef PARANOID
       error_check(i,j,order,"VariableOrderGaussLegendre::knot");
 #endif
-      unsigned i_y = i%order;
-      if(j==1) return knot_1d(i_y,order);
-      else if(j==0)
+      if(j==0)
 	{
-	  unsigned i_x = i - i_y*order;
+	  unsigned i_x = i%order;
 	  return knot_1d(i_x,order);
+	}
+      else if(j==1)
+	{
+	  unsigned i_y = i/order;
+	  return knot_1d(i_y,order);
 	}
       else
 	{
@@ -298,29 +301,30 @@ namespace oomph
       unsigned dummy = 0;
       error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
 #endif
-      unsigned i_z = i%(order*order);
-      unsigned i_y = (i-i_z*order*order)%order;
-      unsigned i_x = i - i_z*order*order - i_y*order;
+      unsigned i_x = i%order;
+      unsigned i_y = (i/order)%order;
+      unsigned i_z = i/(order*order);
       return weight_1d(i_z,order)*weight_1d(i_y,order)*weight_1d(i_x,order);
     }
-
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
       error_check(i,j,order,"VariableOrderGaussLegendre::knot");
 #endif
-      unsigned i_z = i%(order*order);
-      if(j==2) return knot_1d(i_z,order);
-
-      unsigned i_y = (i-i_z*order*order)%order;
-      if(j==1)
+      if(j==0)
 	{
+	  unsigned i_x = i%order;
+	  return knot_1d(i_x,order);
+	}
+      else if(j==1)
+	{
+	  unsigned i_y = (i/order)%order;
 	  return knot_1d(i_y,order);
 	}
-      else if(j==0)
+      else if(j==2)
 	{
-	  unsigned i_x = i - i_z*order*order - i_y*order;
-	  return knot_1d(i_x,order);
+	  unsigned i_z = i/(order*order);
+	  return knot_1d(i_z,order);
 	}
       else
 	{
