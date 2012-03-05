@@ -209,7 +209,6 @@ namespace oomph
 
     inline unsigned nweight(const unsigned &order) const
     {return order;}
-
   };
 
 
@@ -338,6 +337,9 @@ namespace oomph
     }
 
     inline unsigned dim() const {return 3;}
+
+    inline virtual unsigned nweight(const unsigned &order) const
+    {return order*order*order;}
 
     inline unsigned nweight(const unsigned &order) const
     {return order*order*order;}
