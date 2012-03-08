@@ -3,13 +3,22 @@
 
 
 #include "generic.h"
-#include "../micromagnetics_element.h"
-#include "../micromagnetics_element.cc"
+#include "./micromagnetics_element.h"
+#include "./micromagnetics_element.cc"
 #include "./variable_order_quadrature.h"
 #include <functional>
 
 using namespace oomph;
 using namespace MathematicalConstants;
+
+void print_vec(std::ostream& out, const Vector<double> &vec)
+{
+  // std::copy(vec.begin(), vec.end(),
+  // 	    ostream_iterator<double>(out, ","));
+  for(unsigned i=0; i<vec.size(); i++)
+    out << vec[i] << " ";
+}
+
 
 namespace oomph
 {
@@ -111,6 +120,11 @@ namespace oomph
     /// Get the max difference between two vectors relative to that element of vector1
     double max_rel_error(const Vector<double> &vector1,
 				   const Vector<double> &vector2) const;
+
+    /// dump out important values for testing
+    void dump_values(const Vector< Vector<double> > &x_kn,
+		     const Vector<double> &source_node_x,
+		     const Vector<Vector<double> > &normal) const;
 
   protected:
 
@@ -308,9 +322,17 @@ namespace oomph
 
 		// Loop over test functions, i.e. local/target nodes, adding contributions
 		for(unsigned l=0; l<n_element_node; l++)
-		  temp_bm[l] -= dgreendn * test[i_order][kn][l]*jw[i_order][kn];
+		  temp_bm[l] -= dgreendn *test[i_order][kn][l] *jw[i_order][kn];
 	      }
 	    ////////////////////////////////////////////////////////////
+
+	    // Output values at knots if we are (probably) about to fail
+	    if (i_order > 4)
+	      {
+		std::cout << i_order << std::endl;
+		dump_values(x_kn[i_order],source_node_x,normal[i_order]);
+	      }
+
 
 	    // Compare with previous result
 	    reldiff = max_rel_error(temp_bm,temp_bm_prev);
@@ -366,6 +388,35 @@ namespace oomph
       } // End of loop over source nodes
 
   } // End of function
+
+  // Given all the values for a certain order, dump them out
+  template<class ELEMENT,unsigned DIM>
+  void MicromagFaceElement<ELEMENT,DIM>::
+  dump_values(const Vector< Vector<double> > &x_kn,
+	      const Vector<double> &source_node_x,
+	      const Vector<Vector<double> > &normal) const
+  {
+    // Get the values
+    Vector<double> gnd(x_kn.size(),0.0);
+    Vector< Vector<double> > s_kn(x_kn.size());
+    for(unsigned kn=0; kn<x_kn.size(); kn++)
+      {
+	gnd[kn] = green_normal_derivative(x_kn[kn],source_node_x,normal[kn]);
+      }
+
+    // Output
+    std::cout << "For source node at ";
+    print_vec(std::cout,source_node_x);
+    std::cout << std::endl;
+
+    for(unsigned kn=0; kn<x_kn.size(); kn++)
+      {
+	print_vec(std::cout,s_kn[kn]);
+	std::cout << gnd[kn] << std::endl;
+      }
+
+  }
+
 
   //============================================================
   /// Get the maximum elementwise difference between two vectors relative to the
@@ -458,7 +509,7 @@ namespace oomph
 
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
-    return -1/Pi * ndotr * pow((2*r),-2) * 2;
+    return -1/Pi * ndotr * std::pow((2*r),(dim()-1)) * 2;
   }
 
 }

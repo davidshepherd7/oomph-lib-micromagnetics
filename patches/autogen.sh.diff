@@ -1,0 +1,87 @@
+Index: autogen.sh
+===================================================================
+--- autogen.sh	(revision 258)
++++ autogen.sh	(working copy)
+@@ -1,9 +1,8 @@
+ #! /bin/sh
+ 
++set -o errexit
+ 
+ 
+-
+-
+ #====================================================================
+ # A few helper functions
+ #====================================================================
+@@ -18,9 +17,6 @@
+ OptionRead()
+ {
+  read Opt
+- if test "$Opt" = "" ; then
+-  Opt=$1
+- fi
+  echo $Opt
+ }
+ 
+@@ -105,6 +101,11 @@
+ fi   
+ 
+ 
++# Set the script to crash if any un set variables are used (we put this after
++# the options processsing since some command line arguments may legitimately not
++# exist).
++set -o nounset
++
+ # Read out root install directory
+ #--------------------------------
+ MY_HOME_WD=`pwd`
+@@ -167,9 +168,36 @@
+ fi
+ 
+ 
++# Autodetect folders in user_drivers
++#-----------------------------------
+ 
++# Backup old file (use -f so it doesn't give an error if the file doesn't exist)
++mv -f ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list.backup
+ 
++# Get a list of locations of files named Makefile.am, modify a little and write to user_drivers.dir_list.
++find ${MY_HOME_WD}/user_drivers -type f -name "Makefile.am" \
++    | grep -v "^${MY_HOME_WD}/user_drivers/Makefile.am" \
++    | sed 's:/Makefile.am$::' \
++    | sed "s:^${MY_HOME_WD}/::" \
++    > ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list
+ 
++# The grep and sed commands above do the following: 1) Remove the line that
++# corresponds to the Makefile.am in user_drivers itself. 2) Remove
++# "/Makefile.am" from each line leaving only the directory (dirname doesn't work
++# with pipes). 3) Remove the start of the path from each line leaving only the
++# location relative to the oomph-lib root directory.
++
++echo
++echo "User driver folders included are:"
++cat ${MY_HOME_WD}/config/configure.ac_scripts/user_drivers.dir_list
++echo
++
++echo
++echo "Compiler options are:"
++cat ${MY_HOME_WD}/config/configure_options/current
++echo
++
++
+ # Set the build directory (for lib,include), relative to root
+ #------------------------------------------------------------
+ build_sub_dir=build
+@@ -741,9 +769,10 @@
+ #====================================================================
+ 
+ 
+-# Raw build: Go through all the initialisation procedures
++# If we are doing a raw build or if ./configure does not yet exist then generate
++# all config files needed.
+ #--------------------------------------------------------
+-if $raw_build; then
++if [ $raw_build -o ! -e ./configure ]; then
+  $MY_HOME_WD/bin/regenerate_config_files.sh $MY_HOME_WD
+ fi
+ 

@@ -590,7 +590,7 @@ int main(int argc, char* argv[])
     std::ofstream matrix_file;
     matrix_file.precision(16);
     char filename[100];
-    sprintf(filename,"results/boundary_matrix_adaptive");
+    sprintf(filename,"results/boundary_matrix_adaptive_nnode1d_%u",nnode_1d);
     matrix_file.open(filename);
     problem.boundary_matrix_pt()->output(matrix_file);
     matrix_file.close();
