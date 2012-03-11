@@ -80,6 +80,24 @@ Index: demo_drivers/mpi/distribution/bifurcation_tracking/pitchfork.cc
 ===================================================================
 --- demo_drivers/mpi/distribution/bifurcation_tracking/pitchfork.cc	(revision 258)
 +++ demo_drivers/mpi/distribution/bifurcation_tracking/pitchfork.cc	(working copy)
+@@ -66,7 +66,7 @@
+  const unsigned &nx() const {return N1+N2;}
+ 
+  /// Return pointer to FiniteElement
+- FiniteElement* finite_element_pt(const unsigned& ielem) 
++ FiniteElement* finite_element_pt(const unsigned& ielem) const
+   { return dynamic_cast<FiniteElement*>(Element_pt[ielem]);}
+ 
+ };
+@@ -433,7 +433,7 @@
+   }
+ 
+ ///FE interpolated values of the arguments
+- double interpolated_f(const Vector<double> &s, const unsigned &i)
++ double interpolated_f(const Vector<double> &s, const unsigned &i) const
+   {
+    //Find number of nodes
+    unsigned n_node = nnode();
 @@ -454,10 +454,10 @@
    }
  
@@ -149,6 +167,15 @@ Index: demo_drivers/bifurcation_tracking/pitchfork.cc
 ===================================================================
 --- demo_drivers/bifurcation_tracking/pitchfork.cc	(revision 258)
 +++ demo_drivers/bifurcation_tracking/pitchfork.cc	(working copy)
+@@ -433,7 +433,7 @@
+   }
+ 
+ ///FE interpolated values of the arguments
+- double interpolated_f(const Vector<double> &s, const unsigned &i)
++ double interpolated_f(const Vector<double> &s, const unsigned &i) const
+   {
+    //Find number of nodes
+    unsigned n_node = nnode();
 @@ -454,10 +454,10 @@
    }
  
@@ -253,6 +280,15 @@ Index: demo_drivers/multi_physics/soluble_surfactant/soluble_surfactant.cc
 ===================================================================
 --- demo_drivers/multi_physics/soluble_surfactant/soluble_surfactant.cc	(revision 258)
 +++ demo_drivers/multi_physics/soluble_surfactant/soluble_surfactant.cc	(working copy)
+@@ -106,7 +106,7 @@
+ protected:
+ 
+  ///Get the temperature
+- double interpolated_T(const Vector<double> &s)
++ double interpolated_T(const Vector<double> &s) const
+   {
+      //Find number of nodes
+    unsigned n_node = this->nnode();
 @@ -661,7 +661,7 @@
   double* &k_pt() {return K_pt;}
  
@@ -302,6 +338,15 @@ Index: demo_drivers/multi_physics/soluble_surfactant/double_buoyant_navier_stoke
    {FiniteElement::output_fct(outfile,Nplot,exact_soln_pt);}
  
  
+@@ -195,7 +195,7 @@
+  void output_fct(std::ostream &outfile, const unsigned &Nplot,
+                  const double& time,
+                  FiniteElement::UnsteadyExactSolutionFctPt 
+-                 exact_soln_pt)
++                 exact_soln_pt) const
+   {
+    FiniteElement::
+     output_fct(outfile,Nplot,time,exact_soln_pt);
 @@ -215,7 +215,7 @@
   void compute_error(std::ostream &outfile,
                      FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
@@ -311,6 +356,15 @@ Index: demo_drivers/multi_physics/soluble_surfactant/double_buoyant_navier_stoke
    {FiniteElement::compute_error(outfile,exact_soln_pt,
                                  time,error,norm);}
   
+@@ -226,7 +226,7 @@
+  /// Call the broken default
+  void compute_error(std::ostream &outfile,
+                     FiniteElement::SteadyExactSolutionFctPt exact_soln_pt,
+-                    double& error, double& norm)
++                    double& error, double& norm) const
+   {FiniteElement::compute_error(outfile,exact_soln_pt,error,norm);}
+ 
+  /// \short Overload the wind function in the advection-diffusion equations.
 Index: demo_drivers/multi_physics/axisym_heat_sphere/multi_domain_axisym_boussinesq_elements.h
 ===================================================================
 --- demo_drivers/multi_physics/axisym_heat_sphere/multi_domain_axisym_boussinesq_elements.h	(revision 258)
@@ -527,6 +581,15 @@ Index: demo_drivers/multi_physics/insoluble_surfactant/surfactant.cc
 ===================================================================
 --- demo_drivers/multi_physics/insoluble_surfactant/surfactant.cc	(revision 258)
 +++ demo_drivers/multi_physics/insoluble_surfactant/surfactant.cc	(working copy)
+@@ -97,7 +97,7 @@
+ protected:
+ 
+  ///Get the temperature
+- double interpolated_T(const Vector<double> &s)
++ double interpolated_T(const Vector<double> &s) const
+   {
+      //Find number of nodes
+    unsigned n_node = this->nnode();
 @@ -553,7 +553,7 @@
   ///Access function for pointer to the surface Peclet x Strouhal number
   double* &peclet_strouhal_s_pt() {return Peclet_Strouhal_S_pt;}
@@ -920,6 +983,20 @@ Index: demo_drivers/multi_physics/thermo/thermo.cc
    {FiniteElement::compute_error(outfile,exact_soln_pt,
                                  time,error,norm);}
   
+Index: demo_drivers/time_harmonic_linear_elasticity/elastic_annulus/time_harmonic_elastic_annulus.cc
+===================================================================
+--- demo_drivers/time_harmonic_linear_elasticity/elastic_annulus/time_harmonic_elastic_annulus.cc	(revision 258)
++++ demo_drivers/time_harmonic_linear_elasticity/elastic_annulus/time_harmonic_elastic_annulus.cc	(working copy)
+@@ -295,8 +295,7 @@
+   unsigned dim = traction.size();
+   for(unsigned i=0;i<dim;i++)
+    {
+-    traction[i].real() = -P*n[i];
+-    traction[i].imag() =  P*n[i];
++     traction[i] = std::complex<double>(-P*n[i],P*n[i]);
+    }
+  } // end of pressure load
+  
 Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisym_navier_stokes_elements.cc
 ===================================================================
 --- demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisym_navier_stokes_elements.cc	(revision 258)
@@ -978,6 +1055,15 @@ Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisy
   {
    // Provide storage for vector of local coordinates
    Vector<double> s(2);
+@@ -561,7 +561,7 @@
+  /// coordinate direction.
+  //==============================================================
+  void LinearisedAxisymmetricNavierStokesEquations::output(std::ostream &outfile, 
+-                                         const unsigned &nplot)
++                                         const unsigned &nplot) const
+  {
+     // Provide storage for vector of local coordinates
+   Vector<double> s(2);
 @@ -646,7 +646,7 @@
   /// coordinate direction.
   //==============================================================
@@ -987,11 +1073,46 @@ Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisy
   {
    // Provide storage for vector of local coordinates
    Vector<double> s(2);
+@@ -757,7 +757,7 @@
+  void LinearisedAxisymmetricNavierStokesEquations::traction(
+   const Vector<double>& s,
+   const Vector<double>& N, 
+-  Vector<double>& traction)
++  Vector<double>& traction) const
+  {
+   throw OomphLibError(
+    "Check the traction calculation for linearised_axisymmetric NSt",
+@@ -2568,7 +2568,7 @@
+  //========================================================================
+  void LinearisedAxisymmetricQCrouzeixRaviartElement::get_traction(
+   const Vector<double>& s, const Vector<double>& N, 
+-  Vector<double>& traction)
++  Vector<double>& traction) const
+  {
+   LinearisedAxisymmetricNavierStokesEquations::traction(s,N,traction);
+  }
+@@ -2644,7 +2644,7 @@
+  //========================================================================
+  void LinearisedAxisymmetricQTaylorHoodElement::get_traction(
+   const Vector<double>& s, const Vector<double>& N, 
+-  Vector<double>& traction)
++  Vector<double>& traction) const
+  {
+   LinearisedAxisymmetricNavierStokesEquations::traction(s,N,traction);
+  }
 Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisym_navier_stokes_elements.h
 ===================================================================
 --- demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisym_navier_stokes_elements.h	(revision 258)
 +++ demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisym_navier_stokes_elements.h	(working copy)
-@@ -527,7 +527,7 @@
+@@ -520,14 +520,14 @@
+    /// \short Compute traction (on the viscous scale) at local coordinate s 
+    /// for outer unit normal N
+    void traction(const Vector<double>& s, const Vector<double>& N, 
+-                 Vector<double>& traction);
++                 Vector<double>& traction) const;
+    
+    /// Compute the diagonal of the velocity mass matrix
+    void get_velocity_mass_matrix_diagonal(Vector<double> &mass_diag);
  
     /// \short Output function: r, z, U^C, U^S, V^C, V^S, W^C, W^S, P^C, P^S
     /// in tecplot format. Default number of plot points
@@ -1000,7 +1121,12 @@ Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisy
     {
      const unsigned nplot = 5;
      output(outfile,nplot);
-@@ -539,7 +539,7 @@
+@@ -535,11 +535,11 @@
+ 
+    /// \short Output function: r, z, U^C, U^S, V^C, V^S, W^C, W^S, P^C, P^S
+    /// in tecplot format. nplot points in each coordinate direction
+-   void output(std::ostream &outfile, const unsigned &nplot);
++   void output(std::ostream &outfile, const unsigned &nplot) const;
     
     /// \short Output function: r, z, U^C, U^S, V^C, V^S, W^C, W^S, P^C, P^S
     /// in tecplot format. Default number of plot points
@@ -1009,6 +1135,64 @@ Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisy
     {
      const unsigned nplot = 5;
      output(file_pt,nplot);
+@@ -547,26 +547,26 @@
+ 
+    /// \short Output function: r, z, U^C, U^S, V^C, V^S, W^C, W^S, P^C, P^S
+    /// in tecplot format. nplot points in each coordinate direction
+-   void output(FILE* file_pt, const unsigned &nplot);
++   void output(FILE* file_pt, const unsigned &nplot) const;
+    
+    /// \short Output function: r, z, U^C, U^S, V^C, V^S, W^C, W^S,
+    /// in tecplot format. nplot points in each coordinate direction
+    /// at timestep t (t=0: present; t>0: previous timestep)
+    void output_veloc(std::ostream &outfile, const unsigned &nplot,
+-                     const unsigned& t);
++                     const unsigned& t) const;
+    
+    /// \short Output exact solution specified via function pointer
+    /// at a given number of plot points. Function prints as
+    /// many components as are returned in solution Vector
+    void output_fct(std::ostream &outfile, const unsigned &nplot,
+-                   FiniteElement::SteadyExactSolutionFctPt exact_soln_pt);
++                   FiniteElement::SteadyExactSolutionFctPt exact_soln_pt) const;
+    
+    /// \short Output exact solution specified via function pointer
+    /// at a given time and at a given number of plot points.
+    /// Function prints as many components as are returned in solution Vector.
+    void output_fct(std::ostream &outfile, const unsigned &nplot, 
+                    const double& time,
+-                   FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt);
++                   FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt) const;
+    
+    /// \short Validate against exact solution at given time
+    /// Solution is provided via function pointer.
+@@ -575,7 +575,7 @@
+    void compute_error(std::ostream &outfile,
+                       FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
+                       const double& time,
+-                      double& error, double& norm);
++                      double& error, double& norm) const;
+ 
+    /// \short Validate against exact solution.
+    /// Solution is provided via function pointer.
+@@ -583,7 +583,7 @@
+    /// and L2 norm of velocity solution over element
+    void compute_error(std::ostream &outfile,
+                       FiniteElement::SteadyExactSolutionFctPt exact_soln_pt,
+-                      double& error, double& norm);
++                      double& error, double& norm) const;
+    
+    /// Compute the element's residual Vector
+    void fill_in_contribution_to_residuals(Vector<double> &residuals)
+@@ -785,7 +785,7 @@
+     /// \short Compute traction at local coordinate s for outer unit normal N
+     void get_traction(const Vector<double>& s,
+                       const Vector<double>& N,
+-                      Vector<double>& traction);
++                      Vector<double>& traction) const;
+     
+     /// \short Overload the access function for the i-th component of the 
+     /// pressure's local equation numbers
 @@ -795,24 +795,24 @@
      }
     
@@ -1039,6 +1223,15 @@ Index: demo_drivers/axisym_navier_stokes/counter_rotating_disks/linearised_axisy
      
      /// \short Create a list of pairs for all unknowns in this element,
      /// so that the first entry in each pair contains the global equation
+@@ -1032,7 +1032,7 @@
+     /// \short Compute traction at local coordinate s for outer unit normal N
+     void get_traction(const Vector<double>& s,
+                       const Vector<double>& N,
+-                      Vector<double>& traction);
++                      Vector<double>& traction) const;
+     
+     /// \short Overload the access function for the i-th component of the
+     /// pressure's local equation numbers
 @@ -1042,24 +1042,24 @@
       }
      
@@ -1112,6 +1305,15 @@ Index: demo_drivers/solid/unstructured_adaptive_solid/unstructured_adaptive_soli
 ===================================================================
 --- demo_drivers/solid/unstructured_adaptive_solid/unstructured_adaptive_solid.cc	(revision 258)
 +++ demo_drivers/solid/unstructured_adaptive_solid/unstructured_adaptive_solid.cc	(working copy)
+@@ -102,7 +102,7 @@
+  void doc_solution(DocInfo& doc_info);
+ 
+  /// Calculate the strain energy
+- double get_strain_energy();
++ double get_strain_energy() const;
+ 
+  /// Remove Traction Mesh
+  void actions_before_adapt();
 @@ -298,7 +298,7 @@
  /// Calculate the strain energy in the entire elastic solid
  //=======================================================================
@@ -1138,6 +1340,15 @@ Index: demo_drivers/navier_stokes/jeffery_orbit/jeffery_orbit.cc
 ===================================================================
 --- demo_drivers/navier_stokes/jeffery_orbit/jeffery_orbit.cc	(revision 258)
 +++ demo_drivers/navier_stokes/jeffery_orbit/jeffery_orbit.cc	(working copy)
+@@ -240,7 +240,7 @@
+  void doc_solution(const bool& project=false);
+   
+  /// Output the exact solution
+- void output_exact_solution(std::ofstream &output_file);
++ void output_exact_solution(std::ofstream &output_file) const;
+ 
+ private:
+  
 @@ -1164,7 +1164,7 @@
  //=====================================================================  
  template<class ELEMENT>
@@ -1160,6 +1371,28 @@ Index: demo_drivers/navier_stokes/unstructured_adaptive_ALE/unstructured_adaptiv
     {
      
      // Assign dimension 
+@@ -667,10 +667,10 @@
+  
+  /// Compute the error estimates and assign to elements for plotting
+  void compute_error_estimate(double& max_err,
+-                             double& min_err);
++                             double& min_err) const;
+   
+  /// Sanity check: Doc boundary coordinates from mesh and GeomObject
+- void doc_boundary_coordinates();
++ void doc_boundary_coordinates() const;
+  
+  /// Get the TriangleMeshInternalPolygon objects
+  Vector<TriangleMeshInternalPolygon*>& inner_hole_pt()
+@@ -1051,7 +1051,7 @@
+ /// of inner boundary.
+ //=======================================================================
+ template<class ELEMENT>
+-void UnstructuredFluidProblem<ELEMENT>::doc_boundary_coordinates()
++void UnstructuredFluidProblem<ELEMENT>::doc_boundary_coordinates() const
+ {
+ 
+  ofstream some_file;
 @@ -1346,7 +1346,7 @@
  //========================================================================
  template<class ELEMENT>
@@ -1178,12 +1411,12 @@ Index: demo_drivers/navier_stokes/three_d_bretherton/extra_elements.h
   
   ///Overload the output function
 - void output(std::ostream &outfile) { }
-+ void output(std::ostream &outfile)
++ void output(std::ostream &outfile) const
 +  {}
  
   ///Output function: x,y,[z],u,v,[w],p in tecplot format
 - void output(std::ostream &outfile, const unsigned &Np) { }
-+ void output(std::ostream &outfile, const unsigned &Np)
++ void output(std::ostream &outfile, const unsigned &Np) const
 +  {}
  
   ///Overload the self test
@@ -1236,6 +1469,15 @@ Index: demo_drivers/navier_stokes/unstructured_adaptive_fs/adaptive_drop_in_chan
     {
      
      // Assign dimension 
+@@ -660,7 +660,7 @@
+  
+  /// Compute the error estimates and assign to elements for plotting
+  void compute_error_estimate(double& max_err,
+-                             double& min_err);
++                             double& min_err) const;
+ 
+ 
+  /// Change the boundary conditions to remove the volume constraint
 @@ -1238,7 +1238,7 @@
  //========================================================================
  template<class ELEMENT>
@@ -1258,6 +1500,15 @@ Index: demo_drivers/navier_stokes/unstructured_adaptive_fs/adaptive_bubble_in_ch
     {
      
      // Assign dimension 
+@@ -533,7 +533,7 @@
+  
+  /// Compute the error estimates and assign to elements for plotting
+  void compute_error_estimate(double& max_err,
+-                             double& min_err);
++                             double& min_err) const;
+  
+ private:
+  
 @@ -1243,7 +1243,7 @@
  //========================================================================
  template<class ELEMENT>
@@ -1267,45 +1518,19 @@ Index: demo_drivers/navier_stokes/unstructured_adaptive_fs/adaptive_bubble_in_ch
  { 
   // Get error estimator
   ErrorEstimator* err_est_pt=Fluid_mesh_pt->spatial_error_estimator_pt();
-Index: demo_drivers/optimisation/C_style_output/c_style_output.cc
+Index: demo_drivers/navier_stokes/adaptive_interface/adaptive_interface.cc
 ===================================================================
---- demo_drivers/optimisation/C_style_output/c_style_output.cc	(revision 258)
-+++ demo_drivers/optimisation/C_style_output/c_style_output.cc	(working copy)
-@@ -180,7 +180,7 @@
- /// Global output function to compare C++ and C-style output routines
- //=====================================================================
- void output_both_versions(const string& file_root, Mesh* mesh_pt,
--                          const unsigned& npts)
-+                          const unsigned& npts) const
- {
+--- demo_drivers/navier_stokes/adaptive_interface/adaptive_interface.cc	(revision 258)
++++ demo_drivers/navier_stokes/adaptive_interface/adaptive_interface.cc	(working copy)
+@@ -458,7 +458,7 @@
+ public:
  
+  /// Return pointer to FiniteElement
+- FiniteElement* finite_element_pt(const unsigned& ielem) 
++ FiniteElement* finite_element_pt(const unsigned& ielem) const
+   {return dynamic_cast<FiniteElement*>(Element_pt[ielem]);}
  
-Index: demo_drivers/young_laplace/refineable_young_laplace.cc
-===================================================================
---- demo_drivers/young_laplace/refineable_young_laplace.cc	(revision 258)
-+++ demo_drivers/young_laplace/refineable_young_laplace.cc	(working copy)
-@@ -540,7 +540,7 @@
- /// Run code for current setting of parameter values -- specify name
- /// of output directory
- //========================================================================
--void run_it(const string& output_directory)
-+void run_it(const string& output_directory) const
- {
- 
-  // Create label for output
-Index: demo_drivers/young_laplace/young_laplace.cc
-===================================================================
---- demo_drivers/young_laplace/young_laplace.cc	(revision 258)
-+++ demo_drivers/young_laplace/young_laplace.cc	(working copy)
-@@ -473,7 +473,7 @@
- /// Run code for current setting of parameter values -- specify name
- /// of output directory
- //========================================================================
--void run_it(const string& output_directory)
-+void run_it(const string& output_directory) const
- {
-  
-  // Create label for output
+  /// Access function for fluid elements
 Index: demo_drivers/womersley/one_d_womersley/flux_control_elements.h
 ===================================================================
 --- demo_drivers/womersley/one_d_womersley/flux_control_elements.h	(revision 258)
@@ -1438,6 +1663,15 @@ Index: demo_drivers/FAQ/broken_this_demo.cc
 ===================================================================
 --- demo_drivers/FAQ/broken_this_demo.cc	(revision 258)
 +++ demo_drivers/FAQ/broken_this_demo.cc	(working copy)
+@@ -45,7 +45,7 @@
+  ~TemplatedBaseClass(){};
+ 
+  /// Some member function
+- void say_hello_world()
++ void say_hello_world() const
+   {
+    std::cout << "Hello world from base class " << std::endl;
+   }
 @@ -70,7 +70,7 @@
   virtual ~SomeDerivedClass(){};
  
@@ -1490,8 +1724,12 @@ Index: demo_drivers/polar_navier_stokes/jeffery_hamel/streamfunction_elements.h
    {
     const unsigned n_plot=5;
     output(outfile,n_plot);
-@@ -56,7 +56,7 @@
-  void output(std::ostream &outfile, const unsigned &n_plot);
+@@ -53,10 +53,10 @@
+ 
+  /// \short Output FE representation of soln: x,y,u or x,y,z,u at 
+  /// n_plot^DIM plot points
+- void output(std::ostream &outfile, const unsigned &n_plot);
++ void output(std::ostream &outfile, const unsigned &n_plot) const;
   
   /// C_style output with default number of plot points
 - void output(FILE* file_pt)
@@ -1499,6 +1737,15 @@ Index: demo_drivers/polar_navier_stokes/jeffery_hamel/streamfunction_elements.h
    {
     const unsigned n_plot=5;
     output(file_pt,n_plot);
+@@ -64,7 +64,7 @@
+ 
+  /// \short C-style output FE representation of soln: x,y,u or x,y,z,u at 
+  /// n_plot^DIM plot points
+- void output(FILE* file_pt, const unsigned &n_plot);
++ void output(FILE* file_pt, const unsigned &n_plot) const;
+ 
+  /// Get flux: Necessary for Z2 error estimator in refineable version
+  /// Doesn't matter what it is though as we're NEVER? going to refine
 @@ -310,28 +310,28 @@
  
   /// \short Output function:  
@@ -1555,6 +1802,24 @@ Index: demo_drivers/polar_navier_stokes/jeffery_hamel/jeffery_hamel.cc
 ===================================================================
 --- demo_drivers/polar_navier_stokes/jeffery_hamel/jeffery_hamel.cc	(revision 258)
 +++ demo_drivers/polar_navier_stokes/jeffery_hamel/jeffery_hamel.cc	(working copy)
+@@ -357,7 +357,7 @@
+  }// End of actions_before_newton_convergence_check
+ 
+  //Output the solution at nplot points in each direction across an individual element
+- void element_output(std::ostream& outfile,unsigned e,const unsigned& nplot);
++ void element_output(std::ostream& outfile,unsigned e,const unsigned& nplot) const;
+ 
+  // Return the value of the external pressure
+  double get_pext();
+@@ -372,7 +372,7 @@
+  void pin_boundaries_to_zero();
+ 
+  // Create and solve a streamfunction problem
+- void output_streamfunction(DocInfo &doc_info,bool eigen);
++ void output_streamfunction(DocInfo &doc_info,bool eigen) const;
+ 
+  // Function to return a vector specifying the symmetry being broken
+  void get_symmetry(DoubleVector &symmetry,double pressure_norm);
 @@ -392,7 +392,7 @@
  /// Output an individual element 
  //========================================================================
@@ -1577,6 +1842,15 @@ Index: demo_drivers/polar_navier_stokes/jeffery_hamel/streamfunction_include.h
 ===================================================================
 --- demo_drivers/polar_navier_stokes/jeffery_hamel/streamfunction_include.h	(revision 258)
 +++ demo_drivers/polar_navier_stokes/jeffery_hamel/streamfunction_include.h	(working copy)
+@@ -201,7 +201,7 @@
+  /// Output the streamfunction on a regular grid
+  void my_output(const int radial,
+                 const int azimuthal,
+-                bool log_output,string file_name);
++                bool log_output,string file_name) const;
+  
+  /// \short Doc the solution. DocInfo object stores flags/labels for where the
+  /// output gets written to
 @@ -444,7 +444,7 @@
  // My function for outputting the streamfunction using 
  // Rich's get_vels() function
@@ -2004,7 +2278,7 @@ Index: src/multi_physics/boussinesq_elements.h
    {
     //vector of local coordinates
     Vector<double> s(DIM);
-@@ -169,11 +169,11 @@
+@@ -169,17 +169,17 @@
  
  
   /// \short C-style output function: Broken default
@@ -2018,6 +2292,22 @@ Index: src/multi_physics/boussinesq_elements.h
    {FiniteElement::output(file_pt,n_plot);}
  
   /// \short Output function for an exact solution: Broken default
+  void output_fct(std::ostream &outfile, const unsigned &Nplot,
+                  FiniteElement::SteadyExactSolutionFctPt 
+-                 exact_soln_pt)
++                 exact_soln_pt) const
+   {FiniteElement::output_fct(outfile,Nplot,exact_soln_pt);}
+ 
+ 
+@@ -188,7 +188,7 @@
+  void output_fct(std::ostream &outfile, const unsigned &Nplot,
+                  const double& time,
+                  FiniteElement::UnsteadyExactSolutionFctPt 
+-                 exact_soln_pt)
++                 exact_soln_pt) const
+   {
+    FiniteElement::
+     output_fct(outfile,Nplot,time,exact_soln_pt);
 @@ -206,7 +206,7 @@
   void compute_error(std::ostream &outfile,
                      FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
@@ -2027,6 +2317,15 @@ Index: src/multi_physics/boussinesq_elements.h
    {FiniteElement::compute_error(outfile,exact_soln_pt,
                                  time,error,norm);}
   
+@@ -217,7 +217,7 @@
+  /// Call the broken default
+  void compute_error(std::ostream &outfile,
+                     FiniteElement::SteadyExactSolutionFctPt exact_soln_pt,
+-                    double& error, double& norm)
++                    double& error, double& norm) const
+   {FiniteElement::compute_error(outfile,exact_soln_pt,error,norm);}
+ 
+  /// \short Overload the wind function in the advection-diffusion equations.
 @@ -774,12 +774,12 @@
  
  
@@ -2042,7 +2341,7 @@ Index: src/multi_physics/boussinesq_elements.h
    {
     //vector of local coordinates
     Vector<double> s(DIM);
-@@ -816,11 +816,11 @@
+@@ -816,17 +816,17 @@
    }
  
   /// \short C-style output function:  Broken default
@@ -2056,6 +2355,22 @@ Index: src/multi_physics/boussinesq_elements.h
    {FiniteElement::output(file_pt,n_plot);}
  
   /// \short Output function for an exact solution: Broken default
+  void output_fct(std::ostream &outfile, const unsigned &Nplot,
+                  FiniteElement::SteadyExactSolutionFctPt 
+-                 exact_soln_pt)
++                 exact_soln_pt) const
+   {FiniteElement::output_fct(outfile,Nplot,exact_soln_pt);}
+ 
+ 
+@@ -835,7 +835,7 @@
+  void output_fct(std::ostream &outfile, const unsigned &Nplot,
+                  const double& time,
+                  FiniteElement::UnsteadyExactSolutionFctPt 
+-                 exact_soln_pt)
++                 exact_soln_pt) const
+   {
+    FiniteElement::
+     output_fct(outfile,Nplot,time,exact_soln_pt);
 @@ -1036,7 +1036,7 @@
   void compute_error(std::ostream &outfile,
                      FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
@@ -2065,6 +2380,15 @@ Index: src/multi_physics/boussinesq_elements.h
    {FiniteElement::compute_error(outfile,exact_soln_pt,
                                  time,error,norm);}
  
+@@ -1047,7 +1047,7 @@
+  /// Overload to broken default.
+  void compute_error(std::ostream &outfile,
+                     FiniteElement::SteadyExactSolutionFctPt exact_soln_pt,
+-                    double& error, double& norm)
++                    double& error, double& norm) const
+   {FiniteElement::
+    compute_error(outfile,exact_soln_pt,error,norm);}
+  
 Index: src/multi_physics/multi_domain_boussinesq_elements.h
 ===================================================================
 --- src/multi_physics/multi_domain_boussinesq_elements.h	(revision 258)
@@ -2486,6 +2810,15 @@ Index: src/time_harmonic_fourier_decomposed_linear_elasticity/time_harmonic_four
 ===================================================================
 --- src/time_harmonic_fourier_decomposed_linear_elasticity/time_harmonic_fourier_decomposed_linear_elasticity_traction_elements.h	(revision 258)
 +++ src/time_harmonic_fourier_decomposed_linear_elasticity/time_harmonic_fourier_decomposed_linear_elasticity_traction_elements.h	(working copy)
+@@ -103,7 +103,7 @@
+  virtual void get_traction(const unsigned& intpt,
+                            const Vector<double>& x,
+                            const Vector<double>& n,
+-                           Vector<std::complex<double> >& traction)
++                           Vector<std::complex<double> >& traction) const
+  {
+   Traction_fct_pt(x,n,traction);
+  }
 @@ -191,19 +191,19 @@
   {return FaceElement::zeta_nodal(n,k,i);}     
  
@@ -2510,6 +2843,24 @@ Index: src/time_harmonic_fourier_decomposed_linear_elasticity/time_harmonic_four
   {FiniteElement::output(file_pt,n_plot);}
   
   
+@@ -211,7 +211,7 @@
+  /// Should only be used for post-processing; ignores dependence
+  /// on integration point!
+  void traction(const Vector<double>& s, 
+-               Vector<std::complex<double> >& traction);
++               Vector<std::complex<double> >& traction) const;
+  
+  }; 
+ 
+@@ -226,7 +226,7 @@
+ //=====================================================================
+ template<class ELEMENT>
+ void TimeHarmonicFourierDecomposedLinearElasticityTractionElement<ELEMENT>::
+- traction(const Vector<double>& s, Vector<std::complex<double> >& traction)
++ traction(const Vector<double>& s, Vector<std::complex<double> >& traction) const
+  {
+   unsigned n_dim = this->nodal_dimension();
+   
 Index: src/constitutive/constitutive_laws.cc
 ===================================================================
 --- src/constitutive/constitutive_laws.cc	(revision 258)
@@ -2693,6 +3044,15 @@ Index: src/time_harmonic_linear_elasticity/time_harmonic_linear_elasticity_tract
 ===================================================================
 --- src/time_harmonic_linear_elasticity/time_harmonic_linear_elasticity_traction_elements.h	(revision 258)
 +++ src/time_harmonic_linear_elasticity/time_harmonic_linear_elasticity_traction_elements.h	(working copy)
+@@ -102,7 +102,7 @@
+  virtual void get_traction(const unsigned& intpt,
+                            const Vector<double>& x,
+                            const Vector<double>& n,
+-                           Vector<std::complex<double> >& traction)
++                           Vector<std::complex<double> >& traction) const
+  {
+   Traction_fct_pt(x,n,traction);
+  }
 @@ -204,19 +204,19 @@
   {return FaceElement::zeta_nodal(n,k,i);}     
  
@@ -2717,6 +3077,44 @@ Index: src/time_harmonic_linear_elasticity/time_harmonic_linear_elasticity_tract
   {FiniteElement::output(file_pt,n_plot);}
   
   
+@@ -224,7 +224,7 @@
+  /// Should only be used for post-processing; ignores dependence
+  /// on integration point!
+  void traction(const Vector<double>& s, 
+-               Vector<std::complex<double> >& traction);
++               Vector<std::complex<double> >& traction) const;
+  
+  }; 
+ 
+@@ -239,7 +239,7 @@
+ //=====================================================================
+ template<class ELEMENT>
+ void TimeHarmonicLinearElasticityTractionElement<ELEMENT>::traction(
+- const Vector<double>& s, Vector<std::complex<double> >& traction)
++ const Vector<double>& s, Vector<std::complex<double> >& traction) const
+  {
+   unsigned n_dim = this->nodal_dimension();
+   
+@@ -292,11 +292,14 @@
+   std::complex<unsigned> u_nodal_index[n_dim];
+   for(unsigned i=0;i<n_dim;i++)
+    {
+-    u_nodal_index[i].real() = 
+-     this->U_index_time_harmonic_linear_elasticity_traction[i].real();
+-
+-    u_nodal_index[i].imag() = 
+-     this->U_index_time_harmonic_linear_elasticity_traction[i].imag();
++     u_nodal_index[i] =
++       std::complex<unsigned>(
++		       this->
++		       U_index_time_harmonic_linear_elasticity_traction[i].real()
++		       ,
++		       this->
++		       U_index_time_harmonic_linear_elasticity_traction[i].imag()
++		       );
+    }
+   
+   //Integer to hold the local equation number
 Index: src/time_harmonic_linear_elasticity/Ttime_harmonic_linear_elasticity_elements.h
 ===================================================================
 --- src/time_harmonic_linear_elasticity/Ttime_harmonic_linear_elasticity_elements.h	(revision 258)
@@ -2832,10 +3230,46 @@ Index: src/axisym_navier_stokes/axisym_navier_stokes_elements.cc
  {
   //Vector of local coordinates
   Vector<double> s(2);
+@@ -640,7 +640,7 @@
+ //==============================================================
+ void AxisymmetricNavierStokesEquations::traction(const Vector<double>& s,
+                                    const Vector<double>& N, 
+-                                   Vector<double>& traction)
++                                   Vector<double>& traction) const
+ {
+  //throw OomphLibError(
+  // "Check the traction calculation for axisymmetric NSt",
+@@ -3501,7 +3501,7 @@
+ //========================================================================
+ void AxisymmetricQCrouzeixRaviartElement::get_traction(const Vector<double>& s, 
+                                                      const Vector<double>& N, 
+-                                                     Vector<double>& traction)
++                                                     Vector<double>& traction) const
+ {
+  AxisymmetricNavierStokesEquations::traction(s,N,traction);
+ }
+@@ -3580,7 +3580,7 @@
+ //========================================================================
+ void AxisymmetricQTaylorHoodElement::get_traction(const Vector<double>& s, 
+                                                  const Vector<double>& N, 
+-                                                 Vector<double>& traction)
++                                                 Vector<double>& traction) const
+ {
+  AxisymmetricNavierStokesEquations::traction(s,N,traction);
+ }
 Index: src/axisym_navier_stokes/axisym_navier_stokes_elements.h
 ===================================================================
 --- src/axisym_navier_stokes/axisym_navier_stokes_elements.h	(revision 258)
 +++ src/axisym_navier_stokes/axisym_navier_stokes_elements.h	(working copy)
+@@ -632,7 +632,7 @@
+  /// for outer unit normal N
+  void traction(const Vector<double>& s, 
+                const Vector<double>& N, 
+-               Vector<double>& traction);
++               Vector<double>& traction) const;
+ 
+  /// \short Compute the diagonal of the velocity/pressure mass matrices.
+  /// If which one=0, both are computed, otherwise only the pressure 
 @@ -649,7 +649,7 @@
  
   /// \short Output function: x,y,[z],u,v,[w],p
@@ -2921,6 +3355,15 @@ Index: src/axisym_navier_stokes/axisym_navier_stokes_elements.h
   {
    //Find number of nodes
    unsigned n_node = nnode();
+@@ -1232,7 +1232,7 @@
+ 
+  /// \short Compute traction at local coordinate s for outer unit normal N
+  void get_traction(const Vector<double>& s, const Vector<double>& N,
+-                   Vector<double>& traction);
++                   Vector<double>& traction) const;
+ 
+  /// \short Overload the access function for the pressure's local
+  /// equation numbers
 @@ -1240,25 +1240,25 @@
    {return internal_local_eqn(P_axi_nst_internal_index,n);}
  
@@ -2952,6 +3395,15 @@ Index: src/axisym_navier_stokes/axisym_navier_stokes_elements.h
    {
     return 4;
    }
+@@ -1507,7 +1507,7 @@
+ 
+  /// \short Compute traction at local coordinate s for outer unit normal N
+  void get_traction(const Vector<double>& s, const Vector<double>& N,
+-                   Vector<double>& traction);
++                   Vector<double>& traction) const;
+ 
+   /// \short Overload the access function for the pressure's local
+  /// equation numbers
 @@ -1515,24 +1515,24 @@
    {return nodal_local_eqn(Pconv[n],p_nodal_index_axi_nst());}
   
@@ -3254,6 +3706,15 @@ Index: src/solid/solid_traction_elements.h
 ===================================================================
 --- src/solid/solid_traction_elements.h	(revision 258)
 +++ src/solid/solid_traction_elements.h	(working copy)
+@@ -103,7 +103,7 @@
+                            const Vector<double>& xi,
+                            const Vector<double>& x,
+                            const Vector<double>& n,
+-                           Vector<double>& traction)
++                           Vector<double>& traction) const
+   {
+    Traction_fct_pt(xi,x,n,traction);
+   }
 @@ -187,7 +187,7 @@
     }
  
@@ -3286,6 +3747,33 @@ Index: src/solid/solid_traction_elements.h
    {FiniteElement::output(file_pt,n_plot);}
  
  
+@@ -263,7 +263,7 @@
+  /// Should only be used for post-processing; ignores dependence
+  /// on integration point!
+  void traction(const Vector<double>& s, 
+-               Vector<double>& traction);
++               Vector<double>& traction) const;
+ 
+ }; 
+ 
+@@ -278,7 +278,7 @@
+ //=====================================================================
+ template<class ELEMENT>
+ void SolidTractionElement<ELEMENT>::traction(const Vector<double>& s, 
+-                                             Vector<double>& traction)
++                                             Vector<double>& traction) const
+ {
+  unsigned n_dim = this->nodal_dimension();
+ 
+@@ -859,7 +859,7 @@
+                            const Vector<double>& xi,
+                            const Vector<double>& x,
+                            const Vector<double>& n,
+-                           Vector<double>& traction)
++                           Vector<double>& traction) const
+   { 
+ 
+    // Get the fluid load on the wall stress scale, i.e. this
 @@ -881,7 +881,7 @@
  
   /// \short Output function: Note we can only output the traction
@@ -4204,6 +4692,15 @@ Index: src/navier_stokes/fluid_traction_elements.h
 ===================================================================
 --- src/navier_stokes/fluid_traction_elements.h	(revision 258)
 +++ src/navier_stokes/fluid_traction_elements.h	(working copy)
+@@ -99,7 +99,7 @@
+ 
+  ///Function to calculate the traction applied to the fluid
+  void get_traction(const double& time, const Vector<double> &x, 
+-                   Vector<double> &result)
++                   Vector<double> &result) const
+   {
+    //If the function pointer is zero return zero
+    if(Traction_fct_pt == 0)
 @@ -194,10 +194,10 @@
    }
   
@@ -4315,6 +4812,24 @@ Index: src/navier_stokes/navier_stokes_elements.cc
  {
  
   //Vector of local coordinates
+@@ -988,7 +988,7 @@
+ template<unsigned DIM>
+  void  NavierStokesEquations<DIM>::get_traction(const Vector<double>& s,
+                                                 const Vector<double>& N, 
+-                                                Vector<double>& traction)
++                                                Vector<double>& traction) const
+ {
+  
+  // Get velocity gradients
+@@ -1021,7 +1021,7 @@
+                                                 const Vector<double>& N,
+                                                 Vector<double>& traction_p,
+                                                 Vector<double>& traction_visc_n,
+-                                                Vector<double>& traction_visc_t)
++                                                Vector<double>& traction_visc_t) const
+ {
+  Vector<double> traction_visc(DIM);
+ 
 Index: src/navier_stokes/navier_stokes_flux_control_elements.h
 ===================================================================
 --- src/navier_stokes/navier_stokes_flux_control_elements.h	(revision 258)
@@ -4360,6 +4875,33 @@ Index: src/navier_stokes/navier_stokes_elements.h
   {FiniteElement::output(outfile,nplot);}
   
  };
+@@ -900,7 +900,7 @@
+  /// the fluid at local coordinate s. N has to be outer unit normal
+  /// to the fluid. 
+  void get_traction(const Vector<double>& s, const Vector<double>& N, 
+-                   Vector<double>& traction);
++                   Vector<double>& traction) const;
+ 
+  /// \short Compute traction (on the viscous scale) exerted onto 
+  /// the fluid at local coordinate s, decomposed into pressure and
+@@ -909,7 +909,7 @@
+  void get_traction(const Vector<double>& s, const Vector<double>& N,
+                    Vector<double>& traction_p,
+                    Vector<double>& traction_visc_n,
+-                   Vector<double>& traction_visc_t);
++                   Vector<double>& traction_visc_t) const;
+ 
+  /// \short This implements a pure virtual function defined
+  /// in the FSIFluidElement class. The function computes
+@@ -921,7 +921,7 @@
+  /// in the computation. 
+  void get_load(const Vector<double> &s, 
+                const Vector<double> &N,
+-               Vector<double> &load)
++               Vector<double> &load) const
+   {
+    // Note: get_traction() computes the traction onto the fluid
+    // if N is the outer unit normal onto the fluid; here we're
 @@ -944,7 +944,7 @@
  
   /// \short Output function: x,y,[z],u,v,[w],p
@@ -4473,15 +5015,6 @@ Index: src/navier_stokes/navier_stokes_elements.h
    {
     //Find number of nodes
     unsigned n_node = nnode();
-@@ -1412,7 +1412,7 @@
- 
-  /// \short Output solution in data vector at local cordinates s:
-  /// x,y [,z], u,v,[w], p
-- void point_output_data(const Vector<double> &s, Vector<double>& data)
-+ void point_output_data(const Vector<double> &s, Vector<double>& data) const
-  {
-   // Dimension
-   unsigned dim=s.size();
 @@ -1575,38 +1575,38 @@
  
  
@@ -5827,6 +6360,35 @@ Index: src/fluid_interface/axisym_interface_elements.h
      {AxisymmetricFluidInterfaceElement::output(file_pt,n_plot);}
      
      /// \short Helper function to calculate the additional contributions
+Index: src/meshes/triangle_mesh.template.cc
+===================================================================
+--- src/meshes/triangle_mesh.template.cc	(revision 258)
++++ src/meshes/triangle_mesh.template.cc	(working copy)
+@@ -814,7 +814,7 @@
+           if (!found)
+            {
+ #ifdef PARANOID
+-            double diff=abs(zeta[0]-
++	    double diff=std::abs(zeta[0]-
+                             polygonal_vertex_arclength[n_vertex-1].first);
+             if (diff>ToleranceForVertexMismatchInPolygons::Tolerable_error)
+              {
+Index: src/meshes/quarter_circle_sector_mesh.template.cc
+===================================================================
+--- src/meshes/quarter_circle_sector_mesh.template.cc	(revision 258)
++++ src/meshes/quarter_circle_sector_mesh.template.cc	(working copy)
+@@ -100,8 +100,9 @@
+  //Set the corner node (on boundaries 0 and 2)
+  //-------------------------------------------
+ 
+- //Determine number of values at this node
+- unsigned nvalue = finite_element_pt(0)->required_nvalue(0);
++ // //Determine number of values at this node
++ // unsigned nvalue = finite_element_pt(0)->required_nvalue(0);
++ unsigned nvalue;
+ 
+  //Create the ll node
+  Node_pt[node_count] = finite_element_pt(0)->
 Index: src/womersley/womersley_elements.cc
 ===================================================================
 --- src/womersley/womersley_elements.cc	(revision 258)
@@ -7131,6 +7693,15 @@ Index: src/linear_elasticity/linear_elasticity_traction_elements.h
 ===================================================================
 --- src/linear_elasticity/linear_elasticity_traction_elements.h	(revision 258)
 +++ src/linear_elasticity/linear_elasticity_traction_elements.h	(working copy)
+@@ -101,7 +101,7 @@
+  virtual void get_traction(const unsigned& intpt,
+                            const Vector<double>& x,
+                            const Vector<double>& n,
+-                           Vector<double>& traction)
++                           Vector<double>& traction) const
+  {
+   Traction_fct_pt(x,n,traction);
+  }
 @@ -197,19 +197,19 @@
    {return FaceElement::zeta_nodal(n,k,i);}     
  
@@ -7155,6 +7726,24 @@ Index: src/linear_elasticity/linear_elasticity_traction_elements.h
   {FiniteElement::output(file_pt,n_plot);}
   
   
+@@ -217,7 +217,7 @@
+  /// Should only be used for post-processing; ignores dependence
+  /// on integration point!
+  void traction(const Vector<double>& s, 
+-               Vector<double>& traction);
++               Vector<double>& traction) const;
+  
+ }; 
+ 
+@@ -232,7 +232,7 @@
+ //=====================================================================
+ template<class ELEMENT>
+ void LinearElasticityTractionElement<ELEMENT>::traction(
+- const Vector<double>& s, Vector<double>& traction)
++ const Vector<double>& s, Vector<double>& traction) const
+  {
+   unsigned n_dim = this->nodal_dimension();
+   
 Index: src/linear_elasticity/Tlinear_elasticity_elements.h
 ===================================================================
 --- src/linear_elasticity/Tlinear_elasticity_elements.h	(revision 258)
@@ -7941,10 +8530,37 @@ Index: src/spherical_navier_stokes/spherical_navier_stokes_elements.cc
  {
  
   //Vector of local coordinates
+@@ -1122,7 +1122,7 @@
+ //==============================================================
+ void  SphericalNavierStokesEquations::get_traction(const Vector<double>& s,
+                                                    const Vector<double>& N, 
+-                                                   Vector<double>& traction)
++                                                   Vector<double>& traction) const
+ {
+  
+  // Get velocity gradients
 Index: src/spherical_navier_stokes/spherical_navier_stokes_elements.h
 ===================================================================
 --- src/spherical_navier_stokes/spherical_navier_stokes_elements.h	(revision 258)
 +++ src/spherical_navier_stokes/spherical_navier_stokes_elements.h	(working copy)
+@@ -402,7 +402,7 @@
+  /// the fluid at local coordinate s. N has to be outer unit normal
+  /// to the fluid. 
+  void get_traction(const Vector<double>& s, const Vector<double>& N, 
+-                   Vector<double>& traction);
++                   Vector<double>& traction) const;
+ 
+ 
+  /// \short This implements a pure virtual function defined
+@@ -417,7 +417,7 @@
+ //hierher      // const Vector<double> &xi,
+                // const Vector<double> &x, 
+                const Vector<double> &N,
+-               Vector<double> &load)
++               Vector<double> &load) const
+   {
+    // Note: get_traction() computes the traction onto the fluid
+    // if N is the outer unit normal onto the fluid; here we're
 @@ -431,7 +431,7 @@
  
   /// \short Output function: x,y,[z],u,v,[w],p
@@ -8128,6 +8744,15 @@ Index: src/polar_navier_stokes/polar_fluid_traction_elements.h
 ===================================================================
 --- src/polar_navier_stokes/polar_fluid_traction_elements.h	(revision 258)
 +++ src/polar_navier_stokes/polar_fluid_traction_elements.h	(working copy)
+@@ -68,7 +68,7 @@
+ 
+  ///Function to calculate the traction applied to the fluid
+  void get_traction(double time, const Vector<double> &x, 
+-                     Vector<double> &result)
++                     Vector<double> &result) const
+   {
+    //If the function pointer is zero return zero
+    if(Traction_fct_pt == 0)
 @@ -221,10 +221,10 @@
    }
   
@@ -8234,11 +8859,34 @@ Index: src/polar_navier_stokes/polar_navier_stokes_elements.cc
  {
  
   //Vector of local coordinates
+@@ -763,7 +763,7 @@
+ //==============================================================
+  void  PolarNavierStokesEquations::get_traction(const Vector<double>& s,
+                                                 const Vector<double>& N, 
+-                                                Vector<double>& traction)
++                                                Vector<double>& traction) const
+ {
+  
+  // Get velocity gradients
 Index: src/polar_navier_stokes/polar_navier_stokes_elements.h
 ===================================================================
 --- src/polar_navier_stokes/polar_navier_stokes_elements.h	(revision 258)
 +++ src/polar_navier_stokes/polar_navier_stokes_elements.h	(working copy)
-@@ -377,7 +377,7 @@
+@@ -365,19 +365,19 @@
+  /// \short Compute traction (on the viscous scale) at local coordinate s 
+  /// for outer unit normal N
+  void get_traction(const Vector<double>& s, const Vector<double>& N, 
+-                   Vector<double>& traction);
++                   Vector<double>& traction) const;
+ 
+  /// \short The potential loading on an external SolidElement is always 
+  /// provided by the traction function
+  void get_load(const Vector<double> &s, const Vector<double> &xi,
+                const Vector<double> &x, const Vector<double> &N,
+-               Vector<double> &load)
++               Vector<double> &load) const
+   {get_traction(s,N,load);}
+  
  
   /// \short Output functionget_vels(const Vector<double>& x_to_get, Vector<double>& vels): x,y,[z],u,v,[w],p
   /// in tecplot format. Default number of plot points
@@ -10031,6 +10679,28 @@ Index: src/generic/assembly_handler.cc
   {
    //Get the raw value
    unsigned raw_ndof = elem_pt->ndof();
+Index: src/generic/error_estimator.cc
+===================================================================
+--- src/generic/error_estimator.cc	(revision 258)
++++ src/generic/error_estimator.cc	(working copy)
+@@ -713,7 +713,7 @@
+ /// - flux_fe*.dat
+ /// - flux_rec*.dat 
+ //======================================================================
+-void Z2ErrorEstimator::get_element_errors(OomphCommunicator* comm_pt,
++void Z2ErrorEstimator::get_element_errors(const OomphCommunicator* comm_pt,
+                                           Mesh*& mesh_pt,
+                                           Vector<double>& elemental_error,
+                                           DocInfo& doc_info)
+@@ -1527,7 +1527,7 @@
+ //==================================================================
+ /// Doc FE and recovered flux
+ //==================================================================
+-void Z2ErrorEstimator::doc_flux(OomphCommunicator* comm_pt, Mesh* mesh_pt,
++void Z2ErrorEstimator::doc_flux(const OomphCommunicator* comm_pt, Mesh* mesh_pt,
+                                 const unsigned& num_flux_terms,
+                                 MapMatrixMixed<Node*,int,double>& rec_flux_map,
+                                 const Vector<double>& elemental_error,
 Index: src/generic/triangle_mesh.h
 ===================================================================
 --- src/generic/triangle_mesh.h	(revision 258)
@@ -10591,6 +11261,15 @@ Index: src/generic/mesh.h
 ===================================================================
 --- src/generic/mesh.h	(revision 258)
 +++ src/generic/mesh.h	(working copy)
+@@ -261,7 +261,7 @@
+  /// specifies the bulk element type (needed to create FaceElement
+  /// of appropriate type on mesh boundary).
+  template<class BULK_ELEMENT>
+-  void doc_boundary_coordinates(const unsigned& b, std::ofstream& the_file)
++  void doc_boundary_coordinates(const unsigned& b, std::ofstream& the_file) const
+   { 
+    if (nelement()==0) return;
+ 
 @@ -397,10 +397,17 @@
   /// Return pointer to global node n
   Node* &node_pt(const unsigned long &n) {return Node_pt[n];}
@@ -10609,6 +11288,15 @@ Index: src/generic/mesh.h
   /// Return reference to the Vector of elements
   const Vector<GeneralisedElement*> &element_pt() const {return Element_pt;}
   
+@@ -409,7 +416,7 @@
+ 
+  /// \short Upcast (downcast?) to FiniteElement
+  /// (needed to access FiniteElement member functions).
+- FiniteElement* finite_element_pt(const unsigned &e)
++ FiniteElement* finite_element_pt(const unsigned &e) const
+   {
+ #ifdef PARANOID
+    FiniteElement* el_pt=dynamic_cast<FiniteElement*>(Element_pt[e]);
 @@ -699,25 +706,25 @@
    }
  
@@ -10908,21 +11596,6 @@ Index: src/generic/elements.h
   
   /// \short A standard FiniteElement is fixed, so there are no geometric
   /// data when viewed in its GeomObject incarnation
-@@ -2398,12 +2399,12 @@
-  /// \short Virtual function to write the double precision numbers that
-  /// appear in a single line of output into the data vector. Empty virtual,
-  /// can be overloaded for specific elements; used e.g. by LineVisualiser.
-- virtual void point_output_data(const Vector<double> &s, Vector<double>& data)
-+ virtual void point_output_data(const Vector<double> &s, Vector<double>& data) const
-  {}
-  
-  /// \short Output solution (as defined by point_output_data()) 
-  /// at local cordinates s
-- void point_output(std::ostream &outfile, const Vector<double> &s)
-+ void point_output(std::ostream &outfile, const Vector<double> &s) const
-  {
-   // Get point data
-   Vector<double> data;
 @@ -2420,14 +2421,14 @@
  
   /// \short Output the element data --- typically the values at the 
@@ -11361,33 +12034,13 @@ Index: src/generic/line_visualiser.h
 ===================================================================
 --- src/generic/line_visualiser.h	(revision 258)
 +++ src/generic/line_visualiser.h	(working copy)
-@@ -103,7 +103,7 @@
-    
-   
-      /// \short Output function: output each plot point
--     void output(std::ostream &outfile)
-+     void output(std::ostream &outfile) const
-      {
-       // Get data in array
-       Vector<Vector<double> > data(Nplot_points);
-@@ -129,7 +129,7 @@
-   
-      /// \short Output data function: store data associated with heach
-      /// plot point in data array
--     void get_output_data(Vector<Vector<double> > &data)
-+     void get_output_data(Vector<Vector<double> > &data) const
-      {
-       // Resize output data array
-       data.resize(Nplot_points);
-@@ -312,7 +312,10 @@
+@@ -312,7 +312,8 @@
          if (Plot_point[i].first != NULL) // success
           {
            // Copy line into data array
 -          Plot_point[i].first->point_output_data(data[i], Plot_point[i].second);
-+	   //??ds this seems like a terrible way to do it, leave it as c++11 only so I have to fix it...
-+	   auto temp = Plot_point[i].second;
-+	   Plot_point[i].first->
-+	     point_output_data(data[i],temp);
++	      Plot_point[i].first->
++		point_output_data(data[i], Plot_point[i].second);
           }
          else // error
           {
@@ -11542,6 +12195,77 @@ Index: src/generic/oomph_definitions.h
   ///and modifier (no modification)
   OomphInfo() : Stream_pt(&std::cout), 
                 Output_modifier_pt(&default_output_modifier) {}
+Index: src/generic/error_estimator.h
+===================================================================
+--- src/generic/error_estimator.h	(revision 258)
++++ src/generic/error_estimator.h	(working copy)
+@@ -63,7 +63,7 @@
+  
+  /// \short Compute the elemental error-measures for a given mesh
+  /// and store them in a vector.
+- void get_element_errors(OomphCommunicator* comm_pt, Mesh*& mesh_pt, 
++ void get_element_errors(const OomphCommunicator* comm_pt, Mesh*& mesh_pt,
+                          Vector<double>& elemental_error)
+   {
+    // Create dummy doc info object and switch off output
+@@ -76,7 +76,7 @@
+ 
+  /// \short Compute the elemental error measures for a given mesh
+  /// and store them in a vector. Doc errors etc.
+- virtual void get_element_errors(OomphCommunicator* comm_pt, Mesh*& mesh_pt, 
++ virtual void get_element_errors(const OomphCommunicator* comm_pt, Mesh*& mesh_pt,
+                                  Vector<double>& elemental_error,
+                                  DocInfo& doc_info)=0;
+ 
+@@ -348,7 +348,7 @@
+ 
+   /// \short Compute the elemental error measures for a given mesh
+   /// and store them in a vector.  
+- void get_element_errors(OomphCommunicator* comm_pt, Mesh*& mesh_pt, 
++ void get_element_errors(const OomphCommunicator* comm_pt, Mesh*& mesh_pt,
+                          Vector<double>& elemental_error)
+   {
+    // Create dummy doc info object and switch off output
+@@ -363,7 +363,7 @@
+   /// If doc_info.enable_doc(), doc FE and recovered fluxes in 
+   /// - flux_fe*.dat
+   /// - flux_rec*.dat 
+-  void get_element_errors(OomphCommunicator* comm_pt, Mesh*& mesh_pt, 
++  void get_element_errors(const OomphCommunicator* comm_pt, Mesh*& mesh_pt,
+                           Vector<double>& elemental_error,
+                           DocInfo& doc_info);
+   
+@@ -436,7 +436,7 @@
+  bool Recovery_order_from_first_element;
+ 
+  /// Doc flux and recovered flux
+- void doc_flux(OomphCommunicator* comm_pt, Mesh* mesh_pt,
++ void doc_flux(const OomphCommunicator* comm_pt, Mesh* mesh_pt,
+                const unsigned& num_flux_terms,
+                MapMatrixMixed<Node*,int,double>& rec_flux_map,
+                const Vector<double>& elemental_error,
+@@ -611,7 +611,7 @@
+ 
+  /// \short Compute the elemental error measures for a given mesh
+  /// and store them in a vector. Doc errors etc.
+- virtual void get_element_errors(OomphCommunicator* comm_pt, Mesh*& mesh_pt, 
++ virtual void get_element_errors(const OomphCommunicator* comm_pt, Mesh*& mesh_pt,
+                                  Vector<double>& elemental_error,
+                                  DocInfo& doc_info)
+   {
+Index: src/generic/fsi.h
+===================================================================
+--- src/generic/fsi.h	(revision 258)
++++ src/generic/fsi.h	(working copy)
+@@ -89,7 +89,7 @@
+  /// SolidElement. N is the outer unit normal on the FSIFluidElement.
+  virtual void get_load(const Vector<double> &s, 
+                        const Vector<double> &N,
+-                       Vector<double> &load)=0;
++                       Vector<double> &load) const=0;
+  
+ 
+  /// \short Add to the set \c paired_load_data pairs containing
 Index: external_src/parmetis.h
 ===================================================================
 --- external_src/parmetis.h	(revision 258)
@@ -11924,6 +12648,6 @@ Index: config/configure_options/current
 -
 -
 +--enable-suppress-doc
-+CXXFLAGS="-g -DPARANOID -Wall -Wconversion --std=c++0x"
++CXXFLAGS="-g -DPARANOID -Wall -Wconversion"
 +CFLAGS="-g -Wall"
 +FFLAGS="-g -Wall"
