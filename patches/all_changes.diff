@@ -284,18 +284,18 @@ Index: src/generic/shape.h
  
   /// \short Pointer that addresses the storage that will be used to read and
   /// set the shape functions. The shape functions are packed into 
-@@ -130,8 +130,8 @@
-  Shape(const unsigned &N, const unsigned &M) : Index1(N), Index2(M) 
-   {Allocated_storage = new double[N*M]; Psi = Allocated_storage;}
+@@ -133,6 +133,10 @@
+  /// Broken copy constructor
+  Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
  
-- /// Broken copy constructor
-- Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
-+ /// Default constructor to allow vectors of Shapes
++ /// Default constructor - just assigns a null pointer for the storage so that
++ /// the destructor works as expected.
 + Shape() : Allocated_storage(0) {}
- 
++
   /// The assignment operator does a shallow copy 
   /// (resets the pointer to the data)
-@@ -455,6 +455,39 @@
+  void operator=(const Shape &shape)
+@@ -455,6 +459,39 @@
  
  };
  
