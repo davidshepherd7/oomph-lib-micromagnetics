@@ -275,27 +275,66 @@ Index: src/generic/shape.h
 ===================================================================
 --- src/generic/shape.h	(revision 258)
 +++ src/generic/shape.h	(working copy)
-@@ -130,9 +130,18 @@
+@@ -78,7 +78,7 @@
+ //=========================================================================
+ class Shape
+ {
+-  private:
++protected:
+ 
+  /// \short Pointer that addresses the storage that will be used to read and
+  /// set the shape functions. The shape functions are packed into 
+@@ -130,8 +130,8 @@
   Shape(const unsigned &N, const unsigned &M) : Index1(N), Index2(M) 
    {Allocated_storage = new double[N*M]; Psi = Allocated_storage;}
  
 - /// Broken copy constructor
 - Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
-+  /// Default constructor to allow vectors of Shapes
-+  Shape() {}
++ /// Default constructor to allow vectors of Shapes
++ Shape() : Allocated_storage(0) {}
  
-+  /// Deep copy constructor
-+  Shape(const Shape &shape) : Index1(shape.Index1), Index2(shape.Index2)
-+  {
-+    Allocated_storage = new double[Index1*Index2];
-+    Psi = Allocated_storage;
-+    for(unsigned i=0; i<Index1*Index2; i++)
-+      Psi[i] = shape.Psi[i];
-+  }
-+
   /// The assignment operator does a shallow copy 
   /// (resets the pointer to the data)
-  void operator=(const Shape &shape)
+@@ -455,6 +455,39 @@
+ 
+ };
+ 
++//======================================================================
++/// A vectorisable shape function. We need to add a deep copy constructor
++/// for use by the default vector operations.
++//======================================================================
++class VShape : public Shape
++{
++public:
++
++  /// Constructor for a single-index set of shape functions.
++  VShape(const unsigned &N) : Shape(N) {}
++
++  /// Constructor for a two-index set of shape functions.
++  VShape(const unsigned &N, const unsigned &M) : Shape(N,M) {}
++
++  /// Default constructor to allow vectors of VShapes
++  VShape() : Shape() {}
++
++  /// Deep copy constructor
++  VShape(const VShape &old_shape) : Shape(old_shape.Index1, old_shape.Index2)
++  {
++    for(unsigned i=0; i<Index1*Index2; i++)
++      Psi[i] = old_shape.Psi[i];
++  }
++
++  /// Deep copy assignement operator
++  void operator=(const VShape &old_shape)
++  {
++    for(unsigned i=0; i<Index1*Index2; i++)
++      Psi[i] = old_shape.Psi[i];
++  }
++
++};
++
+ ////////////////////////////////////////////////////////////////////
+ //
+ // One dimensional shape functions and derivatives.
 Index: src/generic/Makefile.am
 ===================================================================
 --- src/generic/Makefile.am	(revision 258)
