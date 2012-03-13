@@ -132,7 +132,7 @@ namespace oomph
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
     inline double shape_and_test(const Vector<double> &s,
-				 Shape &psi, Shape &test) const
+				 VShape &psi, VShape &test) const
     {
       // Get the shape function and set test = shape
       shape(s,psi);
@@ -147,7 +147,7 @@ namespace oomph
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
     inline double shape_and_test_at_knot(const unsigned &ipt,
-					 Shape &psi, Shape &test) const
+					 VShape &psi, VShape &test) const
     {
       // Get the shape function and set test = shape
       shape_at_knot(ipt,psi);
@@ -234,7 +234,7 @@ namespace oomph
     // Set up storage for data at each knot for each order
     Vector< Vector< Vector<double> > > x_kn(n_order), normal(n_order);
     Vector< Vector<double> > jw(n_order);
-    Vector< Vector<Shape> > test(n_order), psi(n_order);
+    Vector< Vector<VShape> > test(n_order), psi(n_order);
 
     // Loop over all source nodes on the boundary
     unsigned n_boundary_node = boundary_mesh_pt()->nnode();
@@ -288,7 +288,7 @@ namespace oomph
 					  * v_int_pt->weight(kn,new_order));
 
 		    // Get shape and test(=shape) functions
-		    Shape psi_local(n_element_node);
+		    VShape psi_local(n_element_node);
 		    shape(s,psi_local);
 		    psi[i_order].push_back(psi_local);
 		    test[i_order].push_back(psi_local);

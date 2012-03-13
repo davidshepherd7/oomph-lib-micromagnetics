@@ -484,7 +484,12 @@ int main(int argc, char* argv[])
   unsigned n_x, n_y;
 
   // Get inputs
-  if(argc >= 2)
+  if(argc == 2)
+    {
+      n_x = atoi(argv[1]);
+      n_y = atoi(argv[1]);
+    }
+  else if(argc >= 3)
     {
       n_x = atoi(argv[1]);
       n_y = atoi(argv[2]);
