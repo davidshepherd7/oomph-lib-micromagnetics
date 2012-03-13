@@ -119,7 +119,7 @@ namespace oomph
 
     /// Get the max difference between two vectors relative to that element of vector1
     double max_rel_error(const Vector<double> &vector1,
-				   const Vector<double> &vector2) const;
+			 const Vector<double> &vector2) const;
 
     /// dump out important values for testing
     void dump_values(const Vector< Vector<double> > &x_kn,
@@ -511,6 +511,107 @@ namespace oomph
     // See write up for details of calculation.
     return -1/Pi * ndotr * std::pow((2*r),(dim()-1)) * 2;
   }
+
+
+
+
+  //======================================================================
+  /// Point element to sit at sharp corners and add the angle/solid angle of the
+  /// corner to the boundary element matrix. DIM is the dimension of the entire
+  /// problem not the dimension of the point element (which is always 0).
+  //======================================================================
+  template<class ELEMENT, unsigned DIM>
+  class MicromagCornerAngleElement :
+    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+    public virtual PointElement
+  {};
+
+
+  //======================================================================
+  /// In 1D there are no sharp corners so no 1D version is needed.
+  //======================================================================
+
+  //======================================================================
+  /// 2D specialisation: calculate angles.
+  //======================================================================
+  template< class ELEMENT>
+  class MicromagCornerAngleElement<ELEMENT,2> :
+    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+    public virtual PointElement
+  {
+  private:
+
+    /// Pointer to the face elements to which this point element is
+    /// attached.
+    Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
+
+    /// The index of the node in face elements to which this point element is
+    /// attached.
+    Vector<unsigned> Face_node_number;
+
+  public:
+
+    MicromagCornerAngleElement() : Face_element_pt(2)
+    {
+      // Face_element_pt[0] = e1;
+      // Face_element_pt[0] = e2;
+
+      // Face_node_number.push_back(...);
+    }
+
+    /// Calculate the angle between the two attached face elements
+    double calculate_corner_fractional_angle() const
+    {
+      Vector<Vector<double> > t;
+
+      // For each attached face element (two of them) get the tangent vector
+      for(unsigned fe=0; fe<2; fe++)
+	{
+	  // Find out the corresponding node in the face element
+	  unsigned l = Face_node_number[fe];
+
+	  // Find out the number of nodes in the face element
+	  unsigned n_node_face = Face_element_pt[fe]->nnode();
+
+	  // Get the local coordinate of this node in the face element
+	  Vector<double> s_face(1,0.0);
+	  Face_element_pt[fe]->local_coordinate_of_node(l,s_face);
+
+	  // Get the value of the shape function derivatives at the node
+	  Shape psi(n_node_face); // We have to calculate shape functions as well...
+	  DShape dpsids(n_node_face,1);
+	  Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
+
+	  // Calculate all derivatives of the spatial coordinates wrt local
+	  // coordinates
+	  Vector<double> interpolated_dxds(2,0.0);
+	  for(unsigned j=0;j<2;j++)
+	    {
+	      interpolated_dxds[j] +=
+		Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
+	    }
+
+	  // Add to list of tangents
+	  t.push_back(interpolated_dxds);
+	}
+
+      // Calculate the angle between them (inverse cos of the dot product).
+      return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]);
+    }
+
+  };
+
+  //======================================================================
+  /// 3D specialisation: calculate solid angles.
+  //======================================================================
+  template< class ELEMENT>
+  class MicromagCornerAngleElement<ELEMENT,3> :
+    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+    public virtual PointElement
+  {
+
+    //??ds calculating the angle is going to be harder here, do it later...
+  };
 
 }
 

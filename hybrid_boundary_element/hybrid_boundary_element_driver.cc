@@ -88,11 +88,14 @@ namespace oomph
     /// Doc the solution
     void doc_solution(DocInfo& doc_info);
 
-    /// Build the mesh for this problem
-    void build_face_mesh(Mesh* face_mesh_pt) const;
+    /// Build the meshes of face elements and corner elements
+    void build_face_mesh(Mesh* face_mesh_pt, Mesh* corner_mesh_pt) const;
 
     /// Acess to the face mesh pointer
     Mesh* face_mesh_pt() {return Face_mesh_pt;}
+
+    /// Acess to the corner mesh pointer
+    Mesh* corner_mesh_pt() {return Corner_mesh_pt;}
 
     /// Get the boundary element matrix (similar to problem::get_jacobian)
     void get_boundary_matrix();
@@ -121,6 +124,12 @@ namespace oomph
 
     /// Mesh containing the face elements
     Mesh* Face_mesh_pt;
+
+    /// Mesh containing the point corner elements (basiclly just a list of elements)
+    Mesh* Corner_mesh_pt;
+
+    /// List of the point elements at (pre-discretisation) sharp corners.
+    Vector<MicromagCornerAngleElement<BULK_ELEMENT,DIM>* > Corner_elements;
 
     /// Doc info object
     DocInfo Doc_info;
@@ -153,324 +162,337 @@ namespace oomph
 
   }; // end of problem class
 
-  //=====start_of_constructor===============================================
-  ///
-  //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
+//=====start_of_constructor===============================================
+///
+//========================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
+{
+  // Allocate steady state timestepper
+  add_time_stepper_pt(new Steady<2>);
+
+  // // Build rectangular mesh
+  // mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
+  //   (n_x,n_y,2.0,2.0,time_stepper_pt());
+
+  // Build mesh collapsible channel mesh
   {
-    // Allocate steady state timestepper
-    add_time_stepper_pt(new Steady<2>);
+    //Create the geometric object that represents the wall Parameters chosen
+    // to make it very similar to the 2x2 square used before (if a = 0).
+    double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.3;
+    GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
-    // // Build rectangular mesh
-    // mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
-    //   (n_x,n_y,2.0,2.0,time_stepper_pt());
+    // Number of elements and lengths of parts of the mesh
+    unsigned nup = unsigned(n_x/3), ndown = nup, ncollapsible = nup;
+    double lup = x_left, ldown = 2.0/3, lcollapsible = length, ly = height;
+    mesh_pt() = new
+      CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, n_y,
+					   lup, lcollapsible, ldown, ly,
+					   Wall_pt, time_stepper_pt());
+  }
 
-    // Build mesh collapsible channel mesh
+  // dump mesh for testing
+  unsigned n_nd = mesh_pt()->nnode();
+  std::ofstream mesh_plot;
+  mesh_plot.open("./mesh_points");
+  for(unsigned nd=0; nd<n_nd; nd++)
     {
-      //Create the geometric object that represents the wall Parameters chosen
-      // to make it very similar to the 2x2 square used before (if a = 0).
-      double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.3;
-      GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
+      mesh_plot << mesh_pt()->node_pt(nd)->x(0) << " "
+		<< mesh_pt()->node_pt(nd)->x(1) << std::endl;
+    }
+  mesh_plot.close();
 
-      // Number of elements and lengths of parts of the mesh
-      unsigned nup = unsigned(n_x/3), ndown = nup, ncollapsible = nup;
-      double lup = x_left, ldown = 2.0/3, lcollapsible = length, ly = height;
-      mesh_pt() = new
-	CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, n_y,
-					     lup, lcollapsible, ldown, ly,
-					     Wall_pt, time_stepper_pt());
+  // Create face elements on all boundaries and add to face mesh, create point
+  // elements at sharp corners of the pre-discretisation object and add to
+  // corner mesh.
+  Face_mesh_pt = new Mesh;
+  Corner_mesh_pt = new Mesh;
+  build_face_mesh(face_mesh_pt(),corner_mesh_pt());
+
+  // Loop over elements to set mesh pointer
+  unsigned n_element = face_mesh_pt()->nelement();
+  for(unsigned i=0;i<n_element;i++)
+    {
+      // Upcast from GeneralisedElement to the face element
+      FACE_ELEMENT<BULK_ELEMENT,DIM>* elem_pt =
+	dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
+
+      // Set boundary mesh pointer in element
+      elem_pt->set_boundary_mesh_pt(face_mesh_pt());
+
+      //??ds might need some more pointers later
     }
 
-    // dump mesh for testing
-    unsigned n_nd = mesh_pt()->nnode();
-    std::ofstream mesh_plot;
-    mesh_plot.open("./mesh_points");
-    for(unsigned nd=0; nd<n_nd; nd++)
-      {
-	mesh_plot << mesh_pt()->node_pt(nd)->x(0) << " "
-		    << mesh_pt()->node_pt(nd)->x(1) << std::endl;
-      }
-    mesh_plot.close();
+  // Setup equation numbering scheme
+  std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
 
-    // Create empty face mesh
-    Face_mesh_pt = new Mesh;
-
-    // Create face elements on all boundaries and add to face mesh.
-    build_face_mesh(face_mesh_pt());
-
-    // Loop over elements to set pointers
-    // ??ds add this when we are actually solving things
-
-    // Loop over elements to set mesh pointer
-    unsigned n_element = face_mesh_pt()->nelement();
-    for(unsigned i=0;i<n_element;i++)
-      {
-	// Upcast from GeneralisedElement to the face element
-	FACE_ELEMENT<BULK_ELEMENT,DIM>* elem_pt =
-	  dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
-
-	// Set boundary mesh pointer in element
-	elem_pt->set_boundary_mesh_pt(face_mesh_pt());
-      }
-
-    // Setup equation numbering scheme
-    std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
-
-  } // end of constructor
+} // end of constructor
 
   //=====================start_of_doc=======================================
   /// ??ds write this!
   //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  doc_solution(DocInfo& doc_info)
-  {
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+doc_solution(DocInfo& doc_info)
+{
 
-    std::ofstream some_file;
-    char filename[100];
+  std::ofstream some_file;
+  char filename[100];
 
-    // Number of plot points
-    unsigned npts;
-    npts=5;
+  // Number of plot points
+  unsigned npts;
+  npts=5;
 
-    // Output solution
-    sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-	    doc_info.number());
-    some_file.open(filename);
-    mesh_pt()->output(some_file,npts);
-    some_file.close();
+  // Output solution
+  sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
+	  doc_info.number());
+  some_file.open(filename);
+  mesh_pt()->output(some_file,npts);
+  some_file.close();
 
-    // // Output exact solution
-    // //----------------------
-    // sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-    // 	    doc_info.number());
-    // some_file.open(filename);
-    // mesh_pt()->output_fct(some_file,npts,TanhSolnForPoisson::get_exact_u);
-    // some_file.close();
+  // // Output exact solution
+  // //----------------------
+  // sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
+  // 	    doc_info.number());
+  // some_file.open(filename);
+  // mesh_pt()->output_fct(some_file,npts,TanhSolnForPoisson::get_exact_u);
+  // some_file.close();
 
-  } // end of doc
+} // end of doc
 
   //======start_of_convert_global_to_boundary_equation_number===============
   /// ??ds write this!
   //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  convert_global_to_boundary_equation_number(const unsigned &global_num)
-  {
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+convert_global_to_boundary_equation_number(const unsigned &global_num)
+{
 #ifdef PARANOID
-    // Get the location of the global_num key in an iterator
-    std::map<unsigned,unsigned>::iterator it
-      = Global_boundary_equation_num_map.find(global_num);
+  // Get the location of the global_num key in an iterator
+  std::map<unsigned,unsigned>::iterator it
+    = Global_boundary_equation_num_map.find(global_num);
 
-    // If the iterator is placed at the end the given global equation number is
-    // not in the map, so return an error.
-    if(it == Global_boundary_equation_num_map.end())
-      {
-	std::ostringstream error_stream;
-	error_stream << "Global equation number " << global_num
-		     << " is not in the global to boundary map.";
-	throw OomphLibError(error_stream.str(),
-			    "TwoDMicromagProblem::convert_global_to_boundary_equation_number",
-			    OOMPH_EXCEPTION_LOCATION);
-      }
+  // If the iterator is placed at the end the given global equation number is
+  // not in the map, so return an error.
+  if(it == Global_boundary_equation_num_map.end())
+    {
+      std::ostringstream error_stream;
+      error_stream << "Global equation number " << global_num
+		   << " is not in the global to boundary map.";
+      throw OomphLibError(error_stream.str(),
+			  "TwoDMicromagProblem::convert_global_to_boundary_equation_number",
+			  OOMPH_EXCEPTION_LOCATION);
+    }
 #endif
-    return ((*Global_boundary_equation_num_map.find(global_num)).second);
-  }
-  //======start_of_build_face_mesh==========================================
-  /// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
-  /// of the mesh (which contains elements of type BULK_ELEMENT)
-  //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  build_face_mesh(Mesh* face_mesh_pt) const
-  {
-    // Create a set to temporarily store the list of boundary nodes
-    // (we do it via a set because sets automatically detect duplicates)
-    std::set<Node*> node_set;
-    std::set<Node*>::iterator it;
+  return ((*Global_boundary_equation_num_map.find(global_num)).second);
+}
 
-    // Loop over the boundaries
-    unsigned n_boundary = mesh_pt()->nboundary();
-    for(unsigned b=0; b<n_boundary; b++)
-      {
-	//Loop over the boundary nodes on boundary b
-	unsigned n_bound_node = mesh_pt()->nboundary_node(b);
-	for(unsigned n=0;n<n_bound_node;n++)
-	  {
-	    // Add the boundary node to a set
-	    node_set.insert(mesh_pt()->boundary_node_pt(b,n));
-	  }
+//======start_of_build_face_mesh==========================================
+/// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
+/// of the mesh (which contains elements of type BULK_ELEMENT)
+// ??ds also create a "corner mesh" which contains only point elements at the
+// edges of the boundarys - this works in 2d and for simple-ish meshes ONLY.
+//========================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+build_face_mesh(Mesh* face_mesh_pt, Mesh* corner_mesh_pt) const
+{
+  // Create a set to temporarily store the list of boundary nodes
+  // (we do it via a set because sets automatically detect duplicates)
+  std::set<Node*> node_set, corner_node_set;
+  std::set<Node*>::iterator it, c_it;
 
-	//Loop over the elements on boundary b
-	unsigned n_bound_element = mesh_pt()->nboundary_element(b);
-	for(unsigned e=0;e<n_bound_element;e++)
-	  {
-	    //Create the corresponding FaceElement
-	    FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
-	      (mesh_pt()->boundary_element_pt(b,e),
-	       mesh_pt()->face_index_at_boundary(b,e));
+  // Loop over the boundaries
+  unsigned n_boundary = mesh_pt()->nboundary();
+  for(unsigned b=0; b<n_boundary; b++)
+    {
+      //Loop over the boundary nodes on boundary b making a set of nodes
+      unsigned n_bound_node = mesh_pt()->nboundary_node(b);
+      for(unsigned n=0;n<n_bound_node;n++)
+	node_set.insert(mesh_pt()->boundary_node_pt(b,n));
 
-	    //Add the face element to the face mesh
-	    face_mesh_pt->add_element_pt(face_element_pt);
-	  }
-      }
+      //Loop over the elements on boundary b creating face elements
+      unsigned n_bound_element = mesh_pt()->nboundary_element(b);
+      for(unsigned e=0;e<n_bound_element;e++)
+	{
+	  //Create the corresponding FaceElement
+	  FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
+	    (mesh_pt()->boundary_element_pt(b,e),
+	     mesh_pt()->face_index_at_boundary(b,e));
 
-    // Iterate over all nodes in the set and add to the face mesh
-    for(it=node_set.begin(); it!=node_set.end(); it++)
-      face_mesh_pt->add_node_pt(*it);
+	  //Add the face element to the face mesh
+	  face_mesh_pt->add_element_pt(face_element_pt);
+	}
 
-    //??ds taken from mesh.h - no idea what this does but maybe useful later...
-#ifdef OOMPH_HAS_MPI
-    // If the bulk mesh has been distributed then the face mesh is too
-    if (this->is_mesh_distributed())
-      {
-	face_mesh_pt->set_mesh_distributed();
-      }
-#endif
-  }
+      // Add the first and last nodes on boundary b to the corner set
+      corner_node_set.insert(mesh_pt()->boundary_node_pt(b,0));
+      corner_node_set.insert(mesh_pt()->boundary_node_pt(b,n_bound_node-1));
 
-  //======start_of_create_global_boundary_equation_number_map===============
-  /// Create a map from the global equation numbers to the boundary node.
-  /// Note since we use the global equation number as a key the map will
-  /// automatically reject duplicate entries.
-  //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  create_global_boundary_equation_number_map()
-  {
-    // Initialise the map
-    Global_boundary_equation_num_map.clear();
+    }
 
-    // Loop over boundary nodes assigning a boundary equation number to each.
-    unsigned n_boundary_node = this->face_mesh_pt()->nnode(), k=0;
-    for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
-      {
-	// Get global equation number for phi_2
-	unsigned global_eqn_number = this->face_mesh_pt()->
-	  node_pt(i_node)->eqn_number(0);
+  // Iterate over all nodes in the set and add to the face mesh
+  for(it=node_set.begin(); it!=node_set.end(); it++)
+    face_mesh_pt->add_node_pt(*it);
 
-	// Set up the pair ready to input with key="global equation number" and
-	// value ="boundary equation number"=k.
-	std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
+  // Iterate over all nodes in the corner set and add to the corner mesh
+  for(c_it=corner_node_set.begin(); c_it!=corner_node_set.end(); c_it++)
+    corner_mesh_pt->add_node_pt(*c_it);
+}
 
-	// Add entry to map and store whether this was a new addition
-	bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
-			     ).second;
 
-	// Increment k if this was a new addition to the map
-	if(new_addition) k++;
-      }
-  }
+//======start_of_create_global_boundary_equation_number_map===============
+/// Create a map from the global equation numbers to the boundary node.
+/// Note since we use the global equation number as a key the map will
+/// automatically reject duplicate entries.
+//========================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+create_global_boundary_equation_number_map()
+{
+  // Initialise the map
+  Global_boundary_equation_num_map.clear();
 
-  //=============================================================================
-  /// Get the fully assembled boundary matrix in dense storage.
-  //=============================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  get_boundary_matrix()
-  {
+  // Loop over boundary nodes assigning a boundary equation number to each.
+  unsigned n_boundary_node = this->face_mesh_pt()->nnode(), k=0;
+  for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
+    {
+      // Get global equation number for phi_2
+      unsigned global_eqn_number = this->face_mesh_pt()->
+	node_pt(i_node)->eqn_number(0);
 
-    // get the number of nodes in the boundary problem
-    unsigned long n_node = face_mesh_pt()->nnode();
+      // Set up the pair ready to input with key="global equation number" and
+      // value ="boundary equation number"=k.
+      std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
 
-    // Initialise and resize the boundary matrix
-    Boundary_matrix.resize(n_node,n_node);
-    Boundary_matrix.initialise(0.0);
+      // Add entry to map and store whether this was a new addition
+      bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
+			   ).second;
 
-    // Loop over all the elements
-    unsigned long n_element = face_mesh_pt()->nelement();
-    for(unsigned long e=0;e<n_element;e++)
-      {
-	// Get the pointer to the element (and cast to FiniteElement)
-	//??ds might need only finite ele in the end? not sure how to get phi_2_index yet
-	FiniteElement* elem_pt =
-	  dynamic_cast < FiniteElement* > (face_mesh_pt()->element_pt(e));
+      // Increment k if this was a new addition to the map
+      if(new_addition) k++;
+    }
+}
 
-	// Find number of nodes in the element
-	unsigned long n_element_node = elem_pt->nnode();
+//=============================================================================
+/// Get the fully assembled boundary matrix in dense storage.
+//=============================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+get_boundary_matrix()
+{
 
-	// Set up a matrix and dummy residual vector
-	DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
-	Vector<double> dummy(0);
+  // get the number of nodes in the boundary problem
+  unsigned long n_node = face_mesh_pt()->nnode();
 
-	// Fill the matrix
-	assembly_handler_pt()
-	  ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
+  // Initialise and resize the boundary matrix
+  Boundary_matrix.resize(n_node,n_node);
+  Boundary_matrix.initialise(0.0);
 
-	// Loop over the nodes in this element
-	for(unsigned l=0;l<n_element_node;l++)
-	  {
-	    // Get the boundary equation (=node) number from the global one
-	    unsigned l_number =
-	      this->convert_global_to_boundary_equation_number
-	      (elem_pt->node_pt(l)->eqn_number(0));
+  // Loop over all elements in the face mesh
+  unsigned long n_element = face_mesh_pt()->nelement();
+  for(unsigned long e=0;e<n_element;e++)
+    {
+      // Get the pointer to the element (and cast to FiniteElement)
+      FiniteElement* elem_pt =
+	dynamic_cast < FiniteElement* > (face_mesh_pt()->element_pt(e));
 
-	    //std::cout << "target node = " << l << std::endl;
+      // Find number of nodes in the element
+      unsigned long n_element_node = elem_pt->nnode();
 
-	    // Loop over all nodes in the mesh and add contributions from this element
-	    for(unsigned long source_node=0; source_node<n_node; source_node++)
-	      {
-		unsigned source_number =
-		  this->convert_global_to_boundary_equation_number
-		  (face_mesh_pt()->node_pt(source_node)->eqn_number(0));
+      // Set up a matrix and dummy residual vector
+      DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
+      Vector<double> dummy(0);
 
-		Boundary_matrix(l_number,source_number)
-		  += element_boundary_matrix(l,source_node);
-	      }
-	  }
-      }
-  }
+      // Fill the matrix
+      assembly_handler_pt()
+	->get_jacobian(elem_pt,dummy,element_boundary_matrix);
 
-  //=============================================================================
-  ///
-  // updating the boundary conditions on phi_2 from the values
-  // of phi_1 on the boundary goes in here. This combined with
-  // including it in the jacobian allows the solver to work as normal.
-  //=============================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-  void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-  update_boundary_phi_2()
-  {
-    // Get the index of phi_2
-    BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
-    unsigned phi_2_index = elem_pt->phi_2_index_micromag();
+      // Loop over the nodes in this element
+      for(unsigned l=0;l<n_element_node;l++)
+	{
+	  // Get the boundary equation (=node) number from the global one
+	  unsigned l_number =
+	    this->convert_global_to_boundary_equation_number
+	    (elem_pt->node_pt(l)->eqn_number(0));
 
-    // Loop over all (target) nodes on the boundary
-    unsigned n_boundary_node = face_mesh_pt()->nnode();
-    for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
-      {
-	// Get a pointer to the target node
-	Node* target_node_pt = face_mesh_pt()->node_pt(target_node);
+	  //std::cout << "target node = " << l << std::endl;
 
-    	// Get boundary equation number for this target node
-    	unsigned target_number = convert_global_to_boundary_equation_number
-    	  (target_node_pt->eqn_number(0));
+	  // Loop over all nodes in the mesh and add contributions from this element
+	  for(unsigned long source_node=0; source_node<n_node; source_node++)
+	    {
+	      unsigned source_number =
+		this->convert_global_to_boundary_equation_number
+		(face_mesh_pt()->node_pt(source_node)->eqn_number(0));
 
-	// Double to store the value of phi_2 during computation
-	double target_phi_2_value = 0;
+	      Boundary_matrix(l_number,source_number)
+		+= element_boundary_matrix(l,source_node);
+	    }
+	}
+    }
 
-    	// Loop over all source nodes adding contribution from each
-    	for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
-    	  {
-    	    // Get a pointer to the source node
-    	    Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+  // Loop over all the corner elements and get contributions from the angles
+  // at sharp corners.
+  for(unsigned long ce=0; ce<Corner_elements.size(); ce++)
+    {
+      // Find out the index of the node at which the corner element is placed
+      unsigned global_j = Corner_elements[ce]->node_pt(0)->eqn_number(0);
+      unsigned j = convert_global_to_boundary_equation_number(global_j);
 
-    	    // Get boundary equation number for this source node
-    	    unsigned source_number = convert_global_to_boundary_equation_number
-    	      (source_node_pt->eqn_number(0));
+      // Calculate the angle and add to boundary matrix entry (j,j)
+      Boundary_matrix(j,j) += Corner_elements[ce]->calculate_corner_fractional_angle();
+    }
 
-    	    // Add the contribution to phi_2 at the target node due to
-    	    // the source node (relationship is given by the boundary matrix).
-    	    //??ds check consistency of boundary matrix numbering
-	    target_phi_2_value += Boundary_matrix(target_number,source_number)
-    	      * source_node_pt->value(0); //??ds replace this with actual phi_1_index
-    	  }
-	// Save the total into the target node
-	target_node_pt->set_value(phi_2_index,target_phi_2_value);
-      }
-  }
+}
+
+//=============================================================================
+///
+// updating the boundary conditions on phi_2 from the values
+// of phi_1 on the boundary goes in here. This combined with
+// including it in the jacobian allows the solver to work as normal.
+//=============================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+update_boundary_phi_2()
+{
+  // Get the index of phi_2
+  BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
+  unsigned phi_2_index = elem_pt->phi_2_index_micromag();
+
+  // Loop over all (target) nodes on the boundary
+  unsigned n_boundary_node = face_mesh_pt()->nnode();
+  for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
+    {
+      // Get a pointer to the target node
+      Node* target_node_pt = face_mesh_pt()->node_pt(target_node);
+
+      // Get boundary equation number for this target node
+      unsigned target_number = convert_global_to_boundary_equation_number
+	(target_node_pt->eqn_number(0));
+
+      // Double to store the value of phi_2 during computation
+      double target_phi_2_value = 0;
+
+      // Loop over all source nodes adding contribution from each
+      for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
+	{
+	  // Get a pointer to the source node
+	  Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+
+	  // Get boundary equation number for this source node
+	  unsigned source_number = convert_global_to_boundary_equation_number
+	    (source_node_pt->eqn_number(0));
+
+	  // Add the contribution to phi_2 at the target node due to
+	  // the source node (relationship is given by the boundary matrix).
+	  //??ds check consistency of boundary matrix numbering
+	  target_phi_2_value += Boundary_matrix(target_number,source_number)
+	    * source_node_pt->value(0); //??ds replace this with actual phi_1_index
+	}
+      // Save the total into the target node
+      target_node_pt->set_value(phi_2_index,target_phi_2_value);
+    }
+}
 
 } // End of oomph namespace
 
@@ -484,15 +506,15 @@ int main(int argc, char* argv[])
   unsigned n_x, n_y;
 
   // Get inputs
-  if(argc == 2)
-    {
-      n_x = atoi(argv[1]);
-      n_y = atoi(argv[1]);
-    }
-  else if(argc >= 3)
+  if(argc >= 3)
     {
       n_x = atoi(argv[1]);
       n_y = atoi(argv[2]);
+    }
+  else if(argc == 1)
+    {
+      n_x = atoi(argv[1]);
+      n_y = atoi(argv[1]);
     }
   else
     {
@@ -507,8 +529,8 @@ int main(int argc, char* argv[])
 
   // Set up the bulk problem
   TwoDMicromagProblem<QMicromagElement<dim,nnode_1d>,
-		      MicromagFaceElement,
-		      dim>
+    MicromagFaceElement,
+    dim>
     problem(n_x,n_y);
 
   std::cout << "Constructor done." << std::endl;
@@ -543,7 +565,7 @@ int main(int argc, char* argv[])
   for(unsigned i=0; i<n_element; i++)
     {
       FiniteElement* finite_element_pt =
-  	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
+	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
       finite_element_pt->set_integration_scheme(&quadrature_scheme);
     }
 
