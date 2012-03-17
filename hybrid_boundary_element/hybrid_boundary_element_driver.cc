@@ -511,7 +511,7 @@ int main(int argc, char* argv[])
       n_x = atoi(argv[1]);
       n_y = atoi(argv[2]);
     }
-  else if(argc == 1)
+  else if(argc == 2)
     {
       n_x = atoi(argv[1]);
       n_y = atoi(argv[1]);
