@@ -91,9 +91,9 @@ namespace oomph
 
   	// Poisson section (demagnetising field calculation)
   	//----------------------------------------------------
-  	// Get source function
-  	double poisson_source = 0;
-  	get_poisson_source(time,ipt,interpolated_x,poisson_source);
+  	// // Get source function
+  	// double poisson_source = 0;
+  	// get_poisson_source(time,ipt,interpolated_x,poisson_source);
 
   	// Loop over the test functions/nodes
   	for(unsigned l=0;l<n_node;l++)
@@ -105,7 +105,7 @@ namespace oomph
   	    if(phi_local_eqn >= 0)	  // If it's not a boundary condition:
   	      {
   		// Add source term
-  		residuals[phi_local_eqn] -= poisson_source*test(l)*W; //??ds not sure on sign
+  		residuals[phi_local_eqn] -= test(l)*W; //??ds not sure on sign
 
   		// standard residuals term (not "integrated by parts")
   		// Seems to be unstable
@@ -193,9 +193,9 @@ namespace oomph
   	Vector<double> H_cryst_anis(3,0.0);
   	get_H_cryst_anis_field(time, interpolated_x, interpolated_m, H_cryst_anis);
 
-  	// Get LLG source function
-  	Vector<double> llg_source(3,0.0);
-  	get_source_llg(time, interpolated_x, llg_source);
+  	// // Get LLG source function
+  	// Vector<double> llg_source(3,0.0);
+  	// get_source_llg(time, interpolated_x, llg_source);
 
   	// Get the magnetostatic/demag field: H_demag = - grad(phi))
   	Vector<double> H_magnetostatic(3,0.0);
@@ -240,7 +240,7 @@ namespace oomph
   		      ( interpolated_dmdt[k]
   			+ llg_precession_coeff*interpolated_mxH[k]
   			+ llg_damping_coeff*interpolated_mxmxH[k]
-  			- llg_source[k]
+  			// - llg_source[k]
   			)*test(l)*W;
   		  }
   		//??ds put in jacobian calculation eventually
