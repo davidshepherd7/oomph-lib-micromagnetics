@@ -27,7 +27,7 @@ namespace oomph
     const double Exchange_c;
 
     const double Cryst_anis_const;
-    const Vector<double> Easy_axis;
+    Vector<double> Easy_axis; //??ds ideally would be const... I think
 
   public:
 
@@ -48,42 +48,49 @@ namespace oomph
       Exchange_c(1.0), Cryst_anis_const(1.0), Easy_axis(3)
     {Easy_axis[0] = 0; Easy_axis[1] = 0; Easy_axis[2] = 1;}
 
-    double llg_precession_nn(const double& t, const Vector<double>& x)
-    {return Gymag_c/(1 + Gilbert_c*Gilbert_c);}
+    /// Check that all values are filled in and valid
+    void self_test() const;
 
-    double llg_precession(const double& t, const Vector<double>& x)
+    double llg_precession(const double& t, const Vector<double>& x) const
     {return 1.0;}
 
-    double llg_damping_nn(const double& t, const Vector<double>& x)
-    {return llg_precession_nn(t,x) * (Gilbert_c/sat_mag(t,x));}
-
-    double llg_damping(const double& t, const Vector<double>& x)
+    double llg_damping(const double& t, const Vector<double>& x) const
     {return Gilbert_c;}
 
-    double sat_mag(const double& t, const Vector<double>& x)
-    {return m_s;}
+    double sat_mag(const double& t, const Vector<double>& x) const
+    {return 1.0;}
 
     void cryst_anis_field(const double& t, const Vector<double>& x,
-			  const Vector<double>& M, Vector<double>& H_cryst_anis)
+			  const Vector<double>& M, Vector<double>& H_cryst_anis) const
     {
-      H_cryst_anis[0] = 0.0;
-      H_cryst_anis[1] = 0.0;
-      H_cryst_anis[2] = 0.0;
+      double dot_product = M[0]*Easy_axis[0] + M[1]*Easy_axis[1] + M[2]*Easy_axis[2];
+      H_cryst_anis[0] = Easy_axis[0]*dot_product;
+      H_cryst_anis[1] = Easy_axis[1]*dot_product;
+      H_cryst_anis[2] = Easy_axis[2]*dot_product;
     }
 
     void applied_field(const double& t, const Vector<double>& x,
-		       Vector<double>& H_applied)
+		       Vector<double>& H_applied) const
     {
       H_applied[0] = 0.0;
       H_applied[1] = 0.0;
       H_applied[2] = 0.0;
     }
 
-    double exchange_coeff(const double& t, const Vector<double>& x)
+    double exchange_coeff(const double& t, const Vector<double>& x) const
     {
-      return exchange_c;
+      return Exchange_c;
     }
   };
+
+
+  //======================================================================
+  /// Check that all the inputs are included and valid.
+  //======================================================================
+  void MicromagInputs::self_test() const
+  {
+    //??ds do this
+  }
 
 } // End of oomph namespace
 
