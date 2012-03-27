@@ -18,7 +18,7 @@ using namespace MathematicalConstants;
 
 namespace oomph
 {
-  /////////////////////////////////////// stolen from NS collapsible channel:
+  // Stolen from NS collapsible channel:
   //=========================================================================
   class NonOscillatingWall : public GeomObject
   {
@@ -68,22 +68,22 @@ namespace oomph
 
   }; // end of non-oscillating wall
 
-  //=====start_of_TwoDMicromagProblem===============================================
-  /// A problem class to solve the LLG equation using a hybrid BEM/FEM.
+  //=====start_of_TwoDBEMTest===============================================
+  /// A problem class to test the hybrid BEM/FEM.
   //========================================================================
   template<class BULK_ELEMENT,
 	   template<class BULK_ELEMENT,unsigned DIM> class FACE_ELEMENT,
 	   unsigned DIM>
-  class TwoDMicromagProblem : public Problem
+  class TwoDBEMTest : public Problem
   {
 
   public:
 
     /// Constructor
-    TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y);
+    TwoDBEMTest(const unsigned& n_x, const unsigned& n_y);
 
     /// Destructor (empty -- all the cleanup is done in the base class)
-    ~TwoDMicromagProblem(){};
+    ~TwoDBEMTest(){};
 
     /// Doc the solution
     void doc_solution(DocInfo& doc_info);
@@ -166,8 +166,8 @@ namespace oomph
 ///
 //========================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
+TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+TwoDBEMTest(const unsigned& n_x, const unsigned& n_y)
 {
   // Allocate steady state timestepper
   add_time_stepper_pt(new Steady<2>);
@@ -222,7 +222,7 @@ TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   /// ??ds write this!
   //========================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 doc_solution(DocInfo& doc_info)
 {
 
@@ -254,7 +254,7 @@ doc_solution(DocInfo& doc_info)
   /// ??ds write this!
   //========================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-unsigned TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+unsigned TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 convert_global_to_boundary_equation_number(const unsigned &global_num)
 {
 #ifdef PARANOID
@@ -270,7 +270,7 @@ convert_global_to_boundary_equation_number(const unsigned &global_num)
       error_stream << "Global equation number " << global_num
 		   << " is not in the global to boundary map.";
       throw OomphLibError(error_stream.str(),
-			  "TwoDMicromagProblem::convert_global_to_boundary_equation_number",
+			  "TwoDBEMTest::convert_global_to_boundary_equation_number",
 			  OOMPH_EXCEPTION_LOCATION);
     }
 #endif
@@ -278,13 +278,10 @@ convert_global_to_boundary_equation_number(const unsigned &global_num)
 }
 
 //======start_of_build_face_mesh==========================================
-/// \short Constuct a Mesh of FACE_ELEMENTs along the b-th boundary
-/// of the mesh (which contains elements of type BULK_ELEMENT)
-// ??ds also create a "corner mesh" which contains only point elements at the
-// edges of the boundarys - this works in 2d and for simple-ish meshes ONLY.
+/// Constuct a Mesh of FACE_ELEMENTs
 //========================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 build_face_mesh(Mesh* face_mesh_pt, Mesh* corner_mesh_pt) const
 {
   // Create a set to temporarily store the list of boundary nodes
@@ -336,7 +333,7 @@ build_face_mesh(Mesh* face_mesh_pt, Mesh* corner_mesh_pt) const
 /// automatically reject duplicate entries.
 //========================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 create_global_boundary_equation_number_map()
 {
   // Initialise the map
@@ -367,7 +364,7 @@ create_global_boundary_equation_number_map()
 /// Get the fully assembled boundary matrix in dense storage.
 //=============================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 get_boundary_matrix()
 {
 
@@ -441,7 +438,7 @@ get_boundary_matrix()
 // including it in the jacobian allows the solver to work as normal.
 //=============================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDMicromagProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
 update_boundary_phi_2()
 {
   // Get the index of phi_2
@@ -518,9 +515,7 @@ int main(int argc, char* argv[])
   const unsigned nnode_1d = 2;
 
   // Set up the bulk problem
-  TwoDMicromagProblem<QMicromagElement<dim,nnode_1d>,
-    MicromagFaceElement,
-    dim>
+  TwoDBEMTest<QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem(n_x,n_y);
 
   std::cout << "Constructor done." << std::endl;
@@ -551,48 +546,19 @@ int main(int argc, char* argv[])
   // Set very high precision output
   std::cout.precision(16);
 
-  // unsigned max_order = 50;
-  // for(unsigned order=2; order<=max_order; order++)
-  //   {
-
-  //   // Set the integration scheme order
-  //   quadrature_scheme.set_order(order);
-
-  //   // Create + start timer
-  //   double start_time = TimingHelpers::timer();
-
-  //   // Get the boundary matrix
-  //   problem.get_boundary_matrix();
-
-  //   // output timer result
-  //   double stop_time = TimingHelpers::timer();
-  //   std::cout << order << " " << stop_time - start_time << std::endl;
-
-  //   // dump for testing
-  //   std::ofstream matrix_file;
-  //   matrix_file.setf(std::ios::fixed,std::ios::floatfield); // Set high precision output
-  //   matrix_file.precision(16);
-  //   char filename[100];
-  //   sprintf(filename,"results/boundary_matrix_%u",order);
-  //   matrix_file.open(filename);
-  //   problem.boundary_matrix_pt()->output(matrix_file);
-  //   matrix_file.close();
-  // }
-
-  // For testing adaptive schemes:
+  // Testing the adaptive schemes:
   {
-
     // Start timer
     double start_time = TimingHelpers::timer();
 
     // Get the matrix
     problem.get_boundary_matrix();
 
-    // output timer result
+    // Output timer result
     double stop_time = TimingHelpers::timer();
     std::cout << stop_time - start_time << std::endl;
 
-    // dump for testing
+    // Dump boundary matrix
     std::ofstream matrix_file;
     matrix_file.precision(16);
     char filename[100];
@@ -616,12 +582,11 @@ int main(int argc, char* argv[])
     }
   mesh_plot.close();
 
-  std::cout << n_nd << std::endl;
 
   std::ofstream int_nd_stream;
   int_nd_stream.open("results/interaction_node");
   int_nd_stream << problem.face_mesh_pt()->node_pt(int_nd)->x(0) << " "
-    		<< problem.face_mesh_pt()->node_pt(int_nd)->x(1) << " "
+		<< problem.face_mesh_pt()->node_pt(int_nd)->x(1) << " "
 		<< (*bm_pt)(int_nd,int_nd) << std::endl;
   int_nd_stream.close();
 
