@@ -7,7 +7,6 @@
 
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
-#include "../micromagnetics_input.h"
 
 // Mesh
 #include "meshes/rectangular_quadmesh.h"
@@ -119,14 +118,14 @@ namespace oomph
     // Nothing to do here since no dirichlet boundaries.
     void actions_before_newton_solve(){};
 
-    /// Update the problem specs after solve
+    /// Update the problem specs after solve (empty)
     void actions_after_newton_solve(){};
 
     /// Update the problem specs after solve (empty)
     void actions_after_implicit_timestep(){};
 
     /// Update the problem specs before next timestep (boundary conditions)
-    void actions_before_implicit_timestep(){};
+    void actions_before_implicit_timestep();
 
   }; // end of problem class
 
@@ -391,7 +390,7 @@ update_boundary_phi_2()
   // Get the index of phi_1 and phi_2
   BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
   const unsigned phi_1_index = elem_pt->phi_1_index_micromag();
-  const unsigned phi_2_index = elem_pt->phi_2_index_micromag();
+  const unsigned phi_index = elem_pt->phi_index_micromag();
 
   // Loop over all (target) nodes on the boundary
   unsigned n_boundary_node = face_mesh_pt()->nnode();
@@ -404,8 +403,8 @@ update_boundary_phi_2()
       unsigned target_number = convert_global_to_boundary_equation_number
 	(target_node_pt->eqn_number(0));
 
-      // Double to store the value of phi_2 during computation
-      double target_phi_2_value = 0;
+      // Double to store the value of total phi during computation
+      double target_phi_value = 0;
 
       // Loop over all source nodes adding contribution from each
       for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
@@ -417,14 +416,14 @@ update_boundary_phi_2()
 	  unsigned source_number = convert_global_to_boundary_equation_number
 	    (source_node_pt->eqn_number(0));
 
-	  // Add the contribution to phi_2 at the target node due to
+	  // Add the contribution to total phi at the target node due to
 	  // the source node (relationship is given by the boundary matrix).
 	  //??ds check consistency of boundary matrix numbering
-	  target_phi_2_value += Boundary_matrix(target_number,source_number)
+	  target_phi_value += Boundary_matrix(target_number,source_number)
 	    * source_node_pt->value(phi_1_index);
 	}
       // Save the total into the target node
-      target_node_pt->set_value(phi_2_index,target_phi_2_value);
+      target_node_pt->set_value(phi_index,target_phi_value);
     }
 }
 
@@ -485,6 +484,16 @@ set_initial_condition()
   // Construct the boundary matrix
   build_boundary_matrix();
 }
+
+
+//======================================================================
+/// Actions before timestep, we set up the boundary conditions here.
+//======================================================================
+void TwoDHybridProblem::actions_before_implicit_timestep()
+{
+  //??ds set up Neumann boundary conditions for phi_1.
+}
+
 
 } // End of oomph namespace
 
