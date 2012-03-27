@@ -18,6 +18,7 @@ Makefile.in
 
 # outputs
 results/
+*backup
 rules
 *.pdf
 *.png
