@@ -30,7 +30,7 @@ namespace Inputs
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_app)
   {
-    fill(H_app.begin(), H_app.end(), 0.0);
+    std::fill(H_app.begin(), H_app.end(), 0.0);
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -39,7 +39,7 @@ namespace Inputs
     Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
     double magnitude = dot3(Easy_axis,M);
     H_ca = Easy_axis;
-    for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
+    std::for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
   }
 }
 
@@ -489,7 +489,9 @@ set_initial_condition()
 //======================================================================
 /// Actions before timestep, we set up the boundary conditions here.
 //======================================================================
-void TwoDHybridProblem::actions_before_implicit_timestep()
+template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+actions_before_implicit_timestep()
 {
   //??ds set up Neumann boundary conditions for phi_1.
 }

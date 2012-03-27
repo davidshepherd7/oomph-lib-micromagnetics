@@ -110,7 +110,7 @@ namespace oomph
     inline void get_applied_field(const double& t, const Vector<double> &x,
 					  Vector<double>& H_app) const
     {
-      if(Applied_field_pt==0) fill(H_app.begin(), H_app.end(), 0.0);
+      if(Applied_field_pt==0) std::fill(H_app.begin(), H_app.end(), 0.0);
       else (*Applied_field_pt)(t,x,H_app);
     }
 
@@ -127,7 +127,7 @@ namespace oomph
 					       const Vector<double>& m,
 					       Vector<double>& H_ca) const
     {
-      if(Cryst_anis_field_pt==0) fill(H_ca.begin(), H_ca.end(), 0.0);
+      if(Cryst_anis_field_pt==0) std::fill(H_ca.begin(), H_ca.end(), 0.0);
       else (*Cryst_anis_field_pt)(t,x,m,H_ca);
     }
 
