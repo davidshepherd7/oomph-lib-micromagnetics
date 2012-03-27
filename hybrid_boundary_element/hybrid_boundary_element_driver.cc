@@ -180,28 +180,17 @@ TwoDMicromagProblem(const unsigned& n_x, const unsigned& n_y)
   {
     //Create the geometric object that represents the wall Parameters chosen
     // to make it very similar to the 2x2 square used before (if a = 0).
-    double height = 2.0, x_left = 2.0/3, length = 2.0/3, a = 0.3;
+    double height = 3.0, x_left = height/3, length = height/3, a = 1.0;
     GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
     // Number of elements and lengths of parts of the mesh
     unsigned nup = unsigned(n_x/3), ndown = nup, ncollapsible = nup;
-    double lup = x_left, ldown = 2.0/3, lcollapsible = length, ly = height;
+    double lup = x_left, ldown = height/3, lcollapsible = length, ly = height;
     mesh_pt() = new
       CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, n_y,
 					   lup, lcollapsible, ldown, ly,
 					   Wall_pt, time_stepper_pt());
   }
-
-  // dump mesh for testing
-  unsigned n_nd = mesh_pt()->nnode();
-  std::ofstream mesh_plot;
-  mesh_plot.open("./mesh_points");
-  for(unsigned nd=0; nd<n_nd; nd++)
-    {
-      mesh_plot << mesh_pt()->node_pt(nd)->x(0) << " "
-		<< mesh_pt()->node_pt(nd)->x(1) << std::endl;
-    }
-  mesh_plot.close();
 
   // Create face elements on all boundaries and add to face mesh, create point
   // elements at sharp corners of the pre-discretisation object and add to
@@ -503,13 +492,14 @@ update_boundary_phi_2()
 //========================================================================
 int main(int argc, char* argv[])
 {
-  unsigned n_x, n_y;
+  unsigned n_x, n_y, int_nd(0);
 
   // Get inputs
-  if(argc >= 3)
+  if(argc == 3)
     {
       n_x = atoi(argv[1]);
-      n_y = atoi(argv[2]);
+      n_y = atoi(argv[1]);
+      int_nd = atoi(argv[2]);
     }
   else if(argc == 2)
     {
@@ -544,23 +534,12 @@ int main(int argc, char* argv[])
   // // Run self tests on problem and boundary problem:
   // problem.self_test();
 
-  // // // Dump boundary mesh positions
-  // unsigned n_node = problem.face_mesh_pt()->nnode();
-  // std::cout << n_node << std::endl;
-  // // for(unsigned i_node=0; i_node < n_node; i_node++)
-  // //   {
-  // //     std::cout << boundary_problem.mesh_pt()->node_pt(i_node)->position(0)
-  // // 		<< ", " << boundary_problem.mesh_pt()->node_pt(i_node)->position(1)
-  // // 		<< std::endl;
-  // //   }
-
   // Set up the boundary equation numbering system
   problem.create_global_boundary_equation_number_map();
 
-  // // ??ds testing my variable gaussian scheme
+  // Create a variable order Gauss scheme of the appropriate dimension and set
+  // all boundary elements to use it.
   QVariableOrderGaussLegendre<dim-1> quadrature_scheme;
-
-  // Set all boundary elements to use the variable order gauss integration
   unsigned n_element = problem.face_mesh_pt()->nelement();
   for(unsigned i=0; i<n_element; i++)
     {
@@ -622,6 +601,29 @@ int main(int argc, char* argv[])
     problem.boundary_matrix_pt()->output(matrix_file);
     matrix_file.close();
   }
+
+
+  // Dump mesh for testing
+  unsigned n_nd = problem.face_mesh_pt()->nnode();
+  DenseDoubleMatrix* bm_pt = problem.boundary_matrix_pt();
+  std::ofstream mesh_plot;
+  mesh_plot.open("results/mesh_points");
+  for(unsigned nd=0; nd<n_nd; nd++)
+    {
+      mesh_plot << problem.face_mesh_pt()->node_pt(nd)->x(0) << " "
+		<< problem.face_mesh_pt()->node_pt(nd)->x(1) << " "
+		<< (*bm_pt)(int_nd,nd) << std::endl;
+    }
+  mesh_plot.close();
+
+  std::cout << n_nd << std::endl;
+
+  std::ofstream int_nd_stream;
+  int_nd_stream.open("results/interaction_node");
+  int_nd_stream << problem.face_mesh_pt()->node_pt(int_nd)->x(0) << " "
+    		<< problem.face_mesh_pt()->node_pt(int_nd)->x(1) << " "
+		<< (*bm_pt)(int_nd,int_nd) << std::endl;
+  int_nd_stream.close();
 
   return 0;
 } //end of main
