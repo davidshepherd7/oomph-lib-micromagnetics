@@ -16,8 +16,6 @@ namespace oomph
   template<unsigned DIM>
   class MicromagEquations : public virtual FiniteElement
   {
-  private:
-
   public:
 
     // CONSTRUCTORS ETC.
@@ -31,41 +29,28 @@ namespace oomph
 
     /// Broken copy constructor
     MicromagEquations(const MicromagEquations& dummy)
-    {
-      BrokenCopy::broken_copy("MicromagEquations");
-    }
+    {BrokenCopy::broken_copy("MicromagEquations");}
 
     /// Broken assignment operator
     void operator=(const MicromagEquations&)
-    {
-      BrokenCopy::broken_assign("MicromagEquations");
-    }
+    {BrokenCopy::broken_assign("MicromagEquations");}
 
     /// Self-test: Return 0 for OK.
     unsigned self_test(){return 0;} //??ds write a real test sometime
 
+    // Equation numbering
     /// Specify nodal index for phi.
-    unsigned phi_index_micromag() const {return 0;} // equation 0
+    unsigned phi_index_micromag() const {return 0;} // equation number 0
 
-    /// Specify nodal index for phi 1. //??ds need to include these everywhere else still
-    unsigned phi_1_index_micromag() const {return 7;}
-
-    /// Specify nodal index for phi 2. //??ds need to include these everywhere else still
-    unsigned phi_2_index_micromag() const {return 8;}
+    /// Specify nodal index for phi 1
+    unsigned phi_1_index_micromag() const {return 1;}
 
     /// Specify nodal index for kth component of M.
-    unsigned m_index_micromag(const unsigned &k) const {return 1 + k;} // equations 1,2,3
+    unsigned m_index_micromag(const unsigned &k) const {return 2 + k;}
 
     /// Specify nodal index for kth component of H_ex.
-    unsigned exchange_index_micromag(const unsigned &k) const {return 4 + k;} // equations 4,5,6
+    unsigned exchange_index_micromag(const unsigned &k) const {return 6 + k;}
 
-    // /// Return the i-th value stored at local node n, DO take hanging nodes into account
-    // double nodal_value(const unsigned &n, const unsigned &i) const
-    // {return node_pt(n)->value(i);}
-
-    // /// Return the i-th value at time t stored at local node n, DO take hanging nodes into account
-    // double nodal_value(const unsigned &t, const unsigned &n, const unsigned &i) const
-    // {return node_pt(n)->value(t,i);}
 
     // SOURCE FUNCTIONS
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
@@ -86,11 +71,8 @@ namespace oomph
     // /// Access function: Pointer to source function. Const version
     // PoissonSourceFctPt poisson_source_pt() const {return Poisson_source_pt;}
 
-    // /// Get source term at (Eulerian) position x. This function is
-    // /// virtual to allow overloading in multi-physics problems where
-    // /// the strength of the source function might be determined by
-    // /// another system of equations.
-    // inline virtual void get_poisson_source(const double& t,
+    // /// Get poisson source term at (Eulerian) position x.
+    // inline void get_poisson_source(const double& t,
     // 					   const unsigned& ipt,
     // 					   const Vector<double>& x,
     // 					   double& source) const
@@ -107,11 +89,8 @@ namespace oomph
     // /// Access function: Pointer to source function. Const version
     // TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
 
-    // /// Get source term at (Eulerian) position x. This function is
-    // /// virtual to allow overloading in multi-physics problems where
-    // /// the strength of the source function might be determined by
-    // /// another system of equations.
-    // inline virtual void get_source_llg(const double& t,
+    // /// Get LLG source term at (Eulerian) position x.
+    // inline void get_source_llg(const double& t,
     // 				       const Vector<double>& x,
     // 				       Vector<double>& source) const
     // {
@@ -128,7 +107,7 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
 
     /// Get the applied field at Eulerian position x.
-    inline virtual void get_applied_field(const double& t, const Vector<double> &x,
+    inline void get_applied_field(const double& t, const Vector<double> &x,
 					  Vector<double>& H_app) const
     {
       if(Applied_field_pt==0) fill(H_app.begin(), H_app.end(), 0.0);
@@ -143,7 +122,7 @@ namespace oomph
     TimeSpaceMagToDoubleVectFctPt cryst_anis_field_pt() const {return Cryst_anis_field_pt;}
 
     /// Get the crystalline anisotropy field at Eulerian position x.
-    inline virtual void get_H_cryst_anis_field(const double& t,
+    inline void get_H_cryst_anis_field(const double& t,
 					       const Vector<double> &x,
 					       const Vector<double>& m,
 					       Vector<double>& H_ca) const
@@ -159,7 +138,7 @@ namespace oomph
     double* sat_mag_pt() const {return Sat_mag_pt;}
 
     /// Get saturisation magnetisation at eulerian postition x.
-    inline virtual double get_sat_mag() const
+    inline double get_sat_mag() const
     {
       if(Sat_mag_pt==0) return 1.0;
       else return *Sat_mag_pt;
@@ -172,7 +151,7 @@ namespace oomph
     double* llg_damp_pt() const {return Llg_damp_pt;}
 
     /// Get LLG damping coefficient at eulerian postition x.
-    inline virtual double get_llg_damp(const double& t, const Vector<double>& x) const
+    inline double get_llg_damp() const
     {
       if(Llg_damp_pt==0) {return 1.0;}
       else return *Llg_damp_pt;
@@ -186,7 +165,7 @@ namespace oomph
     double* llg_precess_pt() const {return Llg_precess_pt;}
 
     /// Get LLG precession coefficient at eulerian postition x.
-    inline virtual double get_llg_precess(const double& t, const Vector<double>& x) const
+    inline double get_llg_precess() const
     {
       if(Llg_precess_pt==0) {return 1.0;}
       else return *Llg_precess_pt;
@@ -200,7 +179,7 @@ namespace oomph
     double* exchange_coeff_pt() const {return Exchange_coeff_pt;}
 
     /// Get exchange coefficient at eulerian postition x.
-    inline virtual double get_exchange_coeff(const double& t, const Vector<double>& x) const
+    inline double get_exchange_coeff(const double& t, const Vector<double>& x) const
     {
       if(Exchange_coeff_pt==0) {return 1.0;}
       else return *Exchange_coeff_pt;
@@ -214,7 +193,7 @@ namespace oomph
     TimeSpaceToDoubleFctPt exact_phi_pt() const {return Exact_phi_pt;}
 
     /// Get exact phi at eulerian postition x.
-    inline virtual double get_exact_phi(const double& t, const Vector<double>& x) const
+    inline double get_exact_phi(const double& t, const Vector<double>& x) const
     {
       // If no exact phi function has been set, return something crazy
       if(Exact_phi_pt==0) {return -1000.0;}
@@ -229,14 +208,16 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt exact_m_pt() const {return Exact_m_pt;}
 
     /// Get exact M at eulerian postition x.
-    inline virtual void get_exact_m(const double& t, const Vector<double>& x, Vector<double>& m_exact) const
+    inline void get_exact_m(const double& t, const Vector<double>& x, Vector<double>& m_exact) const
     {
       // If no exact M function has been set, return something crazy
       if(Exact_m_pt==0) {for(unsigned j=0;j<3;j++) m_exact[j] = -1000.0;}
       else (*Exact_m_pt)(t,x,m_exact);
     }
 
-    /// Calculate the cross product of vectors A and B, store the result in vector output. NOTE: the cross product is only valid for 3-dimensional vectors
+    /// Calculate the cross product of vectors A and B, store the result in
+    /// vector output. NOTE: the cross product is only valid for 3-dimensional
+    /// vectors
     //??ds this should go somewhere else probably, maybe generic.h?
     void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output) const
     {
@@ -392,10 +373,12 @@ namespace oomph
 	      // Get number of timsteps to use (past & present)
 	      const unsigned n_time = time_stepper_pt->ntstorage();
 
-	      // Loop over past and present times and add the contributions to the time derivative
+	      // Loop over past and present times and add the contributions to
+	      // the time derivative
 	      for(unsigned t=0;t<n_time;t++)
 		{
-		  // ??ds The "1" in weights is the derrivative order (i.e. 1: dM/dt, 2: d^2M/dt^2) I think...
+		  // ??ds The "1" in weights is the derrivative order (i.e. 1:
+		  // dM/dt, 2: d^2M/dt^2) I think...
 		  dmdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,m_index_micromag(j));
 		}
 	    }
