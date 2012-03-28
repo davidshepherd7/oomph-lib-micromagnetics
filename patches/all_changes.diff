@@ -323,12 +323,12 @@ Index: src/generic/shape.h
 +      Psi[i] = old_shape.Psi[i];
 +  }
 +
-+  /// Deep copy assignement operator
++  /// Broken assignment operator
 +  void operator=(const VShape &old_shape)
-+  {
-+    for(unsigned i=0; i<Index1*Index2; i++)
-+      Psi[i] = old_shape.Psi[i];
-+  }
++  {BrokenCopy::broken_assign("VShape");}
++
++ /// Destructor, clear up the memory allocated by the object
++ ~VShape() {delete[] Allocated_storage; Allocated_storage=0;}
 +
 +};
 +

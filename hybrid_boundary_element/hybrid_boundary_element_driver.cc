@@ -180,7 +180,7 @@ TwoDBEMTest(const unsigned& n_x, const unsigned& n_y)
   {
     //Create the geometric object that represents the wall Parameters chosen
     // to make it very similar to the 2x2 square used before (if a = 0).
-    double height = 3.0, x_left = 0.0, length = height, a = 1.0;
+    double height = 3.0, x_left = height/3, length = height/3, a = height/3;
     GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
     // Number of elements and lengths of parts of the mesh
