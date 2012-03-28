@@ -107,8 +107,8 @@ namespace oomph
     /// Get the boundary equation number from the global equation number
     unsigned convert_global_to_boundary_equation_number(const unsigned &global_num);
 
-    /// Update the values of phi_2 on the boundary
-    void update_boundary_phi_2();
+    /// Update the values of phi on the boundary
+    void update_boundary_phi();
 
     /// Return pointer to the boundary matrix
     DenseDoubleMatrix* boundary_matrix_pt()
@@ -134,7 +134,7 @@ namespace oomph
     /// Doc info object
     DocInfo Doc_info;
 
-    /// Matrix to store the relationship between phi_1 and phi_2 on the boundary
+    /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
     //  /// Trace file
@@ -142,7 +142,7 @@ namespace oomph
 
     // Update the problem before Newton convergence check
     void actions_before_newton_convergence_check()
-    {update_boundary_phi_2();}
+    {update_boundary_phi();}
 
     /// Update the problem specs before solve
     // Nothing to do here since no dirichlet boundaries.
@@ -180,7 +180,7 @@ TwoDBEMTest(const unsigned& n_x, const unsigned& n_y)
   {
     //Create the geometric object that represents the wall Parameters chosen
     // to make it very similar to the 2x2 square used before (if a = 0).
-    double height = 3.0, x_left = height/3, length = height/3, a = 1.0;
+    double height = 3.0, x_left = 0.0, length = height, a = 1.0;
     GeomObject* Wall_pt = new NonOscillatingWall(height, x_left, length, a);
 
     // Number of elements and lengths of parts of the mesh
@@ -343,7 +343,7 @@ create_global_boundary_equation_number_map()
   unsigned n_boundary_node = this->face_mesh_pt()->nnode(), k=0;
   for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
     {
-      // Get global equation number for phi_2
+      // Get global equation number for phi
       unsigned global_eqn_number = this->face_mesh_pt()->
 	node_pt(i_node)->eqn_number(0);
 
@@ -433,17 +433,17 @@ get_boundary_matrix()
 
 //=============================================================================
 ///
-// updating the boundary conditions on phi_2 from the values
+// updating the boundary conditions on phi from the values
 // of phi_1 on the boundary goes in here. This combined with
 // including it in the jacobian allows the solver to work as normal.
 //=============================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
 void TwoDBEMTest<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-update_boundary_phi_2()
+update_boundary_phi()
 {
-  // Get the index of phi_2
+  // Get the index of phi
   BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
-  unsigned phi_2_index = elem_pt->phi_2_index_micromag();
+  unsigned phi_index = elem_pt->phi_index_micromag();
 
   // Loop over all (target) nodes on the boundary
   unsigned n_boundary_node = face_mesh_pt()->nnode();
@@ -456,8 +456,8 @@ update_boundary_phi_2()
       unsigned target_number = convert_global_to_boundary_equation_number
 	(target_node_pt->eqn_number(0));
 
-      // Double to store the value of phi_2 during computation
-      double target_phi_2_value = 0;
+      // Double to store the value of phi during computation
+      double target_phi_value = 0;
 
       // Loop over all source nodes adding contribution from each
       for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
@@ -469,14 +469,14 @@ update_boundary_phi_2()
 	  unsigned source_number = convert_global_to_boundary_equation_number
 	    (source_node_pt->eqn_number(0));
 
-	  // Add the contribution to phi_2 at the target node due to
+	  // Add the contribution to phi at the target node due to
 	  // the source node (relationship is given by the boundary matrix).
 	  //??ds check consistency of boundary matrix numbering
-	  target_phi_2_value += Boundary_matrix(target_number,source_number)
+	  target_phi_value += Boundary_matrix(target_number,source_number)
 	    * source_node_pt->value(0); //??ds replace this with actual phi_1_index
 	}
       // Save the total into the target node
-      target_node_pt->set_value(phi_2_index,target_phi_2_value);
+      target_node_pt->set_value(phi_index,target_phi_value);
     }
 }
 

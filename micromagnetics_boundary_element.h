@@ -440,7 +440,7 @@ namespace oomph
 
     // Find the location of the maximum difference
     Vector<double>::iterator worst_error_it
-      = max_element(diff.begin(),diff.end());
+      = std::max_element(diff.begin(),diff.end());
 
     // If the worst absolute error is close to zero return zero. This is sort of
     // a hack - if the actual values are tiny then this is wrong, but if the
