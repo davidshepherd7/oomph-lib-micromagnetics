@@ -504,12 +504,13 @@ namespace oomph
 
     // std::cout << "ndotr = " << ndotr << std::endl;
     // std::cout << "r = " << r << std::endl;
-    // std::cout << "greens/ndotr = " << -1/Pi * pow((2*r),-2) * 2 << std::endl;
-    // std::cout << "greens = " <<-1/Pi * ndotr * pow((2*r),-2) * 2 << std::endl;
+    // std::cout << "greens/ndotr = " << -1/Pi * std::pow((2*r),-1) * 2 << std::endl;
+    //std::cout << "greens = " <<  -1/Pi * ndotr * std::pow((2*r),-1*(dim()-1)) * 2 << std::endl;
 
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
-    return -1/Pi * ndotr * std::pow((2*r),(dim()-1)) * 2;
+    double exponent = - (double(node_dim) - 1);
+    return -1/Pi * ndotr * std::pow((2*r),exponent) * 2;
   }
 
 
