@@ -28,18 +28,32 @@ namespace Inputs
   double llg_damping = 0.05;
   double llg_precession = 1.0;
 
-  void applied_field(const double& t, const Vector<double>& x, Vector<double>& H_app)
+  void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
-    std::fill(H_app.begin(), H_app.end(), 0.0);
+    h_app.assign(3,0.0);
+    h_app[0] = +5;
+    h_app[1] = +5;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
-			const Vector<double>& M ,Vector<double>& H_ca)
+			const Vector<double>& M ,Vector<double>& h_ca)
   {
-    Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
-    double magnitude = dot3(Easy_axis,M);
-    H_ca = Easy_axis;
-    std::for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
+    h_ca.assign(3,0.0);
+    // Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
+    // double magnitude = dot3(Easy_axis,M);
+    // H_ca = Easy_axis;
+    // std::for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
+    h_ca.assign(3,0.0);
+    h_ca[0] = +5;
+    h_ca[1] = +5;
+  }
+
+  void initial_m(const double& t, const Vector<double>& x,
+		 Vector<double>& m)
+  {
+    m.assign(3,0.0);
+    m[0] = -1;
+    m[1] = -1;
   }
 }
 
@@ -51,7 +65,7 @@ namespace oomph
   /// magnetostatic fields and the LLG equations for micromagnetics.
   //======================================================================
   template<class BULK_ELEMENT,
-	   template<class BULK_ELEMENT,unsigned DIM> class FACE_ELEMENT,
+	   template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,
 	   unsigned DIM>
   class TwoDHybridProblem : public Problem
   {
@@ -68,8 +82,8 @@ namespace oomph
     void doc_solution(DocInfo& doc_info);
 
 
-    /// Build the meshes of face elements and corner elements
-    void build_face_mesh(Mesh* face_mesh_pt) const;
+    /// Build the meshes of bem elements
+    void build_bem_mesh(Mesh* bem_mesh_pt) const;
 
     /// Get the boundary element matrix (similar to problem::get_jacobian)
     void build_boundary_matrix();
@@ -89,20 +103,26 @@ namespace oomph
     void update_boundary_phi_2();
 
 
-    /// Access to the face mesh pointer
-    Mesh* face_mesh_pt() {return Face_mesh_pt;}
+    /// Access to the pointer to the boundary element method mesh
+    Mesh* bem_mesh_pt() {return Bem_mesh_pt;}
 
     /// Access to the boundary matrix
     DenseDoubleMatrix* boundary_matrix_pt()
     {return &Boundary_matrix;}
 
+    /// Access to number of bulk elements
+    unsigned n_bulk_element() {return N_bulk_element;}
+
   private:
+
+    /// The number of bulk elements
+    unsigned N_bulk_element;
 
     /// The map between the global equation numbering and the boundary equation numbering.
     std::map<unsigned,unsigned> Global_boundary_equation_num_map;
 
-    /// Mesh containing the face elements
-    Mesh* Face_mesh_pt;
+    /// The pointer to the boundary element method mesh
+    Mesh* Bem_mesh_pt;
 
     /// Doc info object
     DocInfo Doc_info;
@@ -133,8 +153,8 @@ namespace oomph
 //======================================================================
 /// Constructor
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 TwoDHybridProblem()
 {
   // Allocate steady state timestepper
@@ -145,27 +165,27 @@ TwoDHybridProblem()
   mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
     (nx,ny,2.0,2.0,time_stepper_pt());
 
-  // Create face elements on all boundaries and add to face mesh
-  Face_mesh_pt = new Mesh;
-  build_face_mesh(face_mesh_pt());
+  // Create BEM elements on all boundaries and add to BEM mesh
+  Bem_mesh_pt = new Mesh;
+  build_bem_mesh(bem_mesh_pt());
 
   // Create a variable integration scheme to do the BEM integration
   QVariableOrderGaussLegendre<DIM-1>* bem_quadrature_scheme_pt
     = new QVariableOrderGaussLegendre<DIM-1>;
 
-  // Loop over elements in face mesh to set mesh pointer
-  unsigned n_face_element = face_mesh_pt()->nelement();
-  for(unsigned i=0;i<n_face_element;i++)
+  // Loop over elements in BEM mesh to set mesh pointer
+  unsigned n_bem_element = bem_mesh_pt()->nelement();
+  for(unsigned i=0;i<n_bem_element;i++)
     {
-      // Upcast from GeneralisedElement to the face element
-      FACE_ELEMENT<BULK_ELEMENT,DIM>* face_elem_pt =
-	dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
+      // Upcast from GeneralisedElement to the bem element
+      BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
+	dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
 
       // Set boundary mesh pointer in element
-      face_elem_pt->set_boundary_mesh_pt(face_mesh_pt());
+      bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
 
       // Set the integration scheme pointer in element
-      face_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
+      bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
     }
 
   // Loop over elements in bulk mesh to set function pointers
@@ -179,7 +199,8 @@ TwoDHybridProblem()
       elem_pt->time_pt() = time_pt();
 
       // Set the function pointers for parameters
-      elem_pt->applied_field_pt() = &Inputs::applied_field; //??ds fix this to use proper encapsulation asap
+      //??ds fix this to use proper encapsulation asap
+      elem_pt->applied_field_pt() = &Inputs::applied_field;
       elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
       elem_pt->sat_mag_pt() = &Inputs::sat_mag;
       elem_pt->llg_damp_pt() = &Inputs::llg_damping;
@@ -193,11 +214,11 @@ TwoDHybridProblem()
 
 
 
-  //======================================================================
-  /// Output function
-  //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+//======================================================================
+/// Output function
+//======================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 doc_solution(DocInfo& doc_info)
 {
   // Number of plot points
@@ -217,12 +238,12 @@ doc_solution(DocInfo& doc_info)
 } // end of doc
 
 
-  //======================================================================
-  /// Given the global equation number return the boundary equation number. Most
-  /// of the function is an error check.
-  //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-unsigned TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+//======================================================================
+/// Given the global equation number return the boundary equation number. Most
+/// of the function is an error check.
+//======================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+unsigned TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 convert_global_to_boundary_equation_number(const unsigned &global_num)
 {
 #ifdef PARANOID
@@ -247,15 +268,15 @@ convert_global_to_boundary_equation_number(const unsigned &global_num)
 
 
 //======================================================================
-/// Build the mesh of face elements.
+/// Build the mesh of bem elements.
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
-build_face_mesh(Mesh* face_mesh_pt) const
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+build_bem_mesh(Mesh* bem_mesh_pt) const
 {
   // Create a set to temporarily store the list of boundary nodes
   // (we do it via a set because sets automatically detect duplicates)
-  std::set<Node*> node_set, corner_node_set;
+  std::set<Node*> node_set;
   std::set<Node*>::iterator it, c_it;
 
   // Loop over the boundaries
@@ -267,23 +288,23 @@ build_face_mesh(Mesh* face_mesh_pt) const
       for(unsigned n=0;n<n_bound_node;n++)
 	node_set.insert(mesh_pt()->boundary_node_pt(b,n));
 
-      // Loop over the elements on boundary b creating face elements
+      // Loop over the elements on boundary b creating bem elements
       unsigned n_bound_element = mesh_pt()->nboundary_element(b);
       for(unsigned e=0;e<n_bound_element;e++)
 	{
-	  // Create the corresponding FaceElement
-	  FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
+	  // Create the corresponding BEM Element
+	  BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_element_pt = new BEM_ELEMENT<BULK_ELEMENT,DIM>
 	    (mesh_pt()->boundary_element_pt(b,e),
 	     mesh_pt()->face_index_at_boundary(b,e));
 
-	  // Add the face element to the face mesh
-	  face_mesh_pt->add_element_pt(face_element_pt);
+	  // Add the BEM element to the BEM mesh
+	  bem_mesh_pt->add_element_pt(bem_element_pt);
 	}
     }
 
-  // Iterate over all nodes in the set and add them to the face mesh
+  // Iterate over all nodes in the set and add them to the BEM mesh
   for(it=node_set.begin(); it!=node_set.end(); it++)
-    face_mesh_pt->add_node_pt(*it);
+    bem_mesh_pt->add_node_pt(*it);
 }
 
 
@@ -291,19 +312,19 @@ build_face_mesh(Mesh* face_mesh_pt) const
 /// Create the map between the global equation numbering system and the
 /// boundary equation numbering system.
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 create_global_boundary_equation_number_map()
 {
   // Initialise the map
   Global_boundary_equation_num_map.clear();
 
   // Loop over boundary nodes assigning a boundary equation number to each.
-  unsigned n_boundary_node = this->face_mesh_pt()->nnode(), k=0;
+  unsigned n_boundary_node = this->bem_mesh_pt()->nnode(), k=0;
   for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
     {
       // Get global equation number for phi_2
-      unsigned global_eqn_number = this->face_mesh_pt()->
+      unsigned global_eqn_number = this->bem_mesh_pt()->
 	node_pt(i_node)->eqn_number(0);
 
       // Set up the pair ready to input with key="global equation number" and
@@ -322,27 +343,27 @@ create_global_boundary_equation_number_map()
 //=============================================================================
 /// Get the fully assembled boundary matrix in dense storage.
 //=============================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 build_boundary_matrix()
 {
   // Create the mapping from global to boundary equations
   create_global_boundary_equation_number_map();
 
   // get the number of nodes in the boundary problem
-  unsigned long n_node = face_mesh_pt()->nnode();
+  unsigned long n_node = bem_mesh_pt()->nnode();
 
   // Initialise and resize the boundary matrix
   Boundary_matrix.resize(n_node,n_node);
   Boundary_matrix.initialise(0.0);
 
-  // Loop over all elements in the face mesh
-  unsigned long n_face_element = face_mesh_pt()->nelement();
-  for(unsigned long e=0;e<n_face_element;e++)
+  // Loop over all elements in the BEM mesh
+  unsigned long n_bem_element = bem_mesh_pt()->nelement();
+  for(unsigned long e=0;e<n_bem_element;e++)
     {
       // Get the pointer to the element (and cast to FiniteElement)
       FiniteElement* elem_pt =
-	dynamic_cast < FiniteElement* > (face_mesh_pt()->element_pt(e));
+	dynamic_cast < FiniteElement* > (bem_mesh_pt()->element_pt(e));
 
       // Find number of nodes in the element
       unsigned long n_element_node = elem_pt->nnode();
@@ -370,7 +391,7 @@ build_boundary_matrix()
 	    {
 	      unsigned source_number =
 		this->convert_global_to_boundary_equation_number
-		(face_mesh_pt()->node_pt(source_node)->eqn_number(0));
+		(bem_mesh_pt()->node_pt(source_node)->eqn_number(0));
 
 	      Boundary_matrix(l_number,source_number)
 		+= element_boundary_matrix(l,source_node);
@@ -383,8 +404,8 @@ build_boundary_matrix()
 /// Get the new boundary condition on phi_2 using the boundary element matrix
 /// and phi_1.
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 update_boundary_phi_2()
 {
   // Get the index of phi_1 and phi_2
@@ -393,11 +414,11 @@ update_boundary_phi_2()
   const unsigned phi_index = elem_pt->phi_index_micromag();
 
   // Loop over all (target) nodes on the boundary
-  unsigned n_boundary_node = face_mesh_pt()->nnode();
+  unsigned n_boundary_node = bem_mesh_pt()->nnode();
   for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
     {
       // Get a pointer to the target node
-      Node* target_node_pt = face_mesh_pt()->node_pt(target_node);
+      Node* target_node_pt = bem_mesh_pt()->node_pt(target_node);
 
       // Get boundary equation number for this target node
       unsigned target_number = convert_global_to_boundary_equation_number
@@ -410,7 +431,7 @@ update_boundary_phi_2()
       for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
 	{
 	  // Get a pointer to the source node
-	  Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+	  Node* source_node_pt = bem_mesh_pt()->node_pt(source_node);
 
 	  // Get boundary equation number for this source node
 	  unsigned source_number = convert_global_to_boundary_equation_number
@@ -431,14 +452,10 @@ update_boundary_phi_2()
 //======================================================================
 /// Set up the intial conditions
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 set_initial_condition()
 {
-  // Set intial conditions on M
-  Vector<double> initial_solution(3,0.0);
-  initial_solution[0] = 1.0;
-
 
   // Backup time in global Time object
   double backed_up_time=time_pt()->time();
@@ -468,11 +485,18 @@ set_initial_condition()
       // Loop over the nodes to set initial values everywhere
       for (unsigned n=0;n<num_nod;n++)
 	{
-	  // Set initial condition on M, could set others here using other i values
+	  // Get initial value of m from inputs
+	  //??ds encapsulate properly
+	  Vector<double> m(3,0.0), x(DIM,0.0);
+	  mesh_pt()->node_pt(n)->position(t,x);
+	  Inputs::initial_m(time,x,m);
+
+	  // Set initial condition on m, could set others here using other i values
+	  //??ds fix to get equn number for m properly.
 	  for(unsigned i=1; i<4; i++)
 	    {
 	      mesh_pt()->node_pt(n)->
-		set_value(t,i,initial_solution[i]);
+		set_value(t,i,m[i]);
 	    }
 	}
     }
@@ -489,11 +513,12 @@ set_initial_condition()
 //======================================================================
 /// Actions before timestep, we set up the boundary conditions here.
 //======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class FACE_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,FACE_ELEMENT,DIM>::
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 actions_before_implicit_timestep()
 {
   //??ds set up Neumann boundary conditions for phi_1.
+
 }
 
 
@@ -532,7 +557,6 @@ int main(int argc, char* argv[])
   for(unsigned istep=0; istep<nstep; istep++)
     {
       std::cout << "Timestep " << istep << std::endl;
-      std::cout << ", continuous time " << problem.time_pt()->time() << std::endl;
 
       // Take timestep
       problem.unsteady_newton_solve(dt);

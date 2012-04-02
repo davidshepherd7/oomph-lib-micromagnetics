@@ -108,7 +108,7 @@ namespace oomph
 
     /// Get the applied field at Eulerian position x.
     inline void get_applied_field(const double& t, const Vector<double> &x,
-					  Vector<double>& H_app) const
+				  Vector<double>& H_app) const
     {
       if(Applied_field_pt==0) std::fill(H_app.begin(), H_app.end(), 0.0);
       else (*Applied_field_pt)(t,x,H_app);
