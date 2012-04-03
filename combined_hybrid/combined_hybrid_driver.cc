@@ -110,8 +110,8 @@ namespace oomph
     /// Get the boundary equation number from the global equation number
     unsigned convert_global_to_boundary_equation_number(const unsigned &global_num);
 
-    /// Update the values of phi_2 on the boundary
-    void update_boundary_phi_2();
+    /// Update the values of phi on the boundary
+    void update_boundary_phi();
 
 
     /// Access to the pointer to the boundary element method mesh
@@ -138,13 +138,13 @@ namespace oomph
     /// Doc info object
     DocInfo Doc_info;
 
-    /// Matrix to store the relationship between phi_1 and phi_2 on the boundary
+    /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
     /// Update the problem before Newton convergence check (update boundary
-    /// conditions on phi_2).
+    /// conditions on phi).
     void actions_before_newton_convergence_check()
-    {update_boundary_phi_2();}
+    {update_boundary_phi();}
 
     /// Update the problem specs before solve
     // Nothing to do here since no dirichlet boundaries.
@@ -173,15 +173,61 @@ TwoDHybridProblem()
   mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
     (nx,ny,2.0,2.0,time_stepper_pt());
 
+  // Get an upcasted element pointer (any one will do) to have access to
+  // equation numbers.
+  BULK_ELEMENT* some_el_pt = dynamic_cast< BULK_ELEMENT* >
+    (mesh_pt()->element_pt(0));
+
   // Store the number of bulk elements before we add any face elements
   N_bulk_element = mesh_pt()->nelement();
 
-  // We want Neumann (flux) boundary condtions on phi_2 on all boundaries so
+
+  // Bulk elements
+  //------------------------------------------------------------
+
+  // Loop over elements in bulk mesh to set function pointers
+  for(unsigned i=0; i<n_bulk_element(); i++)
+    {
+      // Upcast from GeneralisedElement to the present element
+      BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+
+      // Set pointer to continuous time
+      elem_pt->time_pt() = time_pt();
+
+      // Set the function pointers for parameters
+      //??ds fix this to use proper encapsulation asap
+      elem_pt->applied_field_pt() = &Inputs::applied_field;
+      elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+      elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+      elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+      elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+    }
+
+  // Pin the values of phi on the boundary nodes (since it is a Dirichlet
+  // boundary set from the balue of phi_1 and the boundary matrix).
+  for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
+    {
+      for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
+	{
+	  mesh_pt()->boundary_node_pt(b,nd)->
+	    pin(some_el_pt->phi_index_micromag());
+	}
+    }
+
+
+  // Flux elements
+  //------------------------------------------------------------
+
+  // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
   // create the face elements needed.
   for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
     {
       create_flux_elements(b);
     }
+
+
+  // BEM elements
+  //------------------------------------------------------------
 
   // Create BEM elements on all boundaries and add to BEM mesh
   Bem_mesh_pt = new Mesh;
@@ -206,23 +252,11 @@ TwoDHybridProblem()
       bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
     }
 
-  // Loop over elements in bulk mesh to set function pointers
-  for(unsigned i=0; i<n_bulk_element(); i++)
-    {
-      // Upcast from GeneralisedElement to the present element
-      BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+  // Make the boundary matrix
+  build_boundary_matrix();
 
-      // Set pointer to continuous time
-      elem_pt->time_pt() = time_pt();
 
-      // Set the function pointers for parameters
-      //??ds fix this to use proper encapsulation asap
-      elem_pt->applied_field_pt() = &Inputs::applied_field;
-      elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-      elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-      elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-      elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-    }
+  //------------------------------------------------------------
 
   // Setup equation numbering scheme
   std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
@@ -369,7 +403,7 @@ create_global_boundary_equation_number_map()
   unsigned n_boundary_node = this->bem_mesh_pt()->nnode(), k=0;
   for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
     {
-      // Get global equation number for phi_2
+      // Get global equation number for phi
       unsigned global_eqn_number = this->bem_mesh_pt()->
 	node_pt(i_node)->eqn_number(0);
 
@@ -416,7 +450,7 @@ build_boundary_matrix()
 
       // Set up a matrix and dummy residual vector
       DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
-      Vector<double> dummy(0);
+      Vector<double> dummy;
 
       // Fill the matrix
       assembly_handler_pt()
@@ -519,6 +553,12 @@ set_initial_condition()
   // Then provide current values (at t=time0) which will also form
   // the initial guess for the first solve at t=time0+deltat
 
+  // Get M indicies
+  Vector<unsigned> m_index_micromag(3,0);
+  BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(mesh_pt()->element_pt(0));
+  for(unsigned i=0; i<3; i++)
+    m_index_micromag[i] = elem_pt->m_index_micromag(i);
+
   //Find number of nodes in mesh
   unsigned num_nod = mesh_pt()->nnode();
 
@@ -546,23 +586,14 @@ set_initial_condition()
 	  mesh_pt()->node_pt(n)->position(t,x);
 	  Inputs::initial_m(time,x,m);
 
-	  // Set initial condition on m, could set others here using other i values
-	  //??ds fix to get eqn number for m properly.
-	  for(unsigned i=2; i<4; i++)
-	    {
-	      mesh_pt()->node_pt(n)->
-		set_value(t,i,1);
-	      // std::cout << m[i] << std::endl;
-	    }
+	  // Set initial condition on m
+	  for(unsigned i=0; i<3; i++)
+	    mesh_pt()->node_pt(n)->set_value(t,m_index_micromag[i],m[i]);
 	}
     }
 
   // Reset backed up time for global timestepper
   time_pt()->time()=backed_up_time;
-
-
-  // Construct the boundary matrix
-  build_boundary_matrix();
 }
 
 
