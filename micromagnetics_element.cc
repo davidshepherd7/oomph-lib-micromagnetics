@@ -69,11 +69,11 @@ namespace oomph
 
 	    // Interpolate values of fields and magnetisations
 	    Vector<double> dmdt(3,0.0);
-  	    dm_dt_micromag(l,dmdt);
+	    dm_dt_micromag(l,dmdt); // get dmdt at node l
   	    for(unsigned j=0; j<3; j++)
   	      {
   		interpolated_dmdt[j] += dmdt[j]*psi(l);
-  		interpolated_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
+		interpolated_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
   		interpolated_H_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
   	      }
 
@@ -91,6 +91,22 @@ namespace oomph
 	    for(unsigned j=0; j<DIM; j++)
 	      interpolated_divm += interpolated_dmdx(j,j);
   	  }
+
+	// for(unsigned l=0; l<n_node; l++)
+	//   for(unsigned i=0; i<3; i++)
+	//     std::cout << nodal_value(l,m_index_micromag(i))*psi(l) << " ";
+
+	//     std::cout <<  " " << interpolated_m << std::endl;
+
+	// std::cout << interpolated_phi_1 << "\n"
+	// 	  << interpolated_phi << "\n"
+	// 	  << interpolated_divm << "\n"
+	// 	  << interpolated_x << "\n"
+	// 	  << interpolated_dphidx << "\n"
+	// 	  << interpolated_dphi_1dx << "\n"
+	// 	  << interpolated_m << "\n"
+	// 	  << interpolated_dmdt << "\n"
+	// 	  << interpolated_H_exchange << std::endl << std::endl;
 
   	// Total potential (magnetostatic field calculations)
   	//----------------------------------------------------
@@ -244,6 +260,8 @@ namespace oomph
   	      }
   	  } // End of loop over test functions
       }// End of loop over integration points
+
+
   } // End of fill in residuals function
 
 

@@ -7,6 +7,7 @@
 
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
+#include "../micromagnetics_flux_element.h"
 
 // Mesh
 #include "meshes/rectangular_quadmesh.h"
@@ -36,16 +37,13 @@ namespace Inputs
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
-			const Vector<double>& M ,Vector<double>& h_ca)
+			const Vector<double>& M, Vector<double>& h_ca)
   {
     h_ca.assign(3,0.0);
     // Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
     // double magnitude = dot3(Easy_axis,M);
     // H_ca = Easy_axis;
     // std::for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
-    h_ca.assign(3,0.0);
-    h_ca[0] = +5;
-    h_ca[1] = +5;
   }
 
   void initial_m(const double& t, const Vector<double>& x,
@@ -53,7 +51,7 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[0] = -1;
-    m[1] = -1;
+    m[1] = -0.1;
   }
 }
 
@@ -81,6 +79,10 @@ namespace oomph
     /// Doc the solution
     void doc_solution(DocInfo& doc_info);
 
+    /// \short Create the face elements to apply flux boundary conditions to the
+    /// potential on boundary b.
+    void create_flux_elements(const unsigned& b);
+
 
     /// Build the meshes of bem elements
     void build_bem_mesh(Mesh* bem_mesh_pt) const;
@@ -104,14 +106,14 @@ namespace oomph
 
 
     /// Access to the pointer to the boundary element method mesh
-    Mesh* bem_mesh_pt() {return Bem_mesh_pt;}
+    Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
     /// Access to the boundary matrix
-    DenseDoubleMatrix* boundary_matrix_pt()
+    DenseDoubleMatrix* boundary_matrix_pt() const
     {return &Boundary_matrix;}
 
     /// Access to number of bulk elements
-    unsigned n_bulk_element() {return N_bulk_element;}
+    unsigned n_bulk_element() const {return N_bulk_element;}
 
   private:
 
@@ -130,7 +132,8 @@ namespace oomph
     /// Matrix to store the relationship between phi_1 and phi_2 on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
-    // Update the problem before Newton convergence check
+    /// Update the problem before Newton convergence check (update boundary
+    /// conditions on phi_2).
     void actions_before_newton_convergence_check()
     {update_boundary_phi_2();}
 
@@ -143,10 +146,6 @@ namespace oomph
 
     /// Update the problem specs after solve (empty)
     void actions_after_implicit_timestep(){};
-
-    /// Update the problem specs before next timestep (boundary conditions)
-    void actions_before_implicit_timestep();
-
   }; // end of problem class
 
 
@@ -161,9 +160,19 @@ TwoDHybridProblem()
   add_time_stepper_pt(new BDF<2>);
 
   // Build rectangular mesh
-  unsigned nx = 20, ny = 20;
+  unsigned nx = 5, ny = 5;
   mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
     (nx,ny,2.0,2.0,time_stepper_pt());
+
+  // Store the number of bulk elements before we add any face elements
+  N_bulk_element = mesh_pt()->nelement();
+
+  // We want Neumann (flux) boundary condtions on phi_2 on all boundaries so
+  // create the face elements needed.
+  for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
+    {
+      create_flux_elements(b);
+    }
 
   // Create BEM elements on all boundaries and add to BEM mesh
   Bem_mesh_pt = new Mesh;
@@ -189,13 +198,12 @@ TwoDHybridProblem()
     }
 
   // Loop over elements in bulk mesh to set function pointers
-  unsigned n_bulk_element = mesh_pt()->nelement();
-  for(unsigned i=0; i<n_bulk_element; i++)
+  for(unsigned i=0; i<n_bulk_element(); i++)
     {
       // Upcast from GeneralisedElement to the present element
-      BULK_ELEMENT *elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+      BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
 
-      // Set pointer to continous time
+      // Set pointer to continuous time
       elem_pt->time_pt() = time_pt();
 
       // Set the function pointers for parameters
@@ -213,6 +221,35 @@ TwoDHybridProblem()
 } // end of constructor
 
 
+  //======================================================================
+  /// Create potential flux boundary condition elements on boundary b.
+  //======================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+create_flux_elements(const unsigned& b)
+{
+  // How many bulk elements are adjacent to boundary b?
+  unsigned n_element = mesh_pt()->nboundary_element(b);
+
+  // Loop over the bulk elements adjacent to boundary b
+  for(unsigned e=0;e<n_element;e++)
+    {
+      // Get pointer to the bulk element that is adjacent to boundary b
+      BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>
+	(mesh_pt()->boundary_element_pt(b,e));
+
+      // What is the index of the face of the bulk element at the boundary
+      int face_index = mesh_pt()->face_index_at_boundary(b,e);
+
+      // Build the corresponding prescribed-flux element
+      MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
+	new MicromagFluxElement<BULK_ELEMENT>(bulk_elem_pt,face_index);
+
+      // Add the prescribed-flux element to the mesh
+      mesh_pt()->add_element_pt(flux_element_pt);
+
+    } // End of loop over bulk elements adjacent to boundary b
+}
 
 //======================================================================
 /// Output function
@@ -238,10 +275,10 @@ doc_solution(DocInfo& doc_info)
 } // end of doc
 
 
-//======================================================================
-/// Given the global equation number return the boundary equation number. Most
-/// of the function is an error check.
-//======================================================================
+  //======================================================================
+  /// Given the global equation number return the boundary equation number. Most
+  /// of the function is an error check.
+  //======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 unsigned TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 convert_global_to_boundary_equation_number(const unsigned &global_num)
@@ -450,7 +487,7 @@ update_boundary_phi_2()
 
 
 //======================================================================
-/// Set up the intial conditions
+/// Set up the initial conditions
 //======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
@@ -492,11 +529,12 @@ set_initial_condition()
 	  Inputs::initial_m(time,x,m);
 
 	  // Set initial condition on m, could set others here using other i values
-	  //??ds fix to get equn number for m properly.
-	  for(unsigned i=1; i<4; i++)
+	  //??ds fix to get eqn number for m properly.
+	  for(unsigned i=2; i<4; i++)
 	    {
 	      mesh_pt()->node_pt(n)->
-		set_value(t,i,m[i]);
+		set_value(t,i,1);
+	      // std::cout << m[i] << std::endl;
 	    }
 	}
     }
@@ -507,18 +545,6 @@ set_initial_condition()
 
   // Construct the boundary matrix
   build_boundary_matrix();
-}
-
-
-//======================================================================
-/// Actions before timestep, we set up the boundary conditions here.
-//======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-actions_before_implicit_timestep()
-{
-  //??ds set up Neumann boundary conditions for phi_1.
-
 }
 
 
@@ -553,20 +579,32 @@ int main(int argc, char* argv[])
     throw OomphLibError("Problem self_test failed","main",
 			OOMPH_EXCEPTION_LOCATION);
 
-  // Timestepping loop
-  for(unsigned istep=0; istep<nstep; istep++)
-    {
-      std::cout << "Timestep " << istep << std::endl;
+  // // Timestepping loop
+  // for(unsigned istep=0; istep<nstep; istep++)
+  //   {
+  //     std::cout << "Timestep " << istep << std::endl;
 
-      // Take timestep
-      problem.unsteady_newton_solve(dt);
+  //     // Take timestep
+  //     problem.unsteady_newton_solve(dt);
 
-      //Output solution
-      problem.doc_solution(doc_info);
+  //     //Output solution
+  //     problem.doc_solution(doc_info);
 
-      //Increment counter for solutions
-      doc_info.number()++;
-    }
+  //     //Increment counter for solutions
+  //     doc_info.number()++;
+  //   }
+
+  // dump Jacobian for tests
+  DenseDoubleMatrix jacobian;
+  DoubleVector dummy;
+  problem.get_jacobian(dummy,jacobian);
+  std::ofstream matrix_file;
+  matrix_file.precision(16);
+  char filename[100];
+  sprintf(filename,"results/jacobian");
+  matrix_file.open(filename);
+  jacobian.output(matrix_file);
+  matrix_file.close();
 
   return 0;
 }

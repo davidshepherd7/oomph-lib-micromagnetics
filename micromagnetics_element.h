@@ -5,6 +5,11 @@
 // Generic oomph-lib routines
 #include "generic.h"
 
+// Print vectors nicely (c++0x)
+#include <iostream>
+#include <vector>
+#include "./prettyprint.hpp"
+
 using namespace oomph;
 
 namespace oomph
@@ -110,7 +115,7 @@ namespace oomph
     inline void get_applied_field(const double& t, const Vector<double> &x,
 				  Vector<double>& H_app) const
     {
-      if(Applied_field_pt==0) std::fill(H_app.begin(), H_app.end(), 0.0);
+      if(Applied_field_pt==0) H_app.assign(3,0.0);
       else (*Applied_field_pt)(t,x,H_app);
     }
 
@@ -127,7 +132,7 @@ namespace oomph
 					       const Vector<double>& m,
 					       Vector<double>& H_ca) const
     {
-      if(Cryst_anis_field_pt==0) std::fill(H_ca.begin(), H_ca.end(), 0.0);
+      if(Cryst_anis_field_pt==0) H_ca.assign(3,0.0);
       else (*Cryst_anis_field_pt)(t,x,m,H_ca);
     }
 
@@ -356,30 +361,31 @@ namespace oomph
 							const unsigned& flag) const;
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
-    void dm_dt_micromag(const unsigned &n, Vector<double>& dmdt) const
+    void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
     {
       // Get the data's timestepper
-      TimeStepper* time_stepper_pt= this->node_pt(n)->time_stepper_pt();
+      TimeStepper* time_stepper_pt= this->node_pt(l)->time_stepper_pt();
 
       //Initialise dM/dt to zero
-      for (unsigned j=0; j<3; j++) {dmdt[j] = 0.0;}
+      dmdt.assign(3,0.0);
 
       //Loop over the timesteps, if there is a non Steady timestepper
       if (!time_stepper_pt->is_steady())
 	{
+	  // Get number of timsteps to use (past & present)
+	  const unsigned n_time_steps = time_stepper_pt->ntstorage();
+
 	  // Loop over the directions
 	  for (unsigned j=0; j<3; j++)
 	    {
-	      // Get number of timsteps to use (past & present)
-	      const unsigned n_time = time_stepper_pt->ntstorage();
-
 	      // Loop over past and present times and add the contributions to
 	      // the time derivative
-	      for(unsigned t=0;t<n_time;t++)
+	      for(unsigned t=0;t<n_time_steps;t++)
 		{
 		  // ??ds The "1" in weights is the derrivative order (i.e. 1:
 		  // dM/dt, 2: d^2M/dt^2) I think...
-		  dmdt[j] += time_stepper_pt->weight(1,t)*nodal_value(t,n,m_index_micromag(j));
+		  dmdt[j] += time_stepper_pt->weight(1,t)
+		    *nodal_value(t,l,m_index_micromag(j));
 		}
 	    }
 
