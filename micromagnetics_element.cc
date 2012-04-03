@@ -128,7 +128,7 @@ namespace oomph
   	    if(phi_local_eqn >= 0)
   	      {
   		// // Add source term
-  		// residuals[phi_local_eqn] -= poisson_source*test(l)*W; //??ds not sure on sign
+  		// residuals[phi_local_eqn] -= poisson_source*test(l)*W;
 
 		// The divergence of M source term
 		residuals[phi_local_eqn] -= interpolated_divm*test(l)*W;
@@ -266,12 +266,6 @@ namespace oomph
   	      }
   	  } // End of loop over test functions
       }// End of loop over integration points
-
-    // // ??ds temp
-    // for(unsigned nd=0; nd<n_node; nd++)
-    //   std::cout << this->node_pt(nd)->nvalue() << std::endl
-    // 		<< std::endl;
-
 
   } // End of fill in residuals function
 

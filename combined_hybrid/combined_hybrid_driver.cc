@@ -34,7 +34,7 @@ inline double dot3(const Vector<double>& a, const Vector<double>& b)
 namespace Inputs
 {
   double sat_mag = 1.0;
-  double llg_damping = 0.05;
+  double llg_damping = 0.5; // big so the problem is maybe not so hard to solve...
   double llg_precession = 1.0;
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
@@ -118,7 +118,7 @@ namespace oomph
     Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
     /// Access to the boundary matrix
-    DenseDoubleMatrix* boundary_matrix_pt() const
+    DenseDoubleMatrix* boundary_matrix_pt()
     {return &Boundary_matrix;}
 
     /// Access to number of bulk elements
@@ -225,6 +225,8 @@ TwoDHybridProblem()
       create_flux_elements(b);
     }
 
+  // Setup equation numbering scheme for all the finite elements
+  std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
 
   // BEM elements
   //------------------------------------------------------------
@@ -252,14 +254,8 @@ TwoDHybridProblem()
       bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
     }
 
-  // Make the boundary matrix
+  // Make the boundary matrix (including setting up the numbering scheme)
   build_boundary_matrix();
-
-
-  //------------------------------------------------------------
-
-  // Setup equation numbering scheme
-  std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
 
 } // end of constructor
 
@@ -342,6 +338,15 @@ convert_global_to_boundary_equation_number(const unsigned &global_num)
 			  "TwoDHybridProblem::convert_global_to_boundary_equation_number",
 			  OOMPH_EXCEPTION_LOCATION);
     }
+
+  //??ds I should use something other than just "equation number 1" for my
+  //boundary matrix numbering scheme. doesn't matter what so long as it's
+  //consistent and unique to each node. Problems could occur if equation number 1
+  //ever has pinned values...
+  if(global_num < 0)
+    throw OomphLibError("Pinned equation in equation no one, use a different eq num?",
+			"TwoDHybridProblem::convert_global_to_boundary_equation_number",
+			OOMPH_EXCEPTION_LOCATION);
 #endif
   return ((*Global_boundary_equation_num_map.find(global_num)).second);
 }
@@ -405,7 +410,7 @@ create_global_boundary_equation_number_map()
     {
       // Get global equation number for phi
       unsigned global_eqn_number = this->bem_mesh_pt()->
-	node_pt(i_node)->eqn_number(0);
+	node_pt(i_node)->eqn_number(1);
 
       // Set up the pair ready to input with key="global equation number" and
       // value ="boundary equation number"=k.
@@ -418,6 +423,8 @@ create_global_boundary_equation_number_map()
       // Increment k if this was a new addition to the map
       if(new_addition) k++;
     }
+
+  // std::cout << Global_boundary_equation_num_map << std::endl;
 }
 
 //=============================================================================
@@ -456,22 +463,22 @@ build_boundary_matrix()
       assembly_handler_pt()
 	->get_jacobian(elem_pt,dummy,element_boundary_matrix);
 
-      // Loop over the nodes in this element
+      // Loop over the nodes in this element (to copy results into final matrix)
       for(unsigned l=0;l<n_element_node;l++)
 	{
 	  // Get the boundary equation (=node) number from the global one
 	  unsigned l_number =
 	    this->convert_global_to_boundary_equation_number
-	    (elem_pt->node_pt(l)->eqn_number(0));
-
-	  //std::cout << "target node = " << l << std::endl;
+	    (elem_pt->node_pt(l)->eqn_number(1));
 
 	  // Loop over all nodes in the mesh and add contributions from this element
 	  for(unsigned long source_node=0; source_node<n_node; source_node++)
 	    {
 	      unsigned source_number =
 		this->convert_global_to_boundary_equation_number
-		(bem_mesh_pt()->node_pt(source_node)->eqn_number(0));
+		(bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
+
+	      // std::cout <<l_number << " " << source_number << std::endl;
 
 	      Boundary_matrix(l_number,source_number)
 		+= element_boundary_matrix(l,source_node);
@@ -486,19 +493,18 @@ build_boundary_matrix()
     {
       Boundary_matrix(n,n) += 0.5;
     }
-
 }
 
 //======================================================================
-/// Get the new boundary condition on phi_2 using the boundary element matrix
+/// Get the new boundary condition on phi using the boundary element matrix
 /// and phi_1.
 //======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-update_boundary_phi_2()
+update_boundary_phi()
 {
-  // Get the index of phi_1 and phi_2
-  BULK_ELEMENT* elem_pt = (dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0)));
+  // Get the index of phi_1 and phi
+  BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0));
   const unsigned phi_1_index = elem_pt->phi_1_index_micromag();
   const unsigned phi_index = elem_pt->phi_index_micromag();
 
@@ -511,7 +517,7 @@ update_boundary_phi_2()
 
       // Get boundary equation number for this target node
       unsigned target_number = convert_global_to_boundary_equation_number
-	(target_node_pt->eqn_number(0));
+	(target_node_pt->eqn_number(1));
 
       // Double to store the value of total phi during computation
       double target_phi_value = 0;
@@ -524,7 +530,7 @@ update_boundary_phi_2()
 
 	  // Get boundary equation number for this source node
 	  unsigned source_number = convert_global_to_boundary_equation_number
-	    (source_node_pt->eqn_number(0));
+	    (source_node_pt->eqn_number(1));
 
 	  // Add the contribution to total phi at the target node due to
 	  // the source node (relationship is given by the boundary matrix).
@@ -605,8 +611,8 @@ int main(int argc, char* argv[])
   // Inputs
   const unsigned dim = 2;
   const unsigned nnode_1d = 2;
-  const double dt = 0.01;
-  const unsigned nstep = 50;
+  const double dt = 0.001;
+  const unsigned nstep = 10;
 
   // Create the problem
   TwoDHybridProblem< QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
@@ -628,25 +634,15 @@ int main(int argc, char* argv[])
     throw OomphLibError("Problem self_test failed","main",
 			OOMPH_EXCEPTION_LOCATION);
 
-  // // Timestepping loop
-  // for(unsigned istep=0; istep<nstep; istep++)
-  //   {
-  //     std::cout << "Timestep " << istep << std::endl;
+  std::cout << "constructor done, everything ready" << "\n" << std::endl;
 
-  //     // Take timestep
-  //     problem.unsteady_newton_solve(dt);
+  std::cout << std::endl;
 
-  //     //Output solution
-  //     problem.doc_solution(doc_info);
-
-  //     //Increment counter for solutions
-  //     doc_info.number()++;
-  //   }
-
-  // dump Jacobian for tests
+  // dump initial Jacobian for tests
   DenseDoubleMatrix jacobian;
-  DoubleVector dummy;
-  problem.get_jacobian(dummy,jacobian);
+  DoubleVector residuals;
+  problem.get_jacobian(residuals,jacobian);
+
   std::ofstream matrix_file;
   matrix_file.precision(16);
   char filename[100];
@@ -654,6 +650,38 @@ int main(int argc, char* argv[])
   matrix_file.open(filename);
   jacobian.output(matrix_file);
   matrix_file.close();
+
+  std::ofstream residual_file;
+  residual_file.precision(16);
+  char filename2[100];
+  sprintf(filename2,"results/residual");
+  residual_file.open(filename2);
+  jacobian.output(residual_file);
+  residual_file.close();
+
+  std::ofstream bem_file;
+  bem_file.precision(16);
+  char bem_filename[100];
+  sprintf(bem_filename,"results/bem");
+  bem_file.open(bem_filename);
+  problem.boundary_matrix_pt()->output(bem_file);
+  bem_file.close();
+
+
+  // Timestepping loop
+  for(unsigned istep=0; istep<nstep; istep++)
+    {
+      std::cout << "Timestep " << istep << std::endl;
+
+      // Take timestep
+      problem.unsteady_newton_solve(dt);
+
+      //Output solution
+      problem.doc_solution(doc_info);
+
+      //Increment counter for solutions
+      doc_info.number()++;
+    }
 
   return 0;
 }

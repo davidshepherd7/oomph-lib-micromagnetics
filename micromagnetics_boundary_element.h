@@ -11,15 +11,6 @@
 using namespace oomph;
 using namespace MathematicalConstants;
 
-void print_vec(std::ostream& out, const Vector<double> &vec)
-{
-  // std::copy(vec.begin(), vec.end(),
-  // 	    ostream_iterator<double>(out, ","));
-  for(unsigned i=0; i<vec.size(); i++)
-    out << vec[i] << " ";
-}
-
-
 namespace oomph
 {
 
@@ -151,11 +142,16 @@ namespace oomph
     {
       // Get the shape function and set test = shape
       shape_at_knot(ipt,psi);
+
       for(unsigned i=0;i<nnode();i++) {test[i] = psi[i];}
 
       //Return the value of the jacobian
       return J_eulerian_at_knot(ipt);
     }
+
+    /// The number of values to be stored at each boundary element node
+    inline unsigned required_nvalue(const unsigned &n) const
+    {return 0;}
 
   private:
 
@@ -171,10 +167,6 @@ namespace oomph
 
     /// The index at which phi_2 is stored
     unsigned Phi_2_index_micromag;
-
-    /// The number of values to be stored at each boundary element node
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return 0;}
 
   };
 
@@ -405,15 +397,10 @@ namespace oomph
       }
 
     // Output
-    std::cout << "For source node at ";
-    print_vec(std::cout,source_node_x);
-    std::cout << std::endl;
+    std::cout << "For source node at " << source_node_x << std::endl;
 
     for(unsigned kn=0; kn<x_kn.size(); kn++)
-      {
-	print_vec(std::cout,s_kn[kn]);
-	std::cout << gnd[kn] << std::endl;
-      }
+      std::cout << "s = " << s_kn[kn] << ", green normal deriv = " << gnd[kn] << std::endl;
 
   }
 
@@ -505,7 +492,7 @@ namespace oomph
     // std::cout << "ndotr = " << ndotr << std::endl;
     // std::cout << "r = " << r << std::endl;
     // std::cout << "greens/ndotr = " << -1/Pi * std::pow((2*r),-1) * 2 << std::endl;
-    //std::cout << "greens = " <<  -1/Pi * ndotr * std::pow((2*r),-1*(dim()-1)) * 2 << std::endl;
+    // std::cout << "greens = " <<  -1/Pi * ndotr * std::pow((2*r),-1*(dim()-1)) * 2 << std::endl;
 
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
