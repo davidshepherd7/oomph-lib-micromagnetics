@@ -419,6 +419,7 @@ get_boundary_matrix()
 
   // Loop over all the corner elements and get contributions from the angles
   // at sharp corners.
+  //??ds not yet working....
   for(unsigned long ce=0; ce<Corner_elements.size(); ce++)
     {
       // Find out the index of the node at which the corner element is placed

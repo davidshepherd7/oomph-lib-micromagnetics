@@ -37,6 +37,11 @@ namespace oomph
     // Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();
 
+    // // ??ds temp
+    // for(unsigned nd=0; nd<n_node; nd++)
+    //   std::cout << this->node_pt(nd)->nvalue() << ", ";
+    // std::cout << std::endl;
+
     // Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
@@ -86,11 +91,12 @@ namespace oomph
 		for(unsigned k=0; k<3; k++)
 		  interpolated_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
   	      }
-
-	    // Calculate divergence of m
-	    for(unsigned j=0; j<DIM; j++)
-	      interpolated_divm += interpolated_dmdx(j,j);
   	  }
+
+	// Calculate divergence of m (this needs to go outside the loop over
+	// nodes so that we have finished calculating interpolated_dmdx).
+	for(unsigned j=0; j<DIM; j++)
+	  interpolated_divm += interpolated_dmdx(j,j);
 
 	// for(unsigned l=0; l<n_node; l++)
 	//   for(unsigned i=0; i<3; i++)
@@ -261,6 +267,11 @@ namespace oomph
   	  } // End of loop over test functions
       }// End of loop over integration points
 
+    // // ??ds temp
+    // for(unsigned nd=0; nd<n_node; nd++)
+    //   std::cout << this->node_pt(nd)->nvalue() << std::endl
+    // 		<< std::endl;
+
 
   } // End of fill in residuals function
 
@@ -279,8 +290,8 @@ namespace oomph
     //Vector of local coordinates
     Vector<double> s(DIM);
 
-    // Get time
-    //double t = time_pt()->time();
+    // Get number of values in solution at node 0
+    const unsigned nvalue = required_nvalue(0);
 
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
@@ -290,27 +301,27 @@ namespace oomph
     for (unsigned iplot=0;iplot<num_plot_points;iplot++)
       {
 
-	// Get local coordinates of plot point
-	get_s_plot(iplot,n_plot,s);
+    	// Get local coordinates of plot point
+    	get_s_plot(iplot,n_plot,s);
 
-	// Get and output eulerian coordinates of plot point and output
-	Vector<double> x(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++)
-	  {
-	    x[i] = interpolated_x(s,i);
-	    outfile << x[i] << " ";
-	  }
+    	// Get and output eulerian coordinates of plot point and output
+    	Vector<double> x(DIM,0.0);
+    	for(unsigned i=0; i<DIM; i++)
+    	  {
+    	    x[i] = interpolated_x(s,i);
+    	    outfile << x[i] << " ";
+    	  }
 
-	// Output solution vector at local coordinate s
-	Vector<double> interpolated_solution(7,0.0); //??ds generalise the length?
-	interpolated_solution_micromag(s,interpolated_solution);
-	for(unsigned i=0; i<7; i++)
-	  {
-	    outfile << interpolated_solution[i] << " ";
-	  }
+    	// Output solution vector at local coordinate s
+    	Vector<double> interpolated_solution(nvalue,0.0); //??ds generalise the length?
+    	interpolated_solution_micromag(s,interpolated_solution);
+    	for(unsigned i=0; i<nvalue; i++)
+    	  {
+    	    outfile << interpolated_solution[i] << " ";
+    	  }
 
-	// End the line ready for next point
-	outfile << std::endl;
+    	// End the line ready for next point
+    	outfile << std::endl;
       }
 
     // Write tecplot footer (e.g. FE connectivity lists)
@@ -327,6 +338,9 @@ namespace oomph
 
     //Vector of local coordinates
     Vector<double> s(DIM);
+
+    // Get number of values in solution at node 0
+    const unsigned nvalue = required_nvalue(0);
 
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
@@ -348,9 +362,9 @@ namespace oomph
     	  }
 
     	// Calculate and output exact solution at point x and time t
-    	Vector<double> exact_solution(7,0.0);
+    	Vector<double> exact_solution(nvalue,0.0);
     	(*exact_soln_pt)(time,x,exact_solution);
-    	for(unsigned i=0; i<7; i++)
+    	for(unsigned i=0; i<nvalue; i++)
     	  {
     	    outfile << exact_solution[i] << " ";
     	  }
@@ -403,43 +417,43 @@ namespace oomph
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
-	// Get s (local coordinate)
-	Vector<double> s(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
+    	// Get s (local coordinate)
+    	Vector<double> s(DIM,0.0);
+    	for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
 
-	// Get x (global coordinate) and output (??ds at current time)
-	Vector<double> x(DIM,0.0);
-	interpolated_x(s,x);
-	for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}
+    	// Get x (global coordinate) and output (??ds at current time)
+    	Vector<double> x(DIM,0.0);
+    	interpolated_x(s,x);
+    	for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}
 
-	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
+    	//Get the integral weight
+    	double w = integral_pt()->weight(ipt);
 
-	// Get jacobian of mapping
-	double J=J_eulerian(s);
+    	// Get jacobian of mapping
+    	double J=J_eulerian(s);
 
-	//Premultiply the weights and the Jacobian
-	double W = w*J;
+    	//Premultiply the weights and the Jacobian
+    	double W = w*J;
 
-	// Get entire interpolated solution at position s and current time
-	Vector<double> interpolated_soln(nvalues,0.0);
-	interpolated_solution_micromag(s,interpolated_soln);
+    	// Get entire interpolated solution at position s and current time
+    	Vector<double> interpolated_soln(nvalues,0.0);
+    	interpolated_solution_micromag(s,interpolated_soln);
 
-	// Get entire exact solution at point x and time "time"
-	Vector<double> exact_soln(nvalues,0.0);
-	(*exact_soln_pt)(time,x,exact_soln);
+    	// Get entire exact solution at point x and time "time"
+    	Vector<double> exact_soln(nvalues,0.0);
+    	(*exact_soln_pt)(time,x,exact_soln);
 
-	// Output the error (difference between exact and interpolated solutions)
-	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
-	outfile << std::endl;
+    	// Output the error (difference between exact and interpolated solutions)
+    	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
+    	outfile << std::endl;
 
-	// Add contributions to the norms of the error and exact soln from this integration point
-	for(unsigned i=0; i<nvalues; i++)
-	  {
-	    error_norm += (exact_soln[i] - interpolated_soln[i])
-	      *(exact_soln[i] - interpolated_soln[i])*W;
-	    exact_norm += exact_soln[i]*exact_soln[i]*W;
-	  }
+    	// Add contributions to the norms of the error and exact soln from this integration point
+    	for(unsigned i=0; i<nvalues; i++)
+    	  {
+    	    error_norm += (exact_soln[i] - interpolated_soln[i])
+    	      *(exact_soln[i] - interpolated_soln[i])*W;
+    	    exact_norm += exact_soln[i]*exact_soln[i]*W;
+    	  }
 
       }
 

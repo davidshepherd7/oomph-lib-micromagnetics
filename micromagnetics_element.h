@@ -8,7 +8,7 @@
 // Print vectors nicely (c++0x)
 #include <iostream>
 #include <vector>
-#include "./prettyprint.hpp"
+#include "./prettyprint98.hpp"
 
 using namespace oomph;
 
@@ -48,13 +48,31 @@ namespace oomph
     unsigned phi_index_micromag() const {return 0;} // equation number 0
 
     /// Specify nodal index for phi 1
-    unsigned phi_1_index_micromag() const {return 1;}
+    unsigned phi_1_index_micromag() const {return 1;} //equation number 1
 
     /// Specify nodal index for kth component of M.
-    unsigned m_index_micromag(const unsigned &k) const {return 2 + k;}
+    unsigned m_index_micromag(const unsigned &k) const
+    {
+#ifdef PARANOID
+      if(k>=3)
+	throw OomphLibError("M only has 3 indices",
+			    "MicromagEquations::m_index_micromag",
+			    OOMPH_EXCEPTION_LOCATION);
+#endif
+      return 2 + k; // equations 2,3,4
+    }
 
     /// Specify nodal index for kth component of H_ex.
-    unsigned exchange_index_micromag(const unsigned &k) const {return 6 + k;}
+    unsigned exchange_index_micromag(const unsigned &k) const
+    {
+#ifdef PARANOID
+      if(k>=3)
+	throw OomphLibError("H_exchange only had 3 indices",
+			    "MicromagEquations::exchange_index_micromag",
+			    OOMPH_EXCEPTION_LOCATION);
+#endif
+      return 5 + k; // equations 5,6,7
+    }
 
 
     // SOURCE FUNCTIONS
@@ -289,10 +307,13 @@ namespace oomph
     /// \short Return FE representation of solution vector (phi,M,H_ex)
     /// at local coordinate s and current time.
     inline void interpolated_solution_micromag(const Vector<double> &s,
-					       Vector<double>& interpolated_solution) const
+    					       Vector<double>& interpolated_solution) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
+
+      // Get number of values required
+      const unsigned nvalue = required_nvalue(0);
 
       //Local shape function
       Shape psi(n_node);
@@ -301,18 +322,17 @@ namespace oomph
       shape(s,psi);
 
       // Initialise solution vector
-      //??ds need to get length of solution vector really..., replace 7 with it
-      for(unsigned i=0; i<7; i++){interpolated_solution[i] = 0.0;}
+      interpolated_solution.assign(nvalue,0.0);
 
       // Loop over the list of solutions
-      for(unsigned i=0; i<7; i++)
-	{
-	  //Loop over the local nodes and sum
-	  for(unsigned l=0;l<n_node;l++)
-	    {
-	      interpolated_solution[i] += this->nodal_value(l,i)*psi[l];
-	    }
-	}
+      for(unsigned i=0; i<nvalue; i++)
+    	{
+    	  //Loop over the local nodes and sum
+    	  for(unsigned l=0;l<n_node;l++)
+    	    {
+    	      interpolated_solution[i] += this->nodal_value(l,i)*psi[l];
+    	    }
+    	}
 
     }
 
@@ -468,12 +488,8 @@ namespace oomph
     }
 
     /// Required  # of `values' (pinned or dofs) at node n.
-    // We need to store phi(1 value), M(3) and H_exchange(3),
-    // phi_1 and phi_2.
-    //??ds clean this up - probably don't need phi or H-exchange..
-    //??ds generalise somehow?
     inline unsigned required_nvalue(const unsigned &n) const
-    {return 9;}
+    {return Initial_Nvalue;}
 
     // OUTPUT FUNCTIONS (just call from MicromagEquations class)
     /// Output function: x,y,u or x,y,z,u

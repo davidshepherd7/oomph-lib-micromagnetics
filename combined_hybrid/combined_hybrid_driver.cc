@@ -18,6 +18,14 @@
 using namespace oomph;
 using namespace MathematicalConstants;
 
+
+//======================================================================
+/// Set the data for the number of Variables at each node.
+//======================================================================
+template<unsigned DIM, unsigned NNODE_1D>
+const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
+
+
 inline double dot3(const Vector<double>& a, const Vector<double>& b)
 {
   return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
@@ -52,6 +60,7 @@ namespace Inputs
     m.assign(3,0.0);
     m[0] = -1;
     m[1] = -0.1;
+    m[2] = -0.1;
   }
 }
 
@@ -435,6 +444,15 @@ build_boundary_matrix()
 	    }
 	}
     }
+
+  // Loop over the matrix diagonals adding the angle factor.
+  // ??ds we have assumed that all corners are "smooth" for simplicity so all
+  // angle factors are just 1/2, should generalise this...
+  for(unsigned long n = 0; n < n_node; n++)
+    {
+      Boundary_matrix(n,n) += 0.5;
+    }
+
 }
 
 //======================================================================

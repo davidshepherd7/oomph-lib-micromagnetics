@@ -167,7 +167,7 @@ namespace oomph
     unsigned Dim;
 
     ///The index at which phi_1 is stored
-    unsigned phi_1_index_micromag;
+    unsigned Phi_1_index_micromag;
 
     /// The indices at which m is stored
     Vector<unsigned> M_index_micromag;
@@ -229,7 +229,7 @@ namespace oomph
     Dim = this->node_pt(0)->ndim();
 
     // Fill in the index values
-    phi_1_index_micromag = bulk_element_pt()->phi_1_index_micromag();
+    Phi_1_index_micromag = bulk_element_pt()->phi_1_index_micromag();
     M_index_micromag[0] = bulk_element_pt()->m_index_micromag(0);
     M_index_micromag[1] = bulk_element_pt()->m_index_micromag(1);
     M_index_micromag[2] = bulk_element_pt()->m_index_micromag(2);
@@ -286,7 +286,7 @@ namespace oomph
 
 	// Calculate prescribed flux =  m.n
 	double flux = 0;
-	for(unsigned i=0; i<3; i++)
+	for(unsigned i=0; i<Dim; i++)
 	  {
 	    flux += normal[i]*interpolated_m[i];
 	  }
@@ -294,7 +294,7 @@ namespace oomph
 	//Loop over the test functions
 	for(unsigned l=0;l<n_node;l++)
 	  {
-	    local_eqn = nodal_local_eqn(l,phi_1_index_micromag);
+	    local_eqn = nodal_local_eqn(l,Phi_1_index_micromag);
 
 	    if(local_eqn >= 0) 	//If it's not a Dirichlet boundary condition
 	      {
