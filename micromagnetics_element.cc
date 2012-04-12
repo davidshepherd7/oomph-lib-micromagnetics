@@ -28,34 +28,24 @@ namespace oomph
     Shape psi(n_node), test(n_node);
     DShape dpsidx(n_node,DIM), dtestdx(n_node,DIM);
 
-    // Set up vector to store the local coordinates
-    Vector<double> s(DIM);
-
     // Get current time
-    double time = time_pt()->time();
+    const double time = time_pt()->time();
 
     // Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();
 
-    // // ??ds temp
-    // for(unsigned nd=0; nd<n_node; nd++)
-    //   std::cout << this->node_pt(nd)->nvalue() << ", ";
-    // std::cout << std::endl;
-
     // Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
-  	// Get the integral weight
-  	double w = integral_pt()->weight(ipt);
+  	// Get values of s (local coordinate)
+	Vector<double> s(DIM);
+  	for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
   	// Call the derivatives of the shape and test functions
-  	double J = dshape_and_dtest_eulerian_at_knot_micromag(ipt,psi,dpsidx,test,dtestdx);
+  	double J = dshape_dtest(s,psi,dpsidx,test,dtestdx);
 
-  	//Premultiply the weights and the Jacobian
-  	double W = w*J;
-
-  	// Get values of s (local coordinate)
-  	for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
+  	// Premultiply the integration weight and the Jacobian of the coordinate transform
+  	double W = integral_pt()->weight(ipt) * J;
 
   	// Allocate memory for local quantities and initialise to zero. dphidx
   	// is also H_demag so we need all 3 components.
@@ -93,10 +83,12 @@ namespace oomph
   	      }
   	  }
 
-	// Calculate divergence of m (this needs to go outside the loop over
+	// Calculate divergences (this needs to go outside the loop over
 	// nodes so that we have finished calculating interpolated_dmdx).
 	for(unsigned j=0; j<DIM; j++)
-	  interpolated_divm += interpolated_dmdx(j,j);
+	  {
+	    interpolated_divm += interpolated_dmdx(j,j);
+	  }
 
 	// for(unsigned l=0; l<n_node; l++)
 	//   for(unsigned i=0; i<3; i++)
@@ -140,7 +132,44 @@ namespace oomph
   		    residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
   		  }
 
-  		// ??ds add in jacobian calculation eventually
+		// Calculate the Jacobian
+		if(flag)
+		  {
+		    // Loop over test functions/nodes again
+		    for(unsigned l2=0;l2<n_node;l2++)
+		      {
+			// First the dependence of phi on all nodal values of
+			// phi in the element.
+			int phi_local_unknown = nodal_local_eqn(l2,phi_index_micromag());
+			if(phi_local_unknown >= 0)
+			  {
+			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+			      jacobian(phi_local_eqn,phi_local_unknown)
+				-= dtestdx(l,k)*dpsidx(l2,k)*W;
+			  }
+
+			// The dependence of phi on M
+			double div_psi = 0.0; // Get divergence of shape fn for node l2
+			for(unsigned k=0; k<DIM; k++)
+			  div_psi += dpsidx(l2,k);
+
+			for(unsigned j=0; j<3; j++)
+			  {
+			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+			    if(m_local_unknown >= 0)
+			      jacobian(phi_local_eqn,m_local_unknown)
+				+= div_psi * test(l) * W;// ??ds add jacobian bit...
+			  }
+
+			// No dependence of phi on exchange field
+
+			// Phi depends on phi_1 via the boundary element
+			// matrix. It relates all nodes to each other rather
+			// than just the nodes within a single element. Hence
+			// this part of the Jacobian is added seperately in ??ds
+			// actions_before....
+		      }
+		  } // End of phi Jacobian calculation
   	      }
   	  }
 	// End of total potential section
@@ -169,7 +198,40 @@ namespace oomph
   		    residuals[phi_1_local_eqn] -= interpolated_dphi_1dx[k]*dtestdx(l,k)*W;
   		  }
 
-  		// ??ds add in jacobian calculation eventually
+		// Calculate the Jacobian - pretty much exactly the same as for phi
+		if(flag)
+		  {
+		    // Loop over test functions/nodes again
+		    for(unsigned l2=0;l2<n_node;l2++)
+		      {
+			// First the dependence of phi_1 on all nodal values of
+			// phi_1 in the element.
+			int phi_1_local_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
+			if(phi_1_local_unknown >= 0)
+			  {
+			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+			      jacobian(phi_1_local_eqn,phi_1_local_unknown)
+				-= dtestdx(l,k)*dpsidx(l2,k)*W;
+			  }
+
+			// The dependence of phi_1 on M
+			double div_psi = 0.0; // Get divergence of shape fn for node l2
+			for(unsigned k=0; k<DIM; k++)
+			  div_psi += dpsidx(l2,k);
+
+			for(unsigned j=0; j<3; j++)
+			  {
+			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+			    if(m_local_unknown >= 0)
+			      jacobian(phi_1_local_eqn,m_local_unknown)
+				+= div_psi * test(l) * W;// ??ds add jacobian bit...
+			  }
+
+			// No dependence of phi_1 on exchange field
+
+			// Phi_1 does not depend on phi
+		      }
+		  } // End of phi_1 Jacobian calculation
   	      }
   	  }
 
@@ -489,52 +551,6 @@ namespace oomph
   //   // Write tecplot footer (e.g. FE connectivity lists)
   //   write_tecplot_zone_footer(file_pt,nplot);
   // }
-
-  ////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////
-
-
-  //======================================================================
-  /// Define the shape functions and test functions and derivatives
-  /// w.r.t. global coordinates and return Jacobian of mapping.
-  ///
-  /// Galerkin: Test functions = shape functions
-  //======================================================================
-  // Might be useful later so keep (but not used now)
-  template<unsigned DIM, unsigned NNODE_1D>
-  double QMicromagElement<DIM,NNODE_1D>::dshape_and_dtest_eulerian_micromag(const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const
-  {
-    //Call the geometrical shape functions and derivatives
-    const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-    //Set the test functions equal to the shape functions
-    test = psi;
-    dtestdx= dpsidx;
-
-    //Return the jacobian
-    return J;
-  }
-
-  //======================================================================
-  /// Define the shape functions and test functions and derivatives
-  /// w.r.t. global coordinates and return Jacobian of mapping.
-  ///
-  /// Galerkin: Test functions = shape functions
-  //======================================================================
-  template<unsigned DIM, unsigned NNODE_1D>
-  double QMicromagElement<DIM,NNODE_1D>::dshape_and_dtest_eulerian_at_knot_micromag(const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test, DShape &dtestdx) const
-  {
-    //Call the geometrical shape functions and derivatives
-    const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
-
-    //Set the pointers of the test functions
-    test = psi;
-    dtestdx = dpsidx;
-
-    //Return the jacobian
-    return J;
-  }
 
 }
 

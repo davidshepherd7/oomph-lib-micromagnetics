@@ -67,7 +67,7 @@ namespace oomph
     {
 #ifdef PARANOID
       if(k>=3)
-	throw OomphLibError("H_exchange only had 3 indices",
+	throw OomphLibError("H_exchange only has 3 indices",
 			    "MicromagEquations::exchange_index_micromag",
 			    OOMPH_EXCEPTION_LOCATION);
 #endif
@@ -146,9 +146,9 @@ namespace oomph
 
     /// Get the crystalline anisotropy field at Eulerian position x.
     inline void get_H_cryst_anis_field(const double& t,
-					       const Vector<double> &x,
-					       const Vector<double>& m,
-					       Vector<double>& H_ca) const
+				       const Vector<double> &x,
+				       const Vector<double>& m,
+				       Vector<double>& H_ca) const
     {
       if(Cryst_anis_field_pt==0) H_ca.assign(3,0.0);
       else (*Cryst_anis_field_pt)(t,x,m,H_ca);
@@ -231,10 +231,11 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt exact_m_pt() const {return Exact_m_pt;}
 
     /// Get exact M at eulerian postition x.
-    inline void get_exact_m(const double& t, const Vector<double>& x, Vector<double>& m_exact) const
+    inline void get_exact_m(const double& t, const Vector<double>& x,
+			    Vector<double>& m_exact) const
     {
-      // If no exact M function has been set, return something crazy
-      if(Exact_m_pt==0) {for(unsigned j=0;j<3;j++) m_exact[j] = -1000.0;}
+      // If no exact M function has been set empty the vector
+      if(Exact_m_pt==0) m_exact.clear();
       else (*Exact_m_pt)(t,x,m_exact);
     }
 
@@ -337,15 +338,8 @@ namespace oomph
     }
 
     // OUTPUT FUNCTIONS
-    /// Output with default number of plot points
-    void output(std::ostream &outfile)
-    {
-      const unsigned n_plot=5;
-      output(outfile,n_plot);
-    }
-
     /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot);
+    void output(std::ostream &outfile, const unsigned &n_plot=5);
 
     /// Output exact solution at n_plot points
     void output_fct(std::ostream &outfile, const unsigned &n_plot,
@@ -366,19 +360,15 @@ namespace oomph
 	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
-    // ??ds re-activate this when you're confident that the Jacobian is correct!
-    // /// Add the element's contribution to its residual vector and element Jacobian matrix (wrapper)
+    // // ??ds re-activate this when you're confident that the Jacobian is correct!
+    // /// \short Add the element's contribution to its residual vector and element
+    // /// Jacobian matrix (wrapper)
     // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    //                                       DenseMatrix<double> &jacobian)
+    // 					  DenseMatrix<double> &jacobian)
     // {
     //   //Call the generic routine with the flag set to 1
     //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
     // }
-
-    /// Fill in contribution to residuals and jacobian (if flag is set) from these equations (compatible with multiphysics)
-    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
-							DenseMatrix<double> &jacobian,
-							const unsigned& flag) const;
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
@@ -407,13 +397,22 @@ namespace oomph
 		  dmdt[j] += time_stepper_pt->weight(1,t)
 		    *nodal_value(t,l,m_index_micromag(j));
 		}
-	    }
-
+	    } // End of loop over directions
 	}
 
     } // end of dM_dt_micromag
 
   protected:
+
+    /// Fill in contribution to residuals and jacobian (if flag is set) from
+    /// these equations (compatible with multiphysics)
+    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
+							DenseMatrix<double> &jacobian,
+							const unsigned& flag) const;
+
+    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
+				Shape &test, DShape &dtestdx) const=0;
 
     /// Pointer to poisson source function - only for testing purposes since div(M) is our source function in calculation of the demagnetising potential.
     // PoissonSourceFctPt Poisson_source_pt;
@@ -445,16 +444,6 @@ namespace oomph
     /// Pointer to the exact solution for phi
     TimeSpaceToDoubleFctPt Exact_phi_pt;
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    virtual double dshape_and_dtest_eulerian_micromag
-    (const Vector<double> &s, Shape &psi, DShape &dpsidx,
-     Shape &test, DShape &dtestdx) const=0;
-
-    /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
-    virtual double dshape_and_dtest_eulerian_at_knot_micromag
-    (const unsigned& ipt, Shape &psi, DShape &dpsidx,
-     Shape &test, DShape &dtestdx) const=0;
-
   }; // End of MicromagEquations class
 
   //====================================================================
@@ -463,14 +452,11 @@ namespace oomph
   template < unsigned DIM, unsigned NNODE_1D>
   class QMicromagElement : public QElement<DIM,NNODE_1D>, public MicromagEquations<DIM>
   {
-
   private:
-
     /// Static int that holds the number of variables at nodes: always the same
     static const unsigned Initial_Nvalue;
 
   public:
-
     /// Constructor: Call constructors for QElement and Micromag equations
     QMicromagElement() : QElement<DIM,NNODE_1D>(), MicromagEquations<DIM>()
     {}
@@ -491,42 +477,30 @@ namespace oomph
     inline unsigned required_nvalue(const unsigned &n) const
     {return Initial_Nvalue;}
 
-    // OUTPUT FUNCTIONS (just call from MicromagEquations class)
-    /// Output function: x,y,u or x,y,z,u
-    void output(std::ostream &outfile)
-    {MicromagEquations<DIM>::output(outfile);}
-
-
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot)
+    void output(std::ostream &outfile, const unsigned &n_plot=5)
     {MicromagEquations<DIM>::output(outfile,n_plot);}
 
-
-    // /// C-style output function: x,y,u or x,y,z,u
-    // void output(FILE* file_pt)
-    // {MicromagEquations<DIM>::output(file_pt);}
-
-
     // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot)
+    // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {MicromagEquations<DIM>::output(file_pt,n_plot);}
 
-
   protected:
-
     /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_and_dtest_eulerian_micromag(const Vector<double> &s,
-						     Shape &psi,
-						     DShape &dpsidx,
-						     Shape &test,
-						     DShape &dtestdx) const;
+    inline double dshape_dtest(const Vector<double> &s,
+			       Shape &psi, DShape &dpsidx,
+			       Shape &test, DShape &dtestdx) const
+    {
+      // Call the geometrical shape functions and derivatives
+      const double J = this->dshape_eulerian(s,psi,dpsidx);
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. at integration point ipt. Return Jacobian.
-    inline double dshape_and_dtest_eulerian_at_knot_micromag(const unsigned& ipt,
-							     Shape &psi,
-							     DShape &dpsidx,
-							     Shape &test,
-							     DShape &dtestdx) const;
+      // Set the test functions equal to the shape functions
+      test = psi;
+      dtestdx= dpsidx;
+
+      // Return the jacobian
+      return J;
+    }
 
   }; // end of QMicromagElement class declaration
 
