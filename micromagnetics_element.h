@@ -25,7 +25,7 @@ namespace oomph
 
     // CONSTRUCTORS ETC.
     /// Constructor (initialises the various function pointers to null).
-    MicromagEquations() : // Poisson_source_pt(0), Llg_source_pt(0),
+    MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0), Llg_source_pt(0),
 			  Applied_field_pt(0), Cryst_anis_field_pt(0),
 			  Sat_mag_pt(0), Llg_damp_pt(0),
 			  Llg_precess_pt(0), Exchange_coeff_pt(0),
@@ -75,7 +75,7 @@ namespace oomph
     }
 
 
-    // SOURCE FUNCTIONS
+
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
     typedef void (*TimeSpaceToDoubleVectFctPt)
@@ -84,42 +84,50 @@ namespace oomph
     typedef void (*TimeSpaceMagToDoubleVectFctPt)
     (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
-    // /// \short Function pointer to source function fct(x,f(x)) --
-    // /// x is a Vector!
-    // typedef void (*PoissonSourceFctPt)(const double& t, const Vector<double>& x, double& f);
 
-    // /// Access function: Pointer to source function
-    // PoissonSourceFctPt& poisson_source_pt() {return Poisson_source_pt;}
+    // SOURCE FUNCTIONS for testing
+    /// Access function: Pointer to phi source function
+    TimeSpaceToDoubleFctPt & phi_source_pt() {return Phi_source_pt;}
 
-    // /// Access function: Pointer to source function. Const version
-    // PoissonSourceFctPt poisson_source_pt() const {return Poisson_source_pt;}
+    /// Access function: Pointer to phi source function. Const version
+    TimeSpaceToDoubleFctPt phi_source_pt() const {return Phi_source_pt;}
 
-    // /// Get poisson source term at (Eulerian) position x.
-    // inline void get_poisson_source(const double& t,
-    // 					   const unsigned& ipt,
-    // 					   const Vector<double>& x,
-    // 					   double& source) const
-    // {
-    //   if(Poisson_source_pt==0) {source = 0.0;}
-    //   else (*Poisson_source_pt)(t,x,source);
-    // }
+    /// Get phi source term at (Eulerian) position x.
+    inline double get_phi_source(const double t,
+				 const Vector<double>& x) const
+    {
+      if(Phi_source_pt==0) return 0.0;
+      else return (*Phi_source_pt)(t,x);
+    }
 
+    /// Access function: Pointer to phi_1 source function
+    TimeSpaceToDoubleFctPt & phi_1_source_pt() {return Phi_1_source_pt;}
 
-    // // LLG SOURCE FUNCTION
-    // /// Access function: Pointer to source function
-    // TimeSpaceToDoubleVectFctPt& llg_source_pt() {return Llg_source_pt;}
+    /// Access function: Pointer to phi_1 source function. Const version
+    TimeSpaceToDoubleFctPt phi_1_source_pt() const {return Phi_1_source_pt;}
 
-    // /// Access function: Pointer to source function. Const version
-    // TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
+    /// Get phi_1 source term at (Eulerian) position x.
+    inline double get_phi_1_source(const double t,
+				 const Vector<double>& x) const
+    {
+      if(Phi_1_source_pt==0) return 0.0;
+      else return (*Phi_1_source_pt)(t,x);
+    }
 
-    // /// Get LLG source term at (Eulerian) position x.
-    // inline void get_source_llg(const double& t,
-    // 				       const Vector<double>& x,
-    // 				       Vector<double>& source) const
-    // {
-    //   if(Llg_source_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
-    //   else (*Llg_source_pt)(t,x,source);
-    // }
+    /// Access function: Pointer to source function
+    TimeSpaceToDoubleVectFctPt& llg_source_pt() {return Llg_source_pt;}
+
+    /// Access function: Pointer to source function. Const version
+    TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
+
+    /// Get LLG source term at (Eulerian) position x.
+    inline void get_source_llg(const double& t,
+			       const Vector<double>& x,
+			       Vector<double>& source) const
+    {
+      if(Llg_source_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
+      else (*Llg_source_pt)(t,x,source);
+    }
 
 
     // APPLIED FIELD
@@ -414,11 +422,15 @@ namespace oomph
     virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
 				Shape &test, DShape &dtestdx) const=0;
 
-    /// Pointer to poisson source function - only for testing purposes since div(M) is our source function in calculation of the demagnetising potential.
-    // PoissonSourceFctPt Poisson_source_pt;
+    /// Pointer to poisson source function - only for testing purposes since
+    /// div(M) is our source function in calculation of the demagnetising
+    /// potential.
+    TimeSpaceToDoubleFctPt Phi_source_pt;
+
+    TimeSpaceToDoubleFctPt Phi_1_source_pt;
 
     /// Pointer to LLG source function (for testing purposes)
-    // TimeSpaceToDoubleVectFctPt Llg_source_pt;
+    TimeSpaceToDoubleVectFctPt Llg_source_pt;
 
     /// Pointer to function giving applied field.
     TimeSpaceToDoubleVectFctPt Applied_field_pt;

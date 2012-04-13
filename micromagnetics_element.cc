@@ -114,9 +114,8 @@ namespace oomph
 
   	// Total potential (magnetostatic field calculations)
   	//----------------------------------------------------
-  	// // Get source function
-  	// double poisson_source = 0;
-  	// get_poisson_source(time,ipt,interpolated_x,poisson_source);
+  	// Get source function
+  	double phi_source = get_phi_source(time,interpolated_x);
 
   	// Loop over the test functions/nodes adding contributions
   	for(unsigned l=0;l<n_node;l++)
@@ -125,8 +124,8 @@ namespace oomph
   	    int phi_local_eqn = nodal_local_eqn(l,phi_index_micromag());
   	    if(phi_local_eqn >= 0)
   	      {
-  		// // Add source term
-  		// residuals[phi_local_eqn] -= poisson_source*test(l)*W;
+  		// Add source term
+  		residuals[phi_local_eqn] -= phi_source*test(l)*W;
 
 		// The divergence of M source term
 		residuals[phi_local_eqn] -= interpolated_divm*test(l)*W;
@@ -187,6 +186,9 @@ namespace oomph
 	// The only difference between this and the total potential section is in
 	// the boundary conditions.
 
+  	// Get source function
+  	double phi_1_source = get_phi_1_source(time,interpolated_x);
+
   	// Loop over the test functions/nodes adding contributions
   	for(unsigned l=0;l<n_node;l++)
   	  {
@@ -194,6 +196,9 @@ namespace oomph
   	    int phi_1_local_eqn = nodal_local_eqn(l,phi_1_index_micromag());
   	    if(phi_1_local_eqn >= 0)
   	      {
+		// Add source term
+  		residuals[phi_1_local_eqn] -= phi_1_source*test(l)*W;
+
 		// The divergence of M source term
 		residuals[phi_1_local_eqn] -= interpolated_divm*test(l)*W;
 
