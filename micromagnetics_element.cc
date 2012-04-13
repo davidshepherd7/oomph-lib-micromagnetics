@@ -398,8 +398,6 @@ namespace oomph
     	    outfile << interpolated_solution[i] << " ";
     	  }
 
-	outfile << get_exact_phi_1(0.0,x) << " ";
-
     	// End the line ready for next point
     	outfile << std::endl;
       }

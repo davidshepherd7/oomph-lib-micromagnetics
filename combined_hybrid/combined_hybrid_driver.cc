@@ -23,8 +23,6 @@ using namespace MathematicalConstants;
 //   return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 // }
 
-
-
 namespace Inputs
 {
   double sat_mag = 1.0;
@@ -138,11 +136,11 @@ namespace oomph
 
     /// Update the problem before Newton convergence check (update boundary
     /// conditions on phi).
-    void actions_before_newton_convergence_check(){};
-    //{update_boundary_phi();}
+    void actions_before_newton_convergence_check()
+    {update_boundary_phi();}
 
     /// Update the problem specs before solve.
-    void actions_before_newton_solve();
+    void actions_before_newton_solve(){};
 
     /// Update the problem specs after solve
     void actions_after_newton_solve(){};
@@ -196,9 +194,6 @@ namespace oomph
 	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
 	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
 	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
-
-	elem_pt->phi_1_source_pt() = &TanhSolnForPoisson::source_function;
-	elem_pt->exact_phi_1_pt() = &TanhSolnForPoisson::get_exact_phi_1;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
@@ -218,27 +213,10 @@ namespace oomph
 
     // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
     // create the face elements needed.
-    // for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
-    //   {
-    create_flux_elements(1);
-    //}
-    // Set the boundary conditions for this problem: All nodes are
-    // free by default -- just pin the ones that have Dirichlet conditions
-    // here.
-    unsigned n_bound = mesh_pt()->nboundary();
-    for(unsigned b=0;b<n_bound;b++)
+    for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
       {
-	//Leave nodes on boundary 1 free
-	if(b!=1)
-	  {
-	    unsigned n_node= mesh_pt()->nboundary_node(b);
-	    for (unsigned n=0;n<n_node;n++)
-	      {
-		mesh_pt()->boundary_node_pt(b,n)->pin(1);
-	      }
-	  }
+	create_flux_elements(b);
       }
-
 
     // Setup equation numbering scheme for all the finite elements
     std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
@@ -273,47 +251,6 @@ namespace oomph
     build_boundary_matrix();
 
   } // end of constructor
-
-  //====================start_of_actions_before_newton_solve================
-  /// Update the problem specs before solve: Reset boundary conditions
-  /// to the values from the exact solution.
-  //========================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  actions_before_newton_solve()
-  {
-    // How many boundaries are there?
-    unsigned n_bound = mesh_pt()->nboundary();
-
-    //Loop over the boundaries
-    for(unsigned i=0;i<n_bound;i++)
-      {
-	// Only update Dirichlet nodes
-	if (i!=1)
-	  {
-	    // How many nodes are there on this boundary?
-	    unsigned n_node = mesh_pt()->nboundary_node(i);
-
-	    // Loop over the nodes on boundary
-	    for (unsigned n=0;n<n_node;n++)
-	      {
-		// Get pointer to node
-		Node* nod_pt = mesh_pt()->boundary_node_pt(i,n);
-
-		// Extract nodal coordinates from node:
-		Vector<double> x(2);
-		x[0]=nod_pt->x(0);
-		x[1]=nod_pt->x(1);
-
-		// Compute the value of the exact solution at the nodal point
-		double phi_1 = TanhSolnForPoisson::get_exact_phi_1(0,x);
-
-		// Assign the value to the one (and only) nodal value at this node
-		nod_pt->set_value(1,phi_1);
-	      }
-	  }
-      }
-  } // end of actions before solve
 
 
   //======================================================================

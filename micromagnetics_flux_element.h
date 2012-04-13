@@ -18,47 +18,6 @@
 
 using namespace oomph;
 
-//===== start_of_namespace=============================================
-/// Namespace for exact solution for Poisson equation with "sharp step"
-//=====================================================================
-namespace TanhSolnForPoisson
-{
-
- /// Parameter for steepness of "step"
- double Alpha=1.0;
-
- /// Parameter for angle Phi of "step"
- double TanPhi=0.0;
-
- /// Exact solution as a Vector
-  double get_exact_phi_1(const double& t, const Vector<double>& x)
- {
-  return tanh(1.0-Alpha*(TanPhi*x[0]-x[1]));
- }
-
- /// Source function required to make the solution above an exact solution
-  double source_function(const double& t, const Vector<double>& x)
- {
-   return 2.0*tanh(-1.0+Alpha*(TanPhi*x[0]-x[1]))*
-     (1.0-pow(tanh(-1.0+Alpha*(TanPhi*x[0]-x[1])),2.0))*
-     Alpha*Alpha*TanPhi*TanPhi+2.0*tanh(-1.0+Alpha*(TanPhi*x[0]-x[1]))*
-     (1.0-pow(tanh(-1.0+Alpha*(TanPhi*x[0]-x[1])),2.0))*Alpha*Alpha;
- }
-
- // /// Flux required by the exact solution on a boundary on which x is fixed
- // void prescribed_flux_on_fixed_x_boundary(const Vector<double>& x,
- //                                          double& flux)
- // {
- //  //The outer unit normal to the boundary is (1,0)
- //  double N[2] = {1.0, 0.0};
- //  //The flux in terms of the normal is
-
- // }
-
-} // end of namespace
-
-using namespace TanhSolnForPoisson;
-
 namespace oomph
 {
 
@@ -342,18 +301,10 @@ namespace oomph
 
 	// Calculate prescribed flux of phi =  m.n
 	double flux = 0;
-	// for(unsigned i=0; i<Dim; i++)
-	//   {
-	//     flux += normal[i]*interpolated_m[i];
-	//   }
-
-	// Opposite sign to that in the poisson flux demo drivers since our
-	// final flux has opposite sign (so cancels out)
-	flux =
-	  + (1.0-pow(tanh(-1.0+Alpha*(TanPhi*interpolated_x[0]-interpolated_x[1])),2.0))
-	  *Alpha*TanPhi*normal[0]
-	  - (1.0-pow(tanh(-1.0+Alpha*(TanPhi*interpolated_x[0]-interpolated_x[1])),2.0))
-	  *Alpha*normal[1];
+	for(unsigned i=0; i<Dim; i++)
+	  {
+	    flux += normal[i]*interpolated_m[i];
+	  }
 
 	//Loop over the test functions
 	for(unsigned l=0;l<n_node;l++)
