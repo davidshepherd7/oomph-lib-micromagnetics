@@ -485,7 +485,6 @@ namespace oomph
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {MicromagEquations<DIM>::output(file_pt,n_plot);}
 
-  protected:
     /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
     inline double dshape_dtest(const Vector<double> &s,
 			       Shape &psi, DShape &dpsidx,

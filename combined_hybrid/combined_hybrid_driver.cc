@@ -18,14 +18,6 @@
 using namespace oomph;
 using namespace MathematicalConstants;
 
-
-//======================================================================
-/// Set the data for the number of Variables at each node.
-//======================================================================
-template<unsigned DIM, unsigned NNODE_1D>
-const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
-
-
 // inline double dot3(const Vector<double>& a, const Vector<double>& b)
 // {
 //   return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
@@ -34,14 +26,15 @@ const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
 namespace Inputs
 {
   double sat_mag = 1.0;
-  double llg_damping = 0.5; // big so the problem is maybe not so hard to solve...
-  double llg_precession = 1.0;
+  double llg_damping = 0.0;
+  double llg_precession = 0.0;
+  double exchange_coeff = 0.0;
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    h_app[0] = +5;
-    h_app[1] = +5;
+    h_app[0] = +2;
+    h_app[1] = +0.2;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -59,8 +52,8 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[0] = -1;
-    m[1] = -0.1;
-    m[2] = -0.1;
+    // m[1] = -0.1;
+    // m[2] = -0.1;
   }
 }
 
@@ -167,10 +160,10 @@ namespace oomph
     // Allocate steady state timestepper
     add_time_stepper_pt(new BDF<1>);
 
-    // Build rectangular mesh
-    unsigned nx = 5, ny = 5;
+    // Build rectangular mesh // If we change the mesh have to change the bem angles
+    unsigned nx = 20, ny = 20;
     mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
-      (nx,ny,2.0,2.0,time_stepper_pt());
+      (nx,ny,1.0,1.0,time_stepper_pt());
 
     // Get an upcasted element pointer (any one will do) to have access to
     // equation numbers.
@@ -200,6 +193,7 @@ namespace oomph
 	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
 	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
 	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
@@ -297,7 +291,7 @@ namespace oomph
   doc_solution(DocInfo& doc_info)
   {
     // Number of plot points
-    unsigned npts=5;
+    unsigned npts=2;
 
     // File set up
     std::ofstream some_file;
@@ -486,12 +480,32 @@ namespace oomph
       }
 
     // Loop over the matrix diagonals adding the angle factor.
-    // ??ds we have assumed that all corners are "smooth" for simplicity so all
-    // angle factors are just 1/2, should generalise this...
-    for(unsigned long n = 0; n < n_node; n++)
+    for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-	Boundary_matrix(n,n) += 0.5;
+    	Boundary_matrix(nd,nd) += 0.5;
       }
+
+    // Correct this on corner nodes - ??ds this is a horrible hack...
+    std::cout << "Assumed that sharp corners are at:" << std::endl;
+    for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
+      {
+    	unsigned nd_num;
+    	if(b >1) nd_num = mesh_pt()->nboundary_node(b) -1;
+    	else nd_num = 0;
+
+    	// Get the equation number
+    	unsigned l = convert_global_to_boundary_equation_number
+    	  (mesh_pt()->boundary_node_pt(b,nd_num)->eqn_number(1));
+
+    	// Output location
+    	for(unsigned j=0; j<DIM; j++)
+    	  std::cout << mesh_pt()->boundary_node_pt(b,nd_num)->x(j) << " ";
+    	std::cout << std::endl;
+
+    	// Square mesh: on corners fractional angle is 1/4 instead of 1/2
+    	Boundary_matrix(l,l) -= 0.25;
+      }
+
   }
 
   //======================================================================
@@ -655,7 +669,7 @@ int main(int argc, char* argv[])
   char filename2[100];
   sprintf(filename2,"results/residual");
   residual_file.open(filename2);
-  jacobian.output(residual_file);
+  residuals.output(residual_file);
   residual_file.close();
 
   std::ofstream bem_file;
@@ -665,7 +679,6 @@ int main(int argc, char* argv[])
   bem_file.open(bem_filename);
   problem.boundary_matrix_pt()->output(bem_file);
   bem_file.close();
-
 
   // Timestepping loop
   for(unsigned istep=0; istep<nstep; istep++)

@@ -103,28 +103,24 @@ namespace oomph
   protected:
 
     /// \short Function to compute the shape and test functions and to return
-    /// the Jacobian of mapping between local and global (Eulerian) /// coordinates
-    inline double dshape_dtest(const Vector<double> &s,
-			       Shape &psi, Shape &test,
-			       DShape &dpsidx, DShape& dtestdx) const
+    /// the Jacobian of mapping between local and global (Eulerian)
+    /// coordinates
+    inline double shape_test(const Vector<double> &s, Shape &psi, Shape &test)
+      const
     {
-      // Get the shape functions and Jacobian
-      double J;
-      J = dshape_eulerian(s,psi,dpsidx); //??ds doesn't work - need to get
-					 //dpsidx from the bulk element and
-					 //somehow pick out the relevant
-					 //functions...
+      //Get the shape functions
+      shape(s,psi);
 
-      // Set the test functions equal to the shape functions
+      //Set the test functions to be the same as the shape functions
       test = psi;
-      dtestdx = dpsidx;
 
       //Return the value of the jacobian
-      return J;
+      return J_eulerian(s);
     }
 
-    /// \short Add the element's contribution to its residual vector.  flag=1(or
-    /// 0): do (or don't) compute the contribution to the Jacobian as well.
+    /// \short Add the element's contribution to its residual vector. When
+    /// flag=1 (or 0): do (or don't) compute the contribution to the Jacobian as
+    /// well.
     void fill_in_generic_residual_contribution_fluxes
     (Vector<double> &residuals, DenseMatrix<double> &jacobian,
      const unsigned& flag);
@@ -222,8 +218,9 @@ namespace oomph
    const unsigned& flag)
   {
     const unsigned n_node = nnode();
+    const unsigned bulk_n_node = bulk_element_pt()->nnode();
     Shape psi(n_node), test(n_node);
-    DShape dpsidx(n_node,Dim), dtestdx(n_node,Dim);
+    DShape dpsidx(bulk_n_node,Dim), dtestdx(bulk_n_node,Dim);
     const unsigned n_intpt = integral_pt()->nweight();
 
     //Integer to hold the local equation number
@@ -245,14 +242,18 @@ namespace oomph
 	Vector<double> s_bulk(Dim,0.0);
 	get_local_coordinate_in_bulk(s,s_bulk);
 
-	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
-
 	// Find the shape functions and return the Jacobian of the mapping
-	const double J = dshape_dtest(s,psi,test,dpsidx,dtestdx);
+	const double J = shape_test(s,psi,test);
 
-	//Premultiply the weights and the Jacobian
-	double W = w*J;
+	// Get the derivative of the shape/test functions wrt global coordinates
+	// from the bulk element.
+	{
+	  Shape dummy1(bulk_n_node), dummy2(bulk_n_node);
+	  bulk_element_pt()->dshape_dtest(s_bulk,dummy1,dpsidx,dummy2,dtestdx);
+	}
+
+	// Premultiply the weights and the Jacobian
+	double W = integral_pt()->weight(ipt) * J;
 
 	// Get x at this integration point
 	Vector<double> interpolated_x(Dim,0.0);
@@ -268,19 +269,32 @@ namespace oomph
 	Vector<double> interpolated_m(3,0.0);
 	bulk_element_pt()->interpolated_m_micromag(s_bulk,interpolated_m);
 
-	// Get the gradient of each m_i from the bulk element
-	DenseDoubleMatrix interpolated_dmdx(3,3,0.0);
+	// ??ds Get the gradient of each m_i from the bulk element
+	DenseDoubleMatrix interpolated_dmdx(3,Dim,0.0);
 	for(unsigned l=0;l<n_node;l++)
   	  {
-	    for(unsigned j=0; j<Dim; j++)
-  	      {
-		for(unsigned k=0; k<3; k++)
-		  interpolated_dmdx(k,j) += dpsidx(l,j)
-		    * nodal_value(l, bulk_element_pt()->m_index_micromag(k));
-
+	    for(unsigned k=0; k<3; k++)
+	      {
+		for(unsigned j=0; j<Dim; j++)
+		  {
+		    interpolated_dmdx(k,j) += dpsidx(l,j)
+		      * nodal_value(l, bulk_element_pt()->m_index_micromag(k));
+		  }
   	      }
   	  } //??ds suspect...
 
+	//     for(unsigned j=0; j<Dim; j++)
+	//       {
+	// 	std::cout << dpsidx(0,j) << std::endl;
+	//       }
+	// std::cout <<std::endl;
+	// // for(unsigned i=0; i<3; i++)
+	// //   {
+	// //     for(unsigned j=0; j<Dim; j++)
+	// //       std::cout << interpolated_dmdx(i,j) << " ";
+	// //     std::cout << std::endl;
+	// //   }
+	// // std::cout << std::endl;
 
 	// Total potential flux conditions
 	//------------------------------------------------------------
@@ -301,7 +315,7 @@ namespace oomph
 	    if(local_eqn >= 0) 	//If it's not a Dirichlet boundary condition
 	      {
 		//Add the prescribed flux terms
-		residuals[local_eqn] -= flux*test[l]*W;
+		residuals[local_eqn] += flux*test[l]*W;
 
 		//??ds fill in Jacobian when possible
 	      }
@@ -340,6 +354,22 @@ namespace oomph
 	  }
 
       }
+
+        // std::cout << "Residuals from this element" << std::endl;
+	// std::cout << "phi residual " << residuals[bulk_element_pt()->phi_index_micromag()]
+	// 	  << std::endl;
+	// std::cout << "phi_1 residual " << residuals[bulk_element_pt()->phi_1_index_micromag()]
+	// 	  << std::endl;
+	// std::cout << "M residuals "
+	// 	  << residuals[bulk_element_pt()->m_index_micromag(0)] << " "
+	// 	  << residuals[bulk_element_pt()->m_index_micromag(1)] << " "
+	// 	  << residuals[bulk_element_pt()->m_index_micromag(2)] << std::endl;
+	// std::cout << "exchange residuals "
+	// 	  << residuals[bulk_element_pt()->exchange_index_micromag(0)] << " "
+	// 	  << residuals[bulk_element_pt()->exchange_index_micromag(1)] << " "
+	// 	  << residuals[bulk_element_pt()->exchange_index_micromag(2)] << std::endl;
+	// std::cout << std::endl << std::endl;
+
   }
 
 

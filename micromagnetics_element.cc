@@ -9,6 +9,12 @@ namespace oomph
 {
 
   //======================================================================
+  /// Set the data for the number of Variables at each node.
+  //======================================================================
+  template<unsigned DIM, unsigned NNODE_1D>
+  const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
+
+  //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
   ///
   /// flag=1: compute both
@@ -132,44 +138,44 @@ namespace oomph
   		    residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
   		  }
 
-		// Calculate the Jacobian
-		if(flag)
-		  {
-		    // Loop over test functions/nodes again
-		    for(unsigned l2=0;l2<n_node;l2++)
-		      {
-			// First the dependence of phi on all nodal values of
-			// phi in the element.
-			int phi_local_unknown = nodal_local_eqn(l2,phi_index_micromag());
-			if(phi_local_unknown >= 0)
-			  {
-			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
-			      jacobian(phi_local_eqn,phi_local_unknown)
-				-= dtestdx(l,k)*dpsidx(l2,k)*W;
-			  }
+		// // Calculate the Jacobian
+		// if(flag)
+		//   {
+		//     // Loop over test functions/nodes again
+		//     for(unsigned l2=0;l2<n_node;l2++)
+		//       {
+		// 	// First the dependence of phi on all nodal values of
+		// 	// phi in the element.
+		// 	int phi_local_unknown = nodal_local_eqn(l2,phi_index_micromag());
+		// 	if(phi_local_unknown >= 0)
+		// 	  {
+		// 	    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+		// 	      jacobian(phi_local_eqn,phi_local_unknown)
+		// 		-= dtestdx(l,k)*dpsidx(l2,k)*W;
+		// 	  }
 
-			// The dependence of phi on M
-			double div_psi = 0.0; // Get divergence of shape fn for node l2
-			for(unsigned k=0; k<DIM; k++)
-			  div_psi += dpsidx(l2,k);
+		// 	// The dependence of phi on M
+		// 	double div_psi = 0.0; // Get divergence of shape fn for node l2
+		// 	for(unsigned k=0; k<DIM; k++)
+		// 	  div_psi += dpsidx(l2,k);
 
-			for(unsigned j=0; j<3; j++)
-			  {
-			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
-			    if(m_local_unknown >= 0)
-			      jacobian(phi_local_eqn,m_local_unknown)
-				+= div_psi * test(l) * W;// ??ds add jacobian bit...
-			  }
+		// 	for(unsigned j=0; j<3; j++)
+		// 	  {
+		// 	    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		// 	    if(m_local_unknown >= 0)
+		// 	      jacobian(phi_local_eqn,m_local_unknown)
+		// 		+= div_psi * test(l) * W;// ??ds add jacobian bit...
+		// 	  }
 
-			// No dependence of phi on exchange field
+		// 	// No dependence of phi on exchange field
 
-			// Phi depends on phi_1 via the boundary element
-			// matrix. It relates all nodes to each other rather
-			// than just the nodes within a single element. Hence
-			// this part of the Jacobian is added seperately in ??ds
-			// actions_before....
-		      }
-		  } // End of phi Jacobian calculation
+		// 	// Phi depends on phi_1 via the boundary element
+		// 	// matrix. It relates all nodes to each other rather
+		// 	// than just the nodes within a single element. Hence
+		// 	// this part of the Jacobian is added seperately in ??ds
+		// 	// actions_before....
+		//       }
+		//   } // End of phi Jacobian calculation
   	      }
   	  }
 	// End of total potential section
@@ -198,40 +204,40 @@ namespace oomph
   		    residuals[phi_1_local_eqn] -= interpolated_dphi_1dx[k]*dtestdx(l,k)*W;
   		  }
 
-		// Calculate the Jacobian - pretty much exactly the same as for phi
-		if(flag)
-		  {
-		    // Loop over test functions/nodes again
-		    for(unsigned l2=0;l2<n_node;l2++)
-		      {
-			// First the dependence of phi_1 on all nodal values of
-			// phi_1 in the element.
-			int phi_1_local_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
-			if(phi_1_local_unknown >= 0)
-			  {
-			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
-			      jacobian(phi_1_local_eqn,phi_1_local_unknown)
-				-= dtestdx(l,k)*dpsidx(l2,k)*W;
-			  }
+		// // Calculate the Jacobian - pretty much exactly the same as for phi
+		// if(flag)
+		//   {
+		//     // Loop over test functions/nodes again
+		//     for(unsigned l2=0;l2<n_node;l2++)
+		//       {
+		// 	// First the dependence of phi_1 on all nodal values of
+		// 	// phi_1 in the element.
+		// 	int phi_1_local_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
+		// 	if(phi_1_local_unknown >= 0)
+		// 	  {
+		// 	    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+		// 	      jacobian(phi_1_local_eqn,phi_1_local_unknown)
+		// 		-= dtestdx(l,k)*dpsidx(l2,k)*W;
+		// 	  }
 
-			// The dependence of phi_1 on M
-			double div_psi = 0.0; // Get divergence of shape fn for node l2
-			for(unsigned k=0; k<DIM; k++)
-			  div_psi += dpsidx(l2,k);
+		// 	// The dependence of phi_1 on M
+		// 	double div_psi = 0.0; // Get divergence of shape fn for node l2
+		// 	for(unsigned k=0; k<DIM; k++)
+		// 	  div_psi += dpsidx(l2,k);
 
-			for(unsigned j=0; j<3; j++)
-			  {
-			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
-			    if(m_local_unknown >= 0)
-			      jacobian(phi_1_local_eqn,m_local_unknown)
-				+= div_psi * test(l) * W;// ??ds add jacobian bit...
-			  }
+		// 	for(unsigned j=0; j<3; j++)
+		// 	  {
+		// 	    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		// 	    if(m_local_unknown >= 0)
+		// 	      jacobian(phi_1_local_eqn,m_local_unknown)
+		// 		+= div_psi * test(l) * W;// ??ds add jacobian bit...
+		// 	  }
 
-			// No dependence of phi_1 on exchange field
+		// 	// No dependence of phi_1 on exchange field
 
-			// Phi_1 does not depend on phi
-		      }
-		  } // End of phi_1 Jacobian calculation
+		// 	// Phi_1 does not depend on phi
+		//       }
+		//   } // End of phi_1 Jacobian calculation
   	      }
   	  }
 
@@ -328,6 +334,17 @@ namespace oomph
   	      }
   	  } // End of loop over test functions
       }// End of loop over integration points
+
+    // std::cout << "Residuals from this element" << std::endl;
+    // std::cout << "phi residual " << residuals[phi_index_micromag()] << std::endl;
+    // std::cout << "phi_1 residual " << residuals[phi_1_index_micromag()] << std::endl;
+    // std::cout << "M residuals " << residuals[m_index_micromag(0)]<< " "
+    // 	      << residuals[m_index_micromag(1)] << " "
+    // 	      << residuals[m_index_micromag(2)] << std::endl;
+    // std::cout << "exchange residuals " << residuals[exchange_index_micromag(0)]<< " "
+    // 	      << residuals[exchange_index_micromag(1)] << " "
+    // 	      << residuals[exchange_index_micromag(2)] << std::endl;
+    // std::cout << std::endl << std::endl;
 
   } // End of fill in residuals function
 

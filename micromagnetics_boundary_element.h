@@ -453,7 +453,16 @@ namespace oomph
     const unsigned node_dim = nodal_dimension();
 
 #ifdef PARANOID
-    //??ds check that n is a unit vector
+    // Check that n is a unit vector
+    double n_sq = 0.0;
+    for(unsigned i=0; i<node_dim; i++)
+      n_sq += n[i]*n[i];
+    if(n_sq != 1)
+      {
+	throw OomphLibError("n is not a unit vector",
+			    "MicromagFaceElement::green_normal_derivative",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
 #endif
 
     // Calculate the distance r from x to y.
@@ -479,11 +488,6 @@ namespace oomph
     for(unsigned i=0; i<node_dim; i++)
       r_unit[i] = (x[i] - y[i])/r;
 
-
-#ifdef PARANOID
-    //??ds check that r is not ~machine error (division by zero)
-#endif
-
     // Calculate dot product of n with the unit vector in direction r.
     double ndotr(0.0);
     for(unsigned i=0; i<node_dim; i++)
@@ -497,109 +501,103 @@ namespace oomph
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
     double exponent = - (double(node_dim) - 1);
-    return -1/Pi * ndotr * std::pow((2*r),exponent) * 2;
+    return 1/Pi * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
   }
 
 
 
 
-  //======================================================================
-  /// Point element to sit at sharp corners and add the angle/solid angle of the
-  /// corner to the boundary element matrix. DIM is the dimension of the entire
-  /// problem not the dimension of the point element (which is always 0).
-  //======================================================================
-  template<class ELEMENT, unsigned DIM>
-  class MicromagCornerAngleElement :
-    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-    public virtual PointElement
-  {};
+ //  //======================================================================
+//   /// Point element to sit at sharp corners and add the angle/solid angle of the
+//   /// corner to the boundary element matrix. DIM is the dimension of the entire
+//   /// problem not the dimension of the point element (which is always 0).
+//   //======================================================================
+//   template<class ELEMENT, unsigned DIM>
+//   class MicromagCornerAngleElement :
+//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+//     public virtual PointElement
+//   {};
 
 
-  //======================================================================
-  /// In 1D there are no sharp corners so no 1D version is needed.
-  //======================================================================
+//   //======================================================================
+//   /// In 1D there are no sharp corners so no 1D version is needed.
+//   //======================================================================
 
-  //======================================================================
-  /// 2D specialisation: calculate angles.
-  //======================================================================
-  template< class ELEMENT>
-  class MicromagCornerAngleElement<ELEMENT,2> :
-    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-    public virtual PointElement
-  {
-  private:
+//   //======================================================================
+//   /// 2D specialisation: calculate angles.
+//   //======================================================================
+//   template< class ELEMENT>
+//   class MicromagCornerAngleElement<ELEMENT,2> :
+//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+//     public virtual PointElement
+//   {
+//   private:
 
-    /// Pointer to the face elements to which this point element is
-    /// attached.
-    Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
+//     /// Pointer to the face elements to which this point element is
+//     /// attached.
+//     Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
 
-    /// The index of the node in face elements to which this point element is
-    /// attached.
-    Vector<unsigned> Face_node_number;
+//     /// The index of the node in face elements to which this point element is
+//     /// attached.
+//     Vector<unsigned> Node_number;
 
-  public:
+//   public:
 
-    MicromagCornerAngleElement() : Face_element_pt(2)
-    {
-      // Face_element_pt[0] = e1;
-      // Face_element_pt[0] = e2;
+//     MicromagCornerAngleElement() : Face_element_pt(2)
+//     {
+//       // Face_element_pt[0] = e1;
+//       // Face_element_pt[1] = e2;
 
-      // Face_node_number.push_back(...);
-    }
+//       // Node_number[0] = n1;
+//       // Node_number[1] = n2;
+//     }
 
-    /// Calculate the angle between the two attached face elements
-    double calculate_corner_fractional_angle() const
-    {
-      Vector<Vector<double> > t;
+//     /// Calculate the angle between the two attached face elements
+//     double calculate_corner_fractional_angle() const
+//     {
+//       Vector<Vector<double> > t;
 
-      // For each attached face element (two of them) get the tangent vector
-      for(unsigned fe=0; fe<2; fe++)
-	{
-	  // Find out the corresponding node in the face element
-	  unsigned l = Face_node_number[fe];
+//       // For each attached face element (two of them) get the tangent vector
+//       for(unsigned fe=0; fe<2; fe++)
+// 	{
+// 	  // Find out the number of nodes in the face element
+// 	  unsigned n_node_face = Face_element_pt[fe]->nnode();
 
-	  // Find out the number of nodes in the face element
-	  unsigned n_node_face = Face_element_pt[fe]->nnode();
+// 	  // Get the value of the shape function derivatives at the node
+// 	  Shape psi(n_node_face); // We have to calculate shape functions as well...
+// 	  DShape dpsids(n_node_face,1);
+// 	  Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
 
-	  // Get the local coordinate of this node in the face element
-	  Vector<double> s_face(1,0.0);
-	  Face_element_pt[fe]->local_coordinate_of_node(l,s_face);
+// 	  // Calculate all derivatives of the spatial coordinates wrt local
+// 	  // coordinates
+// 	  Vector<double> interpolated_dxds(2,0.0);
+// 	  // for(unsigned j=0;j<2;j++)
+// 	  //   {
+// 	  //     interpolated_dxds[j] +=
+// 	  // 	Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
+// 	  //   }
 
-	  // Get the value of the shape function derivatives at the node
-	  Shape psi(n_node_face); // We have to calculate shape functions as well...
-	  DShape dpsids(n_node_face,1);
-	  Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
+// 	  // Add to list of tangents
+// 	  t.push_back(interpolated_dxds);
+// 	}
 
-	  // Calculate all derivatives of the spatial coordinates wrt local
-	  // coordinates
-	  Vector<double> interpolated_dxds(2,0.0);
-	  for(unsigned j=0;j<2;j++)
-	    {
-	      interpolated_dxds[j] +=
-		Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
-	    }
+//       // Calculate the angle between them (inverse cos of the dot product).
+//       return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]) / (2*Pi);
+//     }
 
-	  // Add to list of tangents
-	  t.push_back(interpolated_dxds);
-	}
+//   };
 
-      // Calculate the angle between them (inverse cos of the dot product).
-      return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]);
-    }
+//   //======================================================================
+//   /// 3D specialisation: calculate solid angles.
+//   //======================================================================
+//   template< class ELEMENT>
+//   class MicromagCornerAngleElement<ELEMENT,3> :
+//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+//     public virtual PointElement
+//   {
 
-  };
-
-  //======================================================================
-  /// 3D specialisation: calculate solid angles.
-  //======================================================================
-  template< class ELEMENT>
-  class MicromagCornerAngleElement<ELEMENT,3> :
-    public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-    public virtual PointElement
-  {
-
-    //??ds calculating the angle is going to be harder here, do it later...
-  };
+//     //??ds calculating the angle is going to be harder here, do it later...
+//   };
 
 }
 
