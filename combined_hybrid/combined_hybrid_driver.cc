@@ -23,6 +23,36 @@ using namespace MathematicalConstants;
 //   return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 // }
 
+//===== start_of_namespace=============================================
+/// Namespace for exact solution for Poisson equation with "sharp step"
+//=====================================================================
+namespace TanhSolnForPoisson
+{
+
+  /// Parameter for steepness of "step"
+  double Alpha=1.0;
+
+  /// Parameter for angle Phi of "step"
+  double TanPhi=0.0;
+
+  /// Exact solution as a Vector
+  double exact_phi(const double& t, const Vector<double>& x)
+  {
+    return tanh(1.0-Alpha*(TanPhi*x[0]-x[1]));
+  }
+
+  /// Source function required to make the solution above an exact solution
+  double source_function(const double& t, const Vector<double>& x)
+  {
+    return 2.0*tanh(-1.0+Alpha*(TanPhi*x[0]-x[1]))*
+      (1.0-pow(tanh(-1.0+Alpha*(TanPhi*x[0]-x[1])),2.0))*
+      Alpha*Alpha*TanPhi*TanPhi+2.0*tanh(-1.0+Alpha*(TanPhi*x[0]-x[1]))*
+      (1.0-pow(tanh(-1.0+Alpha*(TanPhi*x[0]-x[1])),2.0))*Alpha*Alpha;
+  }
+
+} // end of namespace
+
+
 namespace Inputs
 {
   double sat_mag = 1.0;
@@ -136,11 +166,11 @@ namespace oomph
 
     /// Update the problem before Newton convergence check (update boundary
     /// conditions on phi).
-    void actions_before_newton_convergence_check()
-    {update_boundary_phi();}
+    // void actions_before_newton_convergence_check()
+    // {update_boundary_phi();}
 
     /// Update the problem specs before solve.
-    void actions_before_newton_solve(){};
+    void actions_before_newton_solve();
 
     /// Update the problem specs after solve
     void actions_after_newton_solve(){};
@@ -149,6 +179,39 @@ namespace oomph
     void actions_after_implicit_timestep(){};
   }; // end of problem class
 
+  template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  actions_before_newton_solve()
+{
+ // How many boundaries are there?
+ unsigned n_bound = mesh_pt()->nboundary();
+
+ //Loop over the boundaries
+ for(unsigned i=0;i<n_bound;i++)
+  {
+   // How many nodes are there on this boundary?
+   unsigned n_node = mesh_pt()->nboundary_node(i);
+
+   // Loop over the nodes on boundary
+   for (unsigned n=0;n<n_node;n++)
+    {
+     // Get pointer to node
+     Node* nod_pt=mesh_pt()->boundary_node_pt(i,n);
+
+     // Extract nodal coordinates from node:
+     Vector<double> x(2);
+     x[0]=nod_pt->x(0);
+     x[1]=nod_pt->x(1);
+
+     // Compute the value of the exact solution at the nodal point
+     double phi = TanhSolnForPoisson::exact_phi(0,x);
+
+     // Assign the value to the one (and only) nodal value at this node
+     unsigned phi_index = 0; //??ds hacky
+     nod_pt->set_value(phi_index,phi);
+    }
+  }
+}  // end of actions before solve
 
   //======================================================================
   /// Constructor
@@ -194,6 +257,9 @@ namespace oomph
 	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
 	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
 	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+
+	elem_pt->phi_source_pt() = &TanhSolnForPoisson::source_function;
+	elem_pt->exact_phi_pt() = &TanhSolnForPoisson::exact_phi;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
@@ -303,6 +369,7 @@ namespace oomph
     some_file.open(filename);
     mesh_pt()->output(some_file,npts);
     some_file.close();
+
 
   } // end of doc
 
