@@ -231,6 +231,21 @@ namespace oomph
       else return (*Exact_phi_pt)(t,x);
     }
 
+    // EXACT PHI_1 FUNCTION POINTER
+    /// Access function: Pointer to exact phi_1 function
+    TimeSpaceToDoubleFctPt& exact_phi_1_pt() {return Exact_phi_1_pt;}
+
+    /// Access function: Pointer to exact phi_1 function. Const version
+    TimeSpaceToDoubleFctPt exact_phi_1_pt() const {return Exact_phi_1_pt;}
+
+    /// Get exact phi_1 at eulerian postition x.
+    inline double get_exact_phi_1(const double& t, const Vector<double>& x) const
+    {
+      // If no exact phi_1 function has been set, return something crazy
+      if(Exact_phi_1_pt==0) {return -1000.0;}
+      else return (*Exact_phi_1_pt)(t,x);
+    }
+
     // EXACT M FUNCTION POINTER
     /// Access function: Pointer to exact M function
     TimeSpaceToDoubleVectFctPt& exact_m_pt() {return Exact_m_pt;}
@@ -455,6 +470,9 @@ namespace oomph
 
     /// Pointer to the exact solution for phi
     TimeSpaceToDoubleFctPt Exact_phi_pt;
+
+    /// Pointer to the exact solution for phi_1
+    TimeSpaceToDoubleFctPt Exact_phi_1_pt;
 
   }; // End of MicromagEquations class
 
