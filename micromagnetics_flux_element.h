@@ -269,20 +269,6 @@ namespace oomph
 	Vector<double> interpolated_m(3,0.0);
 	bulk_element_pt()->interpolated_m_micromag(s_bulk,interpolated_m);
 
-	// ??ds Get the gradient of each m_i from the bulk element
-	DenseDoubleMatrix interpolated_dmdx(3,Dim,0.0);
-	for(unsigned l=0;l<n_node;l++)
-  	  {
-	    for(unsigned k=0; k<3; k++)
-	      {
-		for(unsigned j=0; j<Dim; j++)
-		  {
-		    interpolated_dmdx(k,j) += dpsidx(l,j)
-		      * nodal_value(l, bulk_element_pt()->m_index_micromag(k));
-		  }
-  	      }
-  	  } //??ds suspect...
-
 	//     for(unsigned j=0; j<Dim; j++)
 	//       {
 	// 	std::cout << dpsidx(0,j) << std::endl;
@@ -325,6 +311,10 @@ namespace oomph
 	//------------------------------------------------------------
 	double exchange_coeff = bulk_element_pt()
 	  ->get_exchange_coeff(cts_time,interpolated_x);
+
+	// Get dmdx at this point from the bulk element
+	DenseDoubleMatrix interpolated_dmdx(3,3,0.0);
+	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,interpolated_dmdx);
 
 	// Get the dot product of gradient(m_j) and the normal for each j:
 	Vector<double> gradmdotn(3,0.0);

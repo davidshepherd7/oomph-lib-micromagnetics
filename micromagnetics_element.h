@@ -313,6 +313,31 @@ namespace oomph
 
     }
 
+    /// Return FE representation of M at local coordinate s and current time.
+    inline void interpolated_dmdx_micromag(const Vector<double> &s,
+					   DenseDoubleMatrix& interpolated_dmdx) const
+    {
+
+      // Get number of nodes
+      const unsigned n_node = nnode();
+
+      // Set up memory for the shape and test functions
+      Shape psi(n_node), test(n_node);
+      DShape dpsidx(n_node,DIM), dtestdx(n_node,DIM);
+
+      // Get shape and test functions
+      dshape_dtest(s,psi,dpsidx,test,dtestdx);
+
+      // Interpolate values at knot by looping over nodes adding contributions
+      for(unsigned l=0;l<n_node;l++)
+	for(unsigned j=0; j<DIM; j++)
+	  for(unsigned k=0; k<3; k++)
+	    {
+	      interpolated_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
+	    }
+
+    }
+
     /// \short Return FE representation of solution vector (phi,M,H_ex)
     /// at local coordinate s and current time.
     inline void interpolated_solution_micromag(const Vector<double> &s,
