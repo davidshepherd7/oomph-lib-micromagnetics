@@ -1,6 +1,6 @@
 Index: src/meshes/collapsible_channel_mesh.template.cc
 ===================================================================
---- src/meshes/collapsible_channel_mesh.template.cc	(revision 258)
+--- src/meshes/collapsible_channel_mesh.template.cc	(revision 274)
 +++ src/meshes/collapsible_channel_mesh.template.cc	(working copy)
 @@ -157,7 +157,7 @@
       for (unsigned i=0;i<nnode_1d;i++)
@@ -40,7 +40,7 @@ Index: src/meshes/collapsible_channel_mesh.template.cc
     // Left end
 Index: src/helmholtz/helmholtz_bc_elements.h
 ===================================================================
---- src/helmholtz/helmholtz_bc_elements.h	(revision 258)
+--- src/helmholtz/helmholtz_bc_elements.h	(revision 274)
 +++ src/helmholtz/helmholtz_bc_elements.h	(working copy)
 @@ -408,8 +408,8 @@
        
@@ -271,9 +271,22 @@ Index: src/helmholtz/helmholtz_bc_elements.h
       if (local_unknown_imag >= 0)
        {   
         global_unknown_imag=this->eqn_number(local_unknown_imag);
+Index: src/generic/double_multi_vector.h
+===================================================================
+--- src/generic/double_multi_vector.h	(revision 274)
++++ src/generic/double_multi_vector.h	(working copy)
+@@ -471,7 +471,7 @@
+  void redistribute(const LinearAlgebraDistribution* const& dist_pt);
+    
+  /// \short [] access function to the (local) values of the v-th vector
+- double& operator()(int v, int i) const
++ double& operator()(unsigned v, unsigned i) const
+   {
+ #ifdef RANGE_CHECKING
+    std::ostringstream error_message;
 Index: src/generic/shape.h
 ===================================================================
---- src/generic/shape.h	(revision 258)
+--- src/generic/shape.h	(revision 274)
 +++ src/generic/shape.h	(working copy)
 @@ -78,7 +78,7 @@
  //=========================================================================
@@ -284,51 +297,42 @@ Index: src/generic/shape.h
  
   /// \short Pointer that addresses the storage that will be used to read and
   /// set the shape functions. The shape functions are packed into 
-@@ -133,6 +133,10 @@
-  /// Broken copy constructor
-  Shape(const Shape &shape) {BrokenCopy::broken_copy("Shape");}
- 
-+ /// Default constructor - just assigns a null pointer for the storage so that
-+ /// the destructor works as expected.
-+ Shape() : Allocated_storage(0) {}
-+
-  /// The assignment operator does a shallow copy 
-  /// (resets the pointer to the data)
-  void operator=(const Shape &shape)
-@@ -455,6 +459,39 @@
+@@ -455,6 +455,41 @@
  
  };
  
 +//======================================================================
-+/// A vectorisable shape function. We need to add a deep copy constructor
-+/// for use by the default vector operations.
++/// A shape function with a deep copy constructor. This allows for use with stl
++///  operations (e.g. manipulating vectors of shape functions). A seperate class
++///  is needed because the basic shape function uses a shallow copy.
 +//======================================================================
-+class VShape : public Shape
++class ShapeWithDeepCopy : public Shape
 +{
 +public:
 +
 +  /// Constructor for a single-index set of shape functions.
-+  VShape(const unsigned &N) : Shape(N) {}
++  ShapeWithDeepCopy(const unsigned &N) : Shape(N) {}
 +
 +  /// Constructor for a two-index set of shape functions.
-+  VShape(const unsigned &N, const unsigned &M) : Shape(N,M) {}
++  ShapeWithDeepCopy(const unsigned &N, const unsigned &M) : Shape(N,M) {}
 +
-+  /// Default constructor to allow vectors of VShapes
-+  VShape() : Shape() {}
++  /// Default constructor
++  ShapeWithDeepCopy() : Shape() {}
 +
 +  /// Deep copy constructor
-+  VShape(const VShape &old_shape) : Shape(old_shape.Index1, old_shape.Index2)
++  ShapeWithDeepCopy(const ShapeWithDeepCopy &old_shape) :
++    Shape(old_shape.Index1, old_shape.Index2)
 +  {
 +    for(unsigned i=0; i<Index1*Index2; i++)
 +      Psi[i] = old_shape.Psi[i];
 +  }
 +
 +  /// Broken assignment operator
-+  void operator=(const VShape &old_shape)
-+  {BrokenCopy::broken_assign("VShape");}
++  void operator=(const ShapeWithDeepCopy &old_shape)
++  {BrokenCopy::broken_assign("ShapeWithDeepCopy");}
 +
 + /// Destructor, clear up the memory allocated by the object
-+ ~VShape() {delete[] Allocated_storage; Allocated_storage=0;}
++ ~ShapeWithDeepCopy() {delete[] Allocated_storage; Allocated_storage=0;}
 +
 +};
 +
@@ -337,9 +341,9 @@ Index: src/generic/shape.h
  // One dimensional shape functions and derivatives.
 Index: src/generic/Makefile.am
 ===================================================================
---- src/generic/Makefile.am	(revision 258)
+--- src/generic/Makefile.am	(revision 274)
 +++ src/generic/Makefile.am	(working copy)
-@@ -96,7 +96,8 @@
+@@ -99,7 +99,8 @@
  preconditioner.h \
  general_purpose_preconditioners.h block_preconditioner.h \
  general_purpose_block_preconditioners.h SuperLU_preconditioner.h \
@@ -349,7 +353,7 @@ Index: src/generic/Makefile.am
  
  if OOMPH_HAS_MUMPS
  headers+=mumps_solver.h
-@@ -139,7 +140,7 @@
+@@ -142,7 +143,7 @@
  
  # Need to worry about these for dependency but they shouldn't
  # be included into the include directory
@@ -360,7 +364,7 @@ Index: src/generic/Makefile.am
  libname = generic
 Index: src/generic/elements.h
 ===================================================================
---- src/generic/elements.h	(revision 258)
+--- src/generic/elements.h	(revision 274)
 +++ src/generic/elements.h	(working copy)
 @@ -1221,7 +1221,7 @@
  
@@ -373,7 +377,7 @@ Index: src/generic/elements.h
     if(n >= Nnode)
 Index: src/generic/elements.cc
 ===================================================================
---- src/generic/elements.cc	(revision 258)
+--- src/generic/elements.cc	(revision 274)
 +++ src/generic/elements.cc	(working copy)
 @@ -3606,13 +3606,11 @@
    assemble_eulerian_base_vectors(dpsids,interpolated_G);
@@ -405,7 +409,7 @@ Index: src/generic/elements.cc
        for(unsigned k=0;k<n_dim_node;k++) 
         {
          G(i,j) += interpolated_G(i,k)*interpolated_G(j,k);
-@@ -4577,13 +4573,11 @@
+@@ -4578,13 +4574,11 @@
       }
     }
    //Now find the local deformed metric tensor from the tangent Vectors
@@ -420,7 +424,7 @@ Index: src/generic/elements.cc
        //Take the dot product
        for(unsigned k=0;k<n_dim;k++)
         { 
-@@ -4665,13 +4659,11 @@
+@@ -4666,13 +4660,11 @@
     }
  
    //Now find the local deformed metric tensor from the tangent Vectors
@@ -435,7 +439,7 @@ Index: src/generic/elements.cc
        //Take the dot product
        for(unsigned k=0;k<n_dim;k++)
         { 
-@@ -4828,9 +4820,7 @@
+@@ -4829,9 +4821,7 @@
   
      //Calculate all derivatives of the spatial coordinates wrt 
      //local coordinates
@@ -446,7 +450,7 @@ Index: src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4881,10 +4871,7 @@
+@@ -4882,10 +4872,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -458,7 +462,7 @@ Index: src/generic/elements.cc
      
      //Loop over all parent nodes
      for(unsigned l=0;l<n_node_bulk;l++)
-@@ -4988,10 +4975,7 @@
+@@ -4989,10 +4976,7 @@
   
      //Calculate all derivatives of the spatial coordinates 
      //wrt local coordinates
@@ -470,7 +474,7 @@ Index: src/generic/elements.cc
      
      //Loop over all nodes
      for(unsigned l=0;l<n_node;l++)
-@@ -6011,13 +5995,11 @@
+@@ -6012,13 +5996,11 @@
     shape(s,psi);
  
     // Get Lagrangian coordinate
