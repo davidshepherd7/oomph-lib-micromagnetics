@@ -125,26 +125,20 @@ namespace oomph
 	    this->add_element_pt(Sub_mesh_pt[i_mesh]->element_pt(e));
 	  }
 
-	// Add nodes on curved boundary (b = 0) to overall boundary
-	for(unsigned nd=0; nd < Sub_mesh_pt[i_mesh]->nboundary_node(0); nd++)
+	// Add nodes on curved boundary (b = 3) to overall boundary
+	for(unsigned nd=0; nd < Sub_mesh_pt[i_mesh]->nboundary_node(3); nd++)
 	  {
-	    this->add_boundary_node(0,Sub_mesh_pt[i_mesh]->node_pt(nd));
+	    this->add_boundary_node(0,Sub_mesh_pt[i_mesh]->boundary_node_pt(3,nd));
 	  }
 
-	// // Add elements on curved boundary  (b = 0) to overall boundary
-	// for(unsigned e=0; e < Sub_mesh_pt[i_mesh]->nboundary_element(0); e++)
-	//   {
-	//     this->add_boundary_element(0,
-	//   }
-      }
-
-    for(unsigned e=0; e < this->nelement(); e++)
-      {
-	std::cout << this->element_pt(e)->ndof() << std::endl;
+	// Remove all submesh boundary info. We need to do this because they
+	// mess up our boundary scheme since some boundary info is stored in the
+	// nodes.
+	Sub_mesh_pt[i_mesh]->remove_boundary_nodes();
       }
 
     // Setup boundary element lookup schemes
-    setup_boundary_element_info();
+    this->setup_boundary_element_info();
   }
 
 

@@ -184,31 +184,31 @@ namespace oomph
     // Loop over elements in bulk mesh to set function pointers
     for(unsigned i=0; i<n_bulk_element(); i++)
       {
-	// Upcast from GeneralisedElement to the present element
-	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+    	// Upcast from GeneralisedElement to the present element
+    	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
 
-	// Set pointer to continuous time
-	elem_pt->time_pt() = time_pt();
+    	// Set pointer to continuous time
+    	elem_pt->time_pt() = time_pt();
 
-	// Set the function pointers for parameters
-	//??ds fix this to use proper encapsulation asap
-	elem_pt->applied_field_pt() = &Inputs::applied_field;
-	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+    	// Set the function pointers for parameters
+    	//??ds fix this to use proper encapsulation asap
+    	elem_pt->applied_field_pt() = &Inputs::applied_field;
+    	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+    	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+    	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+    	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+    	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
     // boundary set from the balue of phi_1 and the boundary matrix).
     for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
       {
-	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
-	  {
-	    mesh_pt()->boundary_node_pt(b,nd)->
-	      pin(some_el_pt->phi_index_micromag());
-	  }
+    	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
+    	  {
+    	    mesh_pt()->boundary_node_pt(b,nd)->
+    	      pin(some_el_pt->phi_index_micromag());
+    	  }
       }
 
 
@@ -219,7 +219,7 @@ namespace oomph
     // create the face elements needed.
     for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
       {
-	create_flux_elements(b);
+    	create_flux_elements(b);
       }
 
     // Setup equation numbering scheme for all the finite elements
@@ -240,15 +240,15 @@ namespace oomph
     unsigned n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned i=0;i<n_bem_element;i++)
       {
-	// Upcast from GeneralisedElement to the bem element
-	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
-	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
+    	// Upcast from GeneralisedElement to the bem element
+    	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
+    	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
 
-	// Set boundary mesh pointer in element
-	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
+    	// Set boundary mesh pointer in element
+    	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
 
-	// Set the integration scheme pointer in element
-	bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
+    	// Set the integration scheme pointer in element
+    	bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
       }
 
     // Make the boundary matrix (including setting up the numbering scheme)
@@ -614,6 +614,31 @@ int main(int argc, char* argv[])
   ThreeDHybridProblem< QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem;
 
+  // dump mesh for testing
+  std::ofstream mesh_plot;
+  mesh_plot.open("./mesh_points");
+  for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
+    {
+      for(unsigned j=0; j<dim; j++)
+	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
+      mesh_plot << std::endl;
+    }
+  mesh_plot.close();
+
+
+  // dump boundary for testing
+  unsigned b = 0;
+  std::ofstream bound_plot;
+  bound_plot.open("./bound_points");
+  for(unsigned nd=0; nd<problem.mesh_pt()->nboundary_node(b); nd++)
+    {
+      for(unsigned j=0; j<dim; j++)
+	bound_plot << problem.mesh_pt()->boundary_node_pt(b,nd)->x(j) << " ";
+      bound_plot << std::endl;
+    }
+  bound_plot.close();
+
+
   // Initialise timestep, initial conditions
   problem.initialise_dt(dt);
   problem.set_initial_condition();
@@ -628,7 +653,7 @@ int main(int argc, char* argv[])
   /// Check problem
   if(!(problem.self_test()==0))
     throw OomphLibError("Problem self_test failed","main",
-			OOMPH_EXCEPTION_LOCATION);
+  			OOMPH_EXCEPTION_LOCATION);
 
   std::cout << "constructor done, everything ready" << "\n" << std::endl;
 
