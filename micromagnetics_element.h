@@ -10,6 +10,9 @@
 #include <vector>
 #include "./prettyprint98.hpp"
 
+// My vector helpers
+#include "./vector_helpers.h"
+
 using namespace oomph;
 
 namespace oomph
@@ -247,17 +250,6 @@ namespace oomph
       else (*Exact_m_pt)(t,x,m_exact);
     }
 
-    /// Calculate the cross product of vectors A and B, store the result in
-    /// vector output. NOTE: the cross product is only valid for 3-dimensional
-    /// vectors
-    //??ds this should go somewhere else probably, maybe generic.h?
-    void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output) const
-    {
-      output[0] = A[1]*B[2] - A[2]*B[1];
-      output[1] = A[2]*B[0] - A[0]*B[2];
-      output[2] = A[0]*B[1] - A[1]*B[0];
-    }
-
     /// Return FE representation of function value phi(s) at local coordinate s
     inline double interpolated_phi_micromag(const Vector<double> &s) const
     {
@@ -338,7 +330,27 @@ namespace oomph
 
     }
 
-    /// \short Return FE representation of solution vector (phi,M,H_ex)
+    inline void interpolated_dphidx_micromag(const Vector<double>& s,
+					     Vector<double>& interpolated_dphidx) const
+    {
+      //Find number of nodes
+      const unsigned n_node = nnode();
+
+      //Local shape function and derivative
+      Shape psi(n_node); DShape dpsidx(n_node,DIM);
+      dshape_eulerian(s,psi,dpsidx);
+
+      // Initialise output vector
+      interpolated_dphidx.assign(3,0.0);
+
+      // Calculate values
+      for(unsigned l=0;l<n_node;l++)
+	for(unsigned j=0; j<DIM; j++)
+	  interpolated_dphidx[j] += nodal_value(l,phi_index_micromag())*dpsidx(l,j);
+    }
+
+
+    /// \short Return FE representation of solution vector (phis,M,H_ex)
     /// at local coordinate s and current time.
     inline void interpolated_solution_micromag(const Vector<double> &s,
     					       Vector<double>& interpolated_solution) const

@@ -8,8 +8,12 @@
 #include "./variable_order_quadrature.h"
 #include <functional>
 
+// easier to use vector functions for now (probably not optimal...)
+#include "./vector_helpers.h"
+
 using namespace oomph;
 using namespace MathematicalConstants;
+using namespace VectorOps;
 
 namespace oomph
 {
@@ -21,6 +25,19 @@ namespace oomph
   class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
 			      public virtual FaceElement
   {
+
+  private:
+
+    /// \short Pointer to the boundary mesh (needed to access nodes
+    /// outside of this element for calculation of boundary matrix).
+    Mesh* Boundary_mesh_pt;
+
+    /// The index at which phi_1 is stored
+    unsigned Phi_1_index_micromag;
+
+    /// The index at which phi_2 is stored
+    unsigned Phi_2_index_micromag;
+
 
   public:
 
@@ -68,6 +85,7 @@ namespace oomph
 						 DenseMatrix<double> &boundary_matrix)
     {
       fill_in_be_contribution_adaptive(boundary_matrix);
+      //fill_in_be_contribution_analytic(boundary_matrix);
     }
 
     /// Output function -- forward to broken version in FiniteElement
@@ -123,7 +141,7 @@ namespace oomph
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
     inline double shape_and_test(const Vector<double> &s,
-				 VShape &psi, VShape &test) const
+				 ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
     {
       // Get the shape function and set test = shape
       shape(s,psi);
@@ -138,7 +156,7 @@ namespace oomph
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
     inline double shape_and_test_at_knot(const unsigned &ipt,
-					 VShape &psi, VShape &test) const
+					 ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
     {
       // Get the shape function and set test = shape
       shape_at_knot(ipt,psi);
@@ -158,15 +176,16 @@ namespace oomph
     /// Add the element's contribution to the boundary element matrix using adaptive quadrature.
     void fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix) const;
 
-    /// \short Pointer to the boundary mesh (needed to access nodes
-    /// outside of this element for calculation of boundary matrix).
-    Mesh* Boundary_mesh_pt;
+    /// Add the element's contribution to the boundary element matrix using
+    /// analytic calculations by calling analytic_integral_dgreendn with
+    /// appropriate input for the element.
+    void fill_in_be_contribution_analytic(DenseMatrix<double> &boundary_matrix) const;
 
-    /// The index at which phi_1 is stored
-    unsigned Phi_1_index_micromag;
-
-    /// The index at which phi_2 is stored
-    unsigned Phi_2_index_micromag;
+    /// ??ds? Calculate the contribution of a triangular region to the boundary
+    /// element matrix using analytic calculations from Lindholm1984.
+    void analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_nds,
+					     const Vector<unsigned>& l,
+					     DenseMatrix<double>& boundary_matrix) const;
 
   };
 
@@ -226,7 +245,7 @@ namespace oomph
     // Set up storage for data at each knot for each order
     Vector< Vector< Vector<double> > > x_kn(n_order), normal(n_order);
     Vector< Vector<double> > jw(n_order);
-    Vector< Vector<VShape> > test(n_order), psi(n_order);
+    Vector< Vector<ShapeWithDeepCopy> > test(n_order), psi(n_order);
 
     // Loop over all source nodes on the boundary
     unsigned n_boundary_node = boundary_mesh_pt()->nnode();
@@ -280,7 +299,7 @@ namespace oomph
 					  * v_int_pt->weight(kn,new_order));
 
 		    // Get shape and test(=shape) functions
-		    VShape psi_local(n_element_node);
+		    ShapeWithDeepCopy psi_local(n_element_node);
 		    shape(s,psi_local);
 		    psi[i_order].push_back(psi_local);
 		    test[i_order].push_back(psi_local);
@@ -504,100 +523,307 @@ namespace oomph
     return 1/Pi * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
   }
 
+  //======================================================================
+  ///
+  //======================================================================
+  template<class ELEMENT,unsigned DIM>
+  void MicromagFaceElement<ELEMENT,DIM>::
+  fill_in_be_contribution_analytic(DenseMatrix<double> &boundary_matrix) const
+  {
+#ifdef PARANOID
+    // Check 3d
+    if(nodal_dimension() !=3)
+      throw OomphLibError("Analytic calculation of boundary matrix only works in 3D.",
+			  "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+			  OOMPH_EXCEPTION_LOCATION);
+
+    if(nnode_1d() != 2)
+      throw OomphLibError("Analytic calculation of boundary matrix only works for linear (i.e. flat) elements.",
+			  "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+			  OOMPH_EXCEPTION_LOCATION);
+
+    // ??ds check no hanging nodes - not sure what to do there yet
+#endif
+
+    // List of the node numbers for the three nodes that we are taking to be the
+    // three corners of the triangle.
+    Vector<unsigned> l(3,0);
+    l[0] = 0; l[1] = 1; l[2] = 2; // Start with the first three nodes
+
+    // Get global nodal positions for first three nodes
+    Vector<Vector<double> > x_nds(3);
+    x_nds[0].assign(3,0.0); node_pt(0)->position(x_nds[0]);
+    x_nds[1].assign(3,0.0); node_pt(1)->position(x_nds[1]);
+    x_nds[2].assign(3,0.0); node_pt(2)->position(x_nds[2]);
+
+    //    std::cout << x_nds[0] << " " << x_nds[1] << " " << x_nds[2] << " " << std::endl;
+
+    // Convert element into triangle sub-elements (do nothing if elements are
+    // already triangular).
+    if(this->nvertex_node() == 3)
+      {
+	// Evaluate the integral
+	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
+      }
+    else if(this->nvertex_node() == 4)
+      {
+	// Evaluate for the triangle formed by the first three nodes
+	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
+
+	// Change a node to the opposite vertex to form a new triangle and
+	// repeat
+	node_pt(3)->position(x_nds[1]);
+	// std::cout << x_nds[0] << " " << x_nds[1] << " " << x_nds[2] << " " << std::endl;
+	l[1] = 3;
+	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
+      }
+    else
+      {
+	throw OomphLibError("Unhandled number of vertex nodes in boundary element. Could be the wrong dimension, hanging nodes or a higher order elements. Hanging nodes could be implemented but higher order elements or lower dimension cannot (afaik).",
+			    "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
+
+    // std::cout << std::endl;
+  }
+
+  //======================================================================
+  ///
+  //??ds could pass in unit normal since same for all triangle sub-elements
+  //======================================================================
+  template<class ELEMENT,unsigned DIM>
+  void MicromagFaceElement<ELEMENT,DIM>::
+  analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_nds,
+				      const Vector<unsigned>& l,
+				      DenseMatrix<double>& boundary_matrix) const
+  {
+    // Only works in 3D and for triangles (3 nodes)
+    const unsigned node_dim = 3;
+    const unsigned n_node = 3;
+
+    /* First some pre-calculations to get everything ready. */
+
+    // Calculate the length of the triangle sides and the unit vectors along the
+    // triangle sides.
+    Vector<double> side_length(n_node,0.0);
+    Vector<Vector<double> > side_direction(n_node);
+    for(unsigned i=0; i < n_node; i++)
+      {
+	// Get the next node around the triangle (i.e. 0 -> 1 -> 2 -> 0 etc.).
+	unsigned next_node = (i+1)%n_node;
+
+	// Get the length of this side (s in Lindholm1984)
+	side_length[i] = mod_diff(x_nds[i],x_nds[next_node]);
+
+	// Get the vector along this side (xi in Lindholm1984)
+	abs_vector_diff(x_nds[next_node],x_nds[i],side_direction[i]);
+      }
+
+    // Calculate the non-unit normal to triangle. Assuming flat element => same
+    // everywhere so we can just take the cross product of any two vectors in
+    // the plane. Use the first two edge vectors.
+    Vector<double> unit_normal(node_dim,0.0);
+    cross(side_direction[0],side_direction[1],unit_normal);
+
+    // Calculate area of triangle using the cross product of the (unnormalised)
+    // side_direction vectors, already calculated since it is the normal.
+    double area = mod(unit_normal)/2;
+
+    // Normalise the unit normal and side direction vectors now that we have the
+    // area.
+    normalise(unit_normal);
+    for(unsigned i=0; i<n_node; i++) normalise(side_direction[i]);
+
+    // Calculate gamma
+    Vector< Vector<double> > gamma(n_node);
+    for(unsigned i=0; i<3; i++)
+      {
+	gamma[i].assign(n_node,0.0); // Initialise gamma[i]
+	unsigned next_node = (i+1)%n_node; // Get next triangle vertex
+	for(unsigned j=0; j<n_node; j++)
+	  gamma[i][j] = dot(side_direction[next_node],side_direction[j]);
+      }
+
+    /* Now evaluate the integral for every boundary node and add to
+       boundary matrix. */
+    for(unsigned i_sn=0; i_sn < boundary_mesh_pt()->nnode(); i_sn++)
+      {
+	// Get position of this node
+	Vector<double> x_sn(node_dim,0.0);
+	boundary_mesh_pt()->node_pt(i_sn)->position(x_sn);
+
+	// Calculate rho (vector from each node in the triangle to source node)
+	// and it's length.
+	Vector<Vector<double> > rho(n_node); Vector<double> rhol(n_node);
+	for(unsigned i_nd=0; i_nd<n_node; i_nd++)
+	  {
+	    vector_diff(x_nds[i_nd],x_sn,rho[i_nd]);
+	    rhol[i_nd] = mod(rho[i_nd]);
+	  }
+
+	// Calculate zeta: the distance between the element and the source node
+	// in the normal direction to the element.
+	double zeta = dot(unit_normal,rho[0]);
+
+	// If source node is in the plane of the element (i.e. zeta ~ 0)
+	// then n.r = 0 so we can move on to the next source node.
+	if (zeta < 1e-8)
+	  continue;
+
+	// Calculate "P" (see paper) for each node in the triangle
+	Vector<double> P(n_node,0.0);
+	for(unsigned i=0; i<n_node; i++)
+	  {
+	    unsigned next_node = (i+1)%n_node;
+	    P[i] = std::log( (rhol[i] + rhol[next_node] + side_length[i])
+			     /(rhol[i] + rhol[next_node] - side_length[i]) );
+	  }
 
 
+	// Calculate the solid angle (see Lindholm 1984)
+	double numerator = rhol[0]*rhol[1]*rhol[2]
+	  + rhol[0] * dot(rho[1],rho[2])
+	  + rhol[1] * dot(rho[0],rho[2])
+	  + rhol[2] * dot(rho[1],rho[0]);
+	double denominator = std::sqrt(2
+				  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
+				  *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
+				  *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
+				  );
+	int sign = (zeta > 0.0 ? +1 : -1);
+	double omega = sign * std::acos(numerator/denominator);
 
- //  //======================================================================
-//   /// Point element to sit at sharp corners and add the angle/solid angle of the
-//   /// corner to the boundary element matrix. DIM is the dimension of the entire
-//   /// problem not the dimension of the point element (which is always 0).
-//   //======================================================================
-//   template<class ELEMENT, unsigned DIM>
-//   class MicromagCornerAngleElement :
-//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-//     public virtual PointElement
-//   {};
+	// Calculate eta: the unit vector normal to the side. Use it to
+	// calculate etal: the distance in the diretion of eta to the source
+	// node.
+	Vector<Vector<double> > eta(3); Vector<double> etal(3,0.0);
+	for(unsigned i=0; i<n_node; i++)
+	  {
+	    eta[i].assign(3,0.0);
+	    cross(unit_normal,side_direction[i],eta[i]);
+	    etal[i] = dot(eta[i],rho[i]);
+	  }
+
+	/* Now put it all together and add the contribution to the boundary
+	   element matrix */
+	for(unsigned i_tn=0; i_tn < n_node; i_tn++)
+	  {
+	    unsigned next_node = (i_tn+1)%n_node;
+	    // Add contribution to the appropriate value in the boundary matrix
+	    boundary_matrix(l[i_tn],i_sn) += (side_length[i_tn]/(8*Pi*area))
+	      *( -zeta * dot(gamma[i_tn],P))
+	      *( etal[next_node] * omega);
+
+	    // Vector<double> dist(n_node,0.0);
+	    // vector_diff(x_sn,x_nds[i_tn],dist);
+
+	    // std::cout // << "source node at " << x_sn << " and target node at " << x_nds[i_tn]
+	    //   << "elementwise difference of " << dist
+	    //   << " gives an entry " << boundary_matrix(l[i_tn],i_sn) << ", "
+	    //   << (rhol[0] + rhol[1] - side_length[0]) << " "
+	    //   << (rhol[1] + rhol[2] - side_length[1]) << " "
+	    //   << (rhol[2] + rhol[0] - side_length[2]) << " "
+	    //   << std::endl;
+
+	    //??ds do we HAVE to add solid angle contrib here? or can we add it in
+	    //driver code like now?
+	  }
+
+      }
+  }
 
 
-//   //======================================================================
-//   /// In 1D there are no sharp corners so no 1D version is needed.
-//   //======================================================================
+  //  //======================================================================
+  //   /// Point element to sit at sharp corners and add the angle/solid angle of the
+  //   /// corner to the boundary element matrix. DIM is the dimension of the entire
+  //   /// problem not the dimension of the point element (which is always 0).
+  //   //======================================================================
+  //   template<class ELEMENT, unsigned DIM>
+  //   class MicromagCornerAngleElement :
+  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+  //     public virtual PointElement
+  //   {};
 
-//   //======================================================================
-//   /// 2D specialisation: calculate angles.
-//   //======================================================================
-//   template< class ELEMENT>
-//   class MicromagCornerAngleElement<ELEMENT,2> :
-//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-//     public virtual PointElement
-//   {
-//   private:
 
-//     /// Pointer to the face elements to which this point element is
-//     /// attached.
-//     Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
+  //   //======================================================================
+  //   /// In 1D there are no sharp corners so no 1D version is needed.
+  //   //======================================================================
 
-//     /// The index of the node in face elements to which this point element is
-//     /// attached.
-//     Vector<unsigned> Node_number;
+  //   //======================================================================
+  //   /// 2D specialisation: calculate angles.
+  //   //======================================================================
+  //   template< class ELEMENT>
+  //   class MicromagCornerAngleElement<ELEMENT,2> :
+  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+  //     public virtual PointElement
+  //   {
+  //   private:
 
-//   public:
+  //     /// Pointer to the face elements to which this point element is
+  //     /// attached.
+  //     Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
 
-//     MicromagCornerAngleElement() : Face_element_pt(2)
-//     {
-//       // Face_element_pt[0] = e1;
-//       // Face_element_pt[1] = e2;
+  //     /// The index of the node in face elements to which this point element is
+  //     /// attached.
+  //     Vector<unsigned> Node_number;
 
-//       // Node_number[0] = n1;
-//       // Node_number[1] = n2;
-//     }
+  //   public:
 
-//     /// Calculate the angle between the two attached face elements
-//     double calculate_corner_fractional_angle() const
-//     {
-//       Vector<Vector<double> > t;
+  //     MicromagCornerAngleElement() : Face_element_pt(2)
+  //     {
+  //       // Face_element_pt[0] = e1;
+  //       // Face_element_pt[1] = e2;
 
-//       // For each attached face element (two of them) get the tangent vector
-//       for(unsigned fe=0; fe<2; fe++)
-// 	{
-// 	  // Find out the number of nodes in the face element
-// 	  unsigned n_node_face = Face_element_pt[fe]->nnode();
+  //       // Node_number[0] = n1;
+  //       // Node_number[1] = n2;
+  //     }
 
-// 	  // Get the value of the shape function derivatives at the node
-// 	  Shape psi(n_node_face); // We have to calculate shape functions as well...
-// 	  DShape dpsids(n_node_face,1);
-// 	  Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
+  //     /// Calculate the angle between the two attached face elements
+  //     double calculate_corner_fractional_angle() const
+  //     {
+  //       Vector<Vector<double> > t;
 
-// 	  // Calculate all derivatives of the spatial coordinates wrt local
-// 	  // coordinates
-// 	  Vector<double> interpolated_dxds(2,0.0);
-// 	  // for(unsigned j=0;j<2;j++)
-// 	  //   {
-// 	  //     interpolated_dxds[j] +=
-// 	  // 	Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
-// 	  //   }
+  //       // For each attached face element (two of them) get the tangent vector
+  //       for(unsigned fe=0; fe<2; fe++)
+  // 	{
+  // 	  // Find out the number of nodes in the face element
+  // 	  unsigned n_node_face = Face_element_pt[fe]->nnode();
 
-// 	  // Add to list of tangents
-// 	  t.push_back(interpolated_dxds);
-// 	}
+  // 	  // Get the value of the shape function derivatives at the node
+  // 	  Shape psi(n_node_face); // We have to calculate shape functions as well...
+  // 	  DShape dpsids(n_node_face,1);
+  // 	  Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
 
-//       // Calculate the angle between them (inverse cos of the dot product).
-//       return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]) / (2*Pi);
-//     }
+  // 	  // Calculate all derivatives of the spatial coordinates wrt local
+  // 	  // coordinates
+  // 	  Vector<double> interpolated_dxds(2,0.0);
+  // 	  // for(unsigned j=0;j<2;j++)
+  // 	  //   {
+  // 	  //     interpolated_dxds[j] +=
+  // 	  // 	Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
+  // 	  //   }
 
-//   };
+  // 	  // Add to list of tangents
+  // 	  t.push_back(interpolated_dxds);
+  // 	}
 
-//   //======================================================================
-//   /// 3D specialisation: calculate solid angles.
-//   //======================================================================
-//   template< class ELEMENT>
-//   class MicromagCornerAngleElement<ELEMENT,3> :
-//     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-//     public virtual PointElement
-//   {
+  //       // Calculate the angle between them (inverse cos of the dot product).
+  //       return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]) / (2*Pi);
+  //     }
 
-//     //??ds calculating the angle is going to be harder here, do it later...
-//   };
+  //   };
+
+  //   //======================================================================
+  //   /// 3D specialisation: calculate solid angles.
+  //   //======================================================================
+  //   template< class ELEMENT>
+  //   class MicromagCornerAngleElement<ELEMENT,3> :
+  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
+  //     public virtual PointElement
+  //   {
+
+  //     //??ds calculating the angle is going to be harder here, do it later...
+  //   };
 
 }
 

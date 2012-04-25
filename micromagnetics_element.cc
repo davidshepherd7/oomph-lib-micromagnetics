@@ -313,8 +313,8 @@ namespace oomph
 
   	// Get the cross products for the LLG equation
 	Vector<double> interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
-  	cross(interpolated_m, H_total, interpolated_mxH);
-  	cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);
+	VectorOps::cross(interpolated_m, H_total, interpolated_mxH);
+  	VectorOps::cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);
 
 	// Loop over test functions/nodes
   	for (unsigned l=0; l<n_node; l++)
@@ -340,16 +340,21 @@ namespace oomph
   	  } // End of loop over test functions
       }// End of loop over integration points
 
-    // std::cout << "Residuals from this element" << std::endl;
-    // std::cout << "phi residual " << residuals[phi_index_micromag()] << std::endl;
-    // std::cout << "phi_1 residual " << residuals[phi_1_index_micromag()] << std::endl;
-    // std::cout << "M residuals " << residuals[m_index_micromag(0)]<< " "
-    // 	      << residuals[m_index_micromag(1)] << " "
-    // 	      << residuals[m_index_micromag(2)] << std::endl;
-    // std::cout << "exchange residuals " << residuals[exchange_index_micromag(0)]<< " "
-    // 	      << residuals[exchange_index_micromag(1)] << " "
-    // 	      << residuals[exchange_index_micromag(2)] << std::endl;
-    // std::cout << std::endl << std::endl;
+    // if( *(max_element(residuals.begin(),residuals.end())) > 3)
+    //   {
+    // 	std::cout << "Residuals from this element:" << std::endl;
+    // 	std::cout << "phi residual " << residuals[phi_index_micromag()] << std::endl;
+    // 	std::cout << "phi_1 residual " << residuals[phi_1_index_micromag()] << std::endl;
+    // 	std::cout << "M residuals " << residuals[m_index_micromag(0)]<< " "
+    // 		  << residuals[m_index_micromag(1)] << " "
+    // 		  << residuals[m_index_micromag(2)] << std::endl;
+    // 	std::cout << "exchange residuals " << residuals[exchange_index_micromag(0)]<< " "
+    // 		  << residuals[exchange_index_micromag(1)] << " "
+    // 		  << residuals[exchange_index_micromag(2)] << std::endl;
+    // 	std::cout << std::endl << std::endl;
+
+    // 	std::cout << residuals << std::endl << std::endl;
+    //   }
 
   } // End of fill in residuals function
 
@@ -369,7 +374,7 @@ namespace oomph
     Vector<double> s(DIM);
 
     // Get number of values in solution at node 0
-    const unsigned nvalue = required_nvalue(0);
+    // const unsigned nvalue = required_nvalue(0);
 
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
@@ -390,13 +395,25 @@ namespace oomph
     	    outfile << x[i] << " ";
     	  }
 
-    	// Output solution vector at local coordinate s
-    	Vector<double> interpolated_solution(nvalue,0.0); //??ds generalise the length?
-    	interpolated_solution_micromag(s,interpolated_solution);
-    	for(unsigned i=0; i<nvalue; i++)
-    	  {
-    	    outfile << interpolated_solution[i] << " ";
-    	  }
+    	// // Output solution vector at local coordinate s
+    	// Vector<double> interpolated_solution(nvalue,0.0); //??ds generalise the length?
+    	// interpolated_solution_micromag(s,interpolated_solution);
+    	// for(unsigned i=0; i<nvalue; i++)
+    	//   {
+    	//     outfile << interpolated_solution[i] << " ";
+    	//   }
+
+	// Get dphidx at this point
+	Vector<double> interpolated_dphidx(3,0.0);
+	interpolated_dphidx_micromag(s,interpolated_dphidx);
+
+	// Output the magnetostatic field at this point
+	for(unsigned i=0; i<3; i++)
+	  {
+	    outfile << interpolated_dphidx[i] << " ";
+	  }
+
+	outfile << interpolated_phi_micromag(s) << " ";
 
     	// End the line ready for next point
     	outfile << std::endl;
