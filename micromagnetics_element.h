@@ -576,6 +576,84 @@ namespace oomph
   ////////////////////////////////////////////////////////////////////////
 
 
+  //====================================================================
+  /// A class combining the micromag equations with a TElement geometry
+  //====================================================================
+  template < unsigned DIM, unsigned NNODE_1D>
+  class TMicromagElement : public TElement<DIM,NNODE_1D>, public MicromagEquations<DIM>
+  {
+  private:
+    /// Static int that holds the number of variables at nodes: always the same
+    static const unsigned Initial_Nvalue;
+
+  public:
+    /// Constructor: Call constructors for TElement and Micromag equations
+    TMicromagElement() : TElement<DIM,NNODE_1D>(), MicromagEquations<DIM>()
+    {}
+
+    /// Broken copy constructor
+    TMicromagElement(const TMicromagElement<DIM,NNODE_1D>& dummy)
+    {
+      BrokenCopy::broken_copy("TMicromagElement");
+    }
+
+    /// Broken assignment operator
+    void operator=(const TMicromagElement<DIM,NNODE_1D>&)
+    {
+      BrokenCopy::broken_assign("TMicromagElement");
+    }
+
+    /// Required  # of `values' (pinned or dofs) at node n.
+    inline unsigned required_nvalue(const unsigned &n) const
+    {return Initial_Nvalue;}
+
+    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+    void output(std::ostream &outfile, const unsigned &n_plot=5)
+    {MicromagEquations<DIM>::output(outfile,n_plot);}
+
+    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+    // void output(FILE* file_pt, const unsigned &n_plot = 5)
+    // {MicromagEquations<DIM>::output(file_pt,n_plot);}
+
+    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    inline double dshape_dtest(const Vector<double> &s,
+			       Shape &psi, DShape &dpsidx,
+			       Shape &test, DShape &dtestdx) const
+    {
+      // Call the geometrical shape functions and derivatives
+      const double J = this->dshape_eulerian(s,psi,dpsidx);
+
+      // Set the test functions equal to the shape functions
+      test = psi;
+      dtestdx= dpsidx;
+
+      // Return the jacobian
+      return J;
+    }
+
+  }; // end of TMicromagElement class declaration
+
+  //=======================================================================
+  /// Face geometry for the TMicromagElement elements: The spatial
+  /// dimension of the face elements is one lower than that of the
+  /// bulk element but they have the same number of points
+  /// along their 1D edges.
+  //=======================================================================
+  template<unsigned DIM, unsigned NNODE_1D>
+  class FaceGeometry<TMicromagElement<DIM,NNODE_1D> >:
+    public virtual TElement<DIM-1,NNODE_1D>
+  {
+
+  public:
+
+    /// \short Constructor: Call the constructor for the
+    /// appropriate lower-dimensional TElement
+    FaceGeometry() : TElement<DIM-1,NNODE_1D>() {}
+
+  };
+
+
+
 }
 
 

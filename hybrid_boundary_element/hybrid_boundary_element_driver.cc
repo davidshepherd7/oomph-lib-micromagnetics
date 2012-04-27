@@ -129,7 +129,7 @@ namespace oomph
     Mesh* Corner_mesh_pt;
 
     /// List of the point elements at (pre-discretisation) sharp corners.
-    Vector<MicromagCornerAngleElement<BULK_ELEMENT,DIM>* > Corner_elements;
+    // Vector<MicromagCornerAngleElement<BULK_ELEMENT,DIM>* > Corner_elements;
 
     /// Doc info object
     DocInfo Doc_info;
@@ -417,18 +417,18 @@ get_boundary_matrix()
 	}
     }
 
-  // Loop over all the corner elements and get contributions from the angles
-  // at sharp corners.
-  //??ds not yet working....
-  for(unsigned long ce=0; ce<Corner_elements.size(); ce++)
-    {
-      // Find out the index of the node at which the corner element is placed
-      unsigned global_j = Corner_elements[ce]->node_pt(0)->eqn_number(0);
-      unsigned j = convert_global_to_boundary_equation_number(global_j);
+  // // Loop over all the corner elements and get contributions from the angles
+  // // at sharp corners.
+  // //??ds not yet working....
+  // for(unsigned long ce=0; ce<Corner_elements.size(); ce++)
+  //   {
+  //     // Find out the index of the node at which the corner element is placed
+  //     unsigned global_j = Corner_elements[ce]->node_pt(0)->eqn_number(0);
+  //     unsigned j = convert_global_to_boundary_equation_number(global_j);
 
-      // Calculate the angle and add to boundary matrix entry (j,j)
-      Boundary_matrix(j,j) += Corner_elements[ce]->calculate_corner_fractional_angle();
-    }
+  //     // Calculate the angle and add to boundary matrix entry (j,j)
+  //     Boundary_matrix(j,j) += Corner_elements[ce]->calculate_corner_fractional_angle();
+  //   }
 
 }
 

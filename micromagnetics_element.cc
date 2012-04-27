@@ -9,10 +9,14 @@ namespace oomph
 {
 
   //======================================================================
-  /// Set the data for the number of Variables at each node.
+  /// Set the data for the number of variables at each node, it is the same in
+  /// all element types regardless of dimension, element order and geometry.
   //======================================================================
   template<unsigned DIM, unsigned NNODE_1D>
   const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
+
+  template<unsigned DIM, unsigned NNODE_1D>
+  const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
 
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix

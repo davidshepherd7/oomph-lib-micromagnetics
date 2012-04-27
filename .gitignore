@@ -17,19 +17,30 @@ Makefile.in
 \#*\#
 
 # outputs
-results/
+results*
+RESLT/
+errors*
 *backup
 rules
 *.pdf
 *.png
 *.eps
 *.gif
+*.mesh
+*dump*
+trace
 
+# tetgen files
+*.poly
+*.node
+*.ele
+*.face
 
 # plot scripts
 plotscript.gplot
 *.gplot
+*.gp
 
 # computation scripts
 *go*.sh
-*octave*.m
+*.m

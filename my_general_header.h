@@ -16,4 +16,6 @@
 
 #include <fenv.h>
 
+#include "./vector_helpers.h"
+
 #endif

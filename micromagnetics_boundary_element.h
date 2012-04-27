@@ -84,8 +84,8 @@ namespace oomph
     inline void fill_in_contribution_to_jacobian(Vector<double> &dummy,
 						 DenseMatrix<double> &boundary_matrix)
     {
-      fill_in_be_contribution_adaptive(boundary_matrix);
-      //fill_in_be_contribution_analytic(boundary_matrix);
+      // fill_in_be_contribution_adaptive(boundary_matrix);
+      fill_in_be_contribution_analytic(boundary_matrix);
     }
 
     /// Output function -- forward to broken version in FiniteElement
@@ -476,7 +476,7 @@ namespace oomph
     double n_sq = 0.0;
     for(unsigned i=0; i<node_dim; i++)
       n_sq += n[i]*n[i];
-    if(n_sq != 1)
+    if(std::abs(n_sq - 1) > 1e-10)
       {
 	throw OomphLibError("n is not a unit vector",
 			    "MicromagFaceElement::green_normal_derivative",

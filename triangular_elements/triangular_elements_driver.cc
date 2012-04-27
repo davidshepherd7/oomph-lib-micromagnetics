@@ -5,14 +5,15 @@
   description of file goes here
 */
 
-#include "../my_general_header.h"
-
 #include "generic.h"
 #include "../micromagnetics_boundary_element.h"
 #include "../micromagnetics_flux_element.h"
 
 // Mesh
-#include "meshes/tetgen_mesh.h"
+#include "meshes/simple_cubic_tet_mesh.h"
+
+// My variable gauss quadrature header
+#include "../variable_order_quadrature.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -27,8 +28,8 @@ namespace Inputs
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    // h_app[0] = +2;
-    // h_app[1] = +0.2;
+    h_app[0] = +2;
+    h_app[1] = +0.2;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -37,8 +38,8 @@ namespace Inputs
     h_ca.assign(3,0.0);
     // Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
     // double magnitude = dot(Easy_axis,M);
-    // h_ca = Easy_axis;
-    // std::for_each(h_ca.begin(), h_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
+    // H_ca = Easy_axis;
+    // std::for_each(H_ca.begin(), H_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
   }
 
   void initial_m(const double& t, const Vector<double>& x,
@@ -61,18 +62,16 @@ namespace oomph
   template<class BULK_ELEMENT,
 	   template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,
 	   unsigned DIM>
-  class ThreeDHybridProblem : public Problem
+  class TwoDHybridProblem : public Problem
   {
 
   public:
 
     /// Constructor
-    ThreeDHybridProblem(const std::string& node_file_name,
-			const std::string& element_file_name,
-			const std::string& face_file_name);
+    TwoDHybridProblem();
 
     /// Destructor (empty -- once the problem is done with the program is over)
-    ~ThreeDHybridProblem(){};
+    ~TwoDHybridProblem(){};
 
     /// Doc the solution
     void doc_solution(DocInfo& doc_info);
@@ -161,17 +160,19 @@ namespace oomph
   /// Constructor
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  ThreeDHybridProblem(const std::string& node_file_name,
-		      const std::string& element_file_name,
-		      const std::string& face_file_name)
+  TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  TwoDHybridProblem()
   {
     // Allocate steady state timestepper
     add_time_stepper_pt(new BDF<1>);
 
-    // Build mesh from tetgen
-    mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
-					     face_file_name, time_stepper_pt());
+    // Build rectangular mesh
+    unsigned nx = 5, ny = 5, nz = 5;
+    mesh_pt() = new SimpleCubicTetMesh<BULK_ELEMENT>
+      (nx,ny,nz,1.0,1.0,1.0,time_stepper_pt());
+
+    // For some reason this is not set up by default in this mesh...
+    mesh_pt()->setup_boundary_element_info();
 
     // Get an upcasted element pointer (any one will do) to have access to
     // equation numbers.
@@ -181,8 +182,6 @@ namespace oomph
     // Store the number of bulk elements before we add any face elements
     N_bulk_element = mesh_pt()->nelement();
 
-    // ??ds allow negative jacobian of transformation
-    some_el_pt->Accept_negative_jacobian = true;
 
     // Bulk elements
     //------------------------------------------------------------
@@ -190,31 +189,31 @@ namespace oomph
     // Loop over elements in bulk mesh to set function pointers
     for(unsigned i=0; i<n_bulk_element(); i++)
       {
-    	// Upcast from GeneralisedElement to the present element
-    	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+	// Upcast from GeneralisedElement to the present element
+	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
 
-    	// Set pointer to continuous time
-    	elem_pt->time_pt() = time_pt();
+	// Set pointer to continuous time
+	elem_pt->time_pt() = time_pt();
 
-    	// Set the function pointers for parameters
-    	//??ds fix this to use proper encapsulation asap
-    	elem_pt->applied_field_pt() = &Inputs::applied_field;
-    	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-    	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-    	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-    	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-    	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+	// Set the function pointers for parameters
+	//??ds fix this to use proper encapsulation asap
+	elem_pt->applied_field_pt() = &Inputs::applied_field;
+	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
     // boundary set from the balue of phi_1 and the boundary matrix).
     for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
       {
-    	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
-    	  {
-    	    mesh_pt()->boundary_node_pt(b,nd)->
-    	      pin(some_el_pt->phi_index_micromag());
-    	  }
+	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
+	  {
+	    mesh_pt()->boundary_node_pt(b,nd)->
+	      pin(some_el_pt->phi_index_micromag());
+	  }
       }
 
 
@@ -225,7 +224,7 @@ namespace oomph
     // create the face elements needed.
     for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
       {
-    	create_flux_elements(b);
+	create_flux_elements(b);
       }
 
     // Setup equation numbering scheme for all the finite elements
@@ -238,23 +237,23 @@ namespace oomph
     Bem_mesh_pt = new Mesh;
     build_bem_mesh(bem_mesh_pt());
 
-    // // Create a variable integration scheme to do the BEM integration
-    // QVariableOrderGaussLegendre<DIM-1>* bem_quadrature_scheme_pt
-    //   = new QVariableOrderGaussLegendre<DIM-1>;
+    // Create a variable integration scheme to do the BEM integration
+    TVariableOrderGaussLegendre<DIM-1>* bem_quadrature_scheme_pt
+      = new TVariableOrderGaussLegendre<DIM-1>;
 
     // Loop over elements in BEM mesh to set mesh pointer
     unsigned n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned i=0;i<n_bem_element;i++)
       {
-    	// Upcast from GeneralisedElement to the bem element
-    	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
-    	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
+	// Upcast from GeneralisedElement to the bem element
+	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
+	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
 
-    	// Set boundary mesh pointer in element
-    	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
+	// Set boundary mesh pointer in element
+	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
 
-    	// Set the integration scheme pointer in element
-    	// bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
+	// Set the integration scheme pointer in element
+	bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
       }
 
     // Make the boundary matrix (including setting up the numbering scheme)
@@ -267,7 +266,7 @@ namespace oomph
   /// Create potential flux boundary condition elements on boundary b.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   create_flux_elements(const unsigned& b)
   {
     // How many bulk elements are adjacent to boundary b?
@@ -297,11 +296,11 @@ namespace oomph
   /// Output function
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   doc_solution(DocInfo& doc_info)
   {
     // Number of plot points
-    unsigned npts=5;
+    unsigned npts=2;
 
     // File set up
     std::ofstream some_file;
@@ -322,7 +321,7 @@ namespace oomph
   /// of the function is an error check.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  unsigned ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  unsigned TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   convert_global_to_boundary_equation_number(const unsigned &global_num)
   {
 #ifdef PARANOID
@@ -338,7 +337,7 @@ namespace oomph
 	error_stream << "Global equation number " << global_num
 		     << " is not in the global to boundary map.";
 	throw OomphLibError(error_stream.str(),
-			    "ThreeDHybridProblem::convert_global_to_boundary_equation_number",
+			    "TwoDHybridProblem::convert_global_to_boundary_equation_number",
 			    OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -348,7 +347,7 @@ namespace oomph
     //ever has pinned values...
     if(global_num < 0)
       throw OomphLibError("Pinned equation in equation no one, use a different eq num?",
-			  "ThreeDHybridProblem::convert_global_to_boundary_equation_number",
+			  "TwoDHybridProblem::convert_global_to_boundary_equation_number",
 			  OOMPH_EXCEPTION_LOCATION);
 #endif
     return ((*Global_boundary_equation_num_map.find(global_num)).second);
@@ -359,7 +358,7 @@ namespace oomph
   /// Build the mesh of bem elements.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   build_bem_mesh(Mesh* bem_mesh_pt) const
   {
     // Create a set to temporarily store the list of boundary nodes
@@ -401,7 +400,7 @@ namespace oomph
   /// boundary equation numbering system.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   create_global_boundary_equation_number_map()
   {
     // Initialise the map
@@ -434,7 +433,7 @@ namespace oomph
   /// Get the fully assembled boundary matrix in dense storage.
   //=============================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   build_boundary_matrix()
   {
     // Create the mapping from global to boundary equations
@@ -451,42 +450,42 @@ namespace oomph
     unsigned long n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned long e=0;e<n_bem_element;e++)
       {
-	// Get the pointer to the element (and cast to FiniteElement)
-	FiniteElement* elem_pt =
-	  dynamic_cast < FiniteElement* > (bem_mesh_pt()->element_pt(e));
+    	// Get the pointer to the element (and cast to FiniteElement)
+    	FiniteElement* elem_pt =
+    	  dynamic_cast < FiniteElement* > (bem_mesh_pt()->element_pt(e));
 
-	// Find number of nodes in the element
-	unsigned long n_element_node = elem_pt->nnode();
+    	// Find number of nodes in the element
+    	unsigned long n_element_node = elem_pt->nnode();
 
-	// Set up a matrix and dummy residual vector
-	DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
-	Vector<double> dummy;
+    	// Set up a matrix and dummy residual vector
+    	DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
+    	Vector<double> dummy;
 
-	// Fill the matrix
-	assembly_handler_pt()
-	  ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
+    	// Fill the matrix
+    	assembly_handler_pt()
+    	  ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
 
-	// Loop over the nodes in this element (to copy results into final matrix)
-	for(unsigned l=0;l<n_element_node;l++)
-	  {
-	    // Get the boundary equation (=node) number from the global one
-	    unsigned l_number =
-	      this->convert_global_to_boundary_equation_number
-	      (elem_pt->node_pt(l)->eqn_number(1));
+    	// Loop over the nodes in this element (to copy results into final matrix)
+    	for(unsigned l=0;l<n_element_node;l++)
+    	  {
+    	    // Get the boundary equation (=node) number from the global one
+    	    unsigned l_number =
+    	      this->convert_global_to_boundary_equation_number
+    	      (elem_pt->node_pt(l)->eqn_number(1));
 
-	    // Loop over all nodes in the mesh and add contributions from this element
-	    for(unsigned long source_node=0; source_node<n_node; source_node++)
-	      {
-		unsigned source_number =
-		  this->convert_global_to_boundary_equation_number
-		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
+    	    // Loop over all nodes in the mesh and add contributions from this element
+    	    for(unsigned long source_node=0; source_node<n_node; source_node++)
+    	      {
+    		unsigned source_number =
+    		  this->convert_global_to_boundary_equation_number
+    		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
 
-		// std::cout <<l_number << " " << source_number << std::endl;
+    		// std::cout <<l_number << " " << source_number << std::endl;
 
-		Boundary_matrix(l_number,source_number)
-		  += element_boundary_matrix(l,source_node);
-	      }
-	  }
+    		Boundary_matrix(l_number,source_number)
+    		  += element_boundary_matrix(l,source_node);
+    	      }
+    	  }
       }
 
     // Loop over the matrix diagonals adding the angle factor.
@@ -495,6 +494,7 @@ namespace oomph
     	Boundary_matrix(nd,nd) += 0.5;
       }
 
+    //??ds not accounted for corners!
   }
 
   //======================================================================
@@ -502,7 +502,7 @@ namespace oomph
   /// and phi_1.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   update_boundary_phi()
   {
     // Get the index of phi_1 and phi
@@ -550,7 +550,7 @@ namespace oomph
   /// Set up the initial conditions
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  void TwoDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   set_initial_condition()
   {
 
@@ -610,12 +610,6 @@ namespace oomph
 int main(int argc, char* argv[])
 {
 
-  // Enable some floating point error checkers
-  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
-
-  // Store command line arguments
-  CommandLineArgs::setup(argc,argv);
-
   // Inputs
   const unsigned dim = 3;
   const unsigned nnode_1d = 2;
@@ -623,33 +617,8 @@ int main(int argc, char* argv[])
   const unsigned nstep = 1;
 
   // Create the problem
-  ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
-    problem(argv[1],argv[2],argv[3]);
-
-  // dump mesh for testing
-  std::ofstream mesh_plot;
-  mesh_plot.open("./mesh_points");
-  for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
-    {
-      for(unsigned j=0; j<dim; j++)
-	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
-      mesh_plot << std::endl;
-    }
-  mesh_plot.close();
-
-
-  // dump boundary for testing
-  unsigned b = 0;
-  std::ofstream bound_plot;
-  bound_plot.open("./bound_points");
-  for(unsigned nd=0; nd<problem.mesh_pt()->nboundary_node(b); nd++)
-    {
-      for(unsigned j=0; j<dim; j++)
-	bound_plot << problem.mesh_pt()->boundary_node_pt(b,nd)->x(j) << " ";
-      bound_plot << std::endl;
-    }
-  bound_plot.close();
-
+  TwoDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+    problem;
 
   // Initialise timestep, initial conditions
   problem.initialise_dt(dt);
@@ -665,7 +634,7 @@ int main(int argc, char* argv[])
   /// Check problem
   if(!(problem.self_test()==0))
     throw OomphLibError("Problem self_test failed","main",
-  			OOMPH_EXCEPTION_LOCATION);
+			OOMPH_EXCEPTION_LOCATION);
 
   std::cout << "constructor done, everything ready" << "\n" << std::endl;
 

@@ -342,6 +342,152 @@ namespace oomph
     {return order*order*order;}
   };
 
+  //============================================================
+  /// The geometry dependant parts of the variable order quadrature for
+  /// TElements.
+  //============================================================
+  template<unsigned DIM>
+  class TVariableOrderQuadrature : public BaseVariableOrderQuadrature
+  {};
+
+  //============================================================
+  /// Specialisation of VariableOrderQuadrature to 1D triangle/tet
+  /// elements. One-dimensional triangles are the same as 1D quads but scaled so
+  /// that their local coordinate runs from 0 to 1, rather than -1 to 1.
+  // ============================================================
+  template<>
+  class TVariableOrderQuadrature<1> : public BaseVariableOrderQuadrature
+  {
+  public:
+
+    /// Default construtor
+    TVariableOrderQuadrature(){}
+
+    /// Broken copy constructor
+    TVariableOrderQuadrature(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("TVariableOrderQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("TVariableOrderQuadrature");}
+
+
+    inline double weight(const unsigned &i, const unsigned &order) const
+    {
+#ifdef PARANOID
+      unsigned dummy = 0;
+      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+#endif
+      return weight_1d(i,order);
+    }
+
+    inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
+    {
+#ifdef PARANOID
+      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+#endif
+      return 0.5*(knot_1d(i,order) + 1);
+    }
+
+    inline unsigned dim() const {return 1;}
+
+    inline unsigned nweight(const unsigned &order) const
+    {return order;}
+  };
+
+  //============================================================
+  /// Specialisation of TVariableOrderQuadrature to 2D.
+  //??ds not implemented yet
+  //============================================================
+  template<>
+  class TVariableOrderQuadrature<2> : public BaseVariableOrderQuadrature
+  {
+  public:
+
+    /// Default construtor
+    TVariableOrderQuadrature(){}
+
+    /// Broken copy constructor
+    TVariableOrderQuadrature(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("TVariableOrderQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("TVariableOrderQuadrature");}
+
+    inline double weight(const unsigned &i, const unsigned &order) const
+    {
+#ifdef PARANOID
+      unsigned dummy = 0;
+      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+#endif
+      return 0;
+    }
+
+    inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
+    {
+#ifdef PARANOID
+      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+#endif
+	  std::ostringstream error_stream;
+	  error_stream << "Requested knot coordinate for 2D triangles, not yet implemented for variable order." << std::endl;
+	  throw OomphLibError(error_stream.str(),
+			      "TVariableOrderQuadrature<2>::knot",
+			      OOMPH_EXCEPTION_LOCATION);
+    }
+
+    inline unsigned dim() const {return 2;}
+
+    inline unsigned nweight(const unsigned &order) const
+    {return order*order;}
+  };
+
+
+  //============================================================
+  /// Specialisation of TVariableOrderQuadrature to 3D.
+  //??ds not implemented yet
+  //============================================================
+  template<>
+  class TVariableOrderQuadrature<3> : public BaseVariableOrderQuadrature
+  {
+  public:
+
+    /// Default construtor
+    TVariableOrderQuadrature(){}
+
+    /// Broken copy constructor
+    TVariableOrderQuadrature(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_copy("TVariableOrderQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const TVariableOrderQuadrature& dummy)
+    {BrokenCopy::broken_assign("TVariableOrderQuadrature");}
+
+    inline double weight(const unsigned &i, const unsigned &order) const
+    {
+#ifdef PARANOID
+      unsigned dummy = 0;
+      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+#endif
+      return 0.0;
+    }
+    inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
+    {
+#ifdef PARANOID
+      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+#endif
+      std::ostringstream error_stream;
+      error_stream << "Requested knot coordinate for 2D triangles, not yet implemented for variable order." << std::endl;
+      throw OomphLibError(error_stream.str(),
+			       "TVariableOrderQuadrature<3>::knot",
+			       OOMPH_EXCEPTION_LOCATION);
+    }
+
+    inline unsigned dim() const {return 3;}
+
+    inline unsigned nweight(const unsigned &order) const
+    {return order*order*order;}
+  };
 
   //============================================================
   /// Gauss-Legendre quadrature (the standard Gaussian quadrature used
@@ -595,6 +741,65 @@ namespace oomph
   template <unsigned DIM>
   class QVariableOrderFejerSecond : public VariableOrderFejerSecond,
 				    public QVariableOrderQuadrature<DIM>
+  {
+  public:
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderFejerSecond::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderFejerSecond::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderFejerSecond::order_existence(order);}
+  };
+
+
+  //============================================================
+  /// The final class for GaussLegendre on a TElement
+  //============================================================
+  template <unsigned DIM>
+  class TVariableOrderGaussLegendre : public VariableOrderGaussLegendre,
+				      public TVariableOrderQuadrature<DIM>
+  {
+  public:
+    // Just make sure we are calling the right functions
+    //?? I think this shouldn't be necessary but it seems to be...
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderGaussLegendre::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderGaussLegendre::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderGaussLegendre::order_existence(order);}
+  };
+
+
+  //============================================================
+  /// The final class for ClenshawCurtis on a TElement
+  //============================================================
+  template <unsigned DIM>
+  class TVariableOrderClenshawCurtis : public VariableOrderClenshawCurtis,
+				       public TVariableOrderQuadrature<DIM>
+  {
+  public:
+    double weight_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderClenshawCurtis::weight_1d(i,order);}
+
+    double knot_1d(const unsigned &i, const unsigned &order) const
+    {return VariableOrderClenshawCurtis::knot_1d(i,order);}
+
+    bool order_existence(const unsigned &order) const
+    {return VariableOrderClenshawCurtis::order_existence(order);}
+  };
+
+
+  //============================================================
+  /// The final class for FejerSecond on a TElement
+  //============================================================
+  template <unsigned DIM>
+  class TVariableOrderFejerSecond : public VariableOrderFejerSecond,
+				    public TVariableOrderQuadrature<DIM>
   {
   public:
     double weight_1d(const unsigned &i, const unsigned &order) const
