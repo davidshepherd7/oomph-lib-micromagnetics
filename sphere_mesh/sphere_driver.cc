@@ -19,16 +19,19 @@ using namespace MathematicalConstants;
 
 namespace Inputs
 {
-  double sat_mag = 0.0;
+  //double sat_mag = 1.0;
   double llg_damping = 0.0;
-  double llg_precession = 0.0;
+  double llg_precession = 0;
   double exchange_coeff = 0.0;
+
+  unsigned nstep = 1;
+  double dt = 1e-1;
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    // h_app[0] = +2;
-    // h_app[1] = +0.2;
+    // h_app[0] = +0.1;
+    // h_app[1] = +3;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -167,7 +170,7 @@ namespace oomph
 		      const std::string& face_file_name)
   {
     // Allocate steady state timestepper
-    add_time_stepper_pt(new BDF<1>);
+    add_time_stepper_pt(new BDF<2>);
 
     // Build mesh from tetgen
     mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
@@ -200,7 +203,7 @@ namespace oomph
     	//??ds fix this to use proper encapsulation asap
     	elem_pt->applied_field_pt() = &Inputs::applied_field;
     	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-    	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+	// 	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
     	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
     	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
     	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
@@ -301,7 +304,7 @@ namespace oomph
   doc_solution(DocInfo& doc_info)
   {
     // Number of plot points
-    unsigned npts=5;
+    unsigned npts=2;
 
     // File set up
     std::ofstream some_file;
@@ -489,16 +492,17 @@ namespace oomph
 	  }
       }
 
-    // Loop over the matrix diagonals adding the angle factor.
-    for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
-      {
-    	Boundary_matrix(nd,nd) += 0.5;
-      }
+    // //??temp - not sure if I should have this here or in main calculation
+    // // loop over the matrix diagonals adding the angle factor.
+    // for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
+    //   {
+    // 	Boundary_matrix(nd,nd) += 0.5; //??temp: minus sign
+    //   }
 
   }
 
   //======================================================================
-  /// Get the new boundary condition on phi using the boundary element matrix
+  /// get the new boundary condition on phi using the boundary element matrix
   /// and phi_1.
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
@@ -536,7 +540,6 @@ namespace oomph
 
     	    // Add the contribution to total phi at the target node due to
     	    // the source node (relationship is given by the boundary matrix).
-    	    //??ds check consistency of boundary matrix numbering
     	    target_phi_value += Boundary_matrix(target_number,source_number)
     	      * source_node_pt->value(phi_1_index);
     	  }
@@ -619,8 +622,11 @@ int main(int argc, char* argv[])
   // Inputs
   const unsigned dim = 3;
   const unsigned nnode_1d = 2;
-  const double dt = 1e-3;
-  const unsigned nstep = 1;
+  // const double dt = 1e-3;
+  // const unsigned nstep = 10;
+  const double dt = Inputs::dt;
+  const unsigned nstep = Inputs::nstep;
+
 
   // Create the problem
   ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
