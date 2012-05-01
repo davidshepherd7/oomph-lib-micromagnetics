@@ -407,17 +407,20 @@ namespace oomph
     	//     outfile << interpolated_solution[i] << " ";
     	//   }
 
-	// Get dphidx at this point
+	// Output the magnetostatic field (= - dphidx) at this point
 	Vector<double> interpolated_dphidx(3,0.0);
 	interpolated_dphidx_micromag(s,interpolated_dphidx);
-
-	// Output the magnetostatic field at this point
 	for(unsigned i=0; i<3; i++)
-	  {
-	    outfile << interpolated_dphidx[i] << " ";
-	  }
+	    outfile << -interpolated_dphidx[i] << " ";
 
+	// Phi total at this point
 	outfile << interpolated_phi_micromag(s) << " ";
+
+	// Output m at this point
+	Vector<double> interpolated_m(3,0.0);
+	interpolated_m_micromag(s,interpolated_m);
+	for(unsigned i=0; i<3; i++)
+	  outfile << interpolated_m[i] << " ";
 
     	// End the line ready for next point
     	outfile << std::endl;
