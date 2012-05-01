@@ -88,18 +88,8 @@ namespace oomph
       fill_in_be_contribution_analytic(boundary_matrix);
     }
 
-    /// Output function -- forward to broken version in FiniteElement
-    /// until somebody decides what exactly they want to plot here...
-    void output(std::ostream &outfile) const
-    {//FiniteElement::output(outfile);}
-    }
-
-    /// \short Output function -- forward to broken version in FiniteElement
-    /// until somebody decides what exactly they want to plot here...
-    void output(std::ostream &outfile, const unsigned &n_plot) const
-    {//FiniteElement::output(outfile,n_plot);}
-    }
-
+    /// Output function - do nothing
+    void output(std::ostream &outfile, const unsigned &n_plot=5) const {}
 
     // /// C-style output function -- forward to broken version in FiniteElement
     // /// until somebody decides what exactly they want to plot here...
@@ -564,6 +554,8 @@ namespace oomph
       {
 	// Evaluate the integral
 	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
+
+
       }
     else if(this->nvertex_node() == 4)
       {
@@ -612,11 +604,11 @@ namespace oomph
 	// Get the next node around the triangle (i.e. 0 -> 1 -> 2 -> 0 etc.).
 	unsigned next_node = (i+1)%n_node;
 
-	// Get the length of this side (s in Lindholm1984)
-	side_length[i] = mod_diff(x_nds[i],x_nds[next_node]);
-
 	// Get the vector along this side (xi in Lindholm1984)
-	abs_vector_diff(x_nds[next_node],x_nds[i],side_direction[i]);
+	vector_diff(x_nds[next_node],x_nds[i],side_direction[i]);
+
+	// Get the length of this side (s in Lindholm1984)
+	side_length[i] = mod(side_direction[i]);
       }
 
     // Calculate the non-unit normal to triangle. Assuming flat element => same
@@ -665,12 +657,14 @@ namespace oomph
 	// in the normal direction to the element.
 	double zeta = dot(unit_normal,rho[0]);
 
-	// If source node is in the plane of the element (i.e. zeta ~ 0)
-	// then n.r = 0 so we can move on to the next source node.
-	if (zeta < 1e-8)
+	// If source node is in the plane of the element (i.e. zeta ~ 0) then
+	// n.r = 0, nothing to calculate or add so we can move on to the next
+	// source node.
+	double tol = 1e-8;
+	if( (std::abs(zeta) < tol) )
 	  continue;
 
-	// Calculate "P" (see paper) for each node in the triangle
+	// Calculate "P" (see paper Lindholm1984) for each node in the triangle
 	Vector<double> P(n_node,0.0);
 	for(unsigned i=0; i<n_node; i++)
 	  {
@@ -681,17 +675,23 @@ namespace oomph
 
 
 	// Calculate the solid angle (see Lindholm 1984)
-	double numerator = rhol[0]*rhol[1]*rhol[2]
-	  + rhol[0] * dot(rho[1],rho[2])
-	  + rhol[1] * dot(rho[0],rho[2])
-	  + rhol[2] * dot(rho[1],rho[0]);
-	double denominator = std::sqrt(2
-				  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
-				  *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
-				  *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
-				  );
-	int sign = (zeta > 0.0 ? +1 : -1);
-	double omega = sign * std::acos(numerator/denominator);
+	double ratio = (rhol[0]*rhol[1]*rhol[2]
+			+ rhol[0] * dot(rho[1],rho[2])
+			+ rhol[1] * dot(rho[0],rho[2])
+			+ rhol[2] * dot(rho[1],rho[0]))
+	  /
+	  std::sqrt(2
+		    *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
+		    *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
+		    *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
+		    );
+	int sign = (zeta > 0.0 ? +1.0 : -1.0);
+
+	// Round-off errors can cause ratio to be out of range for inverse cos
+	// so we need to check it.
+	if(ratio > 1.0) ratio = 1.0;
+	else if(ratio < -1.0) ratio = -1.0;
+	double omega = sign * 2 * std::acos(ratio);
 
 	// Calculate eta: the unit vector normal to the side. Use it to
 	// calculate etal: the distance in the diretion of eta to the source
@@ -709,24 +709,18 @@ namespace oomph
 	for(unsigned i_tn=0; i_tn < n_node; i_tn++)
 	  {
 	    unsigned next_node = (i_tn+1)%n_node;
+
 	    // Add contribution to the appropriate value in the boundary matrix
-	    boundary_matrix(l[i_tn],i_sn) += (side_length[i_tn]/(8*Pi*area))
-	      *( -zeta * dot(gamma[i_tn],P))
-	      *( etal[next_node] * omega);
+	    boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
+	      *(
+		// Solid angle term
+		//??temp: not sure whether to add this here or in driver
+	        (etal[next_node] * omega)
 
-	    // Vector<double> dist(n_node,0.0);
-	    // vector_diff(x_sn,x_nds[i_tn],dist);
-
-	    // std::cout // << "source node at " << x_sn << " and target node at " << x_nds[i_tn]
-	    //   << "elementwise difference of " << dist
-	    //   << " gives an entry " << boundary_matrix(l[i_tn],i_sn) << ", "
-	    //   << (rhol[0] + rhol[1] - side_length[0]) << " "
-	    //   << (rhol[1] + rhol[2] - side_length[1]) << " "
-	    //   << (rhol[2] + rhol[0] - side_length[2]) << " "
-	    //   << std::endl;
-
-	    //??ds do we HAVE to add solid angle contrib here? or can we add it in
-	    //driver code like now?
+		// Main term, we use + instead of - because our definition of
+		// the Green's fn is opposite sign to that in Lindholm.
+		+ (zeta * dot(gamma[i_tn],P))
+		 );
 	  }
 
       }
