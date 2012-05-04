@@ -14,8 +14,20 @@
   #include "prettyprint98.hpp"
 #endif
 
+// Floating point debugging
 #include <fenv.h>
 
+// Quicker to use vector functions
 #include "./vector_helpers.h"
+
+// All my micromag headers and .cc
+#include "./micromagnetics_element.h"
+#include "./micromagnetics_element.cc"
+#include "./micromagnetics_boundary_element.h"
+#include "./micromagnetics_boundary_element.cc"
+#include "./micromagnetics_flux_element.h"
+
+// Basic oomph-lib headers
+#include "generic.h"
 
 #endif

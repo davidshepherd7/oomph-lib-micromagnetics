@@ -8,6 +8,9 @@
 #include "./variable_order_quadrature.h"
 #include <functional>
 
+// magpar definitions
+#include "./magpar_requirements.h"
+
 // easier to use vector functions for now (probably not optimal...)
 #include "./vector_helpers.h"
 
@@ -30,7 +33,7 @@ namespace oomph
 
     /// \short Pointer to the boundary mesh (needed to access nodes
     /// outside of this element for calculation of boundary matrix).
-    Mesh* Boundary_mesh_pt;
+    static Mesh* Boundary_mesh_pt;
 
     /// The index at which phi_1 is stored
     unsigned Phi_1_index_micromag;
@@ -110,10 +113,10 @@ namespace oomph
 				   const Vector<double>& n) const;
 
     /// Const access function for mesh pointer
-    inline Mesh* boundary_mesh_pt() const {return Boundary_mesh_pt;}
+    static Mesh* boundary_mesh_pt() {return Boundary_mesh_pt;}
 
     /// Set function for mesh pointer
-    inline void set_boundary_mesh_pt(Mesh* boundary_mesh_pointer)
+    static void set_boundary_mesh_pt(Mesh* boundary_mesh_pointer)
     {Boundary_mesh_pt = boundary_mesh_pointer;}
 
     /// Get the max difference between two vectors relative to that element of vector1
@@ -513,6 +516,170 @@ namespace oomph
     return 1/Pi * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
   }
 
+  //??temp
+/*
+  hybrid FEM/BEM method from:
+  T. R. Koehler, D. R. Fredkin, "Finite Element Methods for
+  Micromagnetics", IEEE Trans. Magn. 28 (1992) 1239-1244
+
+  integrations for matrix elements calculated according to:
+  D. A. Lindholm, "Three-Dimensional Magnetostatic Fields from
+  Point-Matched Integral Equations with Linearly Varying Scalar
+  Sources", IEEE Trans. Magn. MAG-20 (1984) 2025-2032.
+*/
+int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
+	 const std::vector<double>& facv2, const std::vector<double>& facv3,
+	 std::vector<double>& matele)
+{
+  using namespace magpar;
+
+  std::vector<double> rr(ND,0.0), zeta(ND,0.0);
+  std::vector<double> rho1(ND,0.0),rho2(ND,0.0),rho3(ND,0.0);
+  std::vector<double> eta1(ND,0.0),eta2(ND,0.0),eta3(ND,0.0);
+  std::vector<double> xi1(ND,0.0),xi2(ND,0.0),xi3(ND,0.0);
+  std::vector<double> gamma1(ND,0.0),gamma2(ND,0.0),gamma3(ND,0.0);
+  std::vector<double> p(ND,0.0);
+  double a(0.0), omega(0.0), eta1l,eta2l,eta3l, s1,s2,s3, rho1l,rho2l,rho3l, zetal;
+
+  matele[0]=matele[1]=matele[2]=0.0;
+
+  /* get coordinates of face's vertices */
+  my_dcopy(ND,facv1,1,rho1,1);
+  my_dcopy(ND,facv2,1,rho2,1);
+  my_dcopy(ND,facv3,1,rho3,1);
+
+  /* calculate edge vectors and store them in xi_j */
+  my_dcopy(ND,rho2,1,xi1,1);
+  my_daxpy(ND,-1.0,rho1,1,xi1,1);
+  my_dcopy(ND,rho3,1,xi2,1);
+  my_daxpy(ND,-1.0,rho2,1,xi2,1);
+  my_dcopy(ND,rho1,1,xi3,1);
+  my_daxpy(ND,-1.0,rho3,1,xi3,1);
+
+  /* calculate zeta direction */
+  douter(ND,xi1,xi2,zeta);
+
+  /* calculate area of the triangle */
+  zetal=my_dnrm2(ND,zeta,1);
+  a=0.5*zetal;
+
+  /* renorm zeta */
+  my_dscal(ND,1.0/zetal,zeta,1);
+
+  /* calculate s_j and normalize xi_j */
+  s1=my_dnrm2(ND,xi1,1);
+  my_dscal(ND,1.0/s1,xi1,1);
+  s2=my_dnrm2(ND,xi2,1);
+  my_dscal(ND,1.0/s2,xi2,1);
+  s3=my_dnrm2(ND,xi3,1);
+  my_dscal(ND,1.0/s3,xi3,1);
+
+  douter(ND,zeta,xi1,eta1);
+  douter(ND,zeta,xi2,eta2);
+  douter(ND,zeta,xi3,eta3);
+
+  gamma1[0]=gamma3[1]=my_ddot(ND,xi2,1,xi1,1);
+  gamma1[1]=my_ddot(ND,xi2,1,xi2,1);
+  gamma1[2]=gamma2[1]=my_ddot(ND,xi2,1,xi3,1);
+
+  gamma2[0]=gamma3[2]=my_ddot(ND,xi3,1,xi1,1);
+  gamma2[2]=my_ddot(ND,xi3,1,xi3,1);
+
+  gamma3[0]=my_ddot(ND,xi1,1,xi1,1);
+
+  /* get R=rr, the location of the source vertex (and the singularity) */
+  rr=bvert;
+
+  // If very close to the current surface element (triangle) then result is zero, done.
+  double d = PointFromPlane(rr,rho1,rho2,rho3);
+  if (fabs(d)<D_EPS) return(0);
+
+  /* calculate rho_j */
+  my_daxpy(ND,-1.0,rr,1,rho1,1);
+  my_daxpy(ND,-1.0,rr,1,rho2,1);
+  my_daxpy(ND,-1.0,rr,1,rho3,1);
+
+  /* zetal gives ("normal") distance of R from the plane of the triangle */
+  zetal=my_ddot(ND,zeta,1,rho1,1);
+
+  /* skip the rest if zetal==0 (R in plane of the triangle)
+     -> omega==0 and zetal==0 -> matrix entry=0
+  */
+  if (std::abs(zetal)<=D_EPS) {
+    return(0);
+  }
+
+  rho1l=my_dnrm2(ND,rho1,1);
+  rho2l=my_dnrm2(ND,rho2,1);
+  rho3l=my_dnrm2(ND,rho3,1);
+
+  double t_nom,t_denom;
+  t_nom=
+    rho1l*rho2l*rho3l+
+    rho1l*my_ddot(ND,rho2,1,rho3,1)+
+    rho2l*my_ddot(ND,rho3,1,rho1,1)+
+    rho3l*my_ddot(ND,rho1,1,rho2,1);
+  t_denom=
+    std::sqrt(2.0*
+      (rho2l*rho3l+my_ddot(ND,rho2,1,rho3,1))*
+      (rho3l*rho1l+my_ddot(ND,rho3,1,rho1,1))*
+      (rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
+    );
+
+  // std::cout << t_nom/t_denom << std::endl;
+  /* catch special cases where the argument of acos
+     is close to -1.0 or 1.0 or even outside this interval
+
+     use 0.0 instead of D_EPS?
+     fixes problems with demag field calculation
+     suggested by Hiroki Kobayashi, Fujitsu
+  */
+  if (t_nom/t_denom<-1.0) {
+    omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*PI;
+  }
+  /* this case should not occur, but does - e.g. examples1/headfield */
+  else if (t_nom/t_denom>1.0) {
+    return(0);
+  }
+  else {
+    omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*std::acos(t_nom/t_denom);
+  }
+
+  // //ok
+  // std::cout << omega << std::endl;
+
+  eta1l=my_ddot(ND,eta1,1,rho1,1);
+  eta2l=my_ddot(ND,eta2,1,rho2,1);
+  eta3l=my_ddot(ND,eta3,1,rho3,1);
+
+  // //ok
+  // std::cout << eta1 << std::endl;
+  // std::cout << eta2 << std::endl;
+  // std::cout << eta3 << std::endl;
+
+  p[0]=log((rho1l+rho2l+s1)/(rho1l+rho2l-s1));
+  p[1]=log((rho2l+rho3l+s2)/(rho2l+rho3l-s2));
+  p[2]=log((rho3l+rho1l+s3)/(rho3l+rho1l-s3));
+
+  //ok std::cout << p << std::endl;
+
+  // ok
+  //   std::cout << zetal << std::endl;
+
+  // //ok
+  // std::cout << gamma1 << " " << gamma2 << " " << gamma3 << std::endl;
+
+  // //ok
+  // std::cout << a << std::endl;
+
+  // Note: I swapped the sign to our convention
+  matele[0]=(eta2l*omega+zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
+  matele[1]=(eta3l*omega+zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
+  matele[2]=(eta1l*omega+zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
+
+  return(0);
+}
+
   //======================================================================
   ///
   //======================================================================
@@ -585,7 +752,7 @@ namespace oomph
   //======================================================================
   template<class ELEMENT,unsigned DIM>
   void MicromagFaceElement<ELEMENT,DIM>::
-  analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_nds,
+  analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_tn,
 				      const Vector<unsigned>& l,
 				      DenseMatrix<double>& boundary_matrix) const
   {
@@ -605,7 +772,7 @@ namespace oomph
 	unsigned next_node = (i+1)%n_node;
 
 	// Get the vector along this side (xi in Lindholm1984)
-	vector_diff(x_nds[next_node],x_nds[i],side_direction[i]);
+	vector_diff(x_tn[next_node],x_tn[i],side_direction[i]);
 
 	// Get the length of this side (s in Lindholm1984)
 	side_length[i] = mod(side_direction[i]);
@@ -649,7 +816,7 @@ namespace oomph
 	Vector<Vector<double> > rho(n_node); Vector<double> rhol(n_node);
 	for(unsigned i_nd=0; i_nd<n_node; i_nd++)
 	  {
-	    vector_diff(x_nds[i_nd],x_sn,rho[i_nd]);
+	    vector_diff(x_tn[i_nd],x_sn,rho[i_nd]);
 	    rhol[i_nd] = mod(rho[i_nd]);
 	  }
 
@@ -704,6 +871,12 @@ namespace oomph
 	    etal[i] = dot(eta[i],rho[i]);
 	  }
 
+	// //
+	// Vector<double> magpar_contribution(3,0.0);
+	// Bele(x_sn, x_tn[0], x_tn[1], x_tn[2], magpar_contribution);
+	Vector<double> oomph_contribution(3,0.0);
+
+
 	/* Now put it all together and add the contribution to the boundary
 	   element matrix */
 	for(unsigned i_tn=0; i_tn < n_node; i_tn++)
@@ -711,7 +884,7 @@ namespace oomph
 	    unsigned next_node = (i_tn+1)%n_node;
 
 	    // Add contribution to the appropriate value in the boundary matrix
-	    boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
+	    oomph_contribution[i_tn] = (side_length[next_node]/(8*Pi*area))
 	      *(
 		// Solid angle term
 		//??temp: not sure whether to add this here or in driver
@@ -721,6 +894,21 @@ namespace oomph
 		// the Green's fn is opposite sign to that in Lindholm.
 		+ (zeta * dot(gamma[i_tn],P))
 		 );
+
+	    // //
+	    // if(!( std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn]) < 1e-8))
+	    //   {
+	    //   // throw OomphLibError("magpar and oomph calcs differ",
+	    //   // 			  "", OOMPH_EXCEPTION_LOCATION);
+
+	    // 	std::cout << std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn])
+	    // 		  << std::endl;
+	    //   }
+
+	    //??temp
+	    boundary_matrix(l[i_tn],i_sn) += oomph_contribution[i_tn];
+
+
 	  }
 
       }
@@ -818,6 +1006,8 @@ namespace oomph
 
   //     //??ds calculating the angle is going to be harder here, do it later...
   //   };
+
+
 
 }
 

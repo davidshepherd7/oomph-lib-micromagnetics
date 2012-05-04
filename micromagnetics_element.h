@@ -305,11 +305,38 @@ namespace oomph
 
     }
 
+/// Return FE representation of M at local coordinate s and current time.
+    inline void interpolated_h_ex_micromag(const Vector<double> &s,
+					   Vector<double>& interpolated_h_ex) const
+    {
+      //Find number of nodes
+      const unsigned n_node = nnode();
+
+      //Local shape function
+      Shape psi(n_node);
+
+      //Find values of shape function
+      shape(s,psi);
+
+      // Initialise h_ex
+      for(unsigned i=0; i<3; i++){interpolated_h_ex[i] = 0.0;}
+
+      // Loop over dimensions of H_ex
+      for(unsigned k=0; k<3; k++)
+	{
+	  //Loop over the local nodes and sum
+	  for(unsigned l=0;l<n_node;l++)
+	    {
+	      interpolated_h_ex[k] += this->nodal_value(l,exchange_index_micromag(k))*psi[l];
+	    }
+	}
+
+    }
+
     /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_dmdx_micromag(const Vector<double> &s,
 					   DenseDoubleMatrix& interpolated_dmdx) const
     {
-
       // Get number of nodes
       const unsigned n_node = nnode();
 

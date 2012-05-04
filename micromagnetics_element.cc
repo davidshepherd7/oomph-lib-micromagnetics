@@ -307,13 +307,15 @@ namespace oomph
   	// Vector<double> llg_source(3,0.0);
   	// get_source_llg(time, interpolated_x, llg_source);
 
+
   	// Take total of all fields used (-dphidx = magnetostatic field)
-  	Vector<double> H_total(3,0.0);
+	Vector<double> H_total(3,0.0);
   	for(unsigned j=0; j<3; j++)
   	  {
   	    H_total[j] = H_applied[j] - interpolated_dphidx[j]
   	      + interpolated_H_exchange[j] + H_cryst_anis[j];
   	  }
+	//H_total[1] = 2.0;
 
   	// Get the cross products for the LLG equation
 	Vector<double> interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
@@ -341,6 +343,8 @@ namespace oomph
   		//??ds put in jacobian calculation eventually
 
   	      }
+
+
   	  } // End of loop over test functions
       }// End of loop over integration points
 
@@ -349,9 +353,9 @@ namespace oomph
     // 	std::cout << "Residuals from this element:" << std::endl;
     // 	std::cout << "phi residual " << residuals[phi_index_micromag()] << std::endl;
     // 	std::cout << "phi_1 residual " << residuals[phi_1_index_micromag()] << std::endl;
-    // 	std::cout << "M residuals " << residuals[m_index_micromag(0)]<< " "
-    // 		  << residuals[m_index_micromag(1)] << " "
-    // 		  << residuals[m_index_micromag(2)] << std::endl;
+    // std::cout << "M residuals " << residuals[m_index_micromag(0)]<< " "
+    // 	      << residuals[m_index_micromag(1)] << " "
+    // 	      << residuals[m_index_micromag(2)] << std::endl;
     // 	std::cout << "exchange residuals " << residuals[exchange_index_micromag(0)]<< " "
     // 		  << residuals[exchange_index_micromag(1)] << " "
     // 		  << residuals[exchange_index_micromag(2)] << std::endl;
@@ -421,6 +425,13 @@ namespace oomph
 	interpolated_m_micromag(s,interpolated_m);
 	for(unsigned i=0; i<3; i++)
 	  outfile << interpolated_m[i] << " ";
+
+	// Output exchange field at this point
+	Vector<double> interpolated_h_ex(3,0.0);
+	interpolated_h_ex_micromag(s,interpolated_h_ex);
+	for(unsigned i=0; i<3; i++)
+	  outfile << interpolated_h_ex[i] << " ";
+
 
     	// End the line ready for next point
     	outfile << std::endl;

@@ -5,11 +5,8 @@
   description of file goes here
 */
 
+// Include all my stuff
 #include "../my_general_header.h"
-
-#include "generic.h"
-#include "../micromagnetics_boundary_element.h"
-#include "../micromagnetics_flux_element.h"
 
 // Mesh
 #include "meshes/tetgen_mesh.h"
@@ -17,15 +14,17 @@
 using namespace oomph;
 using namespace MathematicalConstants;
 
+
+
 namespace Inputs
 {
-  //double sat_mag = 1.0;
-  double llg_damping = 0.0;
+  //double sat_mag = 0;
+  double llg_damping = 0;
   double llg_precession = 0;
-  double exchange_coeff = 0.0;
+  double exchange_coeff = 0;
 
-  unsigned nstep = 1;
-  double dt = 1e-1;
+  unsigned nstep = 10;
+  double dt = 0.5e-4;
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
@@ -184,9 +183,6 @@ namespace oomph
     // Store the number of bulk elements before we add any face elements
     N_bulk_element = mesh_pt()->nelement();
 
-    // ??ds allow negative jacobian of transformation
-    some_el_pt->Accept_negative_jacobian = true;
-
     // Bulk elements
     //------------------------------------------------------------
 
@@ -241,24 +237,24 @@ namespace oomph
     Bem_mesh_pt = new Mesh;
     build_bem_mesh(bem_mesh_pt());
 
+    // Set boundary mesh pointer in element
+    BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
+
     // // Create a variable integration scheme to do the BEM integration
     // QVariableOrderGaussLegendre<DIM-1>* bem_quadrature_scheme_pt
     //   = new QVariableOrderGaussLegendre<DIM-1>;
 
-    // Loop over elements in BEM mesh to set mesh pointer
-    unsigned n_bem_element = bem_mesh_pt()->nelement();
-    for(unsigned i=0;i<n_bem_element;i++)
-      {
-    	// Upcast from GeneralisedElement to the bem element
-    	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
-    	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
+    // // Loop over elements in BEM mesh to set mesh pointer
+    // unsigned n_bem_element = bem_mesh_pt()->nelement();
+    // for(unsigned i=0;i<n_bem_element;i++)
+    //   {
+    // 	// Upcast from GeneralisedElement to the bem element
+    // 	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
+    // 	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
 
-    	// Set boundary mesh pointer in element
-    	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
-
-    	// Set the integration scheme pointer in element
-    	// bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
-      }
+    // 	// Set the integration scheme pointer in element
+    // 	// bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
+    //   }
 
     // Make the boundary matrix (including setting up the numbering scheme)
     build_boundary_matrix();
@@ -632,16 +628,16 @@ int main(int argc, char* argv[])
   ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem(argv[1],argv[2],argv[3]);
 
-  // dump mesh for testing
-  std::ofstream mesh_plot;
-  mesh_plot.open("./mesh_points");
-  for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
-    {
-      for(unsigned j=0; j<dim; j++)
-	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
-      mesh_plot << std::endl;
-    }
-  mesh_plot.close();
+  // // dump mesh for testing
+  // std::ofstream mesh_plot;
+  // mesh_plot.open("./mesh_points");
+  // for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
+  //   {
+  //     for(unsigned j=0; j<dim; j++)
+  // 	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
+  //     mesh_plot << std::endl;
+  //   }
+  // mesh_plot.close();
 
 
   // dump boundary for testing
