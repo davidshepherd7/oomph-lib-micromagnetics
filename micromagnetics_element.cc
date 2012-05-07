@@ -315,7 +315,6 @@ namespace oomph
   	    H_total[j] = H_applied[j] - interpolated_dphidx[j]
   	      + interpolated_H_exchange[j] + H_cryst_anis[j];
   	  }
-	//H_total[1] = 2.0;
 
   	// Get the cross products for the LLG equation
 	Vector<double> interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
@@ -403,19 +402,14 @@ namespace oomph
     	    outfile << x[i] << " ";
     	  }
 
-    	// // Output solution vector at local coordinate s
-    	// Vector<double> interpolated_solution(nvalue,0.0); //??ds generalise the length?
-    	// interpolated_solution_micromag(s,interpolated_solution);
-    	// for(unsigned i=0; i<nvalue; i++)
-    	//   {
-    	//     outfile << interpolated_solution[i] << " ";
-    	//   }
-
 	// Output the magnetostatic field (= - dphidx) at this point
 	Vector<double> interpolated_dphidx(3,0.0);
 	interpolated_dphidx_micromag(s,interpolated_dphidx);
 	for(unsigned i=0; i<3; i++)
 	    outfile << -interpolated_dphidx[i] << " ";
+
+	// Phi 1 at this point
+	outfile << interpolated_phi_1_micromag(s) << " ";
 
 	// Phi total at this point
 	outfile << interpolated_phi_micromag(s) << " ";

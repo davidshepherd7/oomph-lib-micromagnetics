@@ -84,11 +84,27 @@ namespace oomph
 
     /// \short Add the element's contribution to its residual vector and its
     /// Jacobian matrix
-    inline void fill_in_contribution_to_jacobian(Vector<double> &dummy,
-						 DenseMatrix<double> &boundary_matrix)
+    inline void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix)
     {
-      // fill_in_be_contribution_adaptive(boundary_matrix);
+
+      //??temp
+      // DenseMatrix<double> second_boundary_matrix(boundary_matrix);
+
+
       fill_in_be_contribution_analytic(boundary_matrix);
+
+      // //??temp
+      // fill_in_be_contribution_adaptive(second_boundary_matrix);
+
+      // for(unsigned i=0; i< boundary_matrix.nrow(); i++)
+      // 	for(unsigned j=0; j< boundary_matrix.ncol(); j++)
+      // 	  if ( std::abs(boundary_matrix(i,j) - second_boundary_matrix(i,j)) > 1e-6)
+      // 	    {
+      // 	      std::cout << boundary_matrix(i,j) << " " << second_boundary_matrix(i,j)
+      // 			<< std::endl;
+      // 	    }
+      // std::cout << boundary_matrix.nrow()
+      // << boundary_matrix.ncol() << std::endl << std::endl;
     }
 
     /// Output function - do nothing
@@ -228,10 +244,12 @@ namespace oomph
     //====================================
 
     // Setup error parameters for adaptive integration
-    double reltol = 1e-4, reldiff;
+    double reltol = 1e-8, reldiff;
 
     // Set up storage to keep track of orders used:
-    std::vector<unsigned> order_list = {2,4,8,16,32,64,128,256,};
+    //std::vector<unsigned> order_list = {2,4,8,16,32,64,128,256,};
+    unsigned array_list[] = {2,4,8,16,32,64,128,256,};
+    std::vector<unsigned> order_list(array_list,array_list+7);
     unsigned n_order = order_list.size();
     Vector<unsigned> order_is_calculated(n_order,0);
 
@@ -487,7 +505,7 @@ namespace oomph
     //??ds if x is a potentially singular point CHEAT
     //??ds could go horribly wrong, probably fine so long as not actually singular
     //??ds only works in 2d anyway
-    if(r < 1e-14)
+    if(r < 1e-6)
       {
 	// This is approximately true because the r and n unit vectors
 	// become perpendicular as x approaches y. Hence n.r = 0 and
@@ -505,6 +523,9 @@ namespace oomph
     for(unsigned i=0; i<node_dim; i++)
       ndotr += r_unit[i]*n[i];
 
+    if(std::abs(ndotr) < 1e-8)
+      return 0.0;
+
     // std::cout << "ndotr = " << ndotr << std::endl;
     // std::cout << "r = " << r << std::endl;
     // std::cout << "greens/ndotr = " << -1/Pi * std::pow((2*r),-1) * 2 << std::endl;
@@ -513,7 +534,7 @@ namespace oomph
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
     double exponent = - (double(node_dim) - 1);
-    return 1/Pi * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
+    return (1/Pi) * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
   }
 
   //??temp
@@ -673,9 +694,10 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
   // std::cout << a << std::endl;
 
   // Note: I swapped the sign to our convention
-  matele[0]=(eta2l*omega+zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
-  matele[1]=(eta3l*omega+zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
-  matele[2]=(eta1l*omega+zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
+  //??temp swapped the sign back for a test
+  matele[0]=(eta2l*omega-zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
+  matele[1]=(eta3l*omega-zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
+  matele[2]=(eta1l*omega-zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
 
   return(0);
 }
@@ -722,6 +744,15 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	// Evaluate the integral
 	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
 
+ // 	for(unsigned i=0; i<3; i++)
+ // 	  {
+ // 	    for(unsigned j=0; j<boundary_mesh_pt()->nnode(); j++)
+ // 	      std::cout << boundary_matrix(i,j) << " ";
+ // 	    std::cout << std::endl;
+ // 	  }
+ // std::cout << std::endl;
+ // std::cout << std::endl;
+ // std::cout << std::endl;
 
       }
     else if(this->nvertex_node() == 4)
@@ -733,12 +764,12 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	// repeat
 	node_pt(3)->position(x_nds[1]);
 	// std::cout << x_nds[0] << " " << x_nds[1] << " " << x_nds[2] << " " << std::endl;
-	l[1] = 3;
+	l[1] = 3; //??ds I think this might go wrong...
 	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
       }
     else
       {
-	throw OomphLibError("Unhandled number of vertex nodes in boundary element. Could be the wrong dimension, hanging nodes or a higher order elements. Hanging nodes could be implemented but higher order elements or lower dimension cannot (afaik).",
+	throw OomphLibError("Unhandled number of vertex nodes in boundary element. Could be the wrong dimension, hanging nodes or higher order elements. Hanging nodes could be implemented but higher order elements or lower dimension cannot (afaik).",
 			    "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
 			    OOMPH_EXCEPTION_LOCATION);
       }
@@ -871,10 +902,10 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	    etal[i] = dot(eta[i],rho[i]);
 	  }
 
-	// //
+	// //??temp calculate with magpar code for testing
 	// Vector<double> magpar_contribution(3,0.0);
 	// Bele(x_sn, x_tn[0], x_tn[1], x_tn[2], magpar_contribution);
-	Vector<double> oomph_contribution(3,0.0);
+	// Vector<double> oomph_contribution(3,0.0);
 
 
 	/* Now put it all together and add the contribution to the boundary
@@ -884,31 +915,30 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	    unsigned next_node = (i_tn+1)%n_node;
 
 	    // Add contribution to the appropriate value in the boundary matrix
-	    oomph_contribution[i_tn] = (side_length[next_node]/(8*Pi*area))
+	    boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
 	      *(
 		// Solid angle term
-		//??temp: not sure whether to add this here or in driver
+		//??ds: not sure whether to add this here or in driver
 	        (etal[next_node] * omega)
 
 		// Main term, we use + instead of - because our definition of
 		// the Green's fn is opposite sign to that in Lindholm.
-		+ (zeta * dot(gamma[i_tn],P))
+		//??temp switched the sign back just to see...
+		- (zeta * dot(gamma[i_tn],P))
 		 );
 
-	    // //
-	    // if(!( std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn]) < 1e-8))
+	    // //??temp
+	    // if(!( std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn]) < 1e-7))
 	    //   {
-	    //   // throw OomphLibError("magpar and oomph calcs differ",
-	    //   // 			  "", OOMPH_EXCEPTION_LOCATION);
+	    //   throw OomphLibError("magpar and oomph calcs differ",
+	    //   			  "", OOMPH_EXCEPTION_LOCATION);
 
 	    // 	std::cout << std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn])
 	    // 		  << std::endl;
 	    //   }
 
-	    //??temp
-	    boundary_matrix(l[i_tn],i_sn) += oomph_contribution[i_tn];
-
-
+	    // //??temp
+	    // boundary_matrix(l[i_tn],i_sn) += oomph_contribution[i_tn];
 	  }
 
       }

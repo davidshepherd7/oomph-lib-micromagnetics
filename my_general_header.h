@@ -30,4 +30,33 @@
 // Basic oomph-lib headers
 #include "generic.h"
 
+#include <ostream>
+#include <utility>
+
+
+namespace oomph
+{
+
+  // standard outputters for doublevector etc Should be "safe" but wrong for
+  // distributed version - no idea what order it will output in but shouldn't
+  // segfault.
+  std::ostream& operator<<(std::ostream& output, const DoubleVector& dv)
+  {
+#ifdef MPI
+    throw OomphLibWarning("I didn't write this with distributed vectors in mind, it might work but I have no idea.",
+			  "operator<<(ostream& output, const DoubleVector& dv)",
+			  OOMPH_EXCEPTION_LOCATION);
+#endif
+    output << "[";
+    for(unsigned i=0; i<dv.nrow_local()-1; i++)
+      output << dv[i] << ", ";
+    // Output last entry seperately to get the commas right
+    output << dv[dv.nrow_local()-1] << "]";
+    return output;
+  }
+
+
+
+}
+
 #endif

@@ -286,11 +286,11 @@ namespace oomph
 	//------------------------------------------------------------
 
 	// Calculate prescribed flux of phi =  m.n
-	double flux = 0;
-	for(unsigned i=0; i<Dim; i++)
-	  {
-	    flux += normal[i]*interpolated_m[i];
-	  }
+	double flux = dot(normal,interpolated_m);
+	// for(unsigned i=0; i<Dim; i++)
+	//   {
+	//     flux += normal[i]*interpolated_m[i];
+	//   }
 
 	//Loop over the test functions
 	for(unsigned l=0;l<n_node;l++)

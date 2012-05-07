@@ -277,6 +277,35 @@ namespace oomph
       return(interpolated_phi);
     }
 
+
+    /// Return FE representation of phi_1 at local coordinate s
+    inline double interpolated_phi_1_micromag(const Vector<double> &s) const
+    {
+      //Find number of nodes
+      const unsigned n_node = nnode();
+
+      //Get the index at which the poisson unknown is stored
+      const unsigned phi_1_nodal_index = phi_1_index_micromag();
+
+      //Local shape function
+      Shape psi(n_node);
+
+      //Find values of shape function
+      shape(s,psi);
+
+      //Initialise value of u
+      double interpolated_phi_1 = 0.0;
+
+      //Loop over the local nodes and sum
+      for(unsigned l=0;l<n_node;l++)
+	{
+	  interpolated_phi_1 += this->nodal_value(l,phi_1_nodal_index)*psi[l];
+	}
+
+      return interpolated_phi_1;
+    }
+
+
     /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_m_micromag(const Vector<double> &s,
 					Vector<double>& interpolated_m) const
