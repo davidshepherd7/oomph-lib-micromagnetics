@@ -35,13 +35,6 @@ namespace oomph
     /// outside of this element for calculation of boundary matrix).
     static Mesh* Boundary_mesh_pt;
 
-    /// The index at which phi_1 is stored
-    unsigned Phi_1_index_micromag;
-
-    /// The index at which phi_2 is stored
-    unsigned Phi_2_index_micromag;
-
-
   public:
 
     /// \short Constructor, takes the pointer to the bulk element and the
@@ -86,25 +79,8 @@ namespace oomph
     /// Jacobian matrix
     inline void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix)
     {
-
-      //??temp
-      // DenseMatrix<double> second_boundary_matrix(boundary_matrix);
-
-
       fill_in_be_contribution_analytic(boundary_matrix);
-
-      // //??temp
-      // fill_in_be_contribution_adaptive(second_boundary_matrix);
-
-      // for(unsigned i=0; i< boundary_matrix.nrow(); i++)
-      // 	for(unsigned j=0; j< boundary_matrix.ncol(); j++)
-      // 	  if ( std::abs(boundary_matrix(i,j) - second_boundary_matrix(i,j)) > 1e-6)
-      // 	    {
-      // 	      std::cout << boundary_matrix(i,j) << " " << second_boundary_matrix(i,j)
-      // 			<< std::endl;
-      // 	    }
-      // std::cout << boundary_matrix.nrow()
-      // << boundary_matrix.ncol() << std::endl << std::endl;
+      // fill_in_be_contribution_adaptive(boundary_matrix);
     }
 
     /// Output function - do nothing
@@ -190,7 +166,7 @@ namespace oomph
     /// appropriate input for the element.
     void fill_in_be_contribution_analytic(DenseMatrix<double> &boundary_matrix) const;
 
-    /// ??ds? Calculate the contribution of a triangular region to the boundary
+    /// Calculate the contribution of a triangular region to the boundary
     /// element matrix using analytic calculations from Lindholm1984.
     void analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_nds,
 					     const Vector<unsigned>& l,
@@ -233,6 +209,8 @@ namespace oomph
 #ifdef PARANOID
     // Dynamic casts are slow but type checked
     //??ds put try/catch in here and call oomphlib error if fails?
+    // don't think this error check is working...
+    // need to generalise to pick the right scheme (T or Q)
     QVariableOrderGaussLegendre<el_dim>* v_int_pt =
       dynamic_cast<QVariableOrderGaussLegendre<el_dim>* >(integral_pt());
 #else
@@ -275,10 +253,8 @@ namespace oomph
 	  {
 	    // Copy the previous result into another vector (for comparison later)
 	    // and initialise current result vector.
-	    //??ds do the initilisation better?
 	    temp_bm_prev = temp_bm;
-	    for(unsigned l=0; l<n_element_node; l++)
-	      temp_bm[l] = 0.0;
+	    temp_bm.assign(n_element_node,0.0);
 
 	    ////////////////////////////////////////
 	    // Precalculations (if needed)
@@ -537,7 +513,6 @@ namespace oomph
     return (1/Pi) * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
   }
 
-  //??temp
 /*
   hybrid FEM/BEM method from:
   T. R. Koehler, D. R. Fredkin, "Finite Element Methods for
@@ -647,7 +622,6 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
       (rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
     );
 
-  // std::cout << t_nom/t_denom << std::endl;
   /* catch special cases where the argument of acos
      is close to -1.0 or 1.0 or even outside this interval
 
@@ -666,35 +640,14 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
     omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*std::acos(t_nom/t_denom);
   }
 
-  // //ok
-  // std::cout << omega << std::endl;
-
   eta1l=my_ddot(ND,eta1,1,rho1,1);
   eta2l=my_ddot(ND,eta2,1,rho2,1);
   eta3l=my_ddot(ND,eta3,1,rho3,1);
-
-  // //ok
-  // std::cout << eta1 << std::endl;
-  // std::cout << eta2 << std::endl;
-  // std::cout << eta3 << std::endl;
 
   p[0]=log((rho1l+rho2l+s1)/(rho1l+rho2l-s1));
   p[1]=log((rho2l+rho3l+s2)/(rho2l+rho3l-s2));
   p[2]=log((rho3l+rho1l+s3)/(rho3l+rho1l-s3));
 
-  //ok std::cout << p << std::endl;
-
-  // ok
-  //   std::cout << zetal << std::endl;
-
-  // //ok
-  // std::cout << gamma1 << " " << gamma2 << " " << gamma3 << std::endl;
-
-  // //ok
-  // std::cout << a << std::endl;
-
-  // Note: I swapped the sign to our convention
-  //??temp swapped the sign back for a test
   matele[0]=(eta2l*omega-zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
   matele[1]=(eta3l*omega-zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
   matele[2]=(eta1l*omega-zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
@@ -773,8 +726,6 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 			    "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
 			    OOMPH_EXCEPTION_LOCATION);
       }
-
-    // std::cout << std::endl;
   }
 
   //======================================================================
@@ -873,6 +824,10 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 
 
 	// Calculate the solid angle (see Lindholm 1984)
+	// I think it's impossible for the denominator to be zero since that
+	// would imply either a zero rho vector or two anti-parallel rho vectors
+	// which only happens for a source within the triangle. Both of these
+	// cases would give zeta < 1e-8.
 	double ratio = (rhol[0]*rhol[1]*rhol[2]
 			+ rhol[0] * dot(rho[1],rho[2])
 			+ rhol[1] * dot(rho[0],rho[2])
@@ -883,12 +838,13 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 		    *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
 		    *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
 		    );
-	int sign = (zeta > 0.0 ? +1.0 : -1.0);
 
 	// Round-off errors can cause ratio to be out of range for inverse cos
 	// so we need to check it.
 	if(ratio > 1.0) ratio = 1.0;
 	else if(ratio < -1.0) ratio = -1.0;
+
+	int sign = (zeta > 0.0 ? +1.0 : -1.0);
 	double omega = sign * 2 * std::acos(ratio);
 
 	// Calculate eta: the unit vector normal to the side. Use it to
@@ -907,7 +863,6 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	// Bele(x_sn, x_tn[0], x_tn[1], x_tn[2], magpar_contribution);
 	// Vector<double> oomph_contribution(3,0.0);
 
-
 	/* Now put it all together and add the contribution to the boundary
 	   element matrix */
 	for(unsigned i_tn=0; i_tn < n_node; i_tn++)
@@ -921,9 +876,7 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 		//??ds: not sure whether to add this here or in driver
 	        (etal[next_node] * omega)
 
-		// Main term, we use + instead of - because our definition of
-		// the Green's fn is opposite sign to that in Lindholm.
-		//??temp switched the sign back just to see...
+		// Main term
 		- (zeta * dot(gamma[i_tn],P))
 		 );
 

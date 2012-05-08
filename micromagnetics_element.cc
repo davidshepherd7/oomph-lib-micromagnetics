@@ -254,9 +254,6 @@ namespace oomph
 
   	// Exchange field section
   	//----------------------------------------------------
-  	// H_ex = coeff * laplacian(M)
-  	// Weak form: int( H_ex_i - coeff* grad(M).grad(test) ) = 0
-  	// ??ds only when grad(M).n = 0 at boundaries, otherwise need another term!
 
   	// Get exchange coeff
   	double exchange_coeff = get_exchange_coeff(time,interpolated_x);
@@ -307,12 +304,18 @@ namespace oomph
   	// Vector<double> llg_source(3,0.0);
   	// get_source_llg(time, interpolated_x, llg_source);
 
+	// Magnetostatic field is -1* dphi/dx, multiply by a coeff too alow easy
+	// switching on and off for debugging.
+	double magnetostatic_coeff = get_magnetostatic_coeff(time,interpolated_x);
+	Vector<double> H_ms(interpolated_dphidx);
+	for(unsigned i=0; i<H_ms.size(); i++)
+	  H_ms[i] *= -1 * magnetostatic_coeff;
 
-  	// Take total of all fields used (-dphidx = magnetostatic field)
+  	// Take total of all fields used
 	Vector<double> H_total(3,0.0);
   	for(unsigned j=0; j<3; j++)
   	  {
-  	    H_total[j] = H_applied[j] - interpolated_dphidx[j]
+  	    H_total[j] = H_applied[j] + H_ms[j]
   	      + interpolated_H_exchange[j] + H_cryst_anis[j];
   	  }
 
@@ -320,6 +323,7 @@ namespace oomph
 	Vector<double> interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
 	VectorOps::cross(interpolated_m, H_total, interpolated_mxH);
   	VectorOps::cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);
+
 
 	// Loop over test functions/nodes
   	for (unsigned l=0; l<n_node; l++)
@@ -528,7 +532,7 @@ namespace oomph
     	Vector<double> s(DIM,0.0);
     	for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
 
-    	// Get x (global coordinate) and output (??ds at current time)
+    	// Get x (global coordinate) and output
     	Vector<double> x(DIM,0.0);
     	interpolated_x(s,x);
     	for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}

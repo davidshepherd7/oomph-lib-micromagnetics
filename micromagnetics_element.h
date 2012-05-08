@@ -32,6 +32,7 @@ namespace oomph
 			  Applied_field_pt(0), Cryst_anis_field_pt(0),
 			  Sat_mag_pt(0), Llg_damp_pt(0),
 			  Llg_precess_pt(0), Exchange_coeff_pt(0),
+			  Magnetostatic_coeff_pt(0),
 			  Exact_m_pt(0), Exact_phi_pt(0)
     {}
 
@@ -217,6 +218,20 @@ namespace oomph
     {
       if(Exchange_coeff_pt==0) {return 1.0;}
       else return *Exchange_coeff_pt;
+    }
+
+    // MAGNETOSTATIC COEFF FUNCTION POINTER
+    /// Access function: Pointer to magnetostatic coefficient function
+    double*& magnetostatic_coeff_pt() {return Magnetostatic_coeff_pt;}
+
+    /// Access function: Pointer to magnetostatic coefficient function. Const version
+    double* magnetostatic_coeff_pt() const {return Magnetostatic_coeff_pt;}
+
+    /// Get magnetostatic coefficient at eulerian postition x.
+    inline double get_magnetostatic_coeff(const double& t, const Vector<double>& x) const
+    {
+      if(Magnetostatic_coeff_pt==0) {return 1.0;}
+      else return *Magnetostatic_coeff_pt;
     }
 
     // EXACT PHI FUNCTION POINTER
@@ -542,6 +557,9 @@ namespace oomph
 
     /// Pointer to exchange coefficient
     double* Exchange_coeff_pt;
+
+    /// Pointer to magnetostatic coefficient
+    double* Magnetostatic_coeff_pt;
 
     /// Pointer to the exact solution for M
     TimeSpaceToDoubleVectFctPt Exact_m_pt;

@@ -17,29 +17,39 @@ using namespace MathematicalConstants;
 
 namespace Inputs
 {
-  //double sat_mag = 0;
-  double llg_damping = 0;
-  double llg_precession = 0;
+  // Can't make these const because not const in element,
+  // ??ds need to do this input stuff properly..
+
+  double llg_damping = 0.1;
+  double llg_precession = 1;
+
   double exchange_coeff = 0;
 
-  unsigned nstep = 2;
-  double dt = 0.5e-4;
+  double magnetostatic_coeff = 0;
+
+  double crystal_anis_coeff = 1;
+
+  const unsigned nstep = 5;
+  const double dt = 0.1;
+
+
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    // h_app[0] = +0.1;
-    // h_app[1] = +3;
+    h_app[0] = +1;
+    h_app[1] = +3;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
-			const Vector<double>& M, Vector<double>& h_ca)
+			const Vector<double>& m, Vector<double>& h_ca)
   {
-    h_ca.assign(3,0.0);
-    // Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
-    // double magnitude = dot(Easy_axis,M);
-    // h_ca = Easy_axis;
-    // std::for_each(h_ca.begin(), h_ca.end(), [magnitude](double& elem) {elem*=magnitude;});
+    Vector<double> easy_axis(3,0.0); easy_axis[0] = 1;
+
+    h_ca = easy_axis;
+    double magnitude = dot(easy_axis,m);
+    for(unsigned i=0; i<h_ca.size(); i++)
+      h_ca[i] *= magnitude * crystal_anis_coeff;
   }
 
   void initial_m(const double& t, const Vector<double>& x,
@@ -167,8 +177,12 @@ namespace oomph
 		      const std::string& element_file_name,
 		      const std::string& face_file_name)
   {
-    // Allocate steady state timestepper
+
+    // Allocate timestepper
     add_time_stepper_pt(new BDF<2>);
+
+    // //??temp try a steady state timestepper
+    // add_time_stepper_pt(new Steady<0>);
 
     // Build mesh from tetgen
     mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
@@ -202,6 +216,7 @@ namespace oomph
     	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
     	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
     	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+	elem_pt->magnetostatic_coeff_pt() = &Inputs::magnetostatic_coeff;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
@@ -238,22 +253,6 @@ namespace oomph
 
     // Set boundary mesh pointer in element
     BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
-
-    // // Create a variable integration scheme to do the BEM integration
-    // QVariableOrderGaussLegendre<DIM-1>* bem_quadrature_scheme_pt
-    //   = new QVariableOrderGaussLegendre<DIM-1>;
-
-    // // Loop over elements in BEM mesh to set mesh pointer
-    // unsigned n_bem_element = bem_mesh_pt()->nelement();
-    // for(unsigned i=0;i<n_bem_element;i++)
-    //   {
-    // 	// Upcast from GeneralisedElement to the bem element
-    // 	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
-    // 	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
-
-    // 	// Set the integration scheme pointer in element
-    // 	bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
-    //   }
 
     // Make the boundary matrix (including setting up the numbering scheme)
     build_boundary_matrix();
@@ -449,8 +448,6 @@ namespace oomph
     unsigned long n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned long e=0;e<n_bem_element;e++)
       {
-
-	//??temp
 	// Get the pointer to the element (and cast to FiniteElement)
 	BEM_ELEMENT<BULK_ELEMENT,DIM>* elem_pt =
 	  dynamic_cast < BEM_ELEMENT<BULK_ELEMENT,DIM>* > (bem_mesh_pt()->element_pt(e));
@@ -506,62 +503,16 @@ namespace oomph
   void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
   update_boundary_phi()
   {
-    // Get the index of phi_1 and phi
-    BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(bem_mesh_pt()->element_pt(0));
-    const unsigned phi_1_index = elem_pt->phi_1_index_micromag();
-    const unsigned phi_index = elem_pt->phi_index_micromag();
+    //??temp, maybe If magnetostatic coeff is zero then we are ignoring the
+    // magnetostatic field so leave boundry pinned at zero?
+    // Not a good way to ignore ms... should somehow remove eqns alltogether...
+    if (Inputs::magnetostatic_coeff == 0)
+      return;
 
-    //??ds TODO: convert this into proper dense matrix multiplication!
-    //??ds TODO: try exact phi_1 solution!
-
-    // // Loop over all (target) nodes on the boundary
-    // unsigned n_boundary_node = bem_mesh_pt()->nnode();
-    // for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
-    //   {
-    // 	//??temp
-    // 	// Get a pointer to the target node
-    // 	Node* target_node_pt = bem_mesh_pt()->node_pt(target_node);
-
-    // 	// Get boundary equation number for this target node
-    // 	unsigned target_number = convert_global_to_boundary_equation_number
-    // 	  (target_node_pt->eqn_number(1));
-
-    // 	// Double to store the value of total phi during computation
-    // 	double target_phi_value = 0;
-
-    // 	// std::cout << target_number << ": ";
-
-    // 	// Loop over all source nodes adding contribution from each
-    // 	for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
-    // 	  {
-    // 	    // Get a pointer to the source node
-    // 	    Node* source_node_pt = bem_mesh_pt()->node_pt(source_node);
-
-    // 	    // Get boundary equation number for this source node
-    // 	    unsigned source_number = convert_global_to_boundary_equation_number
-    // 	      (source_node_pt->eqn_number(1));
-
-    // 	    // Add the contribution to total phi at the target node due to
-    // 	    // the source node (relationship is given by the boundary matrix).
-    // 	    target_phi_value += Boundary_matrix(target_number,source_number)
-    // 	      * source_node_pt->value(phi_1_index);
-
-    // 	    // std::cout << "+ "
-    // 	    // 	      << Boundary_matrix(target_number,source_number) << " * "
-    // 	    // 	      << source_node_pt->value(phi_1_index)
-    // 	    // 	      << " = " << target_phi_value << std::endl;
-
-    // 	    // std::cout << source_number << " ";
-    // 	  }
-
-
-    // 	// Save the total into the target node
-    // 	double exact_target_phi_value = (target_node_pt->x(0)) / -3;
-
-    // 	std::cout << std::endl << target_phi_value << " " << exact_target_phi_value << std::endl;
-
-    // 	target_node_pt->set_value(phi_index,exact_target_phi_value);
-    //   }
+    // Get the index of phi_1 and phi (use bulk element because indices stored there)
+    BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0));
+    const unsigned phi_1_index = bulk_elem_pt->phi_1_index_micromag();
+    const unsigned phi_index = bulk_elem_pt->phi_index_micromag();
 
     // In order to use DoubleVector (for matrix multiplications) we need to have
     // this thingy. In our serial case it just gives a number of rows.
@@ -578,35 +529,7 @@ namespace oomph
 
 	// Copy into appropriate vector entry
 	boundary_phi_1[nd_equation] = bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index);
-
-	// //??temp
-	// Vector<double> nd_x(DIM,0.0);
-	// for(unsigned j=0; j<DIM; j++)
-	//   nd_x[j] = bem_mesh_pt()->node_pt(i_nd)->x(j);
-	// std::cout << nd_x
-	// 	  << " " << boundary_phi_1[nd_equation] << std::endl;
-
-	// //??temp: compare with exact solution
-	// // phi_1 = r * cos(azimuthal) * sin (polar)
-	// double r = mod(nd_x);
-	// double azimuthal = atan2(nd_x[1],nd_x[0]);
-	// double polar = acos(nd_x[2]/r);
-	// exact_phi_1[nd_equation] = - r * cos(azimuthal) * sin(polar);
-
-	// //??temp
-	// std::cout << nd_x[0] << " " << nd_x[1] << " " << nd_x[2]
-	// 	  << " " << boundary_phi_1[nd_equation] << std::endl;
-
-	// if (std::abs(boundary_phi_1[nd_equation] - exact_phi_1[nd_equation]) > 1e-6)
-	//   {
-	//     std::cout << boundary_phi_1[nd_equation] << " "
-	// 	      << exact_phi_1[nd_equation] << std::endl;
-	//   }
-
-	//??temp overide with exact solution
-	// boundary_phi_1[nd_equation] = exact_phi_1[nd_equation];
       }
-
 
     // Dense matrix multiplication to calculate phi (result goes in boundary_phi)
     DoubleVector boundary_phi(dummy,0.0);
@@ -621,14 +544,7 @@ namespace oomph
 
 	// Copy out appropriate vector entry
 	bem_mesh_pt()->node_pt(i_nd)->set_value(phi_index, boundary_phi[nd_equation]);
-
-	//??temp override for a test
-	//bem_mesh_pt()->node_pt(i_nd)->set_value(phi_index, );
       }
-
-    // std::cout << boundary_phi_1 << std::endl;
-
-    // std::cout << boundary_phi << std::endl;
 
   }
 
@@ -798,7 +714,7 @@ int main(int argc, char* argv[])
   bem_file.close();
 
   // Timestepping loop
-  for(unsigned istep=1; istep<nstep; istep++)
+  for(unsigned istep=0; istep<nstep; istep++)
     {
       std::cout << "Timestep " << istep << std::endl;
 
@@ -811,18 +727,6 @@ int main(int argc, char* argv[])
       //Increment counter for solutions
       doc_info.number()++;
     }
-
-  // Vector<double> middle(3,0.5);
-
-  // for(unsigned i=0; i<problem.mesh_pt()->nelement(); i++)
-  //   {
-  //     Vector<double> H_ms(3,0.0);
-  //     TMicromagElement<dim,nnode_1d>* el_pt =
-  // 	dynamic_cast<TMicromagElement<dim,nnode_1d>* >(problem.mesh_pt()->element_pt(i));
-  //     el_pt->interpolated_dphidx_micromag(middle,H_ms);
-  //     std::cout << H_ms << std::endl;
-  //   }
-  // return 0;
 }
 
 #endif
