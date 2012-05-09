@@ -25,12 +25,12 @@ namespace Inputs
 
   double exchange_coeff = 0;
 
-  double magnetostatic_coeff = 0;
+  double magnetostatic_coeff = 1;
 
-  double crystal_anis_coeff = 1;
+  double crystal_anis_coeff = 0;
 
-  const unsigned nstep = 5;
-  const double dt = 0.1;
+  const unsigned nstep = 2;
+  const double dt = 1e-6;
 
 
 
@@ -476,22 +476,20 @@ namespace oomph
 		  this->convert_global_to_boundary_equation_number
 		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
 
-		// std::cout <<l_number << " " << source_number << std::endl;
-
 		Boundary_matrix(l_number,source_number)
 		  += element_boundary_matrix(l,source_node);
 	      }
 	  }
-
-
       }
 
-    // //??temp - not sure if I should have this here or in main calculation
-    // // loop over the matrix diagonals adding the angle factor.
-    // for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
-    //   {
-    // 	Boundary_matrix(nd,nd) += 0.5; //??temp: minus sign
-    //   }
+    // Lindholm formula does not contain the solid angle contribution: add in
+    // here loop over the matrix diagonals adding the angle factor.
+    for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
+      {
+	// For a sphere all points are smooth (at least in the limit of infinite
+	// refinement) so the solid angle contribution is (2*pi)/(4*pi) = 0.5.
+    	Boundary_matrix(nd,nd) += 1.5; //??temp messing with this..
+      }
 
   }
 

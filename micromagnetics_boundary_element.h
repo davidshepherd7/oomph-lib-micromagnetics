@@ -871,27 +871,14 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 
 	    // Add contribution to the appropriate value in the boundary matrix
 	    boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
-	      *(
-		// Solid angle term
-		//??ds: not sure whether to add this here or in driver
-	        (etal[next_node] * omega)
+	      *((etal[next_node] * omega) - (zeta * dot(gamma[i_tn],P)))
 
-		// Main term
-		- (zeta * dot(gamma[i_tn],P))
-		 );
+	      // Lindholm does not include the factor of 1/(4*pi) in his
+	      // operator so we multiply by it here.
+	      * (1/(4*Pi));
 
-	    // //??temp
-	    // if(!( std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn]) < 1e-7))
-	    //   {
-	    //   throw OomphLibError("magpar and oomph calcs differ",
-	    //   			  "", OOMPH_EXCEPTION_LOCATION);
-
-	    // 	std::cout << std::abs(magpar_contribution[i_tn] - oomph_contribution[i_tn])
-	    // 		  << std::endl;
-	    //   }
-
-	    // //??temp
-	    // boundary_matrix(l[i_tn],i_sn) += oomph_contribution[i_tn];
+	    // Also note that he does NOT include the solid angle factor on
+	    // surfaces, the solid angle factor above is unrelated.
 	  }
 
       }
