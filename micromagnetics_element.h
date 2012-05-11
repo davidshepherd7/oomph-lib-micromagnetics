@@ -186,7 +186,7 @@ namespace oomph
     double* llg_damp_pt() const {return Llg_damp_pt;}
 
     /// Get LLG damping coefficient at eulerian postition x.
-    inline double get_llg_damp() const
+    inline double get_llg_damping_coeff() const
     {
       if(Llg_damp_pt==0) {return 1.0;}
       else return *Llg_damp_pt;
@@ -200,7 +200,7 @@ namespace oomph
     double* llg_precess_pt() const {return Llg_precess_pt;}
 
     /// Get LLG precession coefficient at eulerian postition x.
-    inline double get_llg_precess() const
+    inline double get_llg_precession_coeff() const
     {
       if(Llg_precess_pt==0) {return 1.0;}
       else return *Llg_precess_pt;
@@ -453,6 +453,64 @@ namespace oomph
 
     }
 
+    //??ds unchecked
+    void interpolated_exchange_micromag(const Vector<double>& s,
+					Vector<double>& itp_exchange)
+    {
+      //Find number of nodes
+      const unsigned n_node = nnode();
+
+      // Get number of values required
+      const unsigned nvalue = required_nvalue(0);
+
+      //Local shape function
+      Shape psi(n_node);
+
+      //Find values of shape function
+      shape(s,psi);
+
+      // Initialise solution vector
+      itp_exchange.assign(nvalue,0.0);
+
+      // Loop over field dimensions (always 3)
+      for(unsigned i=0; i<3; i++)
+    	{
+	  unsigned exch_index = exchange_index_micromag(i);
+
+    	  //Loop over the local nodes and sum
+    	  for(unsigned l=0;l<n_node;l++)
+    	    {
+    	      itp_exchange[i] += this->nodal_value(l,exch_index)*psi[l];
+    	    }
+    	}
+
+    }
+
+    /// Get total field at position x. There is a more efficient private version
+    /// of this function for use in residual calculations etc. This version does
+    /// some extra calculations to get interpolated m and x and ensures
+    /// initilisations.
+    //??ds unchecked
+    void interpolated_ht_micromag(const Vector<double>& s,
+				  Vector<double>& h_total)
+    {
+      Vector<double> x(3,0.0);
+      interpolated_x(s,x);
+
+      Vector<double> m(3,0.0);
+      interpolated_m_micromag(s,m);
+
+      Vector<double> itp_dphidx(3,0.0);
+      interpolated_dphidx_micromag(s,itp_dphidx);
+
+      Vector<double> itp_exchange(3,0.0);
+      interpolated_exchange_micromag(s,itp_exchange);
+
+      h_total.assign(3,0.0);
+      interpolated_ht_micromag_efficient(x,m,itp_dphidx,itp_exchange,h_total);
+    }
+
+
     // OUTPUT FUNCTIONS
     /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5);
@@ -476,15 +534,15 @@ namespace oomph
 	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
-    // ??ds testing if the Jacobian is correct!
-    /// \short Add the element's contribution to its residual vector and element
-    /// Jacobian matrix (wrapper)
-    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    					  DenseMatrix<double> &jacobian)
-    {
-      // Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-    }
+    // // ??ds testing if the Jacobian is correct!
+    // /// \short Add the element's contribution to its residual vector and element
+    // /// Jacobian matrix (wrapper)
+    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    // 					  DenseMatrix<double> &jacobian)
+    // {
+    //   // Call the generic routine with the flag set to 1
+    //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+    // }
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
@@ -529,6 +587,38 @@ namespace oomph
     /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
     virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
 				Shape &test, DShape &dtestdx) const=0;
+
+    /// Get the field at current time (pass in x,m, dphidx, exchange for
+    /// efficiency).
+    inline void interpolated_ht_micromag_efficient(const Vector<double>& x,
+						   const Vector<double>& m,
+						   const Vector<double>& itp_dphidx,
+						   const Vector<double>& itp_exchange,
+						   Vector<double>& h_total)
+      const
+    {
+      // Get time
+      const double time = time_pt()->time();
+
+      Vector<double> h_applied(3,0.0);
+      get_applied_field(time, x, h_applied);
+      Vector<double> h_cryst_anis(3,0.0);
+      get_H_cryst_anis_field(time, x, m, h_cryst_anis);
+
+      // Magnetostatic field is -1* dphi/dx, multiply by a coeff too alow easy
+      // switching on and off for debugging.
+      double magnetostatic_coeff = get_magnetostatic_coeff(time,x);
+      Vector<double> h_ms(3,0.0);
+      for(unsigned i=0; i<h_ms.size(); i++)
+	h_ms[i] *= -1 * magnetostatic_coeff;
+
+      // Take total of all fields used
+      for(unsigned j=0; j<3; j++)
+	{
+	  h_total[j] = h_applied[j] + h_ms[j]
+	    + itp_exchange[j] + h_cryst_anis[j];
+	}
+    }
 
     /// Pointer to poisson source function - only for testing purposes since
     /// div(M) is our source function in calculation of the demagnetising
