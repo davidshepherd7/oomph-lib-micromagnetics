@@ -56,6 +56,11 @@ namespace oomph
   }
 
 
+  bool small(const double& test_double)
+  {
+    return std::abs(test_double) < 1e-5;
+  }
+
 
 }
 

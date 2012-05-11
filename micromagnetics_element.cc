@@ -59,67 +59,67 @@ namespace oomph
 
   	// Allocate memory for local quantities and initialise to zero. dphidx
   	// is also H_demag so we need all 3 components.
-  	double interpolated_phi(0.0), interpolated_phi_1(0.0), interpolated_divm(0.0);
-  	Vector<double> interpolated_x(DIM,0.0), interpolated_dphidx(3,0.0),
-	  interpolated_dphi_1dx(3,0.0),interpolated_m(3,0.0), interpolated_dmdt(3,0.0),
-	  interpolated_H_exchange(3,0.0);
-	DenseDoubleMatrix interpolated_dmdx(3,3,0.0);
+  	double itp_phi(0.0), itp_phi_1(0.0), itp_divm(0.0);
+  	Vector<double> itp_x(DIM,0.0), itp_dphidx(3,0.0),
+	  itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0),
+	  itp_exchange(3,0.0);
+	DenseDoubleMatrix itp_dmdx(3,3,0.0);
 
   	// Interpolate values at knot by looping over nodes adding contributions
   	for(unsigned l=0;l<n_node;l++)
   	  {
   	    // Interpolate values of the total phi and phi_1
-  	    interpolated_phi += nodal_value(l,phi_index_micromag()) * psi(l);
-	    interpolated_phi_1 += nodal_value(l,phi_1_index_micromag()) * psi(l);
+  	    itp_phi += nodal_value(l,phi_index_micromag()) * psi(l);
+	    itp_phi_1 += nodal_value(l,phi_1_index_micromag()) * psi(l);
 
 	    // Interpolate values of fields and magnetisations
 	    Vector<double> dmdt(3,0.0);
 	    dm_dt_micromag(l,dmdt); // get dmdt at node l
   	    for(unsigned j=0; j<3; j++)
   	      {
-  		interpolated_dmdt[j] += dmdt[j]*psi(l);
-		interpolated_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
-  		interpolated_H_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
+  		itp_dmdt[j] += dmdt[j]*psi(l);
+		itp_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
+  		itp_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
   	      }
 
   	    // Interpolate spatial values/derivatives
   	    for(unsigned j=0; j<DIM; j++)
   	      {
-  		interpolated_x[j] += nodal_position(l,j)*psi(l);
-  		interpolated_dphidx[j] += nodal_value(l,phi_index_micromag())*dpsidx(l,j);
-		interpolated_dphi_1dx[j] += nodal_value(l,phi_1_index_micromag())*dpsidx(l,j);
+  		itp_x[j] += nodal_position(l,j)*psi(l);
+  		itp_dphidx[j] += nodal_value(l,phi_index_micromag())*dpsidx(l,j);
+		itp_dphi_1dx[j] += nodal_value(l,phi_1_index_micromag())*dpsidx(l,j);
 		for(unsigned k=0; k<3; k++)
-		  interpolated_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
+		  itp_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
   	      }
   	  }
 
 	// Calculate divergences (this needs to go outside the loop over
-	// nodes so that we have finished calculating interpolated_dmdx).
+	// nodes so that we have finished calculating itp_dmdx).
 	for(unsigned j=0; j<DIM; j++)
 	  {
-	    interpolated_divm += interpolated_dmdx(j,j);
+	    itp_divm += itp_dmdx(j,j);
 	  }
 
 	// for(unsigned l=0; l<n_node; l++)
 	//   for(unsigned i=0; i<3; i++)
 	//     std::cout << nodal_value(l,m_index_micromag(i))*psi(l) << " ";
 
-	//     std::cout <<  " " << interpolated_m << std::endl;
+	//     std::cout <<  " " << itp_m << std::endl;
 
-	// std::cout << interpolated_phi_1 << "\n"
-	// 	  << interpolated_phi << "\n"
-	// 	  << interpolated_divm << "\n"
-	// 	  << interpolated_x << "\n"
-	// 	  << interpolated_dphidx << "\n"
-	// 	  << interpolated_dphi_1dx << "\n"
-	// 	  << interpolated_m << "\n"
-	// 	  << interpolated_dmdt << "\n"
-	// 	  << interpolated_H_exchange << std::endl << std::endl;
+	// std::cout << itp_phi_1 << "\n"
+	// 	  << itp_phi << "\n"
+	// 	  << itp_divm << "\n"
+	// 	  << itp_x << "\n"
+	// 	  << itp_dphidx << "\n"
+	// 	  << itp_dphi_1dx << "\n"
+	// 	  << itp_m << "\n"
+	// 	  << itp_dmdt << "\n"
+	// 	  << itp_exchange << std::endl << std::endl;
 
   	// Total potential (magnetostatic field calculations)
   	//----------------------------------------------------
   	// Get source function
-  	double phi_source = get_phi_source(time,interpolated_x);
+  	double phi_source = get_phi_source(time,itp_x);
 
   	// Loop over the test functions/nodes adding contributions
   	for(unsigned l=0;l<n_node;l++)
@@ -132,53 +132,59 @@ namespace oomph
   		residuals[phi_local_eqn] -= phi_source*test(l)*W;
 
 		// The divergence of M source term
-		residuals[phi_local_eqn] -= interpolated_divm*test(l)*W;
+		residuals[phi_local_eqn] -= itp_divm*test(l)*W;
 
   		// The Poisson part (after reducing the order of differentiation
   		// on phi using integration by parts gives a dot product).
   		for(unsigned k=0;k<DIM;k++)
   		  {
-  		    residuals[phi_local_eqn] -= interpolated_dphidx[k]*dtestdx(l,k)*W;
+  		    residuals[phi_local_eqn] -= itp_dphidx[k]*dtestdx(l,k)*W;
   		  }
 
-		// // Calculate the Jacobian
-		// if(flag)
-		//   {
-		//     // Loop over test functions/nodes again
-		//     for(unsigned l2=0;l2<n_node;l2++)
-		//       {
-		// 	// First the dependence of phi on all nodal values of
-		// 	// phi in the element.
-		// 	int phi_local_unknown = nodal_local_eqn(l2,phi_index_micromag());
-		// 	if(phi_local_unknown >= 0)
-		// 	  {
-		// 	    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
-		// 	      jacobian(phi_local_eqn,phi_local_unknown)
-		// 		-= dtestdx(l,k)*dpsidx(l2,k)*W;
-		// 	  }
+		// Calculate the Jacobian
+		if(flag)
+		  {
+		    // Loop over test functions/nodes again
+		    for(unsigned l2=0;l2<n_node;l2++)
+		      {
+			// First the dependence of phi on all nodal values of
+			// phi in the element.
 
-		// 	// The dependence of phi on M
-		// 	double div_psi = 0.0; // Get divergence of shape fn for node l2
-		// 	for(unsigned k=0; k<DIM; k++)
-		// 	  div_psi += dpsidx(l2,k);
+			// Calculate grad(test_l) . grad(psi_l2) //??ds do this once and store?
+			double gradtestdotgradpsi = 0.0;
+			for(unsigned k=0; k<DIM; k++)
+			  gradtestdotgradpsi += dtestdx(l,k)*dpsidx(l2,k);
 
-		// 	for(unsigned j=0; j<3; j++)
-		// 	  {
-		// 	    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
-		// 	    if(m_local_unknown >= 0)
-		// 	      jacobian(phi_local_eqn,m_local_unknown)
-		// 		+= div_psi * test(l) * W;// ??ds add jacobian bit...
-		// 	  }
+			int phi_local_unknown = nodal_local_eqn(l2,phi_index_micromag());
+			if(phi_local_unknown >= 0)
+			  {
+			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+			      jacobian(phi_local_eqn,phi_local_unknown)
+				+= - gradtestdotgradpsi * W;
+			  }
 
-		// 	// No dependence of phi on exchange field
+			// The dependence of phi on M
+			double div_psi = 0.0; // Get divergence of shape fn for node l2
+			for(unsigned k=0; k<DIM; k++)
+			  div_psi += dpsidx(l2,k);
 
-		// 	// Phi depends on phi_1 via the boundary element
-		// 	// matrix. It relates all nodes to each other rather
-		// 	// than just the nodes within a single element. Hence
-		// 	// this part of the Jacobian is added seperately in ??ds
-		// 	// actions_before....
-		//       }
-		//   } // End of phi Jacobian calculation
+			for(unsigned j=0; j<3; j++)
+			  {
+			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+			    if(m_local_unknown >= 0)
+			      jacobian(phi_local_eqn,m_local_unknown)
+				+= div_psi * test(l) * W;
+			  }
+
+			// No dependence of phi on exchange field
+
+			// Phi depends on phi_1 via the boundary element
+			// matrix. It relates all nodes to each other rather
+			// than just the nodes within a single element. Hence
+			// this part of the Jacobian is added seperately in ??ds
+			// actions_before....
+		      }
+		  } // End of phi Jacobian calculation
   	      }
   	  }
 	// End of total potential section
@@ -191,7 +197,7 @@ namespace oomph
 	// the boundary conditions.
 
   	// Get source function
-  	double phi_1_source = get_phi_1_source(time,interpolated_x);
+  	double phi_1_source = get_phi_1_source(time,itp_x);
 
   	// Loop over the test functions/nodes adding contributions
   	for(unsigned l=0;l<n_node;l++)
@@ -204,49 +210,52 @@ namespace oomph
   		residuals[phi_1_local_eqn] -= phi_1_source*test(l)*W;
 
 		// The divergence of M source term
-		residuals[phi_1_local_eqn] -= interpolated_divm*test(l)*W;
+		residuals[phi_1_local_eqn] -= itp_divm*test(l)*W;
 
   		// The Poisson part (after reducing the order of differentiation
   		// on phi_1 using integration by parts gives a dot product).
   		for(unsigned k=0;k<DIM;k++)
   		  {
-  		    residuals[phi_1_local_eqn] -= interpolated_dphi_1dx[k]*dtestdx(l,k)*W;
+  		    residuals[phi_1_local_eqn] -= itp_dphi_1dx[k]*dtestdx(l,k)*W;
   		  }
 
-		// // Calculate the Jacobian - pretty much exactly the same as for phi
-		// if(flag)
-		//   {
-		//     // Loop over test functions/nodes again
-		//     for(unsigned l2=0;l2<n_node;l2++)
-		//       {
-		// 	// First the dependence of phi_1 on all nodal values of
-		// 	// phi_1 in the element.
-		// 	int phi_1_local_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
-		// 	if(phi_1_local_unknown >= 0)
-		// 	  {
-		// 	    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
-		// 	      jacobian(phi_1_local_eqn,phi_1_local_unknown)
-		// 		-= dtestdx(l,k)*dpsidx(l2,k)*W;
-		// 	  }
+		// Calculate the Jacobian - pretty much exactly the same as for phi
+		if(flag)
+		  {
+		    // Loop over test functions/nodes again
+		    for(unsigned l2=0;l2<n_node;l2++)
+		      {
+			// Calculate grad(test_l) . grad(psi_l2) //??ds do this once and store?
+			double gradtestdotgradpsi = 0.0;
+			for(unsigned k=0; k<DIM; k++)
+			  gradtestdotgradpsi += dtestdx(l,k)*dpsidx(l2,k);
 
-		// 	// The dependence of phi_1 on M
-		// 	double div_psi = 0.0; // Get divergence of shape fn for node l2
-		// 	for(unsigned k=0; k<DIM; k++)
-		// 	  div_psi += dpsidx(l2,k);
+			int phi_1_local_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
+			if(phi_1_local_unknown >= 0)
+			  {
+			    for(unsigned k=0; k<DIM; k++) // grad(psi_l) . grad(psi_l2)
+			      jacobian(phi_1_local_eqn,phi_1_local_unknown)
+				+= - gradtestdotgradpsi * W;
+			  }
 
-		// 	for(unsigned j=0; j<3; j++)
-		// 	  {
-		// 	    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
-		// 	    if(m_local_unknown >= 0)
-		// 	      jacobian(phi_1_local_eqn,m_local_unknown)
-		// 		+= div_psi * test(l) * W;// ??ds add jacobian bit...
-		// 	  }
+			// The dependence of phi_1 on M
+			double div_psi = 0.0; // Get divergence of shape fn for node l2
+			for(unsigned k=0; k<DIM; k++)
+			  div_psi += dpsidx(l2,k);
 
-		// 	// No dependence of phi_1 on exchange field
+			for(unsigned j=0; j<3; j++)
+			  {
+			    int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+			    if(m_local_unknown >= 0)
+			      jacobian(phi_1_local_eqn,m_local_unknown)
+				+= div_psi * test(l) * W;
+			  }
 
-		// 	// Phi_1 does not depend on phi
-		//       }
-		//   } // End of phi_1 Jacobian calculation
+			// No dependence of phi_1 on exchange field
+
+			// Phi_1 does not depend on phi
+		      }
+		  } // End of phi_1 Jacobian calculation
   	      }
   	  }
 
@@ -256,10 +265,10 @@ namespace oomph
   	//----------------------------------------------------
 
   	// Get exchange coeff
-  	double exchange_coeff = get_exchange_coeff(time,interpolated_x);
+  	double exchange_coeff = get_exchange_coeff(time,itp_x);
 
   	// Loop over H_exchange components
-  	for(unsigned i=0; i<3; i++)
+  	for(unsigned i=0; i<3; i++) //???????ds this is WRONG...
   	  {
   	    // Loop over test functions/nodes, adding contributions from each
   	    for(unsigned l=0; l<n_node; l++)
@@ -271,18 +280,50 @@ namespace oomph
   		if(exchange_local_eqn >=0)
   		  {
   		    // Add exchange field component at integration pt
-  		    residuals[exchange_local_eqn] += interpolated_H_exchange[i] * test(l) * W;
+  		    residuals[exchange_local_eqn] += itp_exchange[i] * test(l) * W;
 
   		    // Get grad(M).grad(test) at integration pt
 		    double gradMi_dot_gradpsi(0.0);
   		    for(unsigned j=0; j<DIM; j++)
   		      {
-			gradMi_dot_gradpsi += interpolated_dmdx(i,j) * dtestdx(l,j);
+			gradMi_dot_gradpsi += itp_dmdx(i,j) * dtestdx(l,j);
   		      }
 		    residuals[exchange_local_eqn]
 		      += exchange_coeff * gradMi_dot_gradpsi * W;
 
-  		    //?? jacobian calculation here
+		    // Do Jacobian calculation
+		    if(flag)
+		      {
+			// Loop over test functions/nodes again
+			for(unsigned l2=0;l2<n_node;l2++)
+			  {
+			    // h_ex dependence on itself (just a mass matrix i.e. integral of shape*test)
+			    double mass_matrix = test(l) * psi(l2) * W;
+			    for(unsigned j=0; j<3; j++)
+			      {
+				int exchange_local_unknown =
+				  nodal_local_eqn(l2,exchange_index_micromag(j));
+				if(exchange_local_unknown >= 0)
+				  jacobian(exchange_local_eqn,exchange_local_unknown) += mass_matrix;
+			      }
+
+			    // Calculate grad(test_l) . grad(psi_l2) //??ds do this once and store?
+			    double gradtestdotgradpsi = 0.0;
+			    for(unsigned k=0; k<DIM; k++)
+			      gradtestdotgradpsi += dtestdx(l,k)*dpsidx(l2,k);
+
+			    // exchange dependence on m (not including derivative of
+			    // flux term which is in flux element)
+			    for(unsigned j=0; j<3; j++)
+			      {
+				int m_local_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+				if(m_local_unknown >= 0)
+				  jacobian(exchange_local_eqn,m_local_unknown)
+				    += exchange_coeff * gradtestdotgradpsi * W;
+			      }
+			  }
+		      } // End of Jacobian calculations
+
   		  }
   	      } // End of loop over test functions/nodes
   	  } // End of loop over H directions
@@ -293,36 +334,36 @@ namespace oomph
   	//----------------------------------------------------
 
   	// Get applied field at this position
-  	Vector<double> H_applied(3,0.0);
-  	get_applied_field(time, interpolated_x, H_applied);
+  	Vector<double> h_applied(3,0.0);
+  	get_applied_field(time, itp_x, h_applied);
 
   	// Get crystalline anisotropy effective field
-  	Vector<double> H_cryst_anis(3,0.0);
-  	get_H_cryst_anis_field(time, interpolated_x, interpolated_m, H_cryst_anis);
+  	Vector<double> h_cryst_anis(3,0.0);
+  	get_H_cryst_anis_field(time, itp_x, itp_m, h_cryst_anis);
 
   	// // Get LLG source function
   	// Vector<double> llg_source(3,0.0);
-  	// get_source_llg(time, interpolated_x, llg_source);
+  	// get_source_llg(time, itp_x, llg_source);
 
 	// Magnetostatic field is -1* dphi/dx, multiply by a coeff too alow easy
 	// switching on and off for debugging.
-	double magnetostatic_coeff = get_magnetostatic_coeff(time,interpolated_x);
-	Vector<double> H_ms(interpolated_dphidx);
-	for(unsigned i=0; i<H_ms.size(); i++)
-	  H_ms[i] *= -1 * magnetostatic_coeff;
+	double magnetostatic_coeff = get_magnetostatic_coeff(time,itp_x);
+	Vector<double> h_ms(itp_dphidx);
+	for(unsigned i=0; i<h_ms.size(); i++)
+	  h_ms[i] *= -1 * magnetostatic_coeff;
 
   	// Take total of all fields used
-	Vector<double> H_total(3,0.0);
+	Vector<double> h_total(3,0.0);
   	for(unsigned j=0; j<3; j++)
   	  {
-  	    H_total[j] = H_applied[j] + H_ms[j]
-  	      + interpolated_H_exchange[j] + H_cryst_anis[j];
+  	    h_total[j] = h_applied[j] + h_ms[j]
+  	      + itp_exchange[j] + h_cryst_anis[j];
   	  }
 
   	// Get the cross products for the LLG equation
-	Vector<double> interpolated_mxH(3,0.0), interpolated_mxmxH(3,0.0);
-	VectorOps::cross(interpolated_m, H_total, interpolated_mxH);
-  	VectorOps::cross(interpolated_m, interpolated_mxH, interpolated_mxmxH);
+	Vector<double> itp_mxh(3,0.0), itp_mxmxh(3,0.0);
+	VectorOps::cross(itp_m, h_total, itp_mxh);
+  	VectorOps::cross(itp_m, itp_mxh, itp_mxmxh);
 
 
 	// Loop over test functions/nodes
@@ -337,16 +378,19 @@ namespace oomph
   		if(m_local_eqn >= 0)  // If it's not a boundary condition
   		  {
   		    residuals[m_local_eqn] +=
-  		      ( interpolated_dmdt[i]
-  			+ get_llg_precess() * interpolated_mxH[i]
-  			+ get_llg_damp() * interpolated_mxmxH[i]
+  		      ( itp_dmdt[i]
+  			+ get_llg_precess() * itp_mxh[i]
+  			+ get_llg_damp() * itp_mxmxh[i]
   			// - llg_source[i]
   			)*test(l)*W;
   		  }
-  		//??ds put in jacobian calculation eventually
-
   	      }
 
+	    // Calculate Jacobian contribtions
+	    if(flag)
+	      {
+		//??ds do this!
+	      }
 
   	  } // End of loop over test functions
       }// End of loop over integration points
@@ -407,10 +451,10 @@ namespace oomph
     	  }
 
 	// Output the magnetostatic field (= - dphidx) at this point
-	Vector<double> interpolated_dphidx(3,0.0);
-	interpolated_dphidx_micromag(s,interpolated_dphidx);
+	Vector<double> itp_dphidx(3,0.0);
+	interpolated_dphidx_micromag(s,itp_dphidx);
 	for(unsigned i=0; i<3; i++)
-	    outfile << -interpolated_dphidx[i] << " ";
+	    outfile << -itp_dphidx[i] << " ";
 
 	// Phi 1 at this point
 	outfile << interpolated_phi_1_micromag(s) << " ";
@@ -419,16 +463,16 @@ namespace oomph
 	outfile << interpolated_phi_micromag(s) << " ";
 
 	// Output m at this point
-	Vector<double> interpolated_m(3,0.0);
-	interpolated_m_micromag(s,interpolated_m);
+	Vector<double> itp_m(3,0.0);
+	interpolated_m_micromag(s,itp_m);
 	for(unsigned i=0; i<3; i++)
-	  outfile << interpolated_m[i] << " ";
+	  outfile << itp_m[i] << " ";
 
 	// Output exchange field at this point
-	Vector<double> interpolated_h_ex(3,0.0);
-	interpolated_h_ex_micromag(s,interpolated_h_ex);
+	Vector<double> itp_h_ex(3,0.0);
+	interpolated_h_ex_micromag(s,itp_h_ex);
 	for(unsigned i=0; i<3; i++)
-	  outfile << interpolated_h_ex[i] << " ";
+	  outfile << itp_h_ex[i] << " ";
 
 
     	// End the line ready for next point
@@ -546,23 +590,23 @@ namespace oomph
     	//Premultiply the weights and the Jacobian
     	double W = w*J;
 
-    	// Get entire interpolated solution at position s and current time
-    	Vector<double> interpolated_soln(nvalues,0.0);
-    	interpolated_solution_micromag(s,interpolated_soln);
+    	// Get entire ipl solution at position s and current time
+    	Vector<double> itp_soln(nvalues,0.0);
+    	interpolated_solution_micromag(s,itp_soln);
 
     	// Get entire exact solution at point x and time "time"
     	Vector<double> exact_soln(nvalues,0.0);
     	(*exact_soln_pt)(time,x,exact_soln);
 
-    	// Output the error (difference between exact and interpolated solutions)
-    	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- interpolated_soln[i] << " ";}
+    	// Output the error (difference between exact and itp solutions)
+    	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- itp_soln[i] << " ";}
     	outfile << std::endl;
 
     	// Add contributions to the norms of the error and exact soln from this integration point
     	for(unsigned i=0; i<nvalues; i++)
     	  {
-    	    error_norm += (exact_soln[i] - interpolated_soln[i])
-    	      *(exact_soln[i] - interpolated_soln[i])*W;
+    	    error_norm += (exact_soln[i] - itp_soln[i])
+    	      *(exact_soln[i] - itp_soln[i])*W;
     	    exact_norm += exact_soln[i]*exact_soln[i]*W;
     	  }
 
@@ -600,7 +644,7 @@ namespace oomph
   // 	{
   // 	  fprintf(file_pt,"%g ",interpolated_x(s,i));
   // 	}
-  //       fprintf(file_pt,"%g \n",interpolated_phi_micromag(s));
+  //       fprintf(file_pt,"%g \n",itp_phi_micromag(s));
   //     }
 
   //   // Write tecplot footer (e.g. FE connectivity lists)

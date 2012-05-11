@@ -21,11 +21,11 @@ namespace Inputs
   // ??ds need to do this input stuff properly..
 
   double llg_damping = 0.1;
-  double llg_precession = 1;
+  double llg_precession = 1.0;
 
   double exchange_coeff = 0;
 
-  double magnetostatic_coeff = 1;
+  double magnetostatic_coeff = 1.0;
 
   double crystal_anis_coeff = 0;
 
@@ -44,7 +44,7 @@ namespace Inputs
   void cryst_anis_field(const double& t, const Vector<double>& x,
 			const Vector<double>& m, Vector<double>& h_ca)
   {
-    Vector<double> easy_axis(3,0.0); easy_axis[0] = 1;
+    Vector<double> easy_axis(3,0.0); easy_axis[0] = 1.0;
 
     h_ca = easy_axis;
     double magnitude = dot(easy_axis,m);
@@ -229,6 +229,25 @@ namespace oomph
     	      pin(some_el_pt->phi_index_micromag());
     	  }
       }
+
+    //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
+    // i.e when r =0.
+    bool found = false;
+    for(unsigned nd=0; nd< mesh_pt()->nnode(); nd++)
+      {
+      	Vector<double> nd_x(DIM,0.0);
+    	for(unsigned j=0; j<DIM; j++)
+    	  nd_x[j] = mesh_pt()->node_pt(nd)->x(j);
+    	if ( small(nd_x[0]) && small(nd_x[1]) && small(1 - nd_x[2]) )
+    	  {
+    	    mesh_pt()->node_pt(nd)->pin(some_el_pt->phi_1_index_micromag());
+	    mesh_pt()->node_pt(nd)->set_value(some_el_pt->phi_1_index_micromag(),0.0);
+    	    found = true;
+    	  }
+      }
+    if (!(found))
+      throw OomphLibError("No node enar middle","",OOMPH_EXCEPTION_LOCATION);
+
 
 
     // Flux elements
@@ -477,7 +496,10 @@ namespace oomph
 		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
 
 		Boundary_matrix(l_number,source_number)
-		  += element_boundary_matrix(l,source_node);
+		  -= element_boundary_matrix(l,source_node);
+		//??Ds I think the sign here is negative because the lindholm
+		//formula is for +ve but our final equation has negative
+		//kernel...
 	      }
 	  }
       }
@@ -486,9 +508,9 @@ namespace oomph
     // here loop over the matrix diagonals adding the angle factor.
     for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-	// For a sphere all points are smooth (at least in the limit of infinite
-	// refinement) so the solid angle contribution is (2*pi)/(4*pi) = 0.5.
-    	Boundary_matrix(nd,nd) += 1.5; //??temp messing with this..
+    	// For a sphere all points are smooth (at least in the limit of infinite
+    	// refinement) so the solid angle contribution is (2*pi)/(4*pi) = 0.5.
+    	Boundary_matrix(nd,nd) += 0.5; //??temp messing with this..
       }
 
   }
@@ -527,7 +549,30 @@ namespace oomph
 
 	// Copy into appropriate vector entry
 	boundary_phi_1[nd_equation] = bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index);
+
+	//??temp
+	Vector<double> nd_x(DIM,0.0);
+	for(unsigned j=0; j<DIM; j++)
+	  nd_x[j] = bem_mesh_pt()->node_pt(i_nd)->x(j);
+
+	//??temp: compare with exact solution
+	// phi_1 = - r * cos(azimuthal) * sin (polar)
+	double r = mod(nd_x);
+	double azimuthal = atan2(nd_x[1],nd_x[0]);
+	double polar = acos(nd_x[2]/r);
+	exact_phi_1[nd_equation] = - r * cos(azimuthal) * sin(polar);
+
+
+	// if (std::abs( bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index)
+	// 	      - exact_phi_1[nd_equation]) > 1e-5)
+	//   {
+	//     std::cout << nd_x << " " << bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index)
+	// 	      <<  " " << exact_phi_1[nd_equation] << std::endl;
+	//   }
       }
+
+
+    // std::cout << boundary_phi_1 << std::endl;
 
     // Dense matrix multiplication to calculate phi (result goes in boundary_phi)
     DoubleVector boundary_phi(dummy,0.0);
@@ -542,8 +587,17 @@ namespace oomph
 
 	// Copy out appropriate vector entry
 	bem_mesh_pt()->node_pt(i_nd)->set_value(phi_index, boundary_phi[nd_equation]);
-      }
 
+	// //??temp
+	// Vector<double> nd_x(DIM,0.0);
+	// for(unsigned j=0; j<DIM; j++)
+	//   nd_x[j] = bem_mesh_pt()->node_pt(i_nd)->x(j);
+
+
+	// if( ! small(nd_x[0] + boundary_phi_1[nd_equation]))
+	//   std::cout << nd_x << " " << boundary_phi_1[nd_equation] << std::endl;
+
+      }
   }
 
 
@@ -682,34 +736,22 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
-  // dump initial Jacobian for tests
-  DenseDoubleMatrix jacobian;
-  DoubleVector residuals;
-  problem.get_jacobian(residuals,jacobian);
 
-  std::ofstream matrix_file;
-  matrix_file.precision(16);
-  char filename[100];
-  sprintf(filename,"results/jacobian");
-  matrix_file.open(filename);
-  jacobian.output(matrix_file);
-  matrix_file.close();
+  // std::ofstream residual_file;
+  // residual_file.precision(16);
+  // char filename2[100];
+  // sprintf(filename2,"results/residual");
+  // residual_file.open(filename2);
+  // residuals.output(residual_file);
+  // residual_file.close();
 
-  std::ofstream residual_file;
-  residual_file.precision(16);
-  char filename2[100];
-  sprintf(filename2,"results/residual");
-  residual_file.open(filename2);
-  residuals.output(residual_file);
-  residual_file.close();
-
-  std::ofstream bem_file;
-  bem_file.precision(16);
-  char bem_filename[100];
-  sprintf(bem_filename,"results/bem");
-  bem_file.open(bem_filename);
-  problem.boundary_matrix_pt()->output(bem_file);
-  bem_file.close();
+  // std::ofstream bem_file;
+  // bem_file.precision(16);
+  // char bem_filename[100];
+  // sprintf(bem_filename,"results/bem");
+  // bem_file.open(bem_filename);
+  // problem.boundary_matrix_pt()->output(bem_file);
+  // bem_file.close();
 
   // Timestepping loop
   for(unsigned istep=0; istep<nstep; istep++)
@@ -721,6 +763,19 @@ int main(int argc, char* argv[])
 
       //Output solution
       problem.doc_solution(doc_info);
+
+      // dump Jacobian for tests
+      DenseDoubleMatrix jacobian;
+      DoubleVector residuals;
+      problem.get_jacobian(residuals,jacobian);
+
+      std::ofstream matrix_file;
+      matrix_file.precision(16);
+      char filename[100];
+      sprintf(filename,"results/jacobian%u",istep);
+      matrix_file.open(filename);
+      jacobian.output(matrix_file);
+      matrix_file.close();
 
       //Increment counter for solutions
       doc_info.number()++;

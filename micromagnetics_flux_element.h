@@ -256,18 +256,18 @@ namespace oomph
 	double W = integral_pt()->weight(ipt) * J;
 
 	// Get x at this integration point
-	Vector<double> interpolated_x(Dim,0.0);
+	Vector<double> itp_x(Dim,0.0);
 	for(unsigned l=0;l<n_node;l++)
 	  for(unsigned j=0; j<Dim; j++)
-	    interpolated_x[j] += nodal_position(l,j)*psi(l);
+	    itp_x[j] += nodal_position(l,j)*psi(l);
 
 	// Get outward unit normal at this integration point
 	Vector<double> normal(Dim,0.0);
 	outer_unit_normal(s,normal);
 
 	// Get m at this integration point from the bulk element
-	Vector<double> interpolated_m(3,0.0);
-	bulk_element_pt()->interpolated_m_micromag(s_bulk,interpolated_m);
+	Vector<double> itp_m(3,0.0);
+	bulk_element_pt()->interpolated_m_micromag(s_bulk,itp_m);
 
 	//     for(unsigned j=0; j<Dim; j++)
 	//       {
@@ -277,7 +277,7 @@ namespace oomph
 	// // for(unsigned i=0; i<3; i++)
 	// //   {
 	// //     for(unsigned j=0; j<Dim; j++)
-	// //       std::cout << interpolated_dmdx(i,j) << " ";
+	// //       std::cout << itp_dmdx(i,j) << " ";
 	// //     std::cout << std::endl;
 	// //   }
 	// // std::cout << std::endl;
@@ -286,10 +286,10 @@ namespace oomph
 	//------------------------------------------------------------
 
 	// Calculate prescribed flux of phi =  m.n
-	double flux = dot(normal,interpolated_m);
+	double flux = dot(normal,itp_m);
 	// for(unsigned i=0; i<Dim; i++)
 	//   {
-	//     flux += normal[i]*interpolated_m[i];
+	//     flux += normal[i]*itp_m[i];
 	//   }
 
 	//Loop over the test functions
@@ -304,25 +304,27 @@ namespace oomph
 		residuals[local_eqn] += flux*test[l]*W;
 
 		//??ds fill in Jacobian when possible
+
+		// = normal times Enk
 	      }
 	  }
 
 	// Exchange field flux contribution
 	//------------------------------------------------------------
 	double exchange_coeff = bulk_element_pt()
-	  ->get_exchange_coeff(cts_time,interpolated_x);
+	  ->get_exchange_coeff(cts_time,itp_x);
 
 	// Get dmdx at this point from the bulk element
-	DenseDoubleMatrix interpolated_dmdx(3,3,0.0);
-	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,interpolated_dmdx);
+	DenseDoubleMatrix itp_dmdx(3,3,0.0);
+	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
 
 	// Get the dot product of gradient(m_j) and the normal for each j:
 	Vector<double> gradmdotn(3,0.0);
 	for(unsigned i=0; i<Dim; i++)
 	  {
-	    gradmdotn[0] += interpolated_dmdx(0,i) * normal[i];
-	    gradmdotn[1] += interpolated_dmdx(1,i) * normal[i];
-	    gradmdotn[2] += interpolated_dmdx(2,i) * normal[i];
+	    gradmdotn[0] += itp_dmdx(0,i) * normal[i];
+	    gradmdotn[1] += itp_dmdx(1,i) * normal[i];
+	    gradmdotn[2] += itp_dmdx(2,i) * normal[i];
 	  }
 
 	//Loop over the test functions
@@ -339,6 +341,7 @@ namespace oomph
 		    residuals[local_eqn] -= exchange_coeff * gradmdotn[j] * test[l] * W;
 
 		    //??ds fill in Jacobian when possible
+		    // = - exchange_coeff * Dnk
 		  }
 	      }
 	  }

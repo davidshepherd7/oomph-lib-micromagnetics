@@ -281,15 +281,15 @@ namespace oomph
       shape(s,psi);
 
       //Initialise value of u
-      double interpolated_phi = 0.0;
+      double itp_phi = 0.0;
 
       //Loop over the local nodes and sum
       for(unsigned l=0;l<n_node;l++)
 	{
-	  interpolated_phi += this->nodal_value(l,phi_nodal_index)*psi[l];
+	  itp_phi += this->nodal_value(l,phi_nodal_index)*psi[l];
 	}
 
-      return(interpolated_phi);
+      return(itp_phi);
     }
 
 
@@ -309,21 +309,21 @@ namespace oomph
       shape(s,psi);
 
       //Initialise value of u
-      double interpolated_phi_1 = 0.0;
+      double itp_phi_1 = 0.0;
 
       //Loop over the local nodes and sum
       for(unsigned l=0;l<n_node;l++)
 	{
-	  interpolated_phi_1 += this->nodal_value(l,phi_1_nodal_index)*psi[l];
+	  itp_phi_1 += this->nodal_value(l,phi_1_nodal_index)*psi[l];
 	}
 
-      return interpolated_phi_1;
+      return itp_phi_1;
     }
 
 
     /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_m_micromag(const Vector<double> &s,
-					Vector<double>& interpolated_m) const
+					Vector<double>& itp_m) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
@@ -335,7 +335,7 @@ namespace oomph
       shape(s,psi);
 
       // Initialise m
-      for(unsigned i=0; i<3; i++){interpolated_m[i] = 0.0;}
+      for(unsigned i=0; i<3; i++){itp_m[i] = 0.0;}
 
       // Loop over dimensions of M
       for(unsigned k=0; k<3; k++)
@@ -343,7 +343,7 @@ namespace oomph
 	  //Loop over the local nodes and sum
 	  for(unsigned l=0;l<n_node;l++)
 	    {
-	      interpolated_m[k] += this->nodal_value(l,m_index_micromag(k))*psi[l];
+	      itp_m[k] += this->nodal_value(l,m_index_micromag(k))*psi[l];
 	    }
 	}
 
@@ -351,7 +351,7 @@ namespace oomph
 
 /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_h_ex_micromag(const Vector<double> &s,
-					   Vector<double>& interpolated_h_ex) const
+					   Vector<double>& itp_h_ex) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
@@ -363,7 +363,7 @@ namespace oomph
       shape(s,psi);
 
       // Initialise h_ex
-      for(unsigned i=0; i<3; i++){interpolated_h_ex[i] = 0.0;}
+      for(unsigned i=0; i<3; i++){itp_h_ex[i] = 0.0;}
 
       // Loop over dimensions of H_ex
       for(unsigned k=0; k<3; k++)
@@ -371,7 +371,7 @@ namespace oomph
 	  //Loop over the local nodes and sum
 	  for(unsigned l=0;l<n_node;l++)
 	    {
-	      interpolated_h_ex[k] += this->nodal_value(l,exchange_index_micromag(k))*psi[l];
+	      itp_h_ex[k] += this->nodal_value(l,exchange_index_micromag(k))*psi[l];
 	    }
 	}
 
@@ -379,7 +379,7 @@ namespace oomph
 
     /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_dmdx_micromag(const Vector<double> &s,
-					   DenseDoubleMatrix& interpolated_dmdx) const
+					   DenseDoubleMatrix& itp_dmdx) const
     {
       // Get number of nodes
       const unsigned n_node = nnode();
@@ -396,13 +396,13 @@ namespace oomph
 	for(unsigned j=0; j<DIM; j++)
 	  for(unsigned k=0; k<3; k++)
 	    {
-	      interpolated_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
+	      itp_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
 	    }
 
     }
 
     inline void interpolated_dphidx_micromag(const Vector<double>& s,
-					     Vector<double>& interpolated_dphidx) const
+					     Vector<double>& itp_dphidx) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
@@ -412,19 +412,19 @@ namespace oomph
       dshape_eulerian(s,psi,dpsidx);
 
       // Initialise output vector
-      interpolated_dphidx.assign(3,0.0);
+      itp_dphidx.assign(3,0.0);
 
       // Calculate values
       for(unsigned l=0;l<n_node;l++)
 	for(unsigned j=0; j<DIM; j++)
-	  interpolated_dphidx[j] += nodal_value(l,phi_index_micromag())*dpsidx(l,j);
+	  itp_dphidx[j] += nodal_value(l,phi_index_micromag())*dpsidx(l,j);
     }
 
 
     /// \short Return FE representation of solution vector (phis,M,H_ex)
     /// at local coordinate s and current time.
     inline void interpolated_solution_micromag(const Vector<double> &s,
-    					       Vector<double>& interpolated_solution) const
+    					       Vector<double>& itp_solution) const
     {
       //Find number of nodes
       const unsigned n_node = nnode();
@@ -439,7 +439,7 @@ namespace oomph
       shape(s,psi);
 
       // Initialise solution vector
-      interpolated_solution.assign(nvalue,0.0);
+      itp_solution.assign(nvalue,0.0);
 
       // Loop over the list of solutions
       for(unsigned i=0; i<nvalue; i++)
@@ -447,7 +447,7 @@ namespace oomph
     	  //Loop over the local nodes and sum
     	  for(unsigned l=0;l<n_node;l++)
     	    {
-    	      interpolated_solution[i] += this->nodal_value(l,i)*psi[l];
+    	      itp_solution[i] += this->nodal_value(l,i)*psi[l];
     	    }
     	}
 
@@ -476,15 +476,15 @@ namespace oomph
 	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
-    // // ??ds re-activate this when you're confident that the Jacobian is correct!
-    // /// \short Add the element's contribution to its residual vector and element
-    // /// Jacobian matrix (wrapper)
-    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    // 					  DenseMatrix<double> &jacobian)
-    // {
-    //   //Call the generic routine with the flag set to 1
-    //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-    // }
+    // ??ds testing if the Jacobian is correct!
+    /// \short Add the element's contribution to its residual vector and element
+    /// Jacobian matrix (wrapper)
+    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    					  DenseMatrix<double> &jacobian)
+    {
+      // Call the generic routine with the flag set to 1
+      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+    }
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const

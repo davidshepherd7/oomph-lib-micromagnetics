@@ -463,7 +463,7 @@ namespace oomph
     double n_sq = 0.0;
     for(unsigned i=0; i<node_dim; i++)
       n_sq += n[i]*n[i];
-    if(std::abs(n_sq - 1) > 1e-10)
+    if(std::abs(n_sq - 1.0) > 1e-10)
       {
 	throw OomphLibError("n is not a unit vector",
 			    "MicromagFaceElement::green_normal_derivative",
@@ -510,7 +510,7 @@ namespace oomph
     // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
     double exponent = - (double(node_dim) - 1);
-    return (1/Pi) * ndotr * std::pow((2*r),exponent); //??ds had *2 here for some reason...
+    return (1.0/Pi) * ndotr * std::pow((2.0*r),exponent); //??ds had *2 here for some reason...
   }
 
 /*
@@ -768,7 +768,7 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 
     // Calculate area of triangle using the cross product of the (unnormalised)
     // side_direction vectors, already calculated since it is the normal.
-    double area = mod(unit_normal)/2;
+    double area = mod(unit_normal)/2.0;
 
     // Normalise the unit normal and side direction vectors now that we have the
     // area.
@@ -871,14 +871,11 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 
 	    // Add contribution to the appropriate value in the boundary matrix
 	    boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
-	      *((etal[next_node] * omega) - (zeta * dot(gamma[i_tn],P)))
+	      *((etal[next_node] * omega) - (zeta * dot(gamma[i_tn],P)));
 
-	      // Lindholm does not include the factor of 1/(4*pi) in his
-	      // operator so we multiply by it here.
-	      * (1/(4*Pi));
-
-	    // Also note that he does NOT include the solid angle factor on
-	    // surfaces, the solid angle factor above is unrelated.
+	    // Note that Lindholm does include the factor of 1/(4*pi) in his
+	    // operator. Also note that he does NOT include the solid angle
+	    // factor on surfaces, the solid angle factor above is unrelated.
 	  }
 
       }
