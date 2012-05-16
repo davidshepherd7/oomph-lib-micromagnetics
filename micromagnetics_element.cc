@@ -137,47 +137,44 @@ namespace oomph
 		gradmi_dot_gradpsi[i] += itp_dmdx(i,j) * dtestdx(l,j);
 
 	    // Total potential (phi)
-  	    int phi_local_eqn = nodal_local_eqn(l,phi_index_micromag());
-  	    if(phi_local_eqn >= 0) // if value is not pinned
+  	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
+  	    if(phi_eqn >= 0) // if value is not pinned
   	      {
-  		residuals[phi_local_eqn] -= phi_source*test(l)*W; // source
-		residuals[phi_local_eqn] -= itp_divm*test(l)*W;	  // div(m)
+  		residuals[phi_eqn] -= phi_source*test(l)*W; // source
+		residuals[phi_eqn] -= itp_divm*test(l)*W;	  // div(m)
   		for(unsigned k=0;k<DIM;k++)			  // Poisson
-		  residuals[phi_local_eqn] -= itp_dphidx[k]*dtestdx(l,k)*W;
+		  residuals[phi_eqn] -= itp_dphidx[k]*dtestdx(l,k)*W;
 	      }
 
 	    // Reduced potential (phi_1), only difference is in b.c.s
-	    int phi_1_local_eqn = nodal_local_eqn(l,phi_1_index_micromag());
-	    if(phi_1_local_eqn >= 0)
+	    int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
+	    if(phi_1_eqn >= 0)
 	      {
-		residuals[phi_1_local_eqn] -= phi_1_source*test(l)*W;
-		residuals[phi_1_local_eqn] -= itp_divm*test(l)*W;
+		residuals[phi_1_eqn] -= phi_1_source*test(l)*W;
+		residuals[phi_1_eqn] -= itp_divm*test(l)*W;
 		for(unsigned k=0;k<DIM;k++)
-		  residuals[phi_1_local_eqn] -= itp_dphi_1dx[k]*dtestdx(l,k)*W;
+		  residuals[phi_1_eqn] -= itp_dphi_1dx[k]*dtestdx(l,k)*W;
 	      }
 
 	    // Exchange field
 	    for(unsigned i=0; i<3; i++)
 	      {
-		int exchange_local_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
-		if(exchange_local_eqn >=0)
+		int exchange_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
+		if(exchange_eqn >=0)
 		  {
-		    residuals[exchange_local_eqn] += itp_exchange[i] * test(l) * W;
-		    residuals[exchange_local_eqn] += exch_c * gradmi_dot_gradpsi[i] * W;
+		    residuals[exchange_eqn] += itp_exchange[i] * test(l) * W;
+		    residuals[exchange_eqn] += exch_c * gradmi_dot_gradpsi[i] * W;
 		  }
 	      }
 
 	    // LLG itself (m, time evolution)
 	    for(unsigned i=0; i<3; i++)
 	      {
-		int m_local_eqn = nodal_local_eqn(l,m_index_micromag(i));
-		if(m_local_eqn >= 0)  // If it's not a boundary condition
+		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
+		if(m_eqn >= 0)  // If it's not a boundary condition
 		  {
-		    residuals[m_local_eqn] +=
-		      ( itp_dmdt[i]
-			+ llg_precess_c * itp_mxh[i]
-			+ llg_damp_c * itp_mxmxh[i]
-			)*test(l)*W;
+		    residuals[m_eqn] += ( itp_dmdt[i] + llg_precess_c * itp_mxh[i]
+					  + llg_damp_c * itp_mxmxh[i] )*test(l)*W;
 		  }
 	      }
 
@@ -187,13 +184,209 @@ namespace oomph
 	//======================================================================
 	/// If we want the Jacobian as well then calculate it
 	//======================================================================
-	if(flag)
-	  {
+	if(flag){
+	  // Double loop over nodes for the jacobian
+	  for(unsigned l=0; l<n_node; l++){
+	    for(unsigned l2=0;l2<n_node;l2++){
+	      //==========================================================
+	      /// Precalculations dependent on test functions
+	      double gradtestldotgradpsil2 = 0.0;
+	      for(unsigned j=0; j<DIM; j++)
+		gradtestldotgradpsil2 += dtestdx(l,j) * dpsidx(l2,j); //??ds check this
+
+	      Vector<double> dpsidx_vec(3 ,0.0), m_l2(3,0.0), h_l2(3,0.0);
+	      for(unsigned i=0; i<DIM; i++) {dpsidx_vec[i] = dpsidx(l2,i);}
+	      for(unsigned i=0; i<3; i++) {m_l2[i] = nodal_value(l2,m_index_micromag(i));}
+
+	      Vector<double> mxdpsidx(3,0.0), mxmxdpsidx(3,0.0);
+	      VectorOps::cross(m_l2, dpsidx_vec, mxdpsidx);
+	      VectorOps::cross(m_l2, mxdpsidx, mxmxdpsidx);
+
+	      // There are two mass-matrix-esque multipliers corresponding to
+	      // the two terms of the llg, pre-compute them here:
+	      double mxh_coeff = llg_precess_c * psi(l2)*psi(l2)*test(l);
+	      double mxmxh_coeff = llg_damp_c * psi(l2)*psi(l2)*psi(l2)*test(l);
 
 
+	      //=========================================================
+	      /// Actual Jacobian calculation
+	      //=========================================================
+	      // Total potential (phi)
+	      int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
+	      if(phi_eqn >= 0){
+
+		// w.r.t. phi
+		int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
+		if(phi_unknown >= 0)
+		  jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
+
+		// w.r.t. m
+		for(unsigned j=0; j<3; j++){
+		  int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		  if(m_unknown >= 0)
+		    jacobian(phi_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
+		}
+
+		// nothing w.r.t. exchange or phi_1
+	      }
+
+
+	      // Reduced potential (phi_1), only difference is in b.c.s
+	      int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
+	      if(phi_1_eqn >= 0){
+
+		// w.r.t. phi_1
+		int phi_1_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
+		if(phi_1_unknown >= 0)
+		  jacobian(phi_1_eqn,phi_1_unknown) += - gradtestldotgradpsil2 * W;
+
+		// w.r.t. m
+		for(unsigned j=0; j<3; j++){
+		  int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		  if(m_unknown >= 0)
+		    jacobian(phi_1_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
+		}
+
+		// nothing w.r.t. exchange or phi
+	      }
+
+
+	      // Exchange field
+	      for(unsigned i=0; i<3; i++){
+
+		int exchange_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
+		if(exchange_eqn >=0){
+
+		  // w.r.t exchange (only diagonals are non-zero)
+		  int exchange_unknown = nodal_local_eqn(l2,exchange_index_micromag(i));
+		  if(exchange_unknown >= 0)
+		    jacobian(exchange_eqn,exchange_unknown) += test(l) * psi(l2) * W;
+
+		  // w.r.t. m (only diagonals are non-zero)
+		  int m_unknown = nodal_local_eqn(l2,m_index_micromag(i));
+		  if(m_unknown >= 0)
+		    jacobian(exchange_eqn,m_unknown)
+		      += exch_c * gradtestldotgradpsil2 * W;
+
+		  // nothing w.r.t. phi or phi_1
+		}
+	      }
+
+
+	      // LLG itself (m, time evolution)
+	      for(unsigned i=0; i<3; i++){
+		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
+		if(m_eqn >= 0){
+
+		  // w.r.t. phi
+		  int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
+		  if(phi_unknown >= 0)
+		    jacobian(m_eqn,phi_unknown) += W * -1 *
+		      (mxh_coeff * mxdpsidx[i] + mxmxh_coeff * mxmxdpsidx[i]);
+		}
+	      }
+
+	      // Due to the lack of a simple representation for the dllg/dm and
+	      // dllg/dexch matrices we unwrap the loops and directly enter the
+	      // values.
+
+	      // Get indices for m and exchange
+	      Vector<int> m_eqn(3), ex_ukwn(3), m_ukwn(3);
+	      for(unsigned i=0; i<3; i++)
+		{
+		  m_eqn[i] = nodal_local_eqn(l,m_index_micromag(i));
+		  m_ukwn[i] = nodal_local_eqn(l2,m_index_micromag(i));
+		  ex_ukwn[i] = nodal_local_eqn(l2,exchange_index_micromag(i));
+		}
+
+	      // To have simpler code for dllg/dexch create a matrix
+	      // representing which values are pinned, then we just multiply by
+	      // the appropriate entry instead of testing each equation number.
+	      //??ds do matrices of bools do what I expect?
+	      //??ds does multiplication by bools do what i expect?
+	      DenseMatrix<bool> pinning_matrix_mm(3,3), pinning_matrix_me(3,3);
+	      for(unsigned i_eqn=0; i_eqn<3; i_eqn++)
+		for(unsigned i_ukwn=0; i_ukwn<3; i_ukwn++)
+		  {
+		    pinning_matrix_me(i_eqn,i_ukwn) =
+		      ((m_eqn[i_eqn] >= 0) && (ex_ukwn[i_ukwn] >= 0));
+		    pinning_matrix_mm(i_eqn,i_ukwn) =
+		      ((m_eqn[i_eqn] >= 0) && (m_ukwn[i_ukwn] >= 0));
+		  }
+
+	      //??ds these should be m at l2 not interpolations of m?
+
+	      // m_0 w.r.t. exchange
+	      jacobian(m_eqn[0],ex_ukwn[0]) += pinning_matrix_me(0,0) * W *
+		-1 * mxmxh_coeff * (m_l2[1]*m_l2[1] + m_l2[2]*m_l2[2]);
+	      jacobian(m_eqn[0],ex_ukwn[1]) += pinning_matrix_me(0,1) * W *
+		(mxmxh_coeff * m_l2[0]*m_l2[1] - mxh_coeff * m_l2[2]);
+	      jacobian(m_eqn[0],ex_ukwn[2]) += pinning_matrix_me(0,2) * W *
+		(mxh_coeff * m_l2[1] + mxmxh_coeff * m_l2[0]*m_l2[2]);
+
+	      // m_1 w.r.t. exchange
+	      jacobian(m_eqn[1],ex_ukwn[0]) += pinning_matrix_me(1,0) * W *
+		(mxh_coeff * m_l2[2] + mxmxh_coeff * m_l2[0]*m_l2[1]);
+	      jacobian(m_eqn[1],ex_ukwn[1]) += pinning_matrix_me(1,1) * W *
+		-1 * mxmxh_coeff * (m_l2[0]*m_l2[0] + m_l2[2]*m_l2[2]);
+	      jacobian(m_eqn[1],ex_ukwn[2]) += pinning_matrix_me(1,2) * W *
+		(mxmxh_coeff*m_l2[1]*m_l2[2] - mxh_coeff*m_l2[0]);
+
+	      // m_2 w.r.t. exchange
+	      jacobian(m_eqn[2],ex_ukwn[0]) += pinning_matrix_me(2,0) * W *
+		(mxmxh_coeff * m_l2[0]*m_l2[2] - mxh_coeff * m_l2[1]);
+	      jacobian(m_eqn[2],ex_ukwn[1]) += pinning_matrix_me(2,1) * W *
+		(mxh_coeff * m_l2[0] + mxmxh_coeff * m_l2[1]*m_l2[2]);
+	      jacobian(m_eqn[2],ex_ukwn[2]) += pinning_matrix_me(2,2) * W *
+		-1 * mxmxh_coeff * (m_l2[0]*m_l2[0] + m_l2[1]*m_l2[1]);
+
+
+	      // derivative of llg equation w.r.t. m
+
+	      // first the time derivative contribution:
+	      for(unsigned j=0; j<3; j++){
+		if ((m_eqn[j] >= 0) && (m_ukwn[j] >= 0))
+		  jacobian(m_eqn[j],m_ukwn[j]) += test(l) * psi(l2)
+		    * node_pt(l2)->time_stepper_pt()->weight(1,0) * W;
+	      }
+
+	      // now the mxh and mxmxh contributions
+
+	      // m_0 w.r.t. m
+	      jacobian(m_eqn[0],m_ukwn[0]) += pinning_matrix_mm(0,0) * W *
+		(mxmxh_coeff * (h_total[1]*m_l2[1] + h_total[2]*m_l2[2]));
+	      jacobian(m_eqn[0],m_ukwn[1]) += pinning_matrix_mm(0,1) * W *
+		(mxh_coeff * h_total[2]
+		 - mxmxh_coeff * (2*h_total[0]*m_l2[1] - h_total[1]*m_l2[0]));
+	      jacobian(m_eqn[0],m_ukwn[2]) += pinning_matrix_mm(0,2) * W *
+		(-mxh_coeff * h_total[1]
+		 - mxmxh_coeff * (2*h_total[0]*m_l2[2]- h_total[2]*m_l2[0]));
+
+	      // m_0 w.r.t. m
+	      jacobian(m_eqn[1],m_ukwn[0]) += pinning_matrix_mm(1,0) * W *
+		(mxmxh_coeff * (h_total[0]*m_l2[1]
+				- 2*h_total[1]*m_l2[0]) - mxh_coeff * h_total[2]);
+	      jacobian(m_eqn[1],m_ukwn[1]) += pinning_matrix_mm(1,1) * W *
+		(mxmxh_coeff * (h_total[0]*m_l2[0] + h_total[2]*m_l2[2]));
+	      jacobian(m_eqn[1],m_ukwn[2]) += pinning_matrix_mm(1,2) * W *
+		( mxh_coeff * h_total[0]
+		  - mxmxh_coeff * (2*h_total[1]*m_l2[2] - h_total[2]*m_l2[1]));
+
+	      // m_0 w.r.t. m
+	      jacobian(m_eqn[2],m_ukwn[0]) += pinning_matrix_mm(2,0) * W *
+		(mxh_coeff * h_total[1]
+		 + mxmxh_coeff * (h_total[0]*m_l2[2] - 2*h_total[2]*m_l2[0]));
+	      jacobian(m_eqn[2],m_ukwn[1]) += pinning_matrix_mm(2,1) * W *
+		(mxmxh_coeff * (h_total[1]*m_l2[2] - 2*h_total[2]*m_l2[1])
+		 - mxh_coeff * h_total[0]);
+	      jacobian(m_eqn[2],m_ukwn[2]) += pinning_matrix_mm(2,2) * W *
+		(mxmxh_coeff * (h_total[0]*m_l2[0] + h_total[1]*m_l2[1]));
+
+	      // nothing w.r.t. phi_1
+	    }
 	  }
 
-
+	} // End of Jacobian calculations
 
       }// End of loop over integration points
   } // End of fill in residuals function
