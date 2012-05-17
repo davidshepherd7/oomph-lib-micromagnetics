@@ -13,10 +13,10 @@ namespace oomph
   /// all element types regardless of dimension, element order and geometry.
   //======================================================================
   template<unsigned DIM, unsigned NNODE_1D>
-  const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
+  const unsigned QMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
   template<unsigned DIM, unsigned NNODE_1D>
-  const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 8;
+  const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
@@ -62,10 +62,9 @@ namespace oomph
 
   	// Allocate memory for local quantities and initialise to zero. dphidx
   	// is also H_demag so we need all 3 components.
-  	double itp_phi(0.0), itp_phi_1(0.0), itp_divm(0.0);
+  	double itp_phi(0.0), itp_phi_1(0.0);
   	Vector<double> itp_x(DIM,0.0), itp_dphidx(3,0.0),
-	  itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0),
-	  itp_exchange(3,0.0);
+	  itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0);
 	DenseDoubleMatrix itp_dmdx(3,3,0.0);
 
   	// Interpolate values at knot by looping over nodes adding contributions
@@ -81,7 +80,6 @@ namespace oomph
   	      {
   		itp_dmdt[j] += dmdt[j]*psi(l);
 		itp_m[j] += nodal_value(l,m_index_micromag(j))*psi(l);
-  		itp_exchange[j] += nodal_value(l,exchange_index_micromag(j))*psi(l);
   	      }
 
   	    // Interpolate spatial values/derivatives
@@ -95,12 +93,12 @@ namespace oomph
   	      }
   	  }
 
-	// Calculate divergences (this needs to go outside the loop over
-	// nodes so that we have finished calculating itp_dmdx).
-	for(unsigned j=0; j<DIM; j++)
-	  {
-	    itp_divm += itp_dmdx(j,j);
-	  }
+	// Calculate other things (these need to go outside the loop over
+	// nodes so that we have finished calculating itp_dmdx etc.).
+	double itp_divm = 0.0;
+	for(unsigned j=0; j<DIM; j++) itp_divm += itp_dmdx(j,j);
+	Vector<double> itp_mxdmdt(3,0.0);
+	VectorOps::cross(itp_m, itp_dmdt, itp_mxdmdt);
 
 	// Source functions (for debugging, normally zero)
   	double phi_source = get_phi_source(time,itp_x);
@@ -110,16 +108,14 @@ namespace oomph
   	double exch_c = get_exchange_coeff(time,itp_x);
 	double llg_precess_c = get_llg_precession_coeff();
 	double llg_damp_c = get_llg_damping_coeff();
+	double magstatic_c = get_magnetostatic_coeff(time,itp_x);
 
-	// Field
-	Vector<double> h_total(3,0.0);
-	interpolated_ht_micromag_efficient
-	  (itp_x,itp_m,itp_dphidx,itp_exchange,h_total);
+	// Fields
+	Vector<double> h_applied(3,0.0);
+	get_applied_field(time, itp_x, h_applied);
+	Vector<double> h_cryst_anis(3,0.0);
+	get_H_cryst_anis_field(time, itp_x, itp_m, h_cryst_anis);
 
-  	// Cross products for the LLG equation
-	Vector<double> itp_mxh(3,0.0), itp_mxmxh(3,0.0);
-	VectorOps::cross(itp_m, h_total, itp_mxh);
-  	VectorOps::cross(itp_m, itp_mxh, itp_mxmxh);
 
 	//======================================================================
 	/// Use the above values to calculate the residuals
@@ -128,13 +124,6 @@ namespace oomph
   	// Loop over the test functions/nodes adding contributions to residuals
   	for(unsigned l=0;l<n_node;l++)
   	  {
-
-	    // Calculate gradient of each component of m dotted with gradient of
-	    // shape function psi.
-	    Vector<double>  gradmi_dot_gradpsi(3,0.0);
-	    for(unsigned i=0; i<3; i++)
-	      for(unsigned j=0; j<DIM; j++)
-		gradmi_dot_gradpsi[i] += itp_dmdx(i,j) * dtestdx(l,j);
 
 	    // Total potential (phi)
   	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
@@ -156,25 +145,37 @@ namespace oomph
 		  residuals[phi_1_eqn] -= itp_dphi_1dx[k]*dtestdx(l,k)*W;
 	      }
 
-	    // Exchange field
-	    for(unsigned i=0; i<3; i++)
-	      {
-		int exchange_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
-		if(exchange_eqn >=0)
-		  {
-		    residuals[exchange_eqn] += itp_exchange[i] * test(l) * W;
-		    residuals[exchange_eqn] += exch_c * gradmi_dot_gradpsi[i] * W;
-		  }
-	      }
-
 	    // LLG itself (m, time evolution)
+	    //=================================================
+
+	    // Exchange residual contribution after integration by parts:
+	    Vector<double> gradtestdotdmidx(3,0.0); //?? possibly could optimise
+						    //- this is calculated twice
+	    for(unsigned j=0; j<DIM; j++)
+	      for(unsigned i=0; i<3; i++)
+		gradtestdotdmidx[j] = dtestdx(l,i) * itp_dmdx(j,i);
+
+	    // Total of field residual contributions.
+	    // Magnetostatic field is -1* dphi/dx, coeff for debugging.
+	    Vector<double> h_total(3,0.0);
+	    for(unsigned j=0; j<DIM; j++)
+	      h_total[j] = h_applied[j] + h_cryst_anis[j]
+		- magstatic_c * itp_dphidx[j]
+		- exch_c * gradtestdotdmidx[j];
+
+	    // Cross product for the LLG equation
+	    Vector<double> itp_mxh(3,0.0);
+	    VectorOps::cross(itp_m, h_total, itp_mxh);
+
+	    // add to residual
 	    for(unsigned i=0; i<3; i++)
 	      {
 		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
 		if(m_eqn >= 0)  // If it's not a boundary condition
 		  {
-		    residuals[m_eqn] += ( itp_dmdt[i] + llg_precess_c * itp_mxh[i]
-					  + llg_damp_c * itp_mxmxh[i] )*test(l)*W;
+		    residuals[m_eqn] += ( itp_dmdt[i]
+					  + llg_precess_c * itp_mxh[i]
+					  + llg_damp_c *itp_mxdmdt[i] )*test(l)*W;
 		  }
 	      }
 
@@ -188,29 +189,27 @@ namespace oomph
 	  // Double loop over nodes for the jacobian
 	  for(unsigned l=0; l<n_node; l++){
 	    for(unsigned l2=0;l2<n_node;l2++){
-	      //==========================================================
-	      /// Precalculations dependent on test functions
-	      double gradtestldotgradpsil2 = 0.0;
-	      for(unsigned j=0; j<DIM; j++)
-		gradtestldotgradpsil2 += dtestdx(l,j) * dpsidx(l2,j); //??ds check this
 
-	      Vector<double> dpsidx_vec(3 ,0.0), m_l2(3,0.0), h_l2(3,0.0);
-	      for(unsigned i=0; i<DIM; i++) {dpsidx_vec[i] = dpsidx(l2,i);}
-	      for(unsigned i=0; i<3; i++) {m_l2[i] = nodal_value(l2,m_index_micromag(i));}
+	      // Pre-calculations
+	      Vector<double> gradpsil2(3,0.0), gradtestl(3,0.0),
+		gradtestl2(3,0.0), itpmxgradpsil2(3,0.0);
+	      for(unsigned j=0; j<DIM; j++){
+		gradpsil2[j] = dpsidx(l2,j);
+		gradtestl[j] = dtestdx(l,j);
+		// gradtestl2[j] = dtestdx(l2,j);
+	      }
+	      double gradtestldotgradpsil2 = VectorOps::dot(gradtestl,gradpsil2);
+	      VectorOps::cross(itp_m,gradpsil2,itpmxgradpsil2);
 
-	      Vector<double> mxdpsidx(3,0.0), mxmxdpsidx(3,0.0);
-	      VectorOps::cross(m_l2, dpsidx_vec, mxdpsidx);
-	      VectorOps::cross(m_l2, mxdpsidx, mxmxdpsidx);
-
-	      // There are two mass-matrix-esque multipliers corresponding to
-	      // the two terms of the llg, pre-compute them here:
-	      double mxh_coeff = llg_precess_c * psi(l2)*psi(l2)*test(l);
-	      double mxmxh_coeff = llg_damp_c * psi(l2)*psi(l2)*psi(l2)*test(l);
-
+	      Vector<double> gradtestldotgradmi(3,0.0);
+	      for(unsigned i=0; i<3; i++)
+		for(unsigned j=0; j<DIM; j++)
+		  gradtestldotgradmi[i] +=gradtestl[j] * itp_dmdx(j,i);
 
 	      //=========================================================
 	      /// Actual Jacobian calculation
 	      //=========================================================
+
 	      // Total potential (phi)
 	      int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
 	      if(phi_eqn >= 0){
@@ -227,7 +226,7 @@ namespace oomph
 		    jacobian(phi_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
 		}
 
-		// nothing w.r.t. exchange or phi_1
+		// nothing w.r.t. phi_1
 	      }
 
 
@@ -247,146 +246,63 @@ namespace oomph
 		    jacobian(phi_1_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
 		}
 
-		// nothing w.r.t. exchange or phi
+		// nothing w.r.t. phi
 	      }
 
 
-	      // Exchange field
-	      for(unsigned i=0; i<3; i++){
-
-		int exchange_eqn = nodal_local_eqn(l,exchange_index_micromag(i));
-		if(exchange_eqn >=0){
-
-		  // w.r.t exchange (only diagonals are non-zero)
-		  int exchange_unknown = nodal_local_eqn(l2,exchange_index_micromag(i));
-		  if(exchange_unknown >= 0)
-		    jacobian(exchange_eqn,exchange_unknown) += test(l) * psi(l2) * W;
-
-		  // w.r.t. m (only diagonals are non-zero)
-		  int m_unknown = nodal_local_eqn(l2,m_index_micromag(i));
-		  if(m_unknown >= 0)
-		    jacobian(exchange_eqn,m_unknown)
-		      += exch_c * gradtestldotgradpsil2 * W;
-
-		  // nothing w.r.t. phi or phi_1
-		}
-	      }
-
-
-	      // LLG itself (m, time evolution)
-	      for(unsigned i=0; i<3; i++){
-		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
-		if(m_eqn >= 0){
-
-		  // w.r.t. phi
-		  int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
-		  if(phi_unknown >= 0)
-		    jacobian(m_eqn,phi_unknown) += W * -1 *
-		      (mxh_coeff * mxdpsidx[i] + mxmxh_coeff * mxmxdpsidx[i]);
-		}
-	      }
-
-	      // Due to the lack of a simple representation for the dllg/dm and
-	      // dllg/dexch matrices we unwrap the loops and directly enter the
-	      // values.
-
-	      // Get indices for m and exchange
-	      Vector<int> m_eqn(3), ex_ukwn(3), m_ukwn(3);
-	      for(unsigned i=0; i<3; i++)
+	      // ??ds need llg derrivatives in here
+	      // llg derivatives
+	      Vector<int> m_eqn(3), m_unknown(3);
+	      for(unsigned j=0; j<3; j++)
 		{
-		  m_eqn[i] = nodal_local_eqn(l,m_index_micromag(i));
-		  m_ukwn[i] = nodal_local_eqn(l2,m_index_micromag(i));
-		  ex_ukwn[i] = nodal_local_eqn(l2,exchange_index_micromag(i));
+		  m_eqn[j] = nodal_local_eqn(l,m_index_micromag(j));
+		  m_unknown[j] = nodal_local_eqn(l2,m_index_micromag(j));
 		}
 
-	      // To have simpler code for dllg/dexch create a matrix
-	      // representing which values are pinned, then we just multiply by
-	      // the appropriate entry instead of testing each equation number.
-	      //??ds do matrices of bools do what I expect?
-	      //??ds does multiplication by bools do what i expect?
-	      DenseMatrix<bool> pinning_matrix_mm(3,3), pinning_matrix_me(3,3);
-	      for(unsigned i_eqn=0; i_eqn<3; i_eqn++)
-		for(unsigned i_ukwn=0; i_ukwn<3; i_ukwn++)
-		  {
-		    pinning_matrix_me(i_eqn,i_ukwn) =
-		      ((m_eqn[i_eqn] >= 0) && (ex_ukwn[i_ukwn] >= 0));
-		    pinning_matrix_mm(i_eqn,i_ukwn) =
-		      ((m_eqn[i_eqn] >= 0) && (m_ukwn[i_ukwn] >= 0));
-		  }
 
-	      //??ds these should be m at l2 not interpolations of m?
-
-	      // m_0 w.r.t. exchange
-	      jacobian(m_eqn[0],ex_ukwn[0]) += pinning_matrix_me(0,0) * W *
-		-1 * mxmxh_coeff * (m_l2[1]*m_l2[1] + m_l2[2]*m_l2[2]);
-	      jacobian(m_eqn[0],ex_ukwn[1]) += pinning_matrix_me(0,1) * W *
-		(mxmxh_coeff * m_l2[0]*m_l2[1] - mxh_coeff * m_l2[2]);
-	      jacobian(m_eqn[0],ex_ukwn[2]) += pinning_matrix_me(0,2) * W *
-		(mxh_coeff * m_l2[1] + mxmxh_coeff * m_l2[0]*m_l2[2]);
-
-	      // m_1 w.r.t. exchange
-	      jacobian(m_eqn[1],ex_ukwn[0]) += pinning_matrix_me(1,0) * W *
-		(mxh_coeff * m_l2[2] + mxmxh_coeff * m_l2[0]*m_l2[1]);
-	      jacobian(m_eqn[1],ex_ukwn[1]) += pinning_matrix_me(1,1) * W *
-		-1 * mxmxh_coeff * (m_l2[0]*m_l2[0] + m_l2[2]*m_l2[2]);
-	      jacobian(m_eqn[1],ex_ukwn[2]) += pinning_matrix_me(1,2) * W *
-		(mxmxh_coeff*m_l2[1]*m_l2[2] - mxh_coeff*m_l2[0]);
-
-	      // m_2 w.r.t. exchange
-	      jacobian(m_eqn[2],ex_ukwn[0]) += pinning_matrix_me(2,0) * W *
-		(mxmxh_coeff * m_l2[0]*m_l2[2] - mxh_coeff * m_l2[1]);
-	      jacobian(m_eqn[2],ex_ukwn[1]) += pinning_matrix_me(2,1) * W *
-		(mxh_coeff * m_l2[0] + mxmxh_coeff * m_l2[1]*m_l2[2]);
-	      jacobian(m_eqn[2],ex_ukwn[2]) += pinning_matrix_me(2,2) * W *
-		-1 * mxmxh_coeff * (m_l2[0]*m_l2[0] + m_l2[1]*m_l2[1]);
-
-
-	      // derivative of llg equation w.r.t. m
-
-	      // first the time derivative contribution:
-	      for(unsigned j=0; j<3; j++){
-		if ((m_eqn[j] >= 0) && (m_ukwn[j] >= 0))
-		  jacobian(m_eqn[j],m_ukwn[j]) += test(l) * psi(l2)
-		    * node_pt(l2)->time_stepper_pt()->weight(1,0) * W;
+	      // w.r.t. phi
+	      int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
+	      if(phi_unknown >= 0){
+		for(unsigned j=0; j<3; j++){
+		  if(m_eqn[j] >= 0)
+		    jacobian(m_eqn[j],phi_unknown) += itpmxgradpsil2[j] * W;
+		}
 	      }
 
-	      // now the mxh and mxmxh contributions
+	      // nothing w.r.t. phi1
 
-	      // m_0 w.r.t. m
-	      jacobian(m_eqn[0],m_ukwn[0]) += pinning_matrix_mm(0,0) * W *
-		(mxmxh_coeff * (h_total[1]*m_l2[1] + h_total[2]*m_l2[2]));
-	      jacobian(m_eqn[0],m_ukwn[1]) += pinning_matrix_mm(0,1) * W *
-		(mxh_coeff * h_total[2]
-		 - mxmxh_coeff * (2*h_total[0]*m_l2[1] - h_total[1]*m_l2[0]));
-	      jacobian(m_eqn[0],m_ukwn[2]) += pinning_matrix_mm(0,2) * W *
-		(-mxh_coeff * h_total[1]
-		 - mxmxh_coeff * (2*h_total[0]*m_l2[2]- h_total[2]*m_l2[0]));
+	      // w.r.t. m
+	      for(unsigned j=0; j<3; j++)
+		{
+		  if(m_unknown[j] >= 0){
 
-	      // m_0 w.r.t. m
-	      jacobian(m_eqn[1],m_ukwn[0]) += pinning_matrix_mm(1,0) * W *
-		(mxmxh_coeff * (h_total[0]*m_l2[1]
-				- 2*h_total[1]*m_l2[0]) - mxh_coeff * h_total[2]);
-	      jacobian(m_eqn[1],m_ukwn[1]) += pinning_matrix_mm(1,1) * W *
-		(mxmxh_coeff * (h_total[0]*m_l2[0] + h_total[2]*m_l2[2]));
-	      jacobian(m_eqn[1],m_ukwn[2]) += pinning_matrix_mm(1,2) * W *
-		( mxh_coeff * h_total[0]
-		  - mxmxh_coeff * (2*h_total[1]*m_l2[2] - h_total[2]*m_l2[1]));
+		    // Construct the derivtives (we assume that almost always
+		    // there will be some m[i] not pinned so don't bother to
+		    // check yet).
 
-	      // m_0 w.r.t. m
-	      jacobian(m_eqn[2],m_ukwn[0]) += pinning_matrix_mm(2,0) * W *
-		(mxh_coeff * h_total[1]
-		 + mxmxh_coeff * (h_total[0]*m_l2[2] - 2*h_total[2]*m_l2[0]));
-	      jacobian(m_eqn[2],m_ukwn[1]) += pinning_matrix_mm(2,1) * W *
-		(mxmxh_coeff * (h_total[1]*m_l2[2] - 2*h_total[2]*m_l2[1])
-		 - mxh_coeff * h_total[0]);
-	      jacobian(m_eqn[2],m_ukwn[2]) += pinning_matrix_mm(2,2) * W *
-		(mxmxh_coeff * (h_total[0]*m_l2[0] + h_total[1]*m_l2[1]));
+		    Vector<double> jhatpsil2(3,0.0), jhatgradtestldotgradpsil2(3,0.0);
+		    jhatpsil2[j] = psi(l2);
+		    jhatgradtestldotgradpsil2[j] = gradtestldotgradpsil2;
 
-	      // nothing w.r.t. phi_1
+		    Vector<double> integrand1(3,0.0), integrand2(3,0.0);
+		    VectorOps::cross(jhatpsil2,gradtestldotgradmi,integrand1);
+		    VectorOps::cross(itp_m,jhatgradtestldotgradpsil2,integrand1);
+
+		    // Add each component:
+		    for(unsigned i=0; i<3; i++)
+		      {
+			if(m_eqn[i] >= 0){
+			  jacobian(m_eqn[i],m_unknown[j])
+			    += - exch_c * W * ( integrand1[j] + integrand2[j]);
+			}
+		      }
+		  }
+		}
+
+
 	    }
 	  }
-
-	} // End of Jacobian calculations
+	}// End of Jacobian calculations
 
       }// End of loop over integration points
   } // End of fill in residuals function
@@ -399,235 +315,228 @@ namespace oomph
   ///
   ///
   //======================================================================
-  template <unsigned DIM>
-  void MicromagEquations<DIM>::output(std::ostream &outfile,
-				      const unsigned &n_plot)
-  {
-    //Vector of local coordinates
-    Vector<double> s(DIM);
+template <unsigned DIM>
+void MicromagEquations<DIM>::output(std::ostream &outfile,
+				    const unsigned &n_plot)
+{
+  //Vector of local coordinates
+  Vector<double> s(DIM);
 
-    // Get number of values in solution at node 0
-    // const unsigned nvalue = required_nvalue(0);
+  // Get number of values in solution at node 0
+  // const unsigned nvalue = required_nvalue(0);
 
-    // Tecplot header info
-    outfile << tecplot_zone_string(n_plot);
+  // Tecplot header info
+  outfile << tecplot_zone_string(n_plot);
 
-    // Loop over plot points
-    unsigned num_plot_points=nplot_points(n_plot);
-    for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-      {
+  // Loop over plot points
+  unsigned num_plot_points=nplot_points(n_plot);
+  for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+    {
 
-	// Get local coordinates of plot point
-	get_s_plot(iplot,n_plot,s);
+      // Get local coordinates of plot point
+      get_s_plot(iplot,n_plot,s);
 
-	// Get and output eulerian coordinates of plot point and output
-	Vector<double> x(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++)
-	  {
-	    x[i] = interpolated_x(s,i);
-	    outfile << x[i] << " ";
-	  }
+      // Get and output eulerian coordinates of plot point and output
+      Vector<double> x(DIM,0.0);
+      for(unsigned i=0; i<DIM; i++)
+	{
+	  x[i] = interpolated_x(s,i);
+	  outfile << x[i] << " ";
+	}
 
-	// Output the magnetostatic field (= - dphidx) at this point
-	Vector<double> itp_dphidx(3,0.0);
-	interpolated_dphidx_micromag(s,itp_dphidx);
-	for(unsigned i=0; i<3; i++)
-	  outfile << -itp_dphidx[i] << " ";
+      // Output the magnetostatic field (= - dphidx) at this point
+      Vector<double> itp_dphidx(3,0.0);
+      interpolated_dphidx_micromag(s,itp_dphidx);
+      for(unsigned i=0; i<3; i++)
+	outfile << -itp_dphidx[i] << " ";
 
-	// Phi 1 at this point
-	outfile << interpolated_phi_1_micromag(s) << " ";
+      // Phi 1 at this point
+      outfile << interpolated_phi_1_micromag(s) << " ";
 
-	// Phi total at this point
-	outfile << interpolated_phi_micromag(s) << " ";
+      // Phi total at this point
+      outfile << interpolated_phi_micromag(s) << " ";
 
-	// Output m at this point
-	Vector<double> itp_m(3,0.0);
-	interpolated_m_micromag(s,itp_m);
-	for(unsigned i=0; i<3; i++)
-	  outfile << itp_m[i] << " ";
+      // Output m at this point
+      Vector<double> itp_m(3,0.0);
+      interpolated_m_micromag(s,itp_m);
+      for(unsigned i=0; i<3; i++)
+	outfile << itp_m[i] << " ";
 
-	// Output exchange field at this point
-	Vector<double> itp_h_ex(3,0.0);
-	interpolated_h_ex_micromag(s,itp_h_ex);
-	for(unsigned i=0; i<3; i++)
-	  outfile << itp_h_ex[i] << " ";
+      // End the line ready for next point
+      outfile << std::endl;
+    }
 
+  // Write tecplot footer (e.g. FE connectivity lists)
+  write_tecplot_zone_footer(outfile,n_plot);
 
-	// End the line ready for next point
-	outfile << std::endl;
-      }
+}
 
-    // Write tecplot footer (e.g. FE connectivity lists)
-    write_tecplot_zone_footer(outfile,n_plot);
+/// Output a time-dependent exact solution over the element.
+template <unsigned DIM> void MicromagEquations<DIM>::
+output_fct(std::ostream &outfile, const unsigned &n_plot,
+	   const double& time,
+	   const FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
+{
 
-  }
+  //Vector of local coordinates
+  Vector<double> s(DIM);
 
-  /// Output a time-dependent exact solution over the element.
-  template <unsigned DIM> void MicromagEquations<DIM>::
-  output_fct(std::ostream &outfile, const unsigned &n_plot,
-	     const double& time,
-	     const FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
-  {
+  // Get number of values in solution at node 0
+  const unsigned nvalue = required_nvalue(0);
 
-    //Vector of local coordinates
-    Vector<double> s(DIM);
+  // Tecplot header info
+  outfile << tecplot_zone_string(n_plot);
 
-    // Get number of values in solution at node 0
-    const unsigned nvalue = required_nvalue(0);
+  // Loop over plot points
+  unsigned num_plot_points=nplot_points(n_plot);
+  for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+    {
 
-    // Tecplot header info
-    outfile << tecplot_zone_string(n_plot);
+      // Get local coordinates of plot point
+      get_s_plot(iplot,n_plot,s);
 
-    // Loop over plot points
-    unsigned num_plot_points=nplot_points(n_plot);
-    for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-      {
+      // Get and output eulerian coordinates of plot point and output
+      Vector<double> x(DIM,0.0);
+      for(unsigned i=0; i<DIM; i++)
+	{
+	  x[i] = interpolated_x(s,i);
+	  outfile << x[i] << " ";
+	}
 
-	// Get local coordinates of plot point
-	get_s_plot(iplot,n_plot,s);
+      // Calculate and output exact solution at point x and time t
+      Vector<double> exact_solution(nvalue,0.0);
+      (*exact_soln_pt)(time,x,exact_solution);
+      for(unsigned i=0; i<nvalue; i++)
+	{
+	  outfile << exact_solution[i] << " ";
+	}
 
-	// Get and output eulerian coordinates of plot point and output
-	Vector<double> x(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++)
-	  {
-	    x[i] = interpolated_x(s,i);
-	    outfile << x[i] << " ";
-	  }
+      // End the line ready for next point
+      outfile << std::endl;
+    }
 
-	// Calculate and output exact solution at point x and time t
-	Vector<double> exact_solution(nvalue,0.0);
-	(*exact_soln_pt)(time,x,exact_solution);
-	for(unsigned i=0; i<nvalue; i++)
-	  {
-	    outfile << exact_solution[i] << " ";
-	  }
-
-	// End the line ready for next point
-	outfile << std::endl;
-      }
-
-    // Write tecplot footer (e.g. FE connectivity lists)
-    write_tecplot_zone_footer(outfile,n_plot);
-  }
+  // Write tecplot footer (e.g. FE connectivity lists)
+  write_tecplot_zone_footer(outfile,n_plot);
+}
 
 
-  //======================================================================
-  /// Validate computed M against exact solution.
-  ///
-  /// Solution is provided via function pointer.
-  /// Plot error at integration points.
-  ///
-  //======================================================================
-  template <unsigned DIM>
-  void MicromagEquations<DIM>::
-  compute_error(std::ostream &outfile,
-		FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
-		const double& time, double& error_norm, double& exact_norm)
-  {
+//======================================================================
+/// Validate computed M against exact solution.
+///
+/// Solution is provided via function pointer.
+/// Plot error at integration points.
+///
+//======================================================================
+template <unsigned DIM>
+void MicromagEquations<DIM>::
+compute_error(std::ostream &outfile,
+	      FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
+	      const double& time, double& error_norm, double& exact_norm)
+{
 
-    // Initialise error and norm
-    error_norm = 0.0;
-    exact_norm = 0.0;
+  // Initialise error and norm
+  error_norm = 0.0;
+  exact_norm = 0.0;
 
-    // Find out how many nodes there are in the element
-    unsigned n_node = nnode();
+  // Find out how many nodes there are in the element
+  unsigned n_node = nnode();
 
-    // Get the shape function
-    Shape psi(n_node);
+  // Get the shape function
+  Shape psi(n_node);
 
-    //Set the value of n_intpt
-    unsigned n_intpt = integral_pt()->nweight();
+  //Set the value of n_intpt
+  unsigned n_intpt = integral_pt()->nweight();
 
-    // Set how many values are output at each node, any will do so use 0th node.
-    unsigned nvalues = node_pt(0)->nvalue();
+  // Set how many values are output at each node, any will do so use 0th node.
+  unsigned nvalues = node_pt(0)->nvalue();
 
-    // Tecplot header info
-    outfile << tecplot_zone_string(2);
-    //??ds can't just use 2 here but seeing if it works
-    //??ds use n_intpt/DIM? - only good for simple shaped elements?
-    //??ds causes small issuse with output - points for soln/exact are at the corners of elements but for errors they are at the int pts
+  // Tecplot header info
+  outfile << tecplot_zone_string(2);
+  //??ds can't just use 2 here but seeing if it works
+  //??ds use n_intpt/DIM? - only good for simple shaped elements?
+  //??ds causes small issuse with output - points for soln/exact are at the corners of elements but for errors they are at the int pts
 
-    //Loop over the integration points
-    for(unsigned ipt=0;ipt<n_intpt;ipt++)
-      {
-	// Get s (local coordinate)
-	Vector<double> s(DIM,0.0);
-	for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
+  //Loop over the integration points
+  for(unsigned ipt=0;ipt<n_intpt;ipt++)
+    {
+      // Get s (local coordinate)
+      Vector<double> s(DIM,0.0);
+      for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
 
-	// Get x (global coordinate) and output
-	Vector<double> x(DIM,0.0);
-	interpolated_x(s,x);
-	for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}
+      // Get x (global coordinate) and output
+      Vector<double> x(DIM,0.0);
+      interpolated_x(s,x);
+      for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}
 
-	//Get the integral weight
-	double w = integral_pt()->weight(ipt);
+      //Get the integral weight
+      double w = integral_pt()->weight(ipt);
 
-	// Get jacobian of mapping
-	double J=J_eulerian(s);
+      // Get jacobian of mapping
+      double J=J_eulerian(s);
 
-	//Premultiply the weights and the Jacobian
-	double W = w*J;
+      //Premultiply the weights and the Jacobian
+      double W = w*J;
 
-	// Get entire ipl solution at position s and current time
-	Vector<double> itp_soln(nvalues,0.0);
-	interpolated_solution_micromag(s,itp_soln);
+      // Get entire ipl solution at position s and current time
+      Vector<double> itp_soln(nvalues,0.0);
+      interpolated_solution_micromag(s,itp_soln);
 
-	// Get entire exact solution at point x and time "time"
-	Vector<double> exact_soln(nvalues,0.0);
-	(*exact_soln_pt)(time,x,exact_soln);
+      // Get entire exact solution at point x and time "time"
+      Vector<double> exact_soln(nvalues,0.0);
+      (*exact_soln_pt)(time,x,exact_soln);
 
-	// Output the error (difference between exact and itp solutions)
-	for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- itp_soln[i] << " ";}
-	outfile << std::endl;
+      // Output the error (difference between exact and itp solutions)
+      for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- itp_soln[i] << " ";}
+      outfile << std::endl;
 
-	// Add contributions to the norms of the error and exact soln from this integration point
-	for(unsigned i=0; i<nvalues; i++)
-	  {
-	    error_norm += (exact_soln[i] - itp_soln[i])
-	      *(exact_soln[i] - itp_soln[i])*W;
-	    exact_norm += exact_soln[i]*exact_soln[i]*W;
-	  }
+      // Add contributions to the norms of the error and exact soln from this integration point
+      for(unsigned i=0; i<nvalues; i++)
+	{
+	  error_norm += (exact_soln[i] - itp_soln[i])
+	    *(exact_soln[i] - itp_soln[i])*W;
+	  exact_norm += exact_soln[i]*exact_soln[i]*W;
+	}
 
-      }
+    }
 
-    // Write tecplot footer (e.g. FE connectivity lists)
-    write_tecplot_zone_footer(outfile,2);
-  }
+  // Write tecplot footer (e.g. FE connectivity lists)
+  write_tecplot_zone_footer(outfile,2);
+}
 
-  // //======================================================================
-  // /// C-style output function:
-  // ///
-  // ///   x,y,u   or    x,y,z,u
-  // ///
-  // /// nplot points in each coordinate direction
-  // //======================================================================
-  // template <unsigned DIM>
-  // void  MicromagEquations<DIM>::output(FILE* file_pt,
-  // 				     const unsigned &nplot)
-  // {
-  //   //Vector of local coordinates
-  //   Vector<double> s(DIM);
+// //======================================================================
+// /// C-style output function:
+// ///
+// ///   x,y,u   or    x,y,z,u
+// ///
+// /// nplot points in each coordinate direction
+// //======================================================================
+// template <unsigned DIM>
+// void  MicromagEquations<DIM>::output(FILE* file_pt,
+// 				     const unsigned &nplot)
+// {
+//   //Vector of local coordinates
+//   Vector<double> s(DIM);
 
-  //   // Tecplot header info
-  //   fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
+//   // Tecplot header info
+//   fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
 
-  //   // Loop over plot points
-  //   unsigned num_plot_points=nplot_points(nplot);
-  //   for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-  //     {
-  //       // Get local coordinates of plot point
-  //       get_s_plot(iplot,nplot,s);
+//   // Loop over plot points
+//   unsigned num_plot_points=nplot_points(nplot);
+//   for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+//     {
+//       // Get local coordinates of plot point
+//       get_s_plot(iplot,nplot,s);
 
-  //       for(unsigned i=0;i<DIM;i++)
-  // 	{
-  // 	  fprintf(file_pt,"%g ",interpolated_x(s,i));
-  // 	}
-  //       fprintf(file_pt,"%g \n",itp_phi_micromag(s));
-  //     }
+//       for(unsigned i=0;i<DIM;i++)
+// 	{
+// 	  fprintf(file_pt,"%g ",interpolated_x(s,i));
+// 	}
+//       fprintf(file_pt,"%g \n",itp_phi_micromag(s));
+//     }
 
-  //   // Write tecplot footer (e.g. FE connectivity lists)
-  //   write_tecplot_zone_footer(file_pt,nplot);
-  // }
+//   // Write tecplot footer (e.g. FE connectivity lists)
+//   write_tecplot_zone_footer(file_pt,nplot);
+// }
 
 }
 

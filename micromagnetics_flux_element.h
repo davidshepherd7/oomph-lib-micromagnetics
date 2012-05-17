@@ -269,6 +269,9 @@ namespace oomph
 	Vector<double> itp_m(3,0.0);
 	bulk_element_pt()->interpolated_m_micromag(s_bulk,itp_m);
 
+	double exchange_coeff = bulk_element_pt()
+	  ->get_exchange_coeff(cts_time,itp_x);
+
 	//     for(unsigned j=0; j<Dim; j++)
 	//       {
 	// 	std::cout << dpsidx(0,j) << std::endl;
@@ -309,42 +312,44 @@ namespace oomph
 	      }
 	  }
 
-	// Exchange field flux contribution
-	//------------------------------------------------------------
-	double exchange_coeff = bulk_element_pt()
-	  ->get_exchange_coeff(cts_time,itp_x);
+#warning "you need to add exchange flux contribution still."
 
-	// Get dmdx at this point from the bulk element
-	DenseDoubleMatrix itp_dmdx(3,3,0.0);
-	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
+	// // Exchange field flux contribution
+	// //------------------------------------------------------------
+	// double exchange_coeff = bulk_element_pt()
+	//   ->get_exchange_coeff(cts_time,itp_x);
 
-	// Get the dot product of gradient(m_j) and the normal for each j:
-	Vector<double> gradmdotn(3,0.0);
-	for(unsigned i=0; i<Dim; i++)
-	  {
-	    gradmdotn[0] += itp_dmdx(0,i) * normal[i];
-	    gradmdotn[1] += itp_dmdx(1,i) * normal[i];
-	    gradmdotn[2] += itp_dmdx(2,i) * normal[i];
-	  }
+	// // Get dmdx at this point from the bulk element
+	// DenseDoubleMatrix itp_dmdx(3,3,0.0);
+	// bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
 
-	//Loop over the test functions
-	for(unsigned l=0;l<n_node;l++)
-	  {
-	    for(unsigned j=0; j<3; j++)
-	      {
-		local_eqn = nodal_local_eqn
-		  (l, bulk_element_pt()->exchange_index_micromag(j));
+	// // Get the dot product of gradient(m_j) and the normal for each j:
+	// Vector<double> gradmdotn(3,0.0);
+	// for(unsigned i=0; i<Dim; i++)
+	//   {
+	//     gradmdotn[0] += itp_dmdx(0,i) * normal[i];
+	//     gradmdotn[1] += itp_dmdx(1,i) * normal[i];
+	//     gradmdotn[2] += itp_dmdx(2,i) * normal[i];
+	//   }
 
-		if(local_eqn >= 0) 	//If it's not a Dirichlet boundary condition
-		  {
-		    // Add the surface term
-		    residuals[local_eqn] -= exchange_coeff * gradmdotn[j] * test[l] * W;
+	// //Loop over the test functions
+	// for(unsigned l=0;l<n_node;l++)
+	//   {
+	//     for(unsigned j=0; j<3; j++)
+	//       {
+	// 	local_eqn = nodal_local_eqn
+	// 	  (l, bulk_element_pt()->exchange_index_micromag(j));
 
-		    //??ds fill in Jacobian when possible
-		    // = - exchange_coeff * Dnk
-		  }
-	      }
-	  }
+	// 	if(local_eqn >= 0) 	//If it's not a Dirichlet boundary condition
+	// 	  {
+	// 	    // Add the surface term
+	// 	    residuals[local_eqn] -= exchange_coeff * gradmdotn[j] * test[l] * W;
+
+	// 	    //??ds fill in Jacobian when possible
+	// 	    // = - exchange_coeff * Dnk
+	// 	  }
+	//       }
+	//   }
 
       }
 

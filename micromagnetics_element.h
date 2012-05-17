@@ -66,17 +66,17 @@ namespace oomph
       return 2 + k; // equations 2,3,4
     }
 
-    /// Specify nodal index for kth component of H_ex.
-    unsigned exchange_index_micromag(const unsigned &k) const
-    {
-#ifdef PARANOID
-      if(k>=3)
-	throw OomphLibError("H_exchange only has 3 indices",
-			    "MicromagEquations::exchange_index_micromag",
-			    OOMPH_EXCEPTION_LOCATION);
-#endif
-      return 5 + k; // equations 5,6,7
-    }
+//     /// Specify nodal index for kth component of H_ex.
+//     unsigned exchange_index_micromag(const unsigned &k) const
+//     {
+// #ifdef PARANOID
+//       if(k>=3)
+// 	throw OomphLibError("H_exchange only has 3 indices",
+// 			    "MicromagEquations::exchange_index_micromag",
+// 			    OOMPH_EXCEPTION_LOCATION);
+// #endif
+//       return 5 + k; // equations 5,6,7
+//     }
 
 
 
@@ -349,34 +349,6 @@ namespace oomph
 
     }
 
-/// Return FE representation of M at local coordinate s and current time.
-    inline void interpolated_h_ex_micromag(const Vector<double> &s,
-					   Vector<double>& itp_h_ex) const
-    {
-      //Find number of nodes
-      const unsigned n_node = nnode();
-
-      //Local shape function
-      Shape psi(n_node);
-
-      //Find values of shape function
-      shape(s,psi);
-
-      // Initialise h_ex
-      for(unsigned i=0; i<3; i++){itp_h_ex[i] = 0.0;}
-
-      // Loop over dimensions of H_ex
-      for(unsigned k=0; k<3; k++)
-	{
-	  //Loop over the local nodes and sum
-	  for(unsigned l=0;l<n_node;l++)
-	    {
-	      itp_h_ex[k] += this->nodal_value(l,exchange_index_micromag(k))*psi[l];
-	    }
-	}
-
-    }
-
     /// Return FE representation of M at local coordinate s and current time.
     inline void interpolated_dmdx_micromag(const Vector<double> &s,
 					   DenseDoubleMatrix& itp_dmdx) const
@@ -453,38 +425,6 @@ namespace oomph
 
     }
 
-    //??ds unchecked
-    void interpolated_exchange_micromag(const Vector<double>& s,
-					Vector<double>& itp_exchange)
-    {
-      //Find number of nodes
-      const unsigned n_node = nnode();
-
-      // Get number of values required
-      const unsigned nvalue = required_nvalue(0);
-
-      //Local shape function
-      Shape psi(n_node);
-
-      //Find values of shape function
-      shape(s,psi);
-
-      // Initialise solution vector
-      itp_exchange.assign(nvalue,0.0);
-
-      // Loop over field dimensions (always 3)
-      for(unsigned i=0; i<3; i++)
-    	{
-	  unsigned exch_index = exchange_index_micromag(i);
-
-    	  //Loop over the local nodes and sum
-    	  for(unsigned l=0;l<n_node;l++)
-    	    {
-    	      itp_exchange[i] += this->nodal_value(l,exch_index)*psi[l];
-    	    }
-    	}
-
-    }
 
     /// Get total field at position x. There is a more efficient private version
     /// of this function for use in residual calculations etc. This version does
@@ -503,11 +443,8 @@ namespace oomph
       Vector<double> itp_dphidx(3,0.0);
       interpolated_dphidx_micromag(s,itp_dphidx);
 
-      Vector<double> itp_exchange(3,0.0);
-      interpolated_exchange_micromag(s,itp_exchange);
-
       h_total.assign(3,0.0);
-      interpolated_ht_micromag_efficient(x,m,itp_dphidx,itp_exchange,h_total);
+      interpolated_ht_micromag_efficient(x,m,itp_dphidx,h_total);
     }
 
 
@@ -588,12 +525,11 @@ namespace oomph
     virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
 				Shape &test, DShape &dtestdx) const=0;
 
-    /// Get the field at current time (pass in x,m, dphidx, exchange for
+    /// Get the field at current time (pass in x,m, dphidx for
     /// efficiency).
     inline void interpolated_ht_micromag_efficient(const Vector<double>& x,
 						   const Vector<double>& m,
 						   const Vector<double>& itp_dphidx,
-						   const Vector<double>& itp_exchange,
 						   Vector<double>& h_total)
       const
     {
@@ -615,8 +551,7 @@ namespace oomph
       // Take total of all fields used
       for(unsigned j=0; j<3; j++)
 	{
-	  h_total[j] = h_applied[j] + h_ms[j]
-	    + itp_exchange[j] + h_cryst_anis[j];
+	  h_total[j] = h_applied[j] + h_ms[j] + h_cryst_anis[j];
 	}
     }
 
