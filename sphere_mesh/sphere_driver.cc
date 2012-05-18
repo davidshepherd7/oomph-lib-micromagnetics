@@ -11,6 +11,8 @@
 // Mesh
 #include "meshes/tetgen_mesh.h"
 
+#include "meshes/rectangular_quadmesh.h"
+
 using namespace oomph;
 using namespace MathematicalConstants;
 
@@ -20,17 +22,17 @@ namespace Inputs
   // Can't make these const because not const in element,
   // ??ds need to do this input stuff properly..
 
-  double llg_damping = 0.1;
+  double llg_damping = 1.0;
   double llg_precession = 1.0;
 
-  double exchange_coeff = 0;
+  double exchange_coeff = 0.0;
 
-  double magnetostatic_coeff = 1.0;
+  double magnetostatic_coeff = 0.0;
 
   double crystal_anis_coeff = 0;
 
-  const unsigned nstep = 2;
-  const double dt = 1e-6;
+  const unsigned nstep = 1000;
+  const double dt = 1e-2;
 
 
 
@@ -57,8 +59,8 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[0] = -1;
-    // m[1] = -0.1;
-    // m[2] = -0.1;
+    m[1] = -0.1;
+    m[2] = -0.1;
   }
 }
 
@@ -155,7 +157,9 @@ namespace oomph
     /// Update the problem before Newton convergence check (update boundary
     /// conditions on phi).
     void actions_before_newton_convergence_check()
-    {update_boundary_phi();}
+    {
+      if(Inputs::magnetostatic_coeff != 0.0) update_boundary_phi();
+    }
 
     /// Update the problem specs before solve.
     void actions_before_newton_solve(){};
@@ -181,12 +185,15 @@ namespace oomph
     // Allocate timestepper
     add_time_stepper_pt(new BDF<2>);
 
-    // //??temp try a steady state timestepper
-    // add_time_stepper_pt(new Steady<0>);
+    // // Build mesh from tetgen
+    // mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
+    // 					     face_file_name, time_stepper_pt());
 
-    // Build mesh from tetgen
-    mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
-					     face_file_name, time_stepper_pt());
+
+    //??temp try a 2d mesh
+    unsigned nx = 20, ny = 20;
+    mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
+      (nx,ny,1.0,1.0,time_stepper_pt());
 
     // Get an upcasted element pointer (any one will do) to have access to
     // equation numbers.
@@ -202,20 +209,20 @@ namespace oomph
     // Loop over elements in bulk mesh to set function pointers
     for(unsigned i=0; i<n_bulk_element(); i++)
       {
-    	// Upcast from GeneralisedElement to the present element
-    	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+	// Upcast from GeneralisedElement to the present element
+	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
 
-    	// Set pointer to continuous time
-    	elem_pt->time_pt() = time_pt();
+	// Set pointer to continuous time
+	elem_pt->time_pt() = time_pt();
 
-    	// Set the function pointers for parameters
-    	//??ds fix this to use proper encapsulation asap
-    	elem_pt->applied_field_pt() = &Inputs::applied_field;
-    	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+	// Set the function pointers for parameters
+	//??ds fix this to use proper encapsulation asap
+	elem_pt->applied_field_pt() = &Inputs::applied_field;
+	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
 	// 	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-    	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-    	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-    	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
 	elem_pt->magnetostatic_coeff_pt() = &Inputs::magnetostatic_coeff;
       }
 
@@ -223,58 +230,63 @@ namespace oomph
     // boundary set from the balue of phi_1 and the boundary matrix).
     for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
       {
-    	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
-    	  {
-    	    mesh_pt()->boundary_node_pt(b,nd)->
-    	      pin(some_el_pt->phi_index_micromag());
-    	  }
+	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
+	  {
+	    mesh_pt()->boundary_node_pt(b,nd)->
+	      pin(some_el_pt->phi_index_micromag());
+	  }
       }
 
-    //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
-    // i.e when r =0.
-    bool found = false;
-    for(unsigned nd=0; nd< mesh_pt()->nnode(); nd++)
-      {
-      	Vector<double> nd_x(DIM,0.0);
-    	for(unsigned j=0; j<DIM; j++)
-    	  nd_x[j] = mesh_pt()->node_pt(nd)->x(j);
-    	if ( small(nd_x[0]) && small(nd_x[1]) && small(1 - nd_x[2]) )
-    	  {
-    	    mesh_pt()->node_pt(nd)->pin(some_el_pt->phi_1_index_micromag());
-	    mesh_pt()->node_pt(nd)->set_value(some_el_pt->phi_1_index_micromag(),0.0);
-    	    found = true;
-    	  }
-      }
-    if (!(found))
-      throw OomphLibError("No node enar middle","",OOMPH_EXCEPTION_LOCATION);
+    // //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
+    // // i.e when r =0.
+    // bool found = false;
+    // for(unsigned nd=0; nd< mesh_pt()->nnode(); nd++)
+    //   {
+    // 	Vector<double> nd_x(DIM,0.0);
+    // 	for(unsigned j=0; j<DIM; j++)
+    // 	  nd_x[j] = mesh_pt()->node_pt(nd)->x(j);
+    // 	if ( small(nd_x[0]) && small(nd_x[1]) && small(1 - nd_x[2]) )
+    // 	  {
+    // 	    mesh_pt()->node_pt(nd)->pin(some_el_pt->phi_1_index_micromag());
+    // 	    mesh_pt()->node_pt(nd)->set_value(some_el_pt->phi_1_index_micromag(),0.0);
+    // 	    found = true;
+    // 	  }
+    //   }
+    // if (!(found))
+    //   throw OomphLibError("No node enar middle","",OOMPH_EXCEPTION_LOCATION);
 
 
 
     // Flux elements
     //------------------------------------------------------------
-
+    if(Inputs::magnetostatic_coeff != 0.0) //??temp not really right
+      {
     // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
     // create the face elements needed.
     for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
       {
-    	create_flux_elements(b);
+	create_flux_elements(b);
+      }
       }
 
     // Setup equation numbering scheme for all the finite elements
     std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
 
-    // BEM elements
-    //------------------------------------------------------------
+    if(Inputs::magnetostatic_coeff != 0.0)
+      {
+	// BEM elements
+	//------------------------------------------------------------
 
-    // Create BEM elements on all boundaries and add to BEM mesh
-    Bem_mesh_pt = new Mesh;
-    build_bem_mesh(bem_mesh_pt());
+	// Create BEM elements on all boundaries and add to BEM mesh
+	Bem_mesh_pt = new Mesh;
+	build_bem_mesh(bem_mesh_pt());
 
-    // Set boundary mesh pointer in element
-    BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
+	// Set boundary mesh pointer in element
+	BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
 
-    // Make the boundary matrix (including setting up the numbering scheme)
-    build_boundary_matrix();
+	// Make the boundary matrix (including setting up the numbering scheme)
+	build_boundary_matrix();
+      }
 
   } // end of constructor
 
@@ -508,9 +520,9 @@ namespace oomph
     // here loop over the matrix diagonals adding the angle factor.
     for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-    	// For a sphere all points are smooth (at least in the limit of infinite
-    	// refinement) so the solid angle contribution is (2*pi)/(4*pi) = 0.5.
-    	Boundary_matrix(nd,nd) += 0.5; //??temp messing with this..
+	// For a sphere all points are smooth (at least in the limit of infinite
+	// refinement) so the solid angle contribution is (2*pi)/(4*pi) = 0.5.
+	Boundary_matrix(nd,nd) += 0.5; //??temp messing with this..
       }
 
   }
@@ -678,7 +690,7 @@ int main(int argc, char* argv[])
     }
 
   // Inputs
-  const unsigned dim = 3;
+  const unsigned dim = 2; //??temp try lower dim
   const unsigned nnode_1d = 2;
   // const double dt = 1e-3;
   // const unsigned nstep = 10;
@@ -688,8 +700,8 @@ int main(int argc, char* argv[])
 
 
   // Create the problem
-  ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
-    problem(argv[1],argv[2],argv[3]);
+  ThreeDHybridProblem< QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+    problem(argv[1],argv[2],argv[3]); //??temp change to Q elements
 
   // // dump mesh for testing
   // std::ofstream mesh_plot;
@@ -736,14 +748,27 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
+  // dump Jacobian for tests
+  DenseDoubleMatrix jacobian;
+  DoubleVector residuals;
+  problem.get_jacobian(residuals,jacobian);
 
-  // std::ofstream residual_file;
-  // residual_file.precision(16);
-  // char filename2[100];
-  // sprintf(filename2,"results/residual");
-  // residual_file.open(filename2);
-  // residuals.output(residual_file);
-  // residual_file.close();
+  std::ofstream matrix_file;
+  matrix_file.precision(16);
+  char filename[100];
+  sprintf(filename,"results/jacobian");
+  matrix_file.open(filename);
+  jacobian.output(matrix_file);
+  matrix_file.close();
+
+
+  std::ofstream residual_file;
+  residual_file.precision(16);
+  char filename2[100];
+  sprintf(filename2,"results/residual");
+  residual_file.open(filename2);
+  residuals.output(residual_file);
+  residual_file.close();
 
   // std::ofstream bem_file;
   // bem_file.precision(16);
@@ -764,18 +789,17 @@ int main(int argc, char* argv[])
       //Output solution
       problem.doc_solution(doc_info);
 
-      // dump Jacobian for tests
-      DenseDoubleMatrix jacobian;
-      DoubleVector residuals;
-      problem.get_jacobian(residuals,jacobian);
+  DenseDoubleMatrix jacobian;
+  DoubleVector residuals;
+  problem.get_jacobian(residuals,jacobian);
 
-      std::ofstream matrix_file;
-      matrix_file.precision(16);
-      char filename[100];
-      sprintf(filename,"results/jacobian%u",istep);
-      matrix_file.open(filename);
-      jacobian.output(matrix_file);
-      matrix_file.close();
+  std::ofstream residual_file;
+  residual_file.precision(16);
+  char filename2[100];
+  sprintf(filename2,"results/residual");
+  residual_file.open(filename2);
+  residuals.output(residual_file);
+  residual_file.close();
 
       //Increment counter for solutions
       doc_info.number()++;
