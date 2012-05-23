@@ -19,28 +19,33 @@ using namespace MathematicalConstants;
 
 namespace Inputs
 {
-  // Can't make these const because not const in element,
   // ??ds need to do this input stuff properly..
 
-  double llg_damping = 1.0;
+  double llg_damping = 0.5;
   double llg_precession = 1.0;
-
-  double exchange_coeff = 0.0;
-
-  double magnetostatic_coeff = 0.0;
-
+  double exchange_coeff = 1.0;
+  double magnetostatic_coeff = 0;
   double crystal_anis_coeff = 0;
+  double dt = 1e-2;
+  double tmax = 50;
+  bool adaptive_timestepping = 1;
+  bool full_jacobian_fd = 0;
 
-  const unsigned nstep = 1000;
-  const double dt = 1e-2;
+
+
+
+  const unsigned dim = 3;
+  // If changing dim you also probably need to swap element type
+  // (QMicromagElement vs TMicromagElement) because the mesh changes type.
 
 
 
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    h_app[0] = +1;
-    h_app[1] = +3;
+    h_app[0] = 0;
+    h_app[1] = 0;
+    h_app[2] = -5;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -59,7 +64,7 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[0] = -1;
-    m[1] = -0.1;
+    m[1] = -0.3;
     m[2] = -0.1;
   }
 }
@@ -126,6 +131,12 @@ namespace oomph
     /// Access to number of bulk elements
     unsigned n_bulk_element() const {return N_bulk_element;}
 
+    /// Dummy - always reduce timestep as much as possible if fails to converge.
+    double global_temporal_error_norm()
+    {
+      return 1e-8;
+    }
+
     // //?? check if node is corner, nasty!
     // bool corner(Vector<double> x)
     // {
@@ -171,7 +182,6 @@ namespace oomph
     void actions_after_implicit_timestep(){};
   }; // end of problem class
 
-
   //======================================================================
   /// Constructor
   //======================================================================
@@ -182,18 +192,41 @@ namespace oomph
 		      const std::string& face_file_name)
   {
 
-    // Allocate timestepper
-    add_time_stepper_pt(new BDF<2>);
+    if(Inputs::adaptive_timestepping)
+      {
+	// Allocate adaptive timestepper
+	add_time_stepper_pt(new BDF<2>(true));
+      }
+    else
+      {
+	// Allocate timestepper
+	add_time_stepper_pt(new BDF<2>);
+      }
 
-    // // Build mesh from tetgen
-    // mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
-    // 					     face_file_name, time_stepper_pt());
+    if(Inputs::full_jacobian_fd)
+      {
+	linear_solver_pt()=new FD_LU;
+      }
 
 
-    //??temp try a 2d mesh
-    unsigned nx = 20, ny = 20;
-    mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
-      (nx,ny,1.0,1.0,time_stepper_pt());
+    if(Inputs::dim == 3)
+      {
+	// Build mesh from tetgen
+	mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
+						 face_file_name, time_stepper_pt());
+      }
+    else if (Inputs::dim == 2)
+      {
+	//??temp try a 2d mesh
+	unsigned nx = 2, ny = 2;
+	mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
+	  (nx,ny,1.0,1.0,time_stepper_pt());
+      }
+    else
+      {
+	std::cerr << "dim must be 2 or 3" << std::endl;
+	throw 123413;
+      }
 
     // Get an upcasted element pointer (any one will do) to have access to
     // equation numbers.
@@ -259,15 +292,14 @@ namespace oomph
 
     // Flux elements
     //------------------------------------------------------------
-    if(Inputs::magnetostatic_coeff != 0.0) //??temp not really right
-      {
-    // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
-    // create the face elements needed.
-    for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
-      {
-	create_flux_elements(b);
-      }
-      }
+
+	// We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
+	// create the face elements needed.
+	for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
+	  {
+	    create_flux_elements(b);
+	  }
+
 
     // Setup equation numbering scheme for all the finite elements
     std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
@@ -341,7 +373,6 @@ namespace oomph
     some_file.open(filename);
     mesh_pt()->output(some_file,npts);
     some_file.close();
-
   } // end of doc
 
 
@@ -690,18 +721,21 @@ int main(int argc, char* argv[])
     }
 
   // Inputs
-  const unsigned dim = 2; //??temp try lower dim
+  const unsigned dim = Inputs::dim;
   const unsigned nnode_1d = 2;
   // const double dt = 1e-3;
   // const unsigned nstep = 10;
-  const double dt = Inputs::dt;
-  const unsigned nstep = Inputs::nstep;
+  double dt = Inputs::dt;
+  const double tmax = Inputs::tmax;
+
+  // Dummy error for timestepper - always be ok
+  const double dummy_t_eps = 100;
 
 
 
   // Create the problem
-  ThreeDHybridProblem< QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
-    problem(argv[1],argv[2],argv[3]); //??temp change to Q elements
+  ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+    problem(argv[1],argv[2],argv[3]);
 
   // // dump mesh for testing
   // std::ofstream mesh_plot;
@@ -748,6 +782,12 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
+  // Open a trace file
+  std::ofstream trace_file;
+  char trace_filename[100];
+  sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
+  trace_file.open(trace_filename);
+
   // dump Jacobian for tests
   DenseDoubleMatrix jacobian;
   DoubleVector residuals;
@@ -778,31 +818,72 @@ int main(int argc, char* argv[])
   // problem.boundary_matrix_pt()->output(bem_file);
   // bem_file.close();
 
-  // Timestepping loop
-  for(unsigned istep=0; istep<nstep; istep++)
+
+  if(Inputs::adaptive_timestepping)
     {
-      std::cout << "Timestep " << istep << std::endl;
+      // Adaptive while loop
 
-      // Take timestep
-      problem.unsteady_newton_solve(dt);
+      while (problem.time_pt()->time()<tmax)
+	{
+	  std::cout << "Time is " << problem.time_pt()->time()<< std::endl
+		    << "Current timestep is " << dt << std::endl << std::endl;
 
-      //Output solution
-      problem.doc_solution(doc_info);
 
-  DenseDoubleMatrix jacobian;
-  DoubleVector residuals;
-  problem.get_jacobian(residuals,jacobian);
+	  // Take an adaptive timestep -- the input dt is the suggested timestep.
+	  // The adaptive timestepper will adjust dt until the required error
+	  // tolerance is satisfied. The function returns a suggestion
+	  // for the timestep that should be taken for the next step. This
+	  // is either the actual timestep taken this time or a larger
+	  // value if the solution was found to be "too accurate".
+	  double dt_next=problem.adaptive_unsteady_newton_solve(dt,dummy_t_eps);
 
-  std::ofstream residual_file;
-  residual_file.precision(16);
-  char filename2[100];
-  sprintf(filename2,"results/residual");
-  residual_file.open(filename2);
-  residuals.output(residual_file);
-  residual_file.close();
+	  // Use dt_next as suggestion for the next timestep
+	  dt=dt_next;
 
-      //Increment counter for solutions
-      doc_info.number()++;
+	  //Output solution
+	  problem.doc_solution(doc_info);
+
+	  trace_file << doc_info.number() << " " << problem.time_pt()->time()
+		     << " " << dt_next << std::endl;
+
+	  //Increment counter for solutions
+	  doc_info.number()++;
+
+	} // end of timestepping loop
+
+
+    }
+  else
+    {
+      unsigned nstep = int(tmax/dt);
+
+      // Standard timestepping loop
+      for(unsigned istep=0; istep<nstep; istep++)
+	{
+	  std::cout << "Timestep " << istep << std::endl;
+
+	  // Take timestep
+	  problem.unsteady_newton_solve(dt);
+
+	  //Output solution
+	  problem.doc_solution(doc_info);
+
+	  // DenseDoubleMatrix jacobian;
+	  // DoubleVector residuals;
+	  // problem.get_jacobian(residuals,jacobian);
+
+	  // std::ofstream residual_file;
+	  // residual_file.precision(16);
+	  // char filename2[100];
+	  // sprintf(filename2,"results/residual");
+	  // residual_file.open(filename2);
+	  // residuals.output(residual_file);
+	  // residual_file.close();
+
+	  //Increment counter for solutions
+	  doc_info.number()++;
+	}
+
     }
 }
 

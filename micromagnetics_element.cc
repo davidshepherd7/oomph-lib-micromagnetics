@@ -117,7 +117,19 @@ namespace oomph
 	get_H_cryst_anis_field(time, itp_x, itp_m, h_cryst_anis);
 
 	DenseMatrix<double> dhcadm(3,3,0.0);
-	//??ds make this function get_dh_cryst_dm((time, itp_x, itp_m, dhcadm)
+	//??ds make this function: get_dh_cryst_dm((time, itp_x, itp_m, dhcadm)
+
+	// Total of field residual contributions.
+	// Magnetostatic field is -1* dphi/dx, coeff for debugging.
+	Vector<double> h_total(3,0.0);
+	for(unsigned j=0; j<3; j++)
+	  h_total[j] = h_applied[j] + h_cryst_anis[j];
+	for(unsigned j=0; j<DIM; j++)
+	  h_total[j] -= magstatic_c * itp_dphidx[j];
+
+
+	Vector<double> itp_mxh(3,0.0);
+	VectorOps::cross(itp_m, h_total, itp_mxh);
 
 	// Note that "continue" means go on to the next step of the loop, which
 	// is perhaps not entirely clear. We use "if(not thing) then continue"
@@ -157,22 +169,14 @@ namespace oomph
 
 	    // Exchange residual contribution after integration by parts:
 	    Vector<double> gradtestdotgradmi(3,0.0); //?? possibly could optimise
-						    //- this is calculated twice
+	    					    //- this is calculated twice
 	    for(unsigned j=0; j<DIM; j++)
 	      for(unsigned i=0; i<3; i++)
-		gradtestdotgradmi[i] = dtestdx(l,j) * itp_dmdx(i,j);
+	    	gradtestdotgradmi[i] = dtestdx(l,j) * itp_dmdx(i,j);
 
-	    // Total of field residual contributions.
-	    // Magnetostatic field is -1* dphi/dx, coeff for debugging.
-	    Vector<double> h_total(3,0.0);
-	    for(unsigned j=0; j<DIM; j++)
-	      h_total[j] = h_applied[j] + h_cryst_anis[j]
-		- magstatic_c * itp_dphidx[j]
-		- exch_c * gradtestdotgradmi[j];
-
-	    // Cross product for the LLG equation
-	    Vector<double> itp_mxh(3,0.0);
-	    VectorOps::cross(itp_m, h_total, itp_mxh);
+	    // Cross product for exchange contribution
+	    Vector<double> mxexch(3,0.0);
+	    VectorOps::cross(itp_m, gradtestdotgradmi, mxexch);
 
 	    // add to residual
 	    for(unsigned i=0; i<3; i++)
@@ -180,9 +184,13 @@ namespace oomph
 		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
 		if(m_eqn >= 0)  // If it's not a boundary condition
 		  {
+		    // dmdt, mxh and mxdmdt terms
 		    residuals[m_eqn] += ( itp_dmdt[i]
-					  + llg_precess_c * itp_mxh[i]
+					  - llg_precess_c * itp_mxh[i]
 					  + llg_damp_c *itp_mxdmdt[i] )*test(l)*W;
+
+		    // (m x exchange) term
+		    residuals[m_eqn] += exch_c * llg_precess_c * mxexch[i] * W;
 		  }
 	      }
 
