@@ -83,6 +83,47 @@ namespace oomph
       // fill_in_be_contribution_adaptive(boundary_matrix);
     }
 
+    /// Function determining how to block the Jacobian.
+    void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
+				      block_lookup_list)
+    {
+      ELEMENT* bulk_ele_pt = dynamic_cast<ELEMENT*>(bulk_element_pt());
+      unsigned phi_1_index = bulk_ele_pt->phi_1_index_micromag();
+      unsigned phi_index = bulk_ele_pt->phi_index_micromag();
+      unsigned bulk_dof_types = bulk_ele_pt->ndof_types();
+
+      // We just need to move the boundary values of phi into their own blocks
+      for(unsigned nd=0; nd<nnode(); nd++)
+	{
+	  int phi_1_local = bulk_ele_pt->nodal_local_eqn(nd,phi_1_index);
+	  if(phi_1_local >=0)
+	    {
+	      std::pair<unsigned,unsigned> block_lookup;
+	      block_lookup.first = bulk_ele_pt->eqn_number(phi_1_local);
+	      block_lookup.second = bulk_dof_types + 1;
+	      block_lookup_list.push_front(block_lookup);
+	    }
+
+	  int phi_local = bulk_ele_pt->nodal_local_eqn(nd,phi_index);
+	  if(phi_local >=0)
+	    {
+	      std::pair<unsigned,unsigned> block_lookup;
+	      block_lookup.first = bulk_ele_pt->eqn_number(phi_local);
+	      block_lookup.second = bulk_dof_types + 1;
+	      block_lookup_list.push_front(block_lookup);
+	    }
+	}
+    }
+
+    unsigned ndof_types()
+    {
+      ELEMENT* bulk_ele_pt = dynamic_cast<ELEMENT*>(bulk_element_pt());
+      return bulk_ele_pt->ndof_types() + additional_ndof_types();
+    }
+
+    unsigned additional_ndof_types()
+    { return 2; }
+
     /// Output function - do nothing
     void output(std::ostream &outfile, const unsigned &n_plot=5) const {}
 

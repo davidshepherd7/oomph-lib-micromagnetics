@@ -66,19 +66,37 @@ namespace oomph
       return 2 + k; // equations 2,3,4
     }
 
-//     /// Specify nodal index for kth component of H_ex.
-//     unsigned exchange_index_micromag(const unsigned &k) const
-//     {
-// #ifdef PARANOID
-//       if(k>=3)
-// 	throw OomphLibError("H_exchange only has 3 indices",
-// 			    "MicromagEquations::exchange_index_micromag",
-// 			    OOMPH_EXCEPTION_LOCATION);
-// #endif
-//       return 5 + k; // equations 5,6,7
-//     }
+    /// Function determining how to block the Jacobian.
+    void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
+				      block_lookup_list)
+    {
+      // Loop over all nodes then all unpinned values (dofs) at each node. For
+      // each of these we create a pair giving the global equation number and
+      // the corresponding dof type (number).
 
+      for(unsigned nd=0; nd<nnode(); nd++)
+	{
+	  for(unsigned dof=0; dof<node_pt(nd)->nvalue(); dof++)
+	    {
+	      int local_eqn_number = nodal_local_eqn(nd,dof);
+	      if(local_eqn_number >= 0)
+		{
+		  std::pair<unsigned,unsigned> block_lookup;
+		  block_lookup.first = eqn_number(local_eqn_number);
+		  block_lookup.second = dof;
+		  block_lookup_list.push_front(block_lookup);
+		  //??ds why do we use push front?
+		  //??ds why do we use lists?
+		}
+	    }
+	}
 
+    }
+
+    unsigned ndof_types()
+    {
+      return required_nvalue(0);
+    }
 
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
