@@ -23,15 +23,14 @@ namespace oomph
   /// A structure to hold the weights/knots data. We need this so we can have a
   /// constructor to initialise the const static data structures.
   //============================================================
-  //??ds Had to use std::vector because our Vector class lacks some constructors.
-  //??ds Ask if I can add them?
   struct weights_data_structure
   {
 
   private:
 
     /// Typedef to keep code lines reasonable and allow easy swapping between
-    /// std::vector and oomph::Vector if needed.
+    /// std::vector and oomph::Vector if needed. We need to use std:: because
+    /// the oomph:: vector lacks some constructors
     typedef std::vector<double> vdb;
 
     /// The data structure itself
@@ -421,7 +420,17 @@ namespace oomph
       unsigned dummy = 0;
       error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
 #endif
-      return 0;
+      // Get weight for quadrilateral
+      //??ds could replace this by a call to Q quadrature?
+      unsigned i_x = i%order;
+      unsigned i_y = i/order;
+      double qweight = weight_1d(i_y,order)*weight_1d(i_x,order);
+
+      // Get the x-location of this knot
+      double knot_x =  this->knot(i,0,order);
+
+      // Transform to triangle
+      return qweight * (1.0 - knot_x)/8.0;
     }
 
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
@@ -429,11 +438,32 @@ namespace oomph
 #ifdef PARANOID
       error_check(i,j,order,"VariableOrderGaussLegendre::knot");
 #endif
+
+      // Get knot for quadrilateral and transform
+      if(j==0)
+	{
+	  unsigned i_x = i%order;
+	  return (1.0 + knot_1d(i_x,order))/2.0;
+	}
+      else if(j==1)
+	{
+	  unsigned i_x = i%order;
+	  unsigned i_y = i/order;
+
+	  return (1.0 - knot_1d(i_x,order))
+	    * (1.0 + knot_1d(i_y,order))
+	    / 4.0;
+	}
+      else
+	{
 	  std::ostringstream error_stream;
-	  error_stream << "Requested knot coordinate for 2D triangles, not yet implemented for variable order." << std::endl;
+	  error_stream << "Requested knot coordinate in dimension " << j
+		       << " which does not exist in a scheme of dimension 2" << std::endl;
 	  throw OomphLibError(error_stream.str(),
-			      "TVariableOrderQuadrature<2>::knot",
+			      "QVariableOrderQuadrature<2>::knot",
 			      OOMPH_EXCEPTION_LOCATION);
+	}
+
     }
 
     inline unsigned dim() const {return 2;}
@@ -471,13 +501,14 @@ namespace oomph
 #endif
       return 0.0;
     }
+
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order,"VariableOrderQuadrature::knot");
 #endif
       std::ostringstream error_stream;
-      error_stream << "Requested knot coordinate for 2D triangles, not yet implemented for variable order." << std::endl;
+      error_stream << "Requested knot coordinate for 3D triangles, not yet implemented for variable order." << std::endl;
       throw OomphLibError(error_stream.str(),
 			       "TVariableOrderQuadrature<3>::knot",
 			       OOMPH_EXCEPTION_LOCATION);
