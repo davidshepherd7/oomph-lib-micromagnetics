@@ -79,8 +79,8 @@ namespace oomph
     /// Jacobian matrix
     inline void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix)
     {
-      fill_in_be_contribution_analytic(boundary_matrix);
-      // fill_in_be_contribution_adaptive(boundary_matrix);
+      // fill_in_be_contribution_analytic(boundary_matrix);
+      fill_in_be_contribution_adaptive(boundary_matrix);
     }
 
     /// Function determining how to block the Jacobian.

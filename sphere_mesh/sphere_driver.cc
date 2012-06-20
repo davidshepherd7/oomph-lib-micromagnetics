@@ -21,20 +21,21 @@ namespace Inputs
 {
   // ??ds need to do this input stuff properly..
 
-  double llg_damping = 0.5;
+  double llg_damping = 1.5;
   double llg_precession = 1.0;
-  double exchange_coeff = 1.0;
-  double magnetostatic_coeff = 0;
+  double exchange_coeff = 0.5;
+  double magnetostatic_coeff = 1;
   double crystal_anis_coeff = 0;
-  double dt = 1e-2;
+  double dt = 1e-5;
   double tmax = 50;
+
   bool adaptive_timestepping = 1;
   bool full_jacobian_fd = 0;
+  bool GMRES = 1;
+  bool midpointmethod = 0;
+  const unsigned bdforder = 2;
 
-
-
-
-  const unsigned dim = 3;
+  const unsigned dim = 2;
   // If changing dim you also probably need to swap element type
   // (QMicromagElement vs TMicromagElement) because the mesh changes type.
 
@@ -45,7 +46,7 @@ namespace Inputs
     h_app.assign(3,0.0);
     h_app[0] = 0;
     h_app[1] = 0;
-    h_app[2] = -5;
+    h_app[2] = 0;
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
@@ -66,6 +67,7 @@ namespace Inputs
     m[0] = -1;
     m[1] = -0.3;
     m[2] = -0.1;
+    normalise(m);
   }
 }
 
@@ -97,7 +99,8 @@ namespace oomph
 
     /// \short Create the face elements to apply flux boundary conditions to the
     /// potential on boundary b.
-    void create_flux_elements(const unsigned& b);
+    void create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
+			      Mesh* const &surface_mesh_pt);
 
 
     /// Build the meshes of bem elements
@@ -112,7 +115,7 @@ namespace oomph
 
     /// \short Get the mapping between the global equation numbering and
     /// the boundary equation numbering.
-    void create_global_boundary_equation_number_map();
+    void create_global_boundary_equation_number_maps();
 
     /// Get the boundary equation number from the global equation number
     unsigned convert_global_to_boundary_equation_number(const unsigned &global_num);
@@ -127,9 +130,6 @@ namespace oomph
     /// Access to the boundary matrix
     DenseDoubleMatrix* boundary_matrix_pt()
     {return &Boundary_matrix;}
-
-    /// Access to number of bulk elements
-    unsigned n_bulk_element() const {return N_bulk_element;}
 
     /// Dummy - always reduce timestep as much as possible if fails to converge.
     double global_temporal_error_norm()
@@ -148,19 +148,79 @@ namespace oomph
     //   return temp;
     // }
 
+    /// Overload get_jacobian to include the boundary matrix and re-arrange the
+    /// sparse part of the Jacobian into block form (as well as getting the
+    /// Jacobian as normal).  Note that this is ONLY called if using GMRES -
+    /// otherwise the newton solver will just call the standard get_jacobian
+    /// since it does not know about the SumOfMatrices format.
+    void get_jacobian(DoubleVector& residuals, SumOfMatrices& jacobian)
+    {
+      std::cout << "Calling your get_jacobian function." << std::endl;
+
+      // Get the sparse part of the Jacobian due to finite elements and set it
+      // as the main (first) matrix of the sum.  ??ds this is a memory leak,
+      // need a flag to say if sum can delete individual matrices?
+      CRDoubleMatrix* sparse_jacobian_pt = new CRDoubleMatrix;
+      Problem::get_jacobian(residuals,*sparse_jacobian_pt);
+      jacobian.main_matrix_pt() = sparse_jacobian_pt;
+
+      // Set the sparse part of the Jacobian to be deleted along with the sum of
+      // the matrices - avoid a memory leak.
+      jacobian.set_delete_main_matrix();
+
+      // Add the boundary element matrix to the total Jacobian. It represents
+      // the derivative of phi with respect to phi_1 so each entry goes in the
+      // phi row and the phi_1 column of the respective element (this is done
+      // via the two maps).
+      jacobian.add_matrix(boundary_matrix_pt(),
+			  &Global_phi_1_num_map,
+			  &Global_boundary_equation_num_map,0);
+
+
+
+      // //??temp dump jacobian for tests
+      // std::ofstream matrix_file;
+      // matrix_file.precision(16);
+      // char filename[100];
+      // sprintf(filename,"results/jacobian");
+      // matrix_file.open(filename);
+      // sparse_jacobian_pt->sparse_indexed_output(matrix_file);
+      // matrix_file.close();
+
+    }
+
+    /// Get the index of phi for use in BEM mapping
+    unsigned phi_index() {return Phi_index;}
+
+    /// Get the index of phi_1 for use in BEM mapping
+    unsigned phi_1_index() {return Phi_1_index;}
+
+
   private:
 
-    /// The number of bulk elements
-    unsigned N_bulk_element;
+    /// The map between the global equation numbers for phi and the boundary
+    /// equation/matrix numbering.
+    std::map<long unsigned,long unsigned> Global_boundary_equation_num_map;
 
-    /// The map between the global equation numbering and the boundary equation numbering.
-    std::map<unsigned,unsigned> Global_boundary_equation_num_map;
+    /// The map between the global equation numbers for phi_1 and the boundary
+    /// equation/matrix numbering.
+    std::map<long unsigned,long unsigned> Global_phi_1_num_map;
+
+    Mesh* Bulk_mesh_pt;
+
+    Mesh* Flux_mesh_pt;
 
     /// The pointer to the boundary element method mesh
     Mesh* Bem_mesh_pt;
 
     /// Doc info object
     DocInfo Doc_info;
+
+    /// Store the index of phi for use in BEM mapping
+    unsigned Phi_index;
+
+    /// Store the index of phi_1 for use in BEM mapping
+    unsigned Phi_1_index;
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
@@ -173,13 +233,13 @@ namespace oomph
     }
 
     /// Update the problem specs before solve.
-    void actions_before_newton_solve(){};
+    void actions_before_newton_solve(){}
 
     /// Update the problem specs after solve
-    void actions_after_newton_solve(){};
+    void actions_after_newton_solve();
 
     /// Update the problem specs after solve (empty)
-    void actions_after_implicit_timestep(){};
+    void actions_after_implicit_timestep(){}
   }; // end of problem class
 
   //======================================================================
@@ -192,34 +252,46 @@ namespace oomph
 		      const std::string& face_file_name)
   {
 
-    if(Inputs::adaptive_timestepping)
+    if(Inputs::midpointmethod)
       {
-	// Allocate adaptive timestepper
-	add_time_stepper_pt(new BDF<2>(true));
+	if(Inputs::adaptive_timestepping)
+	  std::cerr << "No adaptive midpoint yet." << std::endl;
+
+	add_time_stepper_pt(new BDF<1>);
       }
-    else
+    else // use bdf
       {
-	// Allocate timestepper
-	add_time_stepper_pt(new BDF<2>);
+	if(Inputs::adaptive_timestepping)
+	  add_time_stepper_pt(new BDF<Inputs::bdforder>(true));
+	else
+	  add_time_stepper_pt(new BDF<Inputs::bdforder>);
       }
 
     if(Inputs::full_jacobian_fd)
       {
-	linear_solver_pt()=new FD_LU;
+	linear_solver_pt() = new FD_LU;
+      }
+    else if (Inputs::GMRES)
+      {
+	linear_solver_pt() = new GMRES<SumOfMatrices>;
+      }
+    else
+      {
+	linear_solver_pt() = new SuperLUSolver;
       }
 
 
     if(Inputs::dim == 3)
       {
 	// Build mesh from tetgen
-	mesh_pt() = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
-						 face_file_name, time_stepper_pt());
+	Bulk_mesh_pt = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
+						    face_file_name, time_stepper_pt());
       }
     else if (Inputs::dim == 2)
       {
 	//??temp try a 2d mesh
-	unsigned nx = 2, ny = 2;
-	mesh_pt() = new RectangularQuadMesh<BULK_ELEMENT>
+	unsigned nx = 5, ny = 5;
+	Bulk_mesh_pt = new RectangularQuadMesh<BULK_ELEMENT>
 	  (nx,ny,1.0,1.0,time_stepper_pt());
       }
     else
@@ -228,22 +300,14 @@ namespace oomph
 	throw 123413;
       }
 
-    // Get an upcasted element pointer (any one will do) to have access to
-    // equation numbers.
-    BULK_ELEMENT* some_el_pt = dynamic_cast< BULK_ELEMENT* >
-      (mesh_pt()->element_pt(0));
-
-    // Store the number of bulk elements before we add any face elements
-    N_bulk_element = mesh_pt()->nelement();
-
     // Bulk elements
     //------------------------------------------------------------
 
     // Loop over elements in bulk mesh to set function pointers
-    for(unsigned i=0; i<n_bulk_element(); i++)
+    for(unsigned i=0; i< Bulk_mesh_pt->nelement(); i++)
       {
 	// Upcast from GeneralisedElement to the present element
-	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(i));
 
 	// Set pointer to continuous time
 	elem_pt->time_pt() = time_pt();
@@ -259,29 +323,32 @@ namespace oomph
 	elem_pt->magnetostatic_coeff_pt() = &Inputs::magnetostatic_coeff;
       }
 
-    // Pin the values of phi on the boundary nodes (since it is a Dirichlet
-    // boundary set from the balue of phi_1 and the boundary matrix).
-    for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
-      {
-	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
-	  {
-	    mesh_pt()->boundary_node_pt(b,nd)->
-	      pin(some_el_pt->phi_index_micromag());
-	  }
-      }
+    // Get the indicies for phi and phi_1 via casting a pointer
+    BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(0));
+    Phi_index = elem_pt->phi_index_micromag();
+    Phi_1_index = elem_pt->phi_1_index_micromag();
+
+    // Pin the values of phi on the boundary nodes (since it is a Dirichlet //
+    // boundary set from the value of phi_1 and the boundary matrix).
+    // BULK_ELEMENT* some_el_pt = dynamic_cast< BULK_ELEMENT* >
+    // (Bulk_mesh_pt->element_pt(0)); for(unsigned b=0;
+    // b<Bulk_mesh_pt->nboundary(); b++) { for(unsigned nd=0; nd <
+    // Bulk_mesh_pt->nboundary_node(b); nd++) {
+    // Bulk_mesh_pt->boundary_node_pt(b,nd)->
+    // pin(some_el_pt->phi_index_micromag()); } }
 
     // //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
     // // i.e when r =0.
     // bool found = false;
-    // for(unsigned nd=0; nd< mesh_pt()->nnode(); nd++)
+    // for(unsigned nd=0; nd< Bulk_mesh_pt->nnode(); nd++)
     //   {
     // 	Vector<double> nd_x(DIM,0.0);
     // 	for(unsigned j=0; j<DIM; j++)
-    // 	  nd_x[j] = mesh_pt()->node_pt(nd)->x(j);
+    // 	  nd_x[j] = Bulk_mesh_pt->node_pt(nd)->x(j);
     // 	if ( small(nd_x[0]) && small(nd_x[1]) && small(1 - nd_x[2]) )
     // 	  {
-    // 	    mesh_pt()->node_pt(nd)->pin(some_el_pt->phi_1_index_micromag());
-    // 	    mesh_pt()->node_pt(nd)->set_value(some_el_pt->phi_1_index_micromag(),0.0);
+    // 	    Bulk_mesh_pt->node_pt(nd)->pin(some_el_pt->phi_1_index_micromag());
+    // 	    Bulk_mesh_pt->node_pt(nd)->set_value(some_el_pt->phi_1_index_micromag(),0.0);
     // 	    found = true;
     // 	  }
     //   }
@@ -293,13 +360,18 @@ namespace oomph
     // Flux elements
     //------------------------------------------------------------
 
-	// We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
-	// create the face elements needed.
-	for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
-	  {
-	    create_flux_elements(b);
-	  }
+    // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
+    // create the face elements needed.
+    Flux_mesh_pt = new Mesh;
+    for(unsigned b=0; b < Bulk_mesh_pt->nboundary(); b++)
+      {
+	create_flux_elements(b,Bulk_mesh_pt,Flux_mesh_pt);
+      }
 
+    // Build global finite element mesh (not including the bem mesh)
+    add_sub_mesh(Bulk_mesh_pt);
+    add_sub_mesh(Flux_mesh_pt);
+    build_global_mesh();
 
     // Setup equation numbering scheme for all the finite elements
     std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
@@ -309,12 +381,28 @@ namespace oomph
 	// BEM elements
 	//------------------------------------------------------------
 
+	// Create integration scheme in case it is needed.
+	QVariableOrderGaussLegendre<DIM-1>* variable_scheme_pt
+	  = new QVariableOrderGaussLegendre<DIM-1>;
+
 	// Create BEM elements on all boundaries and add to BEM mesh
 	Bem_mesh_pt = new Mesh;
 	build_bem_mesh(bem_mesh_pt());
 
-	// Set boundary mesh pointer in element
+	// Set boundary mesh pointer in element (static memeber so only do once)
 	BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
+
+	// Set pointers in all elements
+	for(unsigned i_ele = 0; i_ele < bem_mesh_pt()->nelement(); i_ele++)
+	  {
+	    // Cast pointer
+	    BEM_ELEMENT<BULK_ELEMENT,DIM>* ele_pt
+	      = dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM>* >
+	      (bem_mesh_pt()->element_pt(i_ele));
+
+	    // Set integration scheme
+	    ele_pt->set_integration_scheme(variable_scheme_pt);
+	  }
 
 	// Make the boundary matrix (including setting up the numbering scheme)
 	build_boundary_matrix();
@@ -328,27 +416,28 @@ namespace oomph
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
   void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  create_flux_elements(const unsigned& b)
+  create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
+		       Mesh* const &surface_mesh_pt)
   {
     // How many bulk elements are adjacent to boundary b?
-    unsigned n_element = mesh_pt()->nboundary_element(b);
+    unsigned n_element = bulk_mesh_pt->nboundary_element(b);
 
     // Loop over the bulk elements adjacent to boundary b
     for(unsigned e=0;e<n_element;e++)
       {
 	// Get pointer to the bulk element that is adjacent to boundary b
 	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>
-	  (mesh_pt()->boundary_element_pt(b,e));
+	  (bulk_mesh_pt->boundary_element_pt(b,e));
 
 	// What is the index of the face of the bulk element at the boundary
-	int face_index = mesh_pt()->face_index_at_boundary(b,e);
+	int face_index = bulk_mesh_pt->face_index_at_boundary(b,e);
 
 	// Build the corresponding prescribed-flux element
 	MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
 	  new MicromagFluxElement<BULK_ELEMENT>(bulk_elem_pt,face_index);
 
 	// Add the prescribed-flux element to the mesh
-	mesh_pt()->add_element_pt(flux_element_pt);
+	surface_mesh_pt->add_element_pt(flux_element_pt);
 
       } // End of loop over bulk elements adjacent to boundary b
   }
@@ -386,7 +475,7 @@ namespace oomph
   {
 #ifdef PARANOID
     // Get the location of the global_num key in an iterator
-    std::map<unsigned,unsigned>::iterator it
+    std::map<long unsigned, long unsigned>::iterator it
       = Global_boundary_equation_num_map.find(global_num);
 
     // If the iterator is placed at the end the given global equation number is
@@ -427,22 +516,22 @@ namespace oomph
     std::set<Node*>::iterator it, c_it;
 
     // Loop over the boundaries
-    unsigned n_boundary = mesh_pt()->nboundary();
+    unsigned n_boundary = Bulk_mesh_pt->nboundary();
     for(unsigned b=0; b<n_boundary; b++)
       {
 	// Loop over the boundary nodes on boundary b making a set of nodes
-	unsigned n_bound_node = mesh_pt()->nboundary_node(b);
+	unsigned n_bound_node = Bulk_mesh_pt->nboundary_node(b);
 	for(unsigned n=0;n<n_bound_node;n++)
-	  node_set.insert(mesh_pt()->boundary_node_pt(b,n));
+	  node_set.insert(Bulk_mesh_pt->boundary_node_pt(b,n));
 
 	// Loop over the elements on boundary b creating bem elements
-	unsigned n_bound_element = mesh_pt()->nboundary_element(b);
+	unsigned n_bound_element = Bulk_mesh_pt->nboundary_element(b);
 	for(unsigned e=0;e<n_bound_element;e++)
 	  {
 	    // Create the corresponding BEM Element
 	    BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_element_pt = new BEM_ELEMENT<BULK_ELEMENT,DIM>
-	      (mesh_pt()->boundary_element_pt(b,e),
-	       mesh_pt()->face_index_at_boundary(b,e));
+	      (Bulk_mesh_pt->boundary_element_pt(b,e),
+	       Bulk_mesh_pt->face_index_at_boundary(b,e));
 
 	    // Add the BEM element to the BEM mesh
 	    bem_mesh_pt->add_element_pt(bem_element_pt);
@@ -461,29 +550,43 @@ namespace oomph
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
   void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  create_global_boundary_equation_number_map()
+  create_global_boundary_equation_number_maps()
   {
     // Initialise the map
     Global_boundary_equation_num_map.clear();
+    Global_phi_1_num_map.clear();
+
+    // Initialise counters for number of unique boundary nodes included so far
+    unsigned k_phi = 0, k_phi_1 = 0;
 
     // Loop over boundary nodes assigning a boundary equation number to each.
-    unsigned n_boundary_node = this->bem_mesh_pt()->nnode(), k=0;
+    unsigned n_boundary_node = this->bem_mesh_pt()->nnode();
     for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
       {
 	// Get global equation number for phi
-	unsigned global_eqn_number = this->bem_mesh_pt()->
-	  node_pt(i_node)->eqn_number(1);
+	unsigned global_phi_number = this->bem_mesh_pt()->
+	  node_pt(i_node)->eqn_number(phi_index());
+
+	// Get global equation number for phi_1
+	unsigned global_phi_1_number = this->bem_mesh_pt()->
+	  node_pt(i_node)->eqn_number(phi_1_index());
 
 	// Set up the pair ready to input with key="global equation number" and
 	// value ="boundary equation number"=k.
-	std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
+	std::pair<unsigned,unsigned> input_pair_phi
+	  = std::make_pair(global_phi_number,k_phi);
+	std::pair<unsigned,unsigned> input_pair_phi_1
+	  = std::make_pair(global_phi_1_number,k_phi_1);
 
 	// Add entry to map and store whether this was a new addition
-	bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
-			     ).second;
+	bool new_addition_phi = (Global_boundary_equation_num_map.insert(input_pair_phi)
+				 ).second;
+	bool new_addition_phi_1 = (Global_phi_1_num_map.insert(input_pair_phi_1)
+				   ).second;
 
 	// Increment k if this was a new addition to the map
-	if(new_addition) k++;
+	if(new_addition_phi) k_phi++;
+	if(new_addition_phi_1) k_phi_1++;
       }
 
     // std::cout << Global_boundary_equation_num_map << std::endl;
@@ -497,7 +600,7 @@ namespace oomph
   build_boundary_matrix()
   {
     // Create the mapping from global to boundary equations
-    create_global_boundary_equation_number_map();
+    create_global_boundary_equation_number_maps();
 
     // get the number of nodes in the boundary problem
     unsigned long n_node = bem_mesh_pt()->nnode();
@@ -529,14 +632,14 @@ namespace oomph
 	    // Get the boundary equation (=node) number from the global one
 	    unsigned l_number =
 	      this->convert_global_to_boundary_equation_number
-	      (elem_pt->node_pt(l)->eqn_number(1));
+	      (elem_pt->node_pt(l)->eqn_number(phi_index()));
 
 	    // Loop over all nodes in the mesh and add contributions from this element
 	    for(unsigned long source_node=0; source_node<n_node; source_node++)
 	      {
 		unsigned source_number =
 		  this->convert_global_to_boundary_equation_number
-		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
+		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(phi_index()));
 
 		Boundary_matrix(l_number,source_number)
 		  -= element_boundary_matrix(l,source_node);
@@ -572,11 +675,6 @@ namespace oomph
     if (Inputs::magnetostatic_coeff == 0)
       return;
 
-    // Get the index of phi_1 and phi (use bulk element because indices stored there)
-    BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(0));
-    const unsigned phi_1_index = bulk_elem_pt->phi_1_index_micromag();
-    const unsigned phi_index = bulk_elem_pt->phi_index_micromag();
-
     // In order to use DoubleVector (for matrix multiplications) we need to have
     // this thingy. In our serial case it just gives a number of rows.
     LinearAlgebraDistribution dummy(0,bem_mesh_pt()->nnode(),false);
@@ -588,28 +686,28 @@ namespace oomph
       {
 	// Get boundary equation number
 	unsigned nd_equation = convert_global_to_boundary_equation_number
-	  ( bem_mesh_pt()->node_pt(i_nd)->eqn_number(1) );
+	  ( bem_mesh_pt()->node_pt(i_nd)->eqn_number(phi_index()) );
 
 	// Copy into appropriate vector entry
-	boundary_phi_1[nd_equation] = bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index);
+	boundary_phi_1[nd_equation] = bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index());
 
-	//??temp
-	Vector<double> nd_x(DIM,0.0);
-	for(unsigned j=0; j<DIM; j++)
-	  nd_x[j] = bem_mesh_pt()->node_pt(i_nd)->x(j);
+	// //??temp
+	// Vector<double> nd_x(DIM,0.0);
+	// for(unsigned j=0; j<DIM; j++)
+	//   nd_x[j] = bem_mesh_pt()->node_pt(i_nd)->x(j);
 
-	//??temp: compare with exact solution
-	// phi_1 = - r * cos(azimuthal) * sin (polar)
-	double r = mod(nd_x);
-	double azimuthal = atan2(nd_x[1],nd_x[0]);
-	double polar = acos(nd_x[2]/r);
-	exact_phi_1[nd_equation] = - r * cos(azimuthal) * sin(polar);
+	// //??temp: compare with exact solution
+	// // phi_1 = - r * cos(azimuthal) * sin (polar)
+	// double r = mod(nd_x);
+	// double azimuthal = atan2(nd_x[1],nd_x[0]);
+	// double polar = acos(nd_x[2]/r);
+	// exact_phi_1[nd_equation] = - r * cos(azimuthal) * sin(polar);
 
 
-	// if (std::abs( bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index)
+	// if (std::abs( bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index())
 	// 	      - exact_phi_1[nd_equation]) > 1e-5)
 	//   {
-	//     std::cout << nd_x << " " << bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index)
+	//     std::cout << nd_x << " " << bem_mesh_pt()->node_pt(i_nd)->value(phi_1_index())
 	// 	      <<  " " << exact_phi_1[nd_equation] << std::endl;
 	//   }
       }
@@ -626,10 +724,10 @@ namespace oomph
       {
 	// Get boundary equation number
 	unsigned nd_equation = convert_global_to_boundary_equation_number
-	  ( bem_mesh_pt()->node_pt(i_nd)->eqn_number(1) );
+	  ( bem_mesh_pt()->node_pt(i_nd)->eqn_number(phi_index()) );
 
 	// Copy out appropriate vector entry
-	bem_mesh_pt()->node_pt(i_nd)->set_value(phi_index, boundary_phi[nd_equation]);
+	bem_mesh_pt()->node_pt(i_nd)->set_value(phi_index(), boundary_phi[nd_equation]);
 
 	// //??temp
 	// Vector<double> nd_x(DIM,0.0);
@@ -661,7 +759,7 @@ namespace oomph
 
     // Get M indicies
     Vector<unsigned> m_index_micromag(3,0);
-    BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(mesh_pt()->element_pt(0));
+    BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(Bulk_mesh_pt->element_pt(0));
     for(unsigned i=0; i<3; i++)
       m_index_micromag[i] = elem_pt->m_index_micromag(i);
 
@@ -703,6 +801,38 @@ namespace oomph
   }
 
 
+  //======================================================================
+  /// When using mid-point method we must update after each solveto go from
+  /// [n+0.5] to [n+1].
+  //======================================================================
+  template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  actions_after_newton_solve()
+  {
+    // If we are using midpoint then apply the required update (Malidi2005)
+    if(Inputs::midpointmethod)
+      {
+	// Get m indicies
+	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(0));
+	Vector<unsigned> m_indices(3,0);
+	for(unsigned j=0; j<3; j++)
+	  m_indices[j] = bulk_elem_pt->m_index_micromag(j);
+
+	for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
+	  {
+	    Node* nd_pt = mesh_pt()->node_pt(i_nd);
+	    for(unsigned j=0; j<3; j++)
+	      {
+		// m[n] --> 2*m[n] - m[n-1]
+		// because we have finished this timestep and moved forward one
+		double new_m = 2*(nd_pt->value(m_indices[j]))
+		  - (nd_pt->value(1,m_indices[j]));
+		nd_pt->set_value(m_indices[j],new_m);
+	      }
+	  }
+      }
+  }
+
 } // End of oomph namespace
 
 int main(int argc, char* argv[])
@@ -734,7 +864,7 @@ int main(int argc, char* argv[])
 
 
   // Create the problem
-  ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+  ThreeDHybridProblem< QMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem(argv[1],argv[2],argv[3]);
 
   // // dump mesh for testing
@@ -749,17 +879,17 @@ int main(int argc, char* argv[])
   // mesh_plot.close();
 
 
-  // dump boundary for testing
-  unsigned b = 0;
-  std::ofstream bound_plot;
-  bound_plot.open("./bound_points");
-  for(unsigned nd=0; nd<problem.mesh_pt()->nboundary_node(b); nd++)
-    {
-      for(unsigned j=0; j<dim; j++)
-	bound_plot << problem.mesh_pt()->boundary_node_pt(b,nd)->x(j) << " ";
-      bound_plot << std::endl;
-    }
-  bound_plot.close();
+  // // dump boundary for testing
+  // unsigned b = 0;
+  // std::ofstream bound_plot;
+  // bound_plot.open("./bound_points");
+  // for(unsigned nd=0; nd<problem.Bulk_mesh_pt->nboundary_node(b); nd++)
+  //   {
+  //     for(unsigned j=0; j<dim; j++)
+  // 	bound_plot << problem.Bulk_mesh_pt->boundary_node_pt(b,nd)->x(j) << " ";
+  //     bound_plot << std::endl;
+  //   }
+  // bound_plot.close();
 
 
   // Initialise timestep, initial conditions
@@ -788,27 +918,14 @@ int main(int argc, char* argv[])
   sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(trace_filename);
 
-  // dump Jacobian for tests
-  DenseDoubleMatrix jacobian;
-  DoubleVector residuals;
-  problem.get_jacobian(residuals,jacobian);
 
-  std::ofstream matrix_file;
-  matrix_file.precision(16);
-  char filename[100];
-  sprintf(filename,"results/jacobian");
-  matrix_file.open(filename);
-  jacobian.output(matrix_file);
-  matrix_file.close();
-
-
-  std::ofstream residual_file;
-  residual_file.precision(16);
-  char filename2[100];
-  sprintf(filename2,"results/residual");
-  residual_file.open(filename2);
-  residuals.output(residual_file);
-  residual_file.close();
+  // std::ofstream residual_file;
+  // residual_file.precision(16);
+  // char filename2[100];
+  // sprintf(filename2,"results/residual");
+  // residual_file.open(filename2);
+  // residuals.output(residual_file);
+  // residual_file.close();
 
   // std::ofstream bem_file;
   // bem_file.precision(16);

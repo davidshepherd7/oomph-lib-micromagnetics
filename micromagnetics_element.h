@@ -45,7 +45,7 @@ namespace oomph
     {BrokenCopy::broken_assign("MicromagEquations");}
 
     /// Self-test: Return 0 for OK.
-    unsigned self_test(){return 0;} //??ds write a real test sometime
+    unsigned self_test();
 
     // Equation numbering
     /// Specify nodal index for phi.

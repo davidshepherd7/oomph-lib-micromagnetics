@@ -18,6 +18,16 @@ namespace oomph
   template<unsigned DIM, unsigned NNODE_1D>
   const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
+
+  //======================================================================
+  ///
+  //======================================================================
+  template<unsigned DIM>
+  unsigned MicromagEquations<DIM>::self_test()
+  {
+    return 0;
+  }
+
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
   ///
@@ -45,7 +55,6 @@ namespace oomph
     const double time = time_pt()->time();
     // Set the value of n_intpt
     const unsigned n_intpt = integral_pt()->nweight();
-
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -146,11 +155,14 @@ namespace oomph
   	  {
 	    // Total potential (phi)
   	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
-  	    if(phi_eqn >= 0) // if value is not pinned
-  	      {
-  		residuals[phi_eqn] -= phi_source*test(l)*W; // source
+	    // If value is not pinned and not on the boundary. We need to treat
+	    // boundary values of phi differently since they are determined by
+	    // the boundary element matrix and phi_1.
+  	    if((phi_eqn >= 0) && (!node_pt(l)->is_on_boundary()))
+	      {
+		residuals[phi_eqn] -= phi_source*test(l)*W; // source
 		residuals[phi_eqn] -= itp_divm*test(l)*W;	  // div(m)
-  		for(unsigned k=0;k<DIM;k++)			  // Poisson
+		for(unsigned k=0;k<DIM;k++)			  // Poisson
 		  residuals[phi_eqn] -= itp_dphidx[k]*dtestdx(l,k)*W;
 	      }
 
@@ -169,7 +181,7 @@ namespace oomph
 
 	    // Exchange residual contribution after integration by parts:
 	    Vector<double> gradtestdotgradmi(3,0.0); //?? possibly could optimise
-	    					    //- this is calculated twice
+	    //- this is calculated twice
 	    for(unsigned j=0; j<DIM; j++)
 	      for(unsigned i=0; i<3; i++)
 	    	gradtestdotgradmi[i] = dtestdx(l,j) * itp_dmdx(i,j);
@@ -233,7 +245,7 @@ namespace oomph
 
 	    // Total potential (phi)
 	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
-	    if(phi_eqn >= 0){
+	    if((phi_eqn >= 0) &&(!node_pt(l)->is_on_boundary())) {
 
 	      // w.r.t. phi
 	      int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
