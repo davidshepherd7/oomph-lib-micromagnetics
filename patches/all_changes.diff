@@ -80,7 +80,7 @@ Index: src/generic/matrices.h
   // Number of nonzero entries
   this->Nnz = value.size();
   
-@@ -3020,10 +3042,162 @@
+@@ -3020,10 +3042,172 @@
  template<class T,class MATRIX_TYPE>
   T SparseMatrix<T,MATRIX_TYPE>::Zero=T(0);
  
@@ -117,7 +117,7 @@ Index: src/generic/matrices.h
 +    Vector<index_map* > Main_to_individual_cols_pt;
 +
 +    // Should we delete the sub matrices when destructor is called?
-+    Vector<unsigned> Should_delete_matrix;
++    Vector<unsigned> Should_delete_added_matrix;
 +
 +    /// Should we delete the main matrix when destructor is called? Default is
 +    /// no.
@@ -129,7 +129,7 @@ Index: src/generic/matrices.h
 +    SumOfMatrices()
 +      : Main_matrix_pt(0), Added_matrix_pt(0),
 +	Main_to_individual_rows_pt(0), Main_to_individual_cols_pt(0),
-+	Should_delete_matrix(0), Should_delete_main_matrix(0) {}
++	Should_delete_added_matrix(0), Should_delete_main_matrix(0) {}
 +
 +    /// Broken copy constructor
 +    SumOfMatrices(const SumOfMatrices& matrix)
@@ -139,12 +139,12 @@ Index: src/generic/matrices.h
 +    void operator=(const SumOfMatrices&)
 +    {BrokenCopy::broken_assign("SumOfMatrices");}
 +
-+    /// Destructor: delete matrices as instructed by Should_delete_matrix vector
++    /// Destructor: delete matrices as instructed by Should_delete_added_matrix vector
 +    virtual ~SumOfMatrices()
 +    {
 +      for(unsigned i_matrix=0; i_matrix<Added_matrix_pt.size(); i_matrix++)
 +	{
-+	  if(Should_delete_matrix[i_matrix] == 1)
++	  if(Should_delete_added_matrix[i_matrix] == 1)
 +	    delete Added_matrix_pt[i_matrix];
  }
  
@@ -167,16 +167,16 @@ Index: src/generic/matrices.h
 +		    bool should_delete_matrix=false)
 +    {
 +#ifdef RANGE_CHECKING
-+      if (main_to_individual_rows_pt->size() != added_matrix_pt_in->nrow())
++      if (main_to_individual_rows_pt->size() > added_matrix_pt_in->nrow())
 +	{
-+	  throw OomphLibError("Row mapping should be of size nrow.",
++	  throw OomphLibError("Row mapping size should be less than or equal to nrow (less than if it is a sparse matrix and there are some empty rows.",
 +			      "SumOfMatrices::add_matrix",
 +			      OOMPH_EXCEPTION_LOCATION);
 +	}
 +
-+      if (main_to_individual_cols_pt->size() != added_matrix_pt_in->ncol())
++      if (main_to_individual_cols_pt->size() > added_matrix_pt_in->ncol())
 +	{
-+	  throw OomphLibError("Col mapping should be of size ncol.",
++	  throw OomphLibError("Col mapping size should be less than or equal to ncol (less than if it is a sparse matrix and there are some empty cols.",
 +			      "SumOfMatrices::add_matrix",
 +			      OOMPH_EXCEPTION_LOCATION);
 +	}
@@ -185,7 +185,7 @@ Index: src/generic/matrices.h
 +      Added_matrix_pt.push_back(added_matrix_pt_in);
 +      Main_to_individual_rows_pt.push_back(main_to_individual_rows_pt);
 +      Main_to_individual_cols_pt.push_back(main_to_individual_cols_pt);
-+      Should_delete_matrix.push_back(unsigned(should_delete_matrix));
++      Should_delete_added_matrix.push_back(unsigned(should_delete_matrix));
 +    }
  
 +    // Access functions
@@ -208,7 +208,17 @@ Index: src/generic/matrices.h
  
 +    /// Return the number of columns of the total matrix (equal to that of the
 +    /// first matrix).
-+    inline unsigned long ncol() const {return Main_matrix_pt->ncol();}
++    inline unsigned long ncol() const
++    {
++#ifdef PARANOID
++      if(Main_matrix_pt==0)
++	{
++	  OomphLibError("Main_matrix_pt not set","SumOfMatrices::nrow()",
++			OOMPH_EXCEPTION_LOCATION);
++	}
++#endif
++      return Main_matrix_pt->ncol();
++    }
 +
 +    /// Return the number of matrices in the sum
 +    inline unsigned nmatrix() const {return Added_matrix_pt.size() + 1;}
@@ -760,33 +770,33 @@ Index: src/generic/matrices.cc
 +      // Create temporary output DoubleVector with no proper distribution
 +      //??ds parallelising this might be hard - not sure where to get hte
 +      //distribution from
-+      LinearAlgebraDistribution dist(0,Main_to_individual_rows_pt[i_matrix]->size());
++      LinearAlgebraDistribution dist(0,Main_to_individual_cols_pt[i_matrix]->size());
 +      DoubleVector temp_soln(dist);
 +
-+	  // Create a const iterator for the map (faster than .find() or []
-+	  // access, const means can't change the map via the iterator)
-+	  index_map::const_iterator it;
++      // Create a const iterator for the map (faster than .find() or []
++      // access, const means can't change the map via the iterator)
++      index_map::const_iterator it;
 +
-+	  // Pull out the appropriate values into a temp vector
-+	  DoubleVector temp_x(dist);
-+	  for(it = Main_to_individual_rows_pt[i_matrix]->begin();
-+	      it != Main_to_individual_rows_pt[i_matrix]->end();
-+	      it++)
-+	    {
-+	      temp_x[it->second] = x[it->first];
++      // Pull out the appropriate values into a temp vector
++      DoubleVector temp_x(dist);
++      for(it = Main_to_individual_cols_pt[i_matrix]->begin();
++	  it != Main_to_individual_cols_pt[i_matrix]->end();
++	  it++)
++	{
++	  temp_x[it->second] = x[it->first];
  }
 +
-+	  // Perform the multiplication
-+	  Added_matrix_pt[i_matrix]->multiply(temp_x,temp_soln);
++      // Perform the multiplication
++      Added_matrix_pt[i_matrix]->multiply(temp_x,temp_soln);
 +
-+	  // Add result to solution vector
-+	  for(it = Main_to_individual_rows_pt[i_matrix]->begin();
-+	      it != Main_to_individual_rows_pt[i_matrix]->end();
-+	      it++)
-+	    {
-+	      soln[it->first] += temp_soln[it->second];
-+	    }
++      // Add result to solution vector
++      for(it = Main_to_individual_rows_pt[i_matrix]->begin();
++	  it != Main_to_individual_rows_pt[i_matrix]->end();
++	  it++)
++	{
++	  soln[it->first] += temp_soln[it->second];
 +	}
++    }
 +
 +}
 +
