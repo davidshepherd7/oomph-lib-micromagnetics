@@ -155,10 +155,10 @@ namespace oomph
   	  {
 	    // Total potential (phi)
   	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
-	    // If value is not pinned and not on the boundary. We need to treat
+	    // If value is not pinned and not on the boundary.( We need to treat
 	    // boundary values of phi differently since they are determined by
-	    // the boundary element matrix and phi_1.
-  	    if((phi_eqn >= 0) && (!node_pt(l)->is_on_boundary()))
+	    // the boundary element matrix and phi_1.)
+  	    if((phi_eqn >= 0) && (!(node_pt(l)->is_on_boundary())))
 	      {
 		residuals[phi_eqn] -= phi_source*test(l)*W; // source
 		residuals[phi_eqn] -= itp_divm*test(l)*W;	  // div(m)
@@ -245,7 +245,7 @@ namespace oomph
 
 	    // Total potential (phi)
 	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
-	    if((phi_eqn >= 0) &&(!node_pt(l)->is_on_boundary())) {
+	    if((phi_eqn >= 0) &&(!(node_pt(l)->is_on_boundary()))) {
 
 	      // w.r.t. phi
 	      int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
