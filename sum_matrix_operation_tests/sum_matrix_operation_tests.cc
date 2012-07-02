@@ -26,11 +26,11 @@ namespace oomph
 
 int main()
 {
-  const unsigned mat_size = 500;
+  const unsigned mat_size = 10000;
   const unsigned n_sparse_values = mat_size;
   const unsigned dense_block_size = mat_size/10;
-  const unsigned max_val = 10000;
-  const unsigned n_tests = 10;
+  const unsigned max_val = 100;
+  const unsigned n_tests = 20;
 
   Vector<double> norm_error(0);
 
@@ -66,7 +66,7 @@ int main()
       // std::cout << main_col_index << std::endl;
       // std::cout << main_values << std::endl;
 
-      CRDoubleMatrix main_matrix(main_values,main_row_index,main_col_index,mat_size,mat_size);
+      CRDoubleMatrix main_matrix(main_row_index,main_col_index,main_values,mat_size,mat_size);
       sum_matrix.main_matrix_pt() = &main_matrix;
 
       // Add a diagonal sparse matrix
@@ -79,7 +79,7 @@ int main()
 	  id_col_index[i] = i;
 	}
 
-      CRDoubleMatrix id_matrix(id_values,id_row_index,id_col_index,mat_size,mat_size);
+      CRDoubleMatrix id_matrix(id_row_index,id_col_index,id_values,mat_size,mat_size);
       std::map<long unsigned, long unsigned> row_map, col_map;
       identity_map(row_map, mat_size); identity_map(col_map, mat_size);
       sum_matrix.add_matrix(&id_matrix,&row_map,&col_map,0);
@@ -173,7 +173,7 @@ int main()
 
   double mean_norm_error = std::accumulate(norm_error.begin(), norm_error.end(), 0.0)
     / norm_error.size();
-  std::cout << mean_norm_error << std::endl;
+  std::cout << std::endl << std::endl << "mean error is:" << mean_norm_error << std::endl;
 
   return 0;
 }
