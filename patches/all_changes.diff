@@ -1,6 +1,6 @@
 Index: src/meshes/collapsible_channel_mesh.template.cc
 ===================================================================
---- src/meshes/collapsible_channel_mesh.template.cc	(revision 274)
+--- src/meshes/collapsible_channel_mesh.template.cc	(revision 292)
 +++ src/meshes/collapsible_channel_mesh.template.cc	(working copy)
 @@ -157,7 +157,7 @@
       for (unsigned i=0;i<nnode_1d;i++)
@@ -38,11 +38,178 @@ Index: src/meshes/collapsible_channel_mesh.template.cc
        }
      }
     // Left end
+Index: src/generic/double_vector.h
+===================================================================
+--- src/generic/double_vector.h	(revision 292)
++++ src/generic/double_vector.h	(working copy)
+@@ -258,6 +258,7 @@
+     // Open file
+     std::ofstream some_file;
+     some_file.open(filename.c_str());
++    some_file.precision(16);
+     output(some_file);
+     some_file.close();
+   }
 Index: src/generic/matrices.h
 ===================================================================
---- src/generic/matrices.h	(revision 274)
+--- src/generic/matrices.h	(revision 292)
 +++ src/generic/matrices.h	(working copy)
-@@ -790,7 +790,16 @@
+@@ -158,7 +158,7 @@
+  /// to the stream outfile.
+  /// Broken virtual since it might not be sensible to implement this for 
+  /// some sparse matrices.
+- virtual void output(std::ostream &outfile)
++ virtual void output(std::ostream &outfile) const
+   {
+    throw OomphLibError(
+     "Output function is not implemented for this matrix class",
+@@ -166,10 +166,58 @@
+     OOMPH_EXCEPTION_LOCATION);
+   }
+ 
++  /// \short Indexed output function to print a matrix to the stream "outfile"
++  /// as i,j,a(i,j).
++  /// Broken virtual since it might not be sensible to implement this for
++  /// some sparse matrices.
++ virtual void indexed_output(std::ostream &outfile) const
++  {
++   throw OomphLibError(
++    "Indexed output function is not implemented for this matrix class",
++    "Matrix::indexed_output()",
++    OOMPH_EXCEPTION_LOCATION);
++  }
++
+  /// \short Indexed output function to print a matrix to the 
+  /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+- virtual void sparse_indexed_output(std::ostream &outfile)=0;
++ virtual void sparse_indexed_output(std::ostream &outfile) const=0;
+ 
++   /// \short Output function to print a matrix row-by-row to the file
++   /// "filename". Optionally specify the precision to use.
++  void output(const std::string& filename,
++	      const unsigned& precision=8) const
++  {
++    std::ofstream some_file;
++    some_file.open(filename.c_str());
++    some_file.precision(precision);
++    this->output(some_file);
++    some_file.close();
++  }
++
++  /// \short Indexed output function to print a matrix to the file
++  /// "filename" as i,j,a(i,j). Optionally specify the precision to use.
++  void indexed_output(const std::string& filename,
++		      const unsigned& precision=8) const
++  {
++    std::ofstream some_file;
++    some_file.open(filename.c_str());
++    some_file.precision(precision);
++    this->indexed_output(some_file);
++    some_file.close();
++  }
++
++  /// \short Indexed output function to print a matrix to the file "filename" as
++  /// i,j,a(i,j) for a(i,j)!=0 only. Optionally specify the precision to use.
++  void sparse_indexed_output(const std::string& filename,
++			     const unsigned& precision=8) const
++  {
++    std::ofstream some_file;
++    some_file.open(filename.c_str());
++    some_file.precision(precision);
++    this->sparse_indexed_output(some_file);
++    some_file.close();
++  }
++
+ };
+ 
+ 
+@@ -438,27 +486,15 @@
+   {for(unsigned long i=0;i<(N*M);++i) {Matrixdata[i] = val;}}
+  
+  /// Output function to print a matrix row-by-row to the stream outfile
+- void output(std::ostream &outfile);
++ void output(std::ostream &outfile) const;
+  
+- /// Output function to print a matrix row-by-row to a file. Specify filename.
+- void output(std::string filename);
+-
+  /// \short Indexed output function to print a matrix to the 
+  /// stream outfile as i,j,a(i,j)
+- void indexed_output(std::ostream &outfile);
++ void indexed_output(std::ostream &outfile) const;
+ 
+- /// \short Indexed output function to print a matrix to a
+- /// file as i,j,a(i,j). Specify filename.
+- void indexed_output(std::string filename);
+-
+  /// \short Indexed output function to print a matrix to the 
+  /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+- void sparse_indexed_output(std::ostream &outfile);
+- 
+- /// \short Indexed output function to print a matrix to a 
+- /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+- void sparse_indexed_output(std::string filename);
+-
++ void sparse_indexed_output(std::ostream &outfile) const;
+ };
+ 
+ 
+@@ -544,7 +580,7 @@
+   
+   /// \short Indexed output function to print a matrix to the
+   /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+-  virtual void sparse_indexed_output(std::ostream &outfile)
++  virtual void sparse_indexed_output(std::ostream &outfile) const
+    {
+     std::string error_message = 
+      "SparseMatrix::sparse_indexed_output() is a virtual function.\n";
+@@ -556,17 +592,6 @@
+                         OOMPH_EXCEPTION_LOCATION);
+    }
+   
+-  /// \short Indexed output function to print a matrix to a
+-  /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+-  void sparse_indexed_output(std::string filename)
+-   {
+-    // Open file
+-    std::ofstream some_file;
+-    some_file.open(filename.c_str());
+-    sparse_indexed_output(some_file);
+-    some_file.close();
+-   }
+-  
+  };
+ 
+ 
+@@ -702,7 +727,7 @@
+ 
+  /// \short Indexed output function to print a matrix to the
+  /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+- void sparse_indexed_output(std::ostream &outfile)
++ void sparse_indexed_output(std::ostream &outfile) const
+   {
+    for (unsigned long i=0;i<this->N;i++)
+     {
+@@ -714,18 +739,6 @@
+     }
+   }
+ 
+-
+- /// \short Indexed output function to print a matrix to a
+- /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+- void sparse_indexed_output(std::string filename)
+-  {
+-   // Open file
+-   std::ofstream some_file;
+-   some_file.open(filename.c_str());
+-   sparse_indexed_output(some_file);
+-   some_file.close();
+-  }
+-
+  /// Wipe matrix data and set all values to 0.
+  void clean_up_memory();
+ 
+@@ -790,7 +803,15 @@
                  const Vector<int>& column_index,
                  const Vector<int>& row_start);
  
@@ -50,17 +217,185 @@ Index: src/generic/matrices.h
 +    /// Construct a cr matrix from vectors of values, column index and row index
 +    /// (this is mostly for convenience while testing or playing with this type of
 +    /// matrix).
-+    // I haven't made this distributable since I don't know how.
-+    CRDoubleMatrix(const Vector<double>& values,
-+		   const Vector<int>& row_indices,
++    CRDoubleMatrix(const Vector<int>& row_indices,
 +		   const Vector<int>& col_indices,
++		   const Vector<double>& values,
 +		   const unsigned& nrow, const unsigned& ncol);
 +
 +    // \short Constructor: just stores the distribution but does not build the
   /// matrix
   CRDoubleMatrix(const LinearAlgebraDistribution* distribution_pt);
   
-@@ -2974,6 +2983,19 @@
+@@ -814,6 +835,20 @@
+               const Vector<int>& column_index,
+               const Vector<int>& row_start);
+  
++    void build(const LinearAlgebraDistribution* distribution_pt,
++	       const Vector<int>& row_indices,
++	       const Vector<int>& col_indices,
++	       const Vector<double>& values,
++	       const unsigned& nrow, const unsigned& ncol);
++
++    /// \short Constructor: vector of values, vector of column indices,
++    /// vector of row starts and number of rows and columns.
++    void Build(const LinearAlgebraDistribution* distribution_pt,
++	       const unsigned& ncol,
++	       const Vector<double>& value,
++	       const Vector<int>& column_index,
++	       const Vector<int>& row_start);
++
+  /// rebuild the matrix - assembles an empty matrix will a defined distribution
+  void build(const LinearAlgebraDistribution* distribution_pt);
+ 
+@@ -856,27 +891,15 @@
+ 
+  /// \short Indexed output function to print a matrix to the 
+  /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+- void sparse_indexed_output(std::ostream &outfile)
++ void sparse_indexed_output(std::ostream &outfile) const
+   {
+    CR_matrix.sparse_indexed_output(outfile);
+   }
+ 
+   /// \short Indexed output function to print a matrix to a
+   /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+-  void sparse_indexed_output(std::string filename)
+-   {
+-    // Open file
+-    std::ofstream some_file;
+-    some_file.open(filename.c_str());
+-    sparse_indexed_output(some_file);
+-    some_file.close();
+-   }
+-
+-
+-  /// \short Indexed output function to print a matrix to a
+-  /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+   /// This uses acual global row numbers.
+-  void sparse_indexed_output_with_offset(std::string filename)
++  void sparse_indexed_output_with_offset(std::string filename) const
+    {
+     
+     // Get offset
+@@ -2307,7 +2330,7 @@
+ 
+  /// \short Indexed output function to print a matrix to the
+  /// stream outfile as i,j,a(i,j) for a(i,j)!=0 only
+- void sparse_indexed_output(std::ostream &outfile)
++ void sparse_indexed_output(std::ostream &outfile) const
+   {
+    for (unsigned long j=0;j<this->N;j++)
+     {
+@@ -2319,19 +2342,6 @@
+     }
+   }
+ 
+-
+- /// \short Indexed output function to print a matrix to a
+- /// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+- void sparse_indexed_output(std::string filename)
+-  {
+-   // Open file
+-   std::ofstream some_file;
+-   some_file.open(filename.c_str());
+-   sparse_indexed_output(some_file);
+-   some_file.close();
+-  }
+-
+-
+  /// Wipe matrix data and set all values to 0.
+  void clean_up_memory();
+ 
+@@ -2637,7 +2647,7 @@
+ /// Output function to print a matrix row-by-row to the stream outfile
+ //============================================================================
+ template<class T>
+-void DenseMatrix<T>::output(std::ostream &outfile)
++void DenseMatrix<T>::output(std::ostream &outfile) const
+ {
+  //Loop over the rows
+  for(unsigned i=0;i<N;i++)
+@@ -2655,26 +2665,10 @@
+ 
+ 
+ //============================================================================
+-/// Output function to print a matrix row-by-row to a file. Specify filename.
+-//============================================================================
+-template<class T>
+-void DenseMatrix<T>::output(std::string filename)
+-{
+- // Open file
+- std::ofstream some_file;
+- some_file.open(filename.c_str());
+-   
+- output(some_file);
+- some_file.close();
+-}
+-
+-
+-
+-//============================================================================
+ /// Indexed output as i,j,a(i,j)
+ //============================================================================
+ template<class T>
+-void DenseMatrix<T>::indexed_output(std::ostream &outfile)
++void DenseMatrix<T>::indexed_output(std::ostream &outfile) const
+ {
+  //Loop over the rows
+  for(unsigned i=0;i<N;i++)
+@@ -2690,26 +2684,10 @@
+ 
+ 
+ //============================================================================
+-/// \short Indexed output function to print a matrix to a
+-/// file as i,j,a(i,j). Specify filename.
+-//============================================================================
+-template<class T>
+-void DenseMatrix<T>::indexed_output(std::string filename)
+-{
+- // Open file
+- std::ofstream some_file;
+- some_file.open(filename.c_str());
+- indexed_output(some_file);
+- some_file.close();
+-}
+-
+-
+-
+-//============================================================================
+ /// Sparse indexed output as i,j,a(i,j) for a(i,j)!=0 only
+ //============================================================================
+ template<class T>
+-void DenseMatrix<T>::sparse_indexed_output(std::ostream &outfile)
++void DenseMatrix<T>::sparse_indexed_output(std::ostream &outfile) const
+ {
+  //Loop over the rows
+  for(unsigned i=0;i<N;i++)
+@@ -2726,23 +2704,6 @@
+ }
+ 
+ 
+-
+-//============================================================================
+-/// \short Indexed output function to print a matrix to a 
+-/// file as i,j,a(i,j) for a(i,j)!=0 only. Specify filename.
+-//============================================================================
+-template<class T>
+-void DenseMatrix<T>::sparse_indexed_output(std::string filename)
+-{
+- // Open file
+- std::ofstream some_file;
+- some_file.open(filename.c_str());
+- sparse_indexed_output(some_file);
+- some_file.close();
+-}
+-
+-
+-
+ ////////////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////////
+@@ -2974,6 +2935,19 @@
                          const unsigned long &n,
                          const unsigned long &m)
  {
@@ -80,7 +415,7 @@ Index: src/generic/matrices.h
   // Number of nonzero entries
   this->Nnz = value.size();
   
-@@ -3020,10 +3042,172 @@
+@@ -3020,10 +2994,246 @@
  template<class T,class MATRIX_TYPE>
   T SparseMatrix<T,MATRIX_TYPE>::Zero=T(0);
  
@@ -159,6 +494,55 @@ Index: src/generic/matrices.h
 +    void set_delete_main_matrix()
 +    {Should_delete_main_matrix = true;}
 +
++
++    //======================================================================
++    /// Output the matrix in sparse format. Note that this is going to be slow
++    /// because we have to check every entry of every matrix for non-zeros.
++    //======================================================================
++    void sparse_indexed_output(std::ostream &outfile) const
++    {
++      for (unsigned long i=0; i<nrow(); i++)
++	{
++	  for (unsigned long j=0; j<ncol(); j++)
++	    {
++	      double entry = get_entry(i,j);
++	      // Output if non-zero entry
++	      if(entry != 0.0)
++		{
++		  outfile << i << " " << j << " " << entry
++			  << std::endl;
++		}
++	    }
++	}
++    }
++
++
++    //======================================================================
++    /// Get a list of row/col indicies and total entry for non-zeros in the
++    /// matrix. e.g. for use as input ot other matrix classes. Warning this is
++    /// SLOW! for sparse matrices.
++    //======================================================================
++    void get_as_indicies(Vector<int>& row, Vector<int>& col,
++			 Vector<double>& values)
++    {
++      row.clear(); col.clear(); values.clear();
++
++      for (unsigned long i=0; i<nrow(); i++)
++	{
++	  for (unsigned long j=0; j<ncol(); j++)
++	    {
++	      double entry = get_entry(i,j);
++	      // Output if non-zero entry
++	      if(entry != 0.0)
++		{
++		  row.push_back(i);
++		  col.push_back(j);
++		  values.push_back(entry);
++		}
++	    }
++	}
++    }
++
 +    // Add a new matrix to the sum by giving a matrix pointer and a mapping from
 +    // the main matrix numbering to the new matrix numbering.
 +    void add_matrix(DoubleMatrixBase* added_matrix_pt_in,
@@ -221,22 +605,47 @@ Index: src/generic/matrices.h
 +    }
 +
 +    /// Return the number of matrices in the sum
-+    inline unsigned nmatrix() const {return Added_matrix_pt.size() + 1;}
++    inline unsigned n_added_matrix() const {return Added_matrix_pt.size();}
 +
 +    /// Multiply: just call multiply on each of the matrices and add up the
 +    /// results (with appropriate bookeeping of the relative positions).
 +    void multiply(const DoubleVector &x, DoubleVector &soln) const;
 +
 +    //======================================================================
-+    /// Broken write operator() because it does not make sense to write to a sum
-+    /// of matrices. Need to change the individual matrices within the sum
-+    /// instead.
++    /// Broken operator() because it does not make sense to return
++    /// anything by reference.
 +    //======================================================================
 +    const double& operator()(const unsigned long& i, const unsigned long& j) const
 +    {
-+      throw OomphLibError("Broken write operator() for SumOfMatrices matrix class: it does not make sense to write to a sum of matrices. You need to write to the individual matrices within the sum instead.",
-+			  "non-constant SumOfMatrices::operator()",
-+			  OOMPH_EXCEPTION_LOCATION);
++      throw OomphLibError("Broken operator() : it does not make sense to return anything by reference.",
++    			  "non-constant SumOfMatrices::operator()",
++    			  OOMPH_EXCEPTION_LOCATION);
++    }
++
++    //======================================================================
++    /// Read only operator(), we have to call it something else to avoid
++    /// clashes.
++    //======================================================================
++    double get_entry(const unsigned long& i, const unsigned long& j) const
++    {
++      // Get contributions from all matrices
++      double sum = main_matrix_pt()->operator()(i,j);
++      for(unsigned i_matrix=0; i_matrix<n_added_matrix(); i_matrix++)
++	{
++	  index_map::iterator local_row_it
++	    = Main_to_individual_rows_pt[i_matrix]->find(i);
++	  index_map::iterator local_col_it
++	    = Main_to_individual_cols_pt[i_matrix]->find(j);
++
++	  if((local_row_it != Main_to_individual_rows_pt[i_matrix]->end())
++	     && (local_col_it != Main_to_individual_cols_pt[i_matrix]->end()))
++	    {
++	      sum += added_matrix_pt(i_matrix)
++		->operator()(local_row_it->second,local_col_it->second);
++	    }
++	}
++
++      return sum;
 +    }
 +
 +    void multiply_transpose(const DoubleVector &x, DoubleVector &soln) const
@@ -255,7 +664,7 @@ Index: src/generic/matrices.h
 +#endif
 Index: src/generic/eigen_solver.cc
 ===================================================================
---- src/generic/eigen_solver.cc	(revision 274)
+--- src/generic/eigen_solver.cc	(revision 292)
 +++ src/generic/eigen_solver.cc	(working copy)
 @@ -543,6 +543,9 @@
     //N.B. This is naive and dangerous according to the documentation
@@ -278,9 +687,9 @@ Index: src/generic/eigen_solver.cc
  void LAPACK_QZ::find_eigenvalues(const ComplexMatrixBase &A,
 Index: src/generic/problem.cc
 ===================================================================
---- src/generic/problem.cc	(revision 274)
+--- src/generic/problem.cc	(revision 292)
 +++ src/generic/problem.cc	(working copy)
-@@ -81,7 +81,8 @@
+@@ -83,7 +83,8 @@
    Numerical_zero_for_sparse_assembly(0.0),
    Mass_matrix_reuse_is_enabled(false), Mass_matrix_has_been_computed(false),
    Discontinuous_element_formulation(false),
@@ -290,7 +699,7 @@ Index: src/generic/problem.cc
    Minimum_dt_but_still_proceed(-1.0),
    Scale_arc_length(true), Desired_proportion_of_arc_length(0.5),
    Theta_squared(1.0), Sign_of_jacobian(0), Continuation_direction(1.0), 
-@@ -1914,18 +1915,6 @@
+@@ -1918,18 +1919,6 @@
     for(unsigned i=0;i<Nglobal_data;i++)
      {Global_data_pt[i]->assign_eqn_numbers(equation_number,Dof_pt);}
     
@@ -309,7 +718,39 @@ Index: src/generic/problem.cc
     if (Global_timings::Doc_comprehensive_timings)
      {
       t_start = TimingHelpers::timer();
-@@ -9482,7 +9471,7 @@
+@@ -3821,7 +3810,7 @@
+        Data* const local_data_pt = local_element_pt->internal_data_pt(i);
+        const unsigned n_value = local_data_pt->nvalue();
+        for(unsigned j=0;j<n_value;j++)
+-        {
++        {
+          //If the data value is pinned set the value to zero
+          if(local_data_pt->is_pinned(j)) {local_data_pt->set_value(j,0.0);}
+         }
+@@ -7275,6 +7264,11 @@
+  get_residuals(residuals);
+ 
+  const double FD_step=1.0e-8;
++
++ // Initialise Jacobian
++ jacobian.resize(n_dof,n_dof);
++ jacobian.initialise(0.0);
++
+  //Loop over all dofs
+  for(unsigned long jdof=0;jdof<n_dof;jdof++) 
+   {
+@@ -7293,8 +7287,9 @@
+ 
+    for (unsigned long ieqn=0;ieqn<n_dof;ieqn++) 
+     {
+-     jacobian(ieqn,jdof)=(residuals_pls[ieqn]-residuals[ieqn])/FD_step;
++      jacobian(ieqn,jdof)+=(residuals_pls[ieqn]-residuals[ieqn])/FD_step;
+     }
++
+    *Dof_pt[jdof]=backup;
+   }
+ 
+@@ -9753,7 +9748,7 @@
   //The value of the actual timestep, by default the same as desired timestep
   double dt_actual=dt_desired;
   //Timestep rescaling factor, 1.0 by default
@@ -318,7 +759,7 @@ Index: src/generic/problem.cc
   
   //Determine the number of timesteppers
   unsigned n_time_steppers = ntime_stepper();
-@@ -9610,10 +9599,10 @@
+@@ -9881,10 +9876,10 @@
       double error = global_temporal_error_norm(); 
  
       //Calculate the scaling  factor
@@ -331,7 +772,7 @@ Index: src/generic/problem.cc
       oomph_info << "Estimated timestepping error is " << error << std::endl;
       
       
-@@ -9622,9 +9611,9 @@
+@@ -9893,9 +9888,9 @@
       
       // Impose lower bound on timestep (i.e. accept timestep
       // even though tolerance isn't satisfied)
@@ -343,7 +784,7 @@ Index: src/generic/problem.cc
         
         if (new_timestep<Minimum_dt_but_still_proceed)
          {
-@@ -9635,19 +9624,19 @@
+@@ -9906,19 +9901,19 @@
            << "         Problem::Minimum_dt_but_still_proceed="
            <<           Minimum_dt_but_still_proceed << "\n"
            << "         ---> We're continuing with present timestep.\n";
@@ -367,7 +808,7 @@ Index: src/generic/problem.cc
         //Reset the time
         time_pt()->time() = time_current;
         //Reload the dofs
-@@ -9667,13 +9656,14 @@
+@@ -9938,13 +9933,14 @@
         continue;
        }
       //If it's large change the timestep
@@ -386,7 +827,7 @@ Index: src/generic/problem.cc
          }
        }
  
-@@ -9685,19 +9675,19 @@
+@@ -9956,19 +9952,19 @@
  
  
   //Make sure timestep doesn't get too large
@@ -411,11 +852,51 @@ Index: src/generic/problem.cc
  }
  
  
+@@ -11713,8 +11709,8 @@
+       {
+        //Add the error estimates (lazy)
+        base_error[m][e] += eigenfunction_error[m][e];
+-      }
+       }
++      }
+     } //End of loop over copies
+  
+  //Then refine all problems based on the combined measure
+@@ -17624,6 +17620,29 @@
+    }
+  }
+ 
++// //??ds naming of these two might be dodgy?
++// // Also should we use mesh_pt from problem? - could cause issues if
++// virtual void Problem::pin_local_eqn_on_boundary(const unsigned& boundary,
++// 						const unsigned& local_eq_num,
++// 						const Mesh* const mesh_pt)
++// {
++//   for(unsigned nd=0; nd < mesh_pt->nboundary_node(boundary); nd++)
++//     {
++//       mesh_pt->boundary_node_pt(boundary,nd)->
++// 	pin(local_eq_num);
++//     }
++// }
++
++// virtual void Problem::pin_local_eqn_on_all_boundaries(const unsigned& local_eq_num,
++// 						      const Mesh* mesh_pt);
++// {
++//   for(unsigned b=0; b < mesh_pt->nboundary(); b++)
++//     {
++//       pin_local_eqn_on_boundary(b,local_eq_num,mesh_pt);
++//     }
++// }
++
++
+ #endif
+ 
+ }
 Index: src/generic/double_multi_vector.h
 ===================================================================
---- src/generic/double_multi_vector.h	(revision 274)
+--- src/generic/double_multi_vector.h	(revision 292)
 +++ src/generic/double_multi_vector.h	(working copy)
-@@ -471,7 +471,7 @@
+@@ -471,12 +471,12 @@
   void redistribute(const LinearAlgebraDistribution* const& dist_pt);
     
   /// \short [] access function to the (local) values of the v-th vector
@@ -424,9 +905,15 @@ Index: src/generic/double_multi_vector.h
    {
  #ifdef RANGE_CHECKING
     std::ostringstream error_message;
+    bool error=false;
+-   if(v > int(Nvector))
++   if(v > unsigned(Nvector))
+     {
+      error_message << "Range Error: Vector " << v 
+                    << "is not in the range (0,"
 Index: src/generic/block_preconditioner.h
 ===================================================================
---- src/generic/block_preconditioner.h	(revision 274)
+--- src/generic/block_preconditioner.h	(revision 292)
 +++ src/generic/block_preconditioner.h	(working copy)
 @@ -329,8 +329,6 @@
       Ndof_types_in_mesh[i] = ndof_types_in_mesh;
@@ -478,11 +965,10 @@ Index: src/generic/block_preconditioner.h
                 Dof_number_dense[global_dof-first_row] 
                  = dof_number;
                 
--#ifdef PARANOID
 +               // std::cout<<", BPgeqn - first_row: " << global_dof << " - "
 +	       // << first_row << " = " << (global_dof - first_row) << std::endl;
 +
-+//*#ifdef PARANOID
+ #ifdef PARANOID
                 // Check consistency of block numbers if assigned multiple times
                 if (previously_assigned_block_number[global_dof-
                                                      first_row]<0)
@@ -498,24 +984,20 @@ Index: src/generic/block_preconditioner.h
                   if (previously_assigned_block_number[global_dof
                                                        -first_row]!=
                       int(dof_number))
-@@ -1555,12 +1569,14 @@
+@@ -1555,9 +1569,11 @@
                     throw OomphLibWarning(error_message.str(),
                                           "BlockPreconditioner::nblock_types()",
                                           OOMPH_EXCEPTION_LOCATION);
+-                  }
+-                }
 +                  }//if warning if the re-classification is not the same...
 +                  */
 +                } // else
-+//#endif
+ #endif
 +//*/
-                   }
-                 }
--#endif
                }
--            }
--          }
- 
-          // About to do the next mesh which contains block preconditionable
-          // elements of a different type; all the dofs that these elements are
+             }
+           }
 @@ -1577,6 +1593,8 @@
          {
           if (previously_assigned_block_number[i] < 0)
@@ -527,7 +1009,7 @@ Index: src/generic/block_preconditioner.h
          }
 Index: src/generic/shape.h
 ===================================================================
---- src/generic/shape.h	(revision 274)
+--- src/generic/shape.h	(revision 292)
 +++ src/generic/shape.h	(working copy)
 @@ -78,7 +78,7 @@
  //=========================================================================
@@ -593,19 +1075,9 @@ Index: src/generic/shape.h
  // One dimensional shape functions and derivatives.
 Index: src/generic/Makefile.am
 ===================================================================
---- src/generic/Makefile.am	(revision 274)
+--- src/generic/Makefile.am	(revision 292)
 +++ src/generic/Makefile.am	(working copy)
-@@ -99,7 +99,8 @@
- preconditioner.h \
- general_purpose_preconditioners.h block_preconditioner.h \
- general_purpose_block_preconditioners.h SuperLU_preconditioner.h \
--matrix_vector_product.h projection.h line_visualiser.h stacktrace.h
-+matrix_vector_product.h projection.h line_visualiser.h stacktrace.h \
-+cfortran.h
- 
- if OOMPH_HAS_MUMPS
- headers+=mumps_solver.h
-@@ -142,7 +143,7 @@
+@@ -149,7 +149,7 @@
  
  # Need to worry about these for dependency but they shouldn't
  # be included into the include directory
@@ -616,7 +1088,7 @@ Index: src/generic/Makefile.am
  libname = generic
 Index: src/generic/matrices.cc
 ===================================================================
---- src/generic/matrices.cc	(revision 274)
+--- src/generic/matrices.cc	(revision 292)
 +++ src/generic/matrices.cc	(working copy)
 @@ -430,30 +430,30 @@
                         "DenseDoubleMatrix::multiply()",
@@ -691,7 +1163,7 @@ Index: src/generic/matrices.cc
  }
  
  
-@@ -1469,6 +1470,50 @@
+@@ -1469,6 +1470,24 @@
   Built = true;
  }
  
@@ -701,10 +1173,31 @@ Index: src/generic/matrices.cc
 +/// column indices. Must be alread sorted by row.
 +// Not efficient, not distributable. Don't use this for anything real!
 +//======================================================================
-+CRDoubleMatrix::CRDoubleMatrix(const Vector<double>& values,
-+			       const Vector<int>& row_indices,
++CRDoubleMatrix::CRDoubleMatrix(const Vector<int>& row_indices,
 +			       const Vector<int>& col_indices,
++			       const Vector<double>& values,
 +			       const unsigned& nrow, const unsigned& ncol)
++{
++  // Use a dummy Distribution
++  LinearAlgebraDistribution dist(0,nrow);
++
++  this->build(&dist, row_indices, col_indices, values, nrow, ncol);
++}
++
++
+ //=============================================================================
+ /// Destructor
+ //=============================================================================
+@@ -1488,6 +1507,50 @@
+  this->build_distribution(distribution_pt);
+ }
+ 
++
++void CRDoubleMatrix::build(const LinearAlgebraDistribution* distribution_pt,
++			   const Vector<int>& row_indices,
++			   const Vector<int>& col_indices,
++			   const Vector<double>& values,
++			   const unsigned& nrow, const unsigned& ncol)
 +{
 +#ifdef PARANOID
 +  if(( *(max_element(row_indices.begin(),row_indices.end())) > int(nrow))
@@ -728,21 +1221,25 @@ Index: src/generic/matrices.cc
 +      row_start.push_back(row_start.back() + entries_this_row);
 +    }
 +
-+  // Store a dummy Distribution
-+  LinearAlgebraDistribution dist(0,nrow);
++  // // clear
++  // this->clear();
++
++  // store the Distribution
++  this->build_distribution(distribution_pt);
++  Built = true;
 +
 +  // Construct the matrix
-+  this->build(&dist, ncol, values, col_indices, row_start);
++  this->build(ncol, values, col_indices, row_start);
 +
-+  // Set the linear solver
-+  Linear_solver_pt = Default_linear_solver_pt = new SuperLUSolver;
++  // set the linear solver
++  Default_linear_solver_pt = new SuperLUSolver;
++
 +}
 +
-+
  //=============================================================================
- /// Destructor
+ /// clean method
  //=============================================================================
-@@ -1496,6 +1541,8 @@
+@@ -1496,6 +1559,8 @@
   this->clear_distribution();
   CR_matrix.clean_up_memory();
   Built = false;
@@ -751,11 +1248,13 @@ Index: src/generic/matrices.cc
   Linear_solver_pt->clean_up_memory();
  }
  
-@@ -3101,4 +3148,49 @@
+@@ -3101,4 +3166,51 @@
     // and return
     return n;
    }
 +
++/// Matrix-vector multiplication for a sumofmatrices class. Just delegate each
++/// multiplication to the appropriate class then add up the results.
 +void SumOfMatrices::multiply(const DoubleVector &x, DoubleVector &soln) const
 +{
 +  // We assume that appropriate checks and initialisation on x and soln are
@@ -768,7 +1267,7 @@ Index: src/generic/matrices.cc
 +  for(unsigned i_matrix=0; i_matrix< Added_matrix_pt.size(); i_matrix++)
 +    {
 +      // Create temporary output DoubleVector with no proper distribution
-+      //??ds parallelising this might be hard - not sure where to get hte
++      //??ds parallelising this might be hard - not sure where to get the
 +      //distribution from
 +      LinearAlgebraDistribution dist(0,Main_to_individual_cols_pt[i_matrix]->size());
 +      DoubleVector temp_soln(dist);
@@ -803,7 +1302,7 @@ Index: src/generic/matrices.cc
 +}
 Index: src/generic/lapack_qz.h
 ===================================================================
---- src/generic/lapack_qz.h	(revision 274)
+--- src/generic/lapack_qz.h	(revision 292)
 +++ src/generic/lapack_qz.h	(working copy)
 @@ -31,8 +31,8 @@
  //PROTOCCALLSFFUN5( DOUBLE, DDOT, ddot, INT, DOUBLEV, INT, DOUBLEV, INT ) 
@@ -823,9 +1322,39 @@ Index: src/generic/lapack_qz.h
 -
 Index: src/generic/problem.h
 ===================================================================
---- src/generic/problem.h	(revision 274)
+--- src/generic/problem.h	(revision 292)
 +++ src/generic/problem.h	(working copy)
-@@ -1457,6 +1457,19 @@
+@@ -273,6 +273,15 @@
+  /// (ALH: TEMPORARY HACK, WILL BE FIXED)
+  void set_pinned_values_to_zero();
+ 
++  // //??ds naming of these two might be dodgy?
++  // // Also should we use mesh_pt from problem? - could cause issues if
++  // virtual void pin_local_eqn_on_boundary(const unsigned& boundary,
++  // 					 const unsigned& local_eq_num,
++  // 					 const Mesh* const mesh_pt);
++
++  // virtual void pin_local_eqn_on_all_boundaries(const unsigned& local_eq_num,
++  // 					       const Mesh* const mesh_pt);
++
+   private:
+ 
+  /// \short Helper function to do compund refinement of (all) refineable 
+@@ -1288,6 +1297,13 @@
+  /// \short Access function to max timestep in adaptive timestepping
+  double& maximum_dt() {return Maximum_dt;}
+ 
++ /// \short Access function to max Newton iterations before giving up.
++ unsigned& max_newton_iterations() {return Max_newton_iterations;}
++
++ /// \short Access function to max residuals in Newton iterations before giving
++ /// up.
++ double& max_residuals() {return Max_residuals;}
++
+  /// \short Add a timestepper to the problem. The function will automatically
+  /// create or resize the Time object so that it contains the appropriate
+  /// number of levels of storage.
+@@ -1466,6 +1482,19 @@
   virtual void get_jacobian(DoubleVector &residuals, 
                             CCDoubleMatrix &jacobian);
  
@@ -845,9 +1374,37 @@ Index: src/generic/problem.h
   /// \short Return the fully-assembled Jacobian and residuals, generated by
   /// finite differences
   void get_fd_jacobian(DoubleVector &residuals, 
+Index: src/generic/linear_solver.cc
+===================================================================
+--- src/generic/linear_solver.cc	(revision 292)
++++ src/generic/linear_solver.cc	(working copy)
+@@ -593,6 +593,8 @@
+    }
+  }
+ 
++ jacobian.Matrix::output("fd_jacobian");
++
+  //Solve by dense LU decomposition (not efficient)
+   solve(&jacobian,residuals,result);
+ 
+Index: src/generic/mesh.h
+===================================================================
+--- src/generic/mesh.h	(revision 292)
++++ src/generic/mesh.h	(working copy)
+@@ -432,6 +432,10 @@
+  Node* &boundary_node_pt(const unsigned &b, const unsigned &n)
+   {return Boundary_node_pt[b][n];}
+ 
++ /// Return pointer to node n on boundary b
++ Node* boundary_node_pt(const unsigned &b, const unsigned &n) const
++  {return Boundary_node_pt[b][n];}
++
+  /// Set the number of boundaries in the mesh
+  void set_nboundary(const unsigned &nbound)
+   {
 Index: src/generic/elements.h
 ===================================================================
---- src/generic/elements.h	(revision 274)
+--- src/generic/elements.h	(revision 292)
 +++ src/generic/elements.h	(working copy)
 @@ -1221,7 +1221,7 @@
  
@@ -858,22 +1415,96 @@ Index: src/generic/elements.h
    {
  #ifdef RANGE_CHECKING
     if(n >= Nnode)
-Index: src/generic/frontal_solver.cc
+Index: src/generic/nodes.h
 ===================================================================
---- src/generic/frontal_solver.cc	(revision 274)
-+++ src/generic/frontal_solver.cc	(working copy)
-@@ -642,7 +642,7 @@
-        //could get too large
-        double **avar = new double*[nvar];
-        double *tmp = new double[nvar*nmaxe];
--       for(unsigned i=0;i<nvar;i++) {avar[i] = &tmp[i*nmaxe];}
-+       for(unsigned i=0;i<unsigned(nvar);i++) {avar[i] = &tmp[i*nmaxe];}
-        double **rhs = new double*[1];
-        rhs[0] = new double[nmaxe];
+--- src/generic/nodes.h	(revision 292)
++++ src/generic/nodes.h	(working copy)
+@@ -353,6 +353,15 @@
+    return Eqn_number[i];
+   }
+ 
++  /// Return the equation number of the i-th stored variable.
++  inline long eqn_number(const unsigned &i) const
++  {
++#ifdef RANGE_CHECKING
++    range_check(0,i);
++#endif
++    return Eqn_number[i];
++  }
++
+  /// \short Pin the i-th stored variable.
+  inline void pin(const unsigned &i) {eqn_number(i)=Is_pinned;}
+ 
+@@ -1221,6 +1230,9 @@
+  virtual void get_boundaries_pt(std::set<unsigned>* &boundaries_pt) 
+   {boundaries_pt = 0;}
+  
++ virtual std::set<unsigned>* get_boundaries_pt()
++  {return 0;}
++
+  /// \short Test whether the Node lies on a boundary. The "bulk" Node
+  /// cannot lie on a boundary, so return false. This will be overloaded
+  /// by BoundaryNodes
+@@ -1770,6 +1782,12 @@
+  /// NULL if the Node is not on any boundaries 
+  std::set<unsigned>* Boundaries_pt;
+  
++  /// The angle that the bulk mesh subtends at the boundary node
++  double Angle_subtended;
++
++  /// Is the node at a sharp corner of the mesh?
++  bool Is_sharp_corner;
++
+   protected:
+  
+  /// \short If the BoundaryNode is periodic, this pointer is set to
+@@ -1828,7 +1846,10 @@
+  /// \short Default constructor, set the pointers to the storage to NULL
+   BoundaryNodeBase() :  Index_of_first_value_assigned_by_face_element_pt(0), 
+   Boundary_coordinates_pt(0), 
+-  Boundaries_pt(0), Copied_node_pt(0) {}
++			Boundaries_pt(0),
++			Angle_subtended(0),
++			Is_sharp_corner(0),
++			Copied_node_pt(0){}
+  
+  /// \short Destructor, clean up any allocated storage for the boundaries
+  ~BoundaryNodeBase();
+@@ -1846,6 +1867,9 @@
+  void get_boundaries_pt(std::set<unsigned>* &boundaries_pt) 
+   {boundaries_pt = Boundaries_pt;}
+ 
++ const std::set<unsigned>* get_boundaries_pt() const
++  {return Boundaries_pt;}
++
+  /// \short Add the node to the mesh boundary b
+  void add_to_boundary(const unsigned &b);
+ 
+@@ -1858,6 +1882,21 @@
+  /// \short Test whether the node lies on mesh boundary b
+  bool is_on_boundary(const unsigned &b);
+ 
++  /// Set whether the node is on a sharp corner
++  void set_sharp_corner(const bool& is_sharp_corner)
++  {Is_sharp_corner = is_sharp_corner;}
++
++  /// Set the angle that the bulk mesh subtends at the boundary node
++  void set_angle_subtended(const double& angle)
++  {Angle_subtended = angle;}
++
++  /// Get the angle that the bulk mesh subtends at the boundary node
++  double angle_subtended() const
++  {return Angle_subtended;}
++
++  /// Test if the node is on a sharp corner
++  bool is_sharp_corner() const {return Is_sharp_corner;}
++
+  /// \short Get the number of boundary coordinates on mesh boundary b
+  unsigned ncoordinates_on_boundary(const unsigned &b);
  
 Index: src/generic/elements.cc
 ===================================================================
---- src/generic/elements.cc	(revision 274)
+--- src/generic/elements.cc	(revision 292)
 +++ src/generic/elements.cc	(working copy)
 @@ -3606,13 +3606,11 @@
    assemble_eulerian_base_vectors(dpsids,interpolated_G);
@@ -987,7 +1618,7 @@ Index: src/generic/elements.cc
        {
 Index: src/generic/iterative_linear_solver.cc
 ===================================================================
---- src/generic/iterative_linear_solver.cc	(revision 274)
+--- src/generic/iterative_linear_solver.cc	(revision 292)
 +++ src/generic/iterative_linear_solver.cc	(working copy)
 @@ -1925,5 +1925,6 @@
  template class GMRES<CCDoubleMatrix>;
@@ -998,9 +1629,9 @@ Index: src/generic/iterative_linear_solver.cc
  }
 Index: src/generic/trilinos_helpers.cc
 ===================================================================
---- src/generic/trilinos_helpers.cc	(revision 274)
+--- src/generic/trilinos_helpers.cc	(revision 292)
 +++ src/generic/trilinos_helpers.cc	(working copy)
-@@ -731,7 +731,7 @@
+@@ -747,7 +747,7 @@
   copy_to_oomphlib_vector(epetra_y_pt,oomph_y);
  
   // throw error if there is an epetra error
@@ -1011,7 +1642,7 @@ Index: src/generic/trilinos_helpers.cc
     std::ostringstream error_message;
 Index: src/generic/preconditioner.h
 ===================================================================
---- src/generic/preconditioner.h	(revision 274)
+--- src/generic/preconditioner.h	(revision 292)
 +++ src/generic/preconditioner.h	(working copy)
 @@ -148,7 +148,13 @@
        unsigned n_row=matrix_pt->nrow();

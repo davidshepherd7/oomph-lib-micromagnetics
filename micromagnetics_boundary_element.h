@@ -35,6 +35,10 @@ namespace oomph
     /// outside of this element for calculation of boundary matrix).
     static Mesh* Boundary_mesh_pt;
 
+    ELEMENT* Bulk_element_pt;
+
+    Vector<double> Local_bem_phi_value;
+
   public:
 
     /// \short Constructor, takes the pointer to the bulk element and the
@@ -62,6 +66,34 @@ namespace oomph
       BrokenCopy::broken_assign("MicromagFaceElement");
     }
 
+    unsigned self_test()
+    {
+      // Just pass it (we can't let this element call the normal self-tests
+      // because it messes with the integration scheme).
+      return 0;
+    }
+
+    unsigned phi_index_micromag() const
+    {return bulk_element_pt()->phi_index_micromag();}
+
+    unsigned phi_1_index_micromag() const
+    {return bulk_element_pt()->phi_1_index_micromag();}
+
+    unsigned m_index_micromag(const unsigned& i) const
+    {return bulk_element_pt()->m_index_micromag(i);}
+
+    /// Pointer to higher-dimensional "bulk" element
+    ELEMENT*& bulk_element_pt() {return Bulk_element_pt;}
+
+    /// Pointer to higher-dimensional "bulk" element (const version)
+    ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
+
+    double& local_bem_phi_value(const unsigned& l)
+    {return Local_bem_phi_value[l];}
+
+    double local_bem_phi_value(const unsigned& l) const
+    {return Local_bem_phi_value[l];}
+
     /// \short Specify the value of nodal zeta from the face geometry
     /// The "global" intrinsic coordinate of the element when
     /// viewed as part of a geometric object should be given by
@@ -71,44 +103,63 @@ namespace oomph
 		      const unsigned &i) const
     {return FaceElement::zeta_nodal(n,k,i);}
 
-    /// Add the element's contribution to its residual vector - do
-    /// nothing (no residuals to add).
-    inline void fill_in_contribution_to_residuals(Vector<double> &dummy) {}
+    /// Add the element's contribution to its residual vector and Jacobian - all
+    /// contributions due to BEM are done here.
+    void fill_in_generic_residual_contribution_micromag_boundary
+    (Vector<double> &residuals, DenseMatrix<double> &jacobian,
+     const unsigned& flag) const;
+
+    /// Add the element's contribution to its residual vector (wrapper)
+    void fill_in_contribution_to_residuals(Vector<double> &residuals)
+    {
+      //Call the generic residuals function with flag set to 0 using a dummy matrix argument
+      fill_in_generic_residual_contribution_micromag_boundary
+	(residuals,GeneralisedElement::Dummy_matrix, 0);
+    }
+
+    /// \short Add the element's contribution to its residual vector and element
+    /// Jacobian matrix (wrapper)
+    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    					  DenseMatrix<double> &jacobian)
+    {
+      // Call the generic routine with the flag set to 1
+      fill_in_generic_residual_contribution_micromag_boundary
+	(residuals,jacobian,1);
+    }
 
     /// \short Add the element's contribution to its residual vector and its
     /// Jacobian matrix
-    inline void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix)
+    void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix) const
     {
-      // fill_in_be_contribution_analytic(boundary_matrix);
-      fill_in_be_contribution_adaptive(boundary_matrix);
+      fill_in_be_contribution_analytic(boundary_matrix);
+      //fill_in_be_contribution_adaptive(boundary_matrix);
     }
 
     /// Function determining how to block the Jacobian.
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
 				      block_lookup_list)
     {
-      ELEMENT* bulk_ele_pt = dynamic_cast<ELEMENT*>(bulk_element_pt());
-      unsigned phi_1_index = bulk_ele_pt->phi_1_index_micromag();
-      unsigned phi_index = bulk_ele_pt->phi_index_micromag();
-      unsigned bulk_dof_types = bulk_ele_pt->ndof_types();
+      unsigned phi_1_index = phi_1_index_micromag();
+      unsigned phi_index = phi_index_micromag();
+      unsigned bulk_dof_types = bulk_element_pt()->ndof_types();
 
       // We just need to move the boundary values of phi into their own blocks
       for(unsigned nd=0; nd<nnode(); nd++)
 	{
-	  int phi_1_local = bulk_ele_pt->nodal_local_eqn(nd,phi_1_index);
+	  int phi_1_local = bulk_element_pt()->nodal_local_eqn(nd,phi_1_index);
 	  if(phi_1_local >=0)
 	    {
 	      std::pair<unsigned,unsigned> block_lookup;
-	      block_lookup.first = bulk_ele_pt->eqn_number(phi_1_local);
+	      block_lookup.first = bulk_element_pt()->eqn_number(phi_1_local);
 	      block_lookup.second = bulk_dof_types + 1;
 	      block_lookup_list.push_front(block_lookup);
 	    }
 
-	  int phi_local = bulk_ele_pt->nodal_local_eqn(nd,phi_index);
+	  int phi_local = bulk_element_pt()->nodal_local_eqn(nd,phi_index);
 	  if(phi_local >=0)
 	    {
 	      std::pair<unsigned,unsigned> block_lookup;
-	      block_lookup.first = bulk_ele_pt->eqn_number(phi_local);
+	      block_lookup.first = bulk_element_pt()->eqn_number(phi_local);
 	      block_lookup.second = bulk_dof_types + 1;
 	      block_lookup_list.push_front(block_lookup);
 	    }
@@ -117,8 +168,7 @@ namespace oomph
 
     unsigned ndof_types()
     {
-      ELEMENT* bulk_ele_pt = dynamic_cast<ELEMENT*>(bulk_element_pt());
-      return bulk_ele_pt->ndof_types() + additional_ndof_types();
+      return bulk_element_pt()->ndof_types() + additional_ndof_types();
     }
 
     unsigned additional_ndof_types()
@@ -225,7 +275,7 @@ namespace oomph
   template<class ELEMENT,unsigned DIM>
   MicromagFaceElement<ELEMENT,DIM>::
   MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index)
-    : FaceGeometry<ELEMENT>(), FaceElement()
+    : FaceGeometry<ELEMENT>(), FaceElement(), Local_bem_phi_value(nnode())
   {
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
@@ -263,7 +313,7 @@ namespace oomph
     //====================================
 
     // Setup error parameters for adaptive integration
-    double reltol = 1e-8, reldiff;
+    double reltol = 1e-10, reldiff;
 
     // Set up storage to keep track of orders used:
     //std::vector<unsigned> order_list = {2,4,8,16,32,64,128,256,};
@@ -554,147 +604,147 @@ namespace oomph
     return (1.0/Pi) * ndotr * std::pow((2.0*r),exponent); //??ds had *2 here for some reason...
   }
 
-/*
-  hybrid FEM/BEM method from:
-  T. R. Koehler, D. R. Fredkin, "Finite Element Methods for
-  Micromagnetics", IEEE Trans. Magn. 28 (1992) 1239-1244
+  /*
+    hybrid FEM/BEM method from:
+    T. R. Koehler, D. R. Fredkin, "Finite Element Methods for
+    Micromagnetics", IEEE Trans. Magn. 28 (1992) 1239-1244
 
-  integrations for matrix elements calculated according to:
-  D. A. Lindholm, "Three-Dimensional Magnetostatic Fields from
-  Point-Matched Integral Equations with Linearly Varying Scalar
-  Sources", IEEE Trans. Magn. MAG-20 (1984) 2025-2032.
-*/
-int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
-	 const std::vector<double>& facv2, const std::vector<double>& facv3,
-	 std::vector<double>& matele)
-{
-  using namespace magpar;
-
-  std::vector<double> rr(ND,0.0), zeta(ND,0.0);
-  std::vector<double> rho1(ND,0.0),rho2(ND,0.0),rho3(ND,0.0);
-  std::vector<double> eta1(ND,0.0),eta2(ND,0.0),eta3(ND,0.0);
-  std::vector<double> xi1(ND,0.0),xi2(ND,0.0),xi3(ND,0.0);
-  std::vector<double> gamma1(ND,0.0),gamma2(ND,0.0),gamma3(ND,0.0);
-  std::vector<double> p(ND,0.0);
-  double a(0.0), omega(0.0), eta1l,eta2l,eta3l, s1,s2,s3, rho1l,rho2l,rho3l, zetal;
-
-  matele[0]=matele[1]=matele[2]=0.0;
-
-  /* get coordinates of face's vertices */
-  my_dcopy(ND,facv1,1,rho1,1);
-  my_dcopy(ND,facv2,1,rho2,1);
-  my_dcopy(ND,facv3,1,rho3,1);
-
-  /* calculate edge vectors and store them in xi_j */
-  my_dcopy(ND,rho2,1,xi1,1);
-  my_daxpy(ND,-1.0,rho1,1,xi1,1);
-  my_dcopy(ND,rho3,1,xi2,1);
-  my_daxpy(ND,-1.0,rho2,1,xi2,1);
-  my_dcopy(ND,rho1,1,xi3,1);
-  my_daxpy(ND,-1.0,rho3,1,xi3,1);
-
-  /* calculate zeta direction */
-  douter(ND,xi1,xi2,zeta);
-
-  /* calculate area of the triangle */
-  zetal=my_dnrm2(ND,zeta,1);
-  a=0.5*zetal;
-
-  /* renorm zeta */
-  my_dscal(ND,1.0/zetal,zeta,1);
-
-  /* calculate s_j and normalize xi_j */
-  s1=my_dnrm2(ND,xi1,1);
-  my_dscal(ND,1.0/s1,xi1,1);
-  s2=my_dnrm2(ND,xi2,1);
-  my_dscal(ND,1.0/s2,xi2,1);
-  s3=my_dnrm2(ND,xi3,1);
-  my_dscal(ND,1.0/s3,xi3,1);
-
-  douter(ND,zeta,xi1,eta1);
-  douter(ND,zeta,xi2,eta2);
-  douter(ND,zeta,xi3,eta3);
-
-  gamma1[0]=gamma3[1]=my_ddot(ND,xi2,1,xi1,1);
-  gamma1[1]=my_ddot(ND,xi2,1,xi2,1);
-  gamma1[2]=gamma2[1]=my_ddot(ND,xi2,1,xi3,1);
-
-  gamma2[0]=gamma3[2]=my_ddot(ND,xi3,1,xi1,1);
-  gamma2[2]=my_ddot(ND,xi3,1,xi3,1);
-
-  gamma3[0]=my_ddot(ND,xi1,1,xi1,1);
-
-  /* get R=rr, the location of the source vertex (and the singularity) */
-  rr=bvert;
-
-  // If very close to the current surface element (triangle) then result is zero, done.
-  double d = PointFromPlane(rr,rho1,rho2,rho3);
-  if (fabs(d)<D_EPS) return(0);
-
-  /* calculate rho_j */
-  my_daxpy(ND,-1.0,rr,1,rho1,1);
-  my_daxpy(ND,-1.0,rr,1,rho2,1);
-  my_daxpy(ND,-1.0,rr,1,rho3,1);
-
-  /* zetal gives ("normal") distance of R from the plane of the triangle */
-  zetal=my_ddot(ND,zeta,1,rho1,1);
-
-  /* skip the rest if zetal==0 (R in plane of the triangle)
-     -> omega==0 and zetal==0 -> matrix entry=0
+    integrations for matrix elements calculated according to:
+    D. A. Lindholm, "Three-Dimensional Magnetostatic Fields from
+    Point-Matched Integral Equations with Linearly Varying Scalar
+    Sources", IEEE Trans. Magn. MAG-20 (1984) 2025-2032.
   */
-  if (std::abs(zetal)<=D_EPS) {
+  int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
+	   const std::vector<double>& facv2, const std::vector<double>& facv3,
+	   std::vector<double>& matele)
+  {
+    using namespace magpar;
+
+    std::vector<double> rr(ND,0.0), zeta(ND,0.0);
+    std::vector<double> rho1(ND,0.0),rho2(ND,0.0),rho3(ND,0.0);
+    std::vector<double> eta1(ND,0.0),eta2(ND,0.0),eta3(ND,0.0);
+    std::vector<double> xi1(ND,0.0),xi2(ND,0.0),xi3(ND,0.0);
+    std::vector<double> gamma1(ND,0.0),gamma2(ND,0.0),gamma3(ND,0.0);
+    std::vector<double> p(ND,0.0);
+    double a(0.0), omega(0.0), eta1l,eta2l,eta3l, s1,s2,s3, rho1l,rho2l,rho3l, zetal;
+
+    matele[0]=matele[1]=matele[2]=0.0;
+
+    /* get coordinates of face's vertices */
+    my_dcopy(ND,facv1,1,rho1,1);
+    my_dcopy(ND,facv2,1,rho2,1);
+    my_dcopy(ND,facv3,1,rho3,1);
+
+    /* calculate edge vectors and store them in xi_j */
+    my_dcopy(ND,rho2,1,xi1,1);
+    my_daxpy(ND,-1.0,rho1,1,xi1,1);
+    my_dcopy(ND,rho3,1,xi2,1);
+    my_daxpy(ND,-1.0,rho2,1,xi2,1);
+    my_dcopy(ND,rho1,1,xi3,1);
+    my_daxpy(ND,-1.0,rho3,1,xi3,1);
+
+    /* calculate zeta direction */
+    douter(ND,xi1,xi2,zeta);
+
+    /* calculate area of the triangle */
+    zetal=my_dnrm2(ND,zeta,1);
+    a=0.5*zetal;
+
+    /* renorm zeta */
+    my_dscal(ND,1.0/zetal,zeta,1);
+
+    /* calculate s_j and normalize xi_j */
+    s1=my_dnrm2(ND,xi1,1);
+    my_dscal(ND,1.0/s1,xi1,1);
+    s2=my_dnrm2(ND,xi2,1);
+    my_dscal(ND,1.0/s2,xi2,1);
+    s3=my_dnrm2(ND,xi3,1);
+    my_dscal(ND,1.0/s3,xi3,1);
+
+    douter(ND,zeta,xi1,eta1);
+    douter(ND,zeta,xi2,eta2);
+    douter(ND,zeta,xi3,eta3);
+
+    gamma1[0]=gamma3[1]=my_ddot(ND,xi2,1,xi1,1);
+    gamma1[1]=my_ddot(ND,xi2,1,xi2,1);
+    gamma1[2]=gamma2[1]=my_ddot(ND,xi2,1,xi3,1);
+
+    gamma2[0]=gamma3[2]=my_ddot(ND,xi3,1,xi1,1);
+    gamma2[2]=my_ddot(ND,xi3,1,xi3,1);
+
+    gamma3[0]=my_ddot(ND,xi1,1,xi1,1);
+
+    /* get R=rr, the location of the source vertex (and the singularity) */
+    rr=bvert;
+
+    // If very close to the current surface element (triangle) then result is zero, done.
+    double d = PointFromPlane(rr,rho1,rho2,rho3);
+    if (fabs(d)<D_EPS) return(0);
+
+    /* calculate rho_j */
+    my_daxpy(ND,-1.0,rr,1,rho1,1);
+    my_daxpy(ND,-1.0,rr,1,rho2,1);
+    my_daxpy(ND,-1.0,rr,1,rho3,1);
+
+    /* zetal gives ("normal") distance of R from the plane of the triangle */
+    zetal=my_ddot(ND,zeta,1,rho1,1);
+
+    /* skip the rest if zetal==0 (R in plane of the triangle)
+       -> omega==0 and zetal==0 -> matrix entry=0
+    */
+    if (std::abs(zetal)<=D_EPS) {
+      return(0);
+    }
+
+    rho1l=my_dnrm2(ND,rho1,1);
+    rho2l=my_dnrm2(ND,rho2,1);
+    rho3l=my_dnrm2(ND,rho3,1);
+
+    double t_nom,t_denom;
+    t_nom=
+      rho1l*rho2l*rho3l+
+      rho1l*my_ddot(ND,rho2,1,rho3,1)+
+      rho2l*my_ddot(ND,rho3,1,rho1,1)+
+      rho3l*my_ddot(ND,rho1,1,rho2,1);
+    t_denom=
+      std::sqrt(2.0*
+		(rho2l*rho3l+my_ddot(ND,rho2,1,rho3,1))*
+		(rho3l*rho1l+my_ddot(ND,rho3,1,rho1,1))*
+		(rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
+		);
+
+    /* catch special cases where the argument of acos
+       is close to -1.0 or 1.0 or even outside this interval
+
+       use 0.0 instead of D_EPS?
+       fixes problems with demag field calculation
+       suggested by Hiroki Kobayashi, Fujitsu
+    */
+    if (t_nom/t_denom<-1.0) {
+      omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*PI;
+    }
+    /* this case should not occur, but does - e.g. examples1/headfield */
+    else if (t_nom/t_denom>1.0) {
+      return(0);
+    }
+    else {
+      omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*std::acos(t_nom/t_denom);
+    }
+
+    eta1l=my_ddot(ND,eta1,1,rho1,1);
+    eta2l=my_ddot(ND,eta2,1,rho2,1);
+    eta3l=my_ddot(ND,eta3,1,rho3,1);
+
+    p[0]=log((rho1l+rho2l+s1)/(rho1l+rho2l-s1));
+    p[1]=log((rho2l+rho3l+s2)/(rho2l+rho3l-s2));
+    p[2]=log((rho3l+rho1l+s3)/(rho3l+rho1l-s3));
+
+    matele[0]=(eta2l*omega-zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
+    matele[1]=(eta3l*omega-zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
+    matele[2]=(eta1l*omega-zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
+
     return(0);
   }
-
-  rho1l=my_dnrm2(ND,rho1,1);
-  rho2l=my_dnrm2(ND,rho2,1);
-  rho3l=my_dnrm2(ND,rho3,1);
-
-  double t_nom,t_denom;
-  t_nom=
-    rho1l*rho2l*rho3l+
-    rho1l*my_ddot(ND,rho2,1,rho3,1)+
-    rho2l*my_ddot(ND,rho3,1,rho1,1)+
-    rho3l*my_ddot(ND,rho1,1,rho2,1);
-  t_denom=
-    std::sqrt(2.0*
-      (rho2l*rho3l+my_ddot(ND,rho2,1,rho3,1))*
-      (rho3l*rho1l+my_ddot(ND,rho3,1,rho1,1))*
-      (rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
-    );
-
-  /* catch special cases where the argument of acos
-     is close to -1.0 or 1.0 or even outside this interval
-
-     use 0.0 instead of D_EPS?
-     fixes problems with demag field calculation
-     suggested by Hiroki Kobayashi, Fujitsu
-  */
-  if (t_nom/t_denom<-1.0) {
-    omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*PI;
-  }
-  /* this case should not occur, but does - e.g. examples1/headfield */
-  else if (t_nom/t_denom>1.0) {
-    return(0);
-  }
-  else {
-    omega=(zetal >= 0.0 ? 1.0 : -1.0)*2.0*std::acos(t_nom/t_denom);
-  }
-
-  eta1l=my_ddot(ND,eta1,1,rho1,1);
-  eta2l=my_ddot(ND,eta2,1,rho2,1);
-  eta3l=my_ddot(ND,eta3,1,rho3,1);
-
-  p[0]=log((rho1l+rho2l+s1)/(rho1l+rho2l-s1));
-  p[1]=log((rho2l+rho3l+s2)/(rho2l+rho3l-s2));
-  p[2]=log((rho3l+rho1l+s3)/(rho3l+rho1l-s3));
-
-  matele[0]=(eta2l*omega-zetal*my_ddot(ND,gamma1,1,p,1))*s2/(8.0*PI*a);
-  matele[1]=(eta3l*omega-zetal*my_ddot(ND,gamma2,1,p,1))*s3/(8.0*PI*a);
-  matele[2]=(eta1l*omega-zetal*my_ddot(ND,gamma3,1,p,1))*s1/(8.0*PI*a);
-
-  return(0);
-}
 
   //======================================================================
   ///
@@ -738,15 +788,15 @@ int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
 	// Evaluate the integral
 	analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
 
- // 	for(unsigned i=0; i<3; i++)
- // 	  {
- // 	    for(unsigned j=0; j<boundary_mesh_pt()->nnode(); j++)
- // 	      std::cout << boundary_matrix(i,j) << " ";
- // 	    std::cout << std::endl;
- // 	  }
- // std::cout << std::endl;
- // std::cout << std::endl;
- // std::cout << std::endl;
+	// 	for(unsigned i=0; i<3; i++)
+	// 	  {
+	// 	    for(unsigned j=0; j<boundary_mesh_pt()->nnode(); j++)
+	// 	      std::cout << boundary_matrix(i,j) << " ";
+	// 	    std::cout << std::endl;
+	// 	  }
+	// std::cout << std::endl;
+	// std::cout << std::endl;
+	// std::cout << std::endl;
 
       }
     else if(this->nvertex_node() == 4)

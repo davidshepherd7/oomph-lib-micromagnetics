@@ -26,7 +26,7 @@ namespace oomph
 
 int main()
 {
-  const unsigned mat_size = 10000;
+  const unsigned mat_size = 100;
   const unsigned n_sparse_values = mat_size;
   const unsigned dense_block_size = mat_size/10;
   const unsigned max_val = 100;
@@ -49,7 +49,7 @@ int main()
       SumOfMatrices sum_matrix;
 
       // A random compressed row form sparse matrix
-      // to avoid overlaps we have exactly one element per row
+       // to avoid overlaps we have exactly one element per row
       Vector<int> main_row_index(n_sparse_values), main_col_index(n_sparse_values);
       Vector<double> main_values(n_sparse_values);
 
@@ -124,27 +124,12 @@ int main()
 
       // Make a total matrix to compare
       ////////////////////////////////////////////////////////////
-      DenseDoubleMatrix total_matrix(mat_size,mat_size,0.0);
-      for(unsigned i=0; i<mat_size; i++)
-	{
-      	for(unsigned j=0; j<mat_size; j++)
-	  {
-	    total_matrix(i,j) = main_matrix(i,j) + id_matrix(i,j);
-
-	    std::map<long unsigned, long unsigned>::iterator
-	      row_it = dense_row_map.find(i), col_it = dense_col_map.find(j);
-
-	    if((row_it != dense_row_map.end()) && (col_it != dense_col_map.end()))
-	      {
-		total_matrix(i,j) += dense_block(row_it->second,
-						 col_it->second);
-	      }
-	  }
-	}
-
-      // main_matrix.output(std::cout);
-      // main_matrix.sparse_indexed_output(std::cout);
-      // total_matrix.output(std::cout);
+      Vector<int> sum_rows, sum_cols;
+      Vector<double> sum_values;
+      sum_matrix.get_as_indicies(sum_rows,sum_cols,sum_values);
+      CRDoubleMatrix total_matrix;
+      total_matrix.build(&dist,sum_rows,sum_cols,sum_values,
+			 sum_matrix.nrow(),sum_matrix.ncol());
 
       DoubleVector direct_solution(dist);
       total_matrix.solve(rhs,direct_solution);
@@ -173,7 +158,7 @@ int main()
 
   double mean_norm_error = std::accumulate(norm_error.begin(), norm_error.end(), 0.0)
     / norm_error.size();
-  std::cout << std::endl << std::endl << "mean error is:" << mean_norm_error << std::endl;
+  std::cout << std::endl << std::endl << "mean(max error) is:" << mean_norm_error << std::endl;
 
   return 0;
 }

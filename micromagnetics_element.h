@@ -489,7 +489,6 @@ namespace oomph
 	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
-    // ??ds testing if the Jacobian is correct!
     /// \short Add the element's contribution to its residual vector and element
     /// Jacobian matrix (wrapper)
     void fill_in_contribution_to_jacobian(Vector<double> &residuals,
