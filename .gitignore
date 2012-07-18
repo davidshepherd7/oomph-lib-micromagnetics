@@ -29,6 +29,7 @@ rules
 *.mesh
 *dump*
 trace
+octave*
 
 # tetgen files
 *.poly
