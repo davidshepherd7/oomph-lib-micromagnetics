@@ -37,8 +37,6 @@ namespace oomph
 
     ELEMENT* Bulk_element_pt;
 
-    Vector<double> Local_bem_phi_value;
-
   public:
 
     /// \short Constructor, takes the pointer to the bulk element and the
@@ -88,11 +86,11 @@ namespace oomph
     /// Pointer to higher-dimensional "bulk" element (const version)
     ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
 
-    double& local_bem_phi_value(const unsigned& l)
-    {return Local_bem_phi_value[l];}
+    // double& local_bem_phi_value(const unsigned& l)
+    // {return Local_bem_phi_value[l];}
 
-    double local_bem_phi_value(const unsigned& l) const
-    {return Local_bem_phi_value[l];}
+    // double local_bem_phi_value(const unsigned& l) const
+    // {return Local_bem_phi_value[l];}
 
     /// \short Specify the value of nodal zeta from the face geometry
     /// The "global" intrinsic coordinate of the element when
@@ -103,29 +101,29 @@ namespace oomph
 		      const unsigned &i) const
     {return FaceElement::zeta_nodal(n,k,i);}
 
-    /// Add the element's contribution to its residual vector and Jacobian - all
-    /// contributions due to BEM are done here.
-    void fill_in_generic_residual_contribution_micromag_boundary
-    (Vector<double> &residuals, DenseMatrix<double> &jacobian,
-     const unsigned& flag) const;
+    // /// Add the element's contribution to its residual vector and Jacobian - all
+    // /// contributions due to BEM are done here.
+    // void fill_in_generic_residual_contribution_micromag_boundary
+    // (Vector<double> &residuals, DenseMatrix<double> &jacobian,
+    //  const unsigned& flag) const;
 
-    /// Add the element's contribution to its residual vector (wrapper)
-    void fill_in_contribution_to_residuals(Vector<double> &residuals)
-    {
-      //Call the generic residuals function with flag set to 0 using a dummy matrix argument
-      fill_in_generic_residual_contribution_micromag_boundary
-	(residuals,GeneralisedElement::Dummy_matrix, 0);
-    }
+    // /// Add the element's contribution to its residual vector (wrapper)
+    // void fill_in_contribution_to_residuals(Vector<double> &residuals)
+    // {
+    //   //Call the generic residuals function with flag set to 0 using a dummy matrix argument
+    //   fill_in_generic_residual_contribution_micromag_boundary
+    // 	(residuals,GeneralisedElement::Dummy_matrix, 0);
+    // }
 
-    /// \short Add the element's contribution to its residual vector and element
-    /// Jacobian matrix (wrapper)
-    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    					  DenseMatrix<double> &jacobian)
-    {
-      // Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_micromag_boundary
-	(residuals,jacobian,1);
-    }
+    // /// \short Add the element's contribution to its residual vector and element
+    // /// Jacobian matrix (wrapper)
+    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    // 					  DenseMatrix<double> &jacobian)
+    // {
+    //   // Call the generic routine with the flag set to 1
+    //   fill_in_generic_residual_contribution_micromag_boundary
+    // 	(residuals,jacobian,1);
+    // }
 
     /// \short Add the element's contribution to its residual vector and its
     /// Jacobian matrix
@@ -275,7 +273,7 @@ namespace oomph
   template<class ELEMENT,unsigned DIM>
   MicromagFaceElement<ELEMENT,DIM>::
   MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index)
-    : FaceGeometry<ELEMENT>(), FaceElement(), Local_bem_phi_value(nnode())
+    : FaceGeometry<ELEMENT>(), FaceElement()
   {
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk

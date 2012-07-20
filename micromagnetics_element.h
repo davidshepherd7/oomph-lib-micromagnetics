@@ -489,14 +489,14 @@ namespace oomph
 	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
-    /// \short Add the element's contribution to its residual vector and element
-    /// Jacobian matrix (wrapper)
-    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    					  DenseMatrix<double> &jacobian)
-    {
-      // Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-    }
+    // /// \short Add the element's contribution to its residual vector and element
+    // /// Jacobian matrix (wrapper)
+    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    // 					  DenseMatrix<double> &jacobian)
+    // {
+    //   // Call the generic routine with the flag set to 1
+    //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+    // }
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const

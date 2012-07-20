@@ -28,7 +28,7 @@ namespace Inputs
   double exchange_coeff = 1;
   double magnetostatic_coeff = 1;
   double crystal_anis_coeff = 0;
-  double dt = 1e-5;
+  double dt = 1e-6;
   double tmax = 5;
 
   bool adaptive_timestepping = 1;
@@ -57,14 +57,11 @@ namespace Inputs
   const unsigned shape = 0;
 
 
+  // Remember these might not be in Jacobian yet!
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
-    h_app[0] = 0;
-    h_app[1] = 0;
-    h_app[2] = 2;
   }
-
   void cryst_anis_field(const double& t, const Vector<double>& x,
 			const Vector<double>& m, Vector<double>& h_ca)
   {
@@ -141,7 +138,7 @@ namespace oomph
     void get_boundary_phi_1(DoubleVector& boundary_phi_1) const;
 
     /// Update the values of phi on the boundary
-    void update_bem_phi_values();
+    void get_bem_phi_values(DoubleVector& bem_phi_values) const;
 
     /// Access to the pointer to the boundary element method mesh
     Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
@@ -217,18 +214,38 @@ namespace oomph
 
     void get_residuals(DoubleVector& residuals)
     {
-      //??ds just in case...
-      update_bem_phi_values();
-
+      //std::cout << "Calling your get_residuals" << std::endl;
       Problem::get_residuals(residuals);
+      insert_bem_phi_residual_contribution(residuals);
+    }
+
+    void insert_bem_phi_residual_contribution(DoubleVector& residuals) const
+    {
+      // calculate values for phi from bem
+      DoubleVector bem_phi_values;
+      get_bem_phi_values(bem_phi_values);
+
+      // for each node in bem mesh
+      for(unsigned nd=0; nd< bem_mesh_pt()->nnode(); nd++)
+	{
+	  // Get a pointer
+	  Node* nd_pt = bem_mesh_pt()->node_pt(nd);
+
+	  // get the the bem equation number
+	  unsigned bem_eqn_num = get_boundary_equation_number(nd_pt);
+	  unsigned global_eqn_num = nd_pt->eqn_number(phi_index());
+
+	  // insert appropriate value into residuals
+	  double r = bem_phi_values[bem_eqn_num]
+	    - nd_pt->value(phi_index());
+
+	  residuals[global_eqn_num] = r;
+	}
     }
 
     /// Overload get_jacobian to include the boundary matrix in a sparse form.
     void get_jacobian(DoubleVector& residuals, CRDoubleMatrix& jacobian)
     {
-      //??ds just in case...
-      update_bem_phi_values();
-
       std::cout << "Calling your get_jacobian function with bem added directly." << std::endl;
 
       // Get the fem jacobian (in the same distribution pattern as original).
@@ -236,7 +253,10 @@ namespace oomph
       CRDoubleMatrix sparse_jacobian(dist_pt);
       Problem::get_jacobian(residuals,sparse_jacobian);
 
-      // Create a sum of matrices holding the total jacobian
+      // Finish off the residual calculation
+      insert_bem_phi_residual_contribution(residuals);
+
+       // Create a sum of matrices holding the total jacobian
       SumOfMatrices lazy_sum;
       lazy_sum.main_matrix_pt() = &sparse_jacobian;
 
@@ -245,6 +265,23 @@ namespace oomph
     	  lazy_sum.add_matrix(boundary_matrix_pt(),
     	  		      &Global_boundary_equation_num_map,
     	  		      &Global_phi_1_num_map,0);
+
+	  // Add an identity matrix * -1: phi dependence on itself,
+	  // delete when done with Jacobain.
+	  unsigned n_bem_nodes = bem_mesh_pt()->nnode();
+	  Vector<int> row_indices(n_bem_nodes), col_indices(n_bem_nodes);
+	  Vector<double> values(n_bem_nodes,-1.0);
+	  for(int i=0; i<int(n_bem_nodes); i++) {row_indices[i] = i; col_indices[i] = i;}
+
+	  CRDoubleMatrix* neg_id_matrix_pt =
+	    new CRDoubleMatrix(row_indices,col_indices,values,n_bem_nodes,n_bem_nodes);
+
+	  neg_id_matrix_pt->Matrix::sparse_indexed_output("id_matrix");
+
+	  lazy_sum.add_matrix(neg_id_matrix_pt,
+	  		      &Global_boundary_equation_num_map,
+	  		      &Global_boundary_equation_num_map,
+	  		      1);
     	}
 
       // Build a new sparse jacobian from data outputted from the sum
@@ -259,6 +296,7 @@ namespace oomph
       sparse_jacobian.Matrix::sparse_indexed_output(std::string("matrices/sparse_jac_part"));
       jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
       residuals.output("matrices/residual");
+      //exit(0);
     }
 
     /// Get the index of phi for use in BEM mapping
@@ -297,17 +335,12 @@ namespace oomph
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
-    //??ds running the update stupidly often to see if this is the problem
-
     /// Update the problem before Newton convergence check (update boundary
     /// conditions on phi).
-    void actions_before_newton_convergence_check(){}//{update_bem_phi_values();}
+    void actions_before_newton_convergence_check(){}
 
     /// Update the problem specs before solve.
     void actions_before_newton_step(){}
-    // {
-    //   update_bem_phi_values();
-    // }
 
     /// Update the problem specs after solve
     void actions_after_newton_solve();
@@ -515,16 +548,9 @@ ThreeDHybridProblem(const std::string& node_file_name,
       ele_pt->set_integration_scheme(variable_scheme_pt);
     }
 
-  // Bem elements mesh to add to global mesh (we need to keep the other one
-  // seperate to have nodes in it).
-  Mesh* Bem_elements_only_mesh_pt = new Mesh;
-  for(unsigned i_ele = 0; i_ele < bem_mesh_pt()->nelement(); i_ele++)
-    { Bem_elements_only_mesh_pt->add_element_pt(bem_mesh_pt()->element_pt(i_ele));}
-
   // Build global finite element mesh
   add_sub_mesh(Bulk_mesh_pt);
   add_sub_mesh(Flux_mesh_pt);
-  add_sub_mesh(Bem_elements_only_mesh_pt);
   build_global_mesh();
 
   // Setup equation numbering scheme for all the finite elements
@@ -856,37 +882,19 @@ ThreeDHybridProblem(const std::string& node_file_name,
   //======================================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
   void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  update_bem_phi_values()
+  get_bem_phi_values(DoubleVector& bem_phi_values) const
   {
     // In order to use DoubleVector (for matrix multiplications) we need to have
     // this thingy. In our serial case it just gives a number of rows.
     LinearAlgebraDistribution dummy(0,bem_mesh_pt()->nnode(),false);
 
     // Assemble a vector of phi_1 values on boundary nodes
-    DoubleVector boundary_phi_1, bem_phi_values;
+    DoubleVector boundary_phi_1;
     get_boundary_phi_1(boundary_phi_1);
 
     // Dense matrix multiplication to calculate phi (result goes in Bem_phi_values)
     Boundary_matrix.multiply(boundary_phi_1, bem_phi_values);
-
-    // Pass the results to the boundary elements where appropriate
-    for(unsigned i_ele=0; i_ele < Bem_mesh_pt->nelement(); i_ele++)
-      {
-	BEM_ELEMENT<BULK_ELEMENT,DIM> * ele_pt
-	  = dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(Bem_mesh_pt->element_pt(i_ele));
-
-	for(unsigned i_nd=0; i_nd < ele_pt->nnode(); i_nd++)
-	  {
-	    unsigned bem_eqn_num =
-	      get_boundary_equation_number(ele_pt->node_pt(i_nd));
-
-	    ele_pt->local_bem_phi_value(i_nd)
-	      = bem_phi_values[bem_eqn_num];
-	  }
-      }
-
   }
-
 
   //======================================================================
   /// Set up the initial conditions
@@ -1018,8 +1026,8 @@ int main(int argc, char* argv[])
   ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem(argv[1],argv[2],argv[3]);
 
-  problem.max_newton_iterations() = 30;
-  problem.max_residuals() = 30;
+  // problem.max_newton_iterations() = 15;
+  // problem.max_residuals() = 30;
 
   // // dump mesh for testing
   // std::ofstream mesh_plot;
