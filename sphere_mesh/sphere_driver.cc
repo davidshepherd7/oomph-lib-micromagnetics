@@ -17,28 +17,42 @@
 using namespace oomph;
 using namespace MathematicalConstants;
 
-//??ds temp you pinned boundary values and commented get jacobian functions
+/*
 
+problems with jacobian:
+
+d m_y/ d m_x
+
+d m_z/d m_x
+
+with m_x at different nodes
+
+affected by dt
+
+
+Also flux element Jacobian is wrong, but not badly so
+*/
 namespace Inputs
 {
   // ??ds need to do this input stuff properly..
 
-  double llg_damping = 1;
+  double llg_damping = 0.01;
   double llg_precession = 1;
   double exchange_coeff = 1;
   double magnetostatic_coeff = 1;
-  double crystal_anis_coeff = 0;
-  double dt = 1e-6;
-  double tmax = 5;
+  double crystal_anis_coeff = 0.1;
+  double applied_field_coeff = 3;
 
-  bool adaptive_timestepping = 1;
+  double dt = 1e-3;
+  double tmax = 1;
+
+  bool adaptive_timestepping = 0;
   bool full_jacobian_fd = 0;
   unsigned sum_matrix = 1;
   bool GMRES = 0;
 
   bool midpointmethod = 0;
   const unsigned bdforder = 2;
-
 
   //??ds temp - commented corner calculation code so only valid for sphere!
 
@@ -61,16 +75,52 @@ namespace Inputs
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
+    h_app[0] = +1;
+    // h_app[1] = 0.01;
+    // h_app[2] = 0.01;
+    for(unsigned j=0; j<3; j++)
+      h_app[j] *= Inputs::applied_field_coeff;
   }
+
   void cryst_anis_field(const double& t, const Vector<double>& x,
 			const Vector<double>& m, Vector<double>& h_ca)
   {
-    Vector<double> easy_axis(3,0.0); easy_axis[0] = 1.0;
+    Vector<double> easy_axis(3,0.0);
+    unsigned ax = 0;
 
+    // Find which direction along the axis we want
+    if(m[ax] < 0)
+      easy_axis[ax] = -1.0;
+    else
+      easy_axis[ax] = +1.0;
     h_ca = easy_axis;
+
+    // Multiply by the magnitude
     double magnitude = dot(easy_axis,m);
     for(unsigned i=0; i<h_ca.size(); i++)
       h_ca[i] *= magnitude * crystal_anis_coeff;
+  }
+
+
+  // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
+  // with respect to at the point x.
+  void dhcadm_k(const double& t, const Vector<double>& x,
+		 const Vector<double>& m, const double shape_fn_l2_at_x,
+		 DenseMatrix<double>& dhcadm)
+  {
+    Vector<double> easy_axis(3,0.0);
+    unsigned ax = 0;
+
+    // Find which direction along the axis we want
+    if(m[ax] < 0)
+      easy_axis[ax] = -1.0;
+    else
+      easy_axis[ax] = +1.0;
+
+    for(unsigned j=0; j<3; j++)
+      for(unsigned i=0; i<3; i++)
+	dhcadm(i,j) = crystal_anis_coeff * shape_fn_l2_at_x
+	  * easy_axis[i] * easy_axis[j];
   }
 
   void initial_m(const double& t, const Vector<double>& x,
@@ -78,9 +128,45 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[0] = -1;
-    m[1] = -0.3;
+    m[1] = -0.1;
     m[2] = -0.1;
     normalise(m);
+
+    // m[0] = sin(x[0])*sin(x[0]);
+    // m[1] = cos(x[0])*cos(x[0]);
+    // m[2] = x[1];
+    // normalise(m);
+
+    // double rsq = pow(x[0],2) +  pow(x[1],2) + pow(x[2],2);
+    // m[0] = rsq*sin(x[0]);
+    // m[1] = rsq*cos(x[0]);
+    // m[2] = rsq;
+    // //normalise(m);
+  }
+
+  // FD from initial m
+  double initial_phi(const double& t, const Vector<double>& x)
+  {
+    // double eps = 0.001;
+    // Vector<double> xp0(x), xm0(x),xp1(x),xm1(x),xp2(x),xm2(x);
+    // Vector<double> mp0(3,0.0), mm0(3,0.0), mp1(3,0.0),
+    //   mm1(3,0.0), mp2(3,0.0), mm2(3,0.0);
+    // xp0[0] += eps;
+    // xm0[0] -= eps;
+    // xp1[1] += eps;
+    // xm1[1] -= eps;
+    // xp2[2] += eps;
+    // xm2[2] -= eps;
+
+    // initial_m(t,xp0,mp0);
+    // initial_m(t,xm0,mm0);
+    // initial_m(t,xp1,mp1);
+    // initial_m(t,xm1,mm1);
+    // initial_m(t,xp2,mp2);
+    // initial_m(t,xm2,mm2);
+
+    // return (mp0[0] - mm0[0])/2 + (mp1[1] - mm1[1])/2 + (mp2[2] - mm2[2])/2;
+    return 0.0;
   }
 }
 
@@ -260,29 +346,26 @@ namespace oomph
       SumOfMatrices lazy_sum;
       lazy_sum.main_matrix_pt() = &sparse_jacobian;
 
-      if(Inputs::magnetostatic_coeff != 0)
-    	{
-    	  lazy_sum.add_matrix(boundary_matrix_pt(),
-    	  		      &Global_boundary_equation_num_map,
-    	  		      &Global_phi_1_num_map,0);
+      lazy_sum.add_matrix(boundary_matrix_pt(),
+			  &Global_boundary_equation_num_map,
+			  &Global_phi_1_num_map,0);
 
-	  // Add an identity matrix * -1: phi dependence on itself,
-	  // delete when done with Jacobain.
-	  unsigned n_bem_nodes = bem_mesh_pt()->nnode();
-	  Vector<int> row_indices(n_bem_nodes), col_indices(n_bem_nodes);
-	  Vector<double> values(n_bem_nodes,-1.0);
-	  for(int i=0; i<int(n_bem_nodes); i++) {row_indices[i] = i; col_indices[i] = i;}
+      // Add an identity matrix * -1: phi dependence on itself,
+      // delete when done with Jacobain.
+      unsigned n_bem_nodes = bem_mesh_pt()->nnode();
+      Vector<int> id_row_indices(n_bem_nodes), id_col_indices(n_bem_nodes);
+      Vector<double> id_values(n_bem_nodes,-1.0);
+      for(int i=0; i<int(n_bem_nodes); i++) {id_row_indices[i] = i; id_col_indices[i] = i;}
 
-	  CRDoubleMatrix* neg_id_matrix_pt =
-	    new CRDoubleMatrix(row_indices,col_indices,values,n_bem_nodes,n_bem_nodes);
+      CRDoubleMatrix* neg_id_matrix_pt =
+	new CRDoubleMatrix(id_row_indices,id_col_indices,id_values,n_bem_nodes,n_bem_nodes);
 
-	  neg_id_matrix_pt->Matrix::sparse_indexed_output("id_matrix");
+      neg_id_matrix_pt->Matrix::sparse_indexed_output("id_matrix");
 
-	  lazy_sum.add_matrix(neg_id_matrix_pt,
-	  		      &Global_boundary_equation_num_map,
-	  		      &Global_boundary_equation_num_map,
-	  		      1);
-    	}
+      lazy_sum.add_matrix(neg_id_matrix_pt,
+			  &Global_boundary_equation_num_map,
+			  &Global_boundary_equation_num_map,
+			  1);
 
       // Build a new sparse jacobian from data outputted from the sum
       Vector<int> rows, cols;
@@ -292,11 +375,16 @@ namespace oomph
     		     lazy_sum.nrow(),lazy_sum.ncol());
 
       // dump jacobian for tests
-      //why are the Matrix:: needed????
+      //why are the Matrix:: needed? - because inheritence of crdouble matrix is weird!
       sparse_jacobian.Matrix::sparse_indexed_output(std::string("matrices/sparse_jac_part"));
       jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
       residuals.output("matrices/residual");
-      //exit(0);
+
+      // if(n_step > 0)
+      // 	exit(0);
+      // else
+      // 	n_step++;
+
     }
 
     /// Get the index of phi for use in BEM mapping
@@ -335,6 +423,9 @@ namespace oomph
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
+    /// HACK, numbero f newton steps so far ??ds
+    unsigned n_step;
+
     /// Update the problem before Newton convergence check (update boundary
     /// conditions on phi).
     void actions_before_newton_convergence_check(){}
@@ -359,6 +450,9 @@ ThreeDHybridProblem(const std::string& node_file_name,
 		    const std::string& element_file_name,
 		    const std::string& face_file_name)
 {
+
+  //??ds
+  n_step = 0;
 
   if(Inputs::midpointmethod)
     {
@@ -462,6 +556,7 @@ ThreeDHybridProblem(const std::string& node_file_name,
       //??ds fix this to use proper encapsulation asap
       elem_pt->applied_field_pt() = &Inputs::applied_field;
       elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+      elem_pt->hca_derivative_pt() = &Inputs::dhcadm_k;
       // elem_pt->sat_mag_pt() = &Inputs::sat_mag;
       elem_pt->llg_damp_pt() = &Inputs::llg_damping;
       elem_pt->llg_precess_pt() = &Inputs::llg_precession;
@@ -590,6 +685,9 @@ ThreeDHybridProblem(const std::string& node_file_name,
 	MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
 	  new MicromagFluxElement<BULK_ELEMENT>(bulk_elem_pt,face_index);
 
+	// Pass a pointer to the flux element to the bulk element
+	bulk_elem_pt->add_face_element_pt(flux_element_pt);
+
 	// Add the prescribed-flux element to the mesh
 	surface_mesh_pt->add_element_pt(flux_element_pt);
 
@@ -648,7 +746,7 @@ ThreeDHybridProblem(const std::string& node_file_name,
     //Problems could occur if the index we are using ever has pinned values...
     if(global_equation_number < 0)
       {
-	std::cout << Global_boundary_equation_num_map << std::endl;
+	//std::cout << Global_boundary_equation_num_map << std::endl;
 	throw OomphLibError("Pinned equation, use a different eq num?",
 			    "ThreeDHybridProblem::get_boundary_equation_number",
 			    OOMPH_EXCEPTION_LOCATION);
@@ -759,7 +857,7 @@ ThreeDHybridProblem(const std::string& node_file_name,
     // Create the mapping from global to boundary equations
     create_global_boundary_equation_number_maps();
 
-    std::cout << Global_boundary_equation_num_map << std::endl;
+    //std::cout << Global_boundary_equation_num_map << std::endl;
 
     // get the number of nodes in the boundary problem
     unsigned long n_node = bem_mesh_pt()->nnode();
@@ -948,9 +1046,9 @@ ThreeDHybridProblem(const std::string& node_file_name,
 	    for(unsigned i=0; i<3; i++)
 	      mesh_pt()->node_pt(n)->set_value(t,m_index_micromag[i],m[i]);
 
-	    // //??ds some initial phis...
-	    // mesh_pt()->node_pt(n)->set_value(t,phi_index(),1);
-	    // mesh_pt()->node_pt(n)->set_value(t,phi_1_index(),1);
+	    double initial_phi_val = Inputs::initial_phi(time,x);
+	    mesh_pt()->node_pt(n)->set_value(t,phi_index(),initial_phi_val);
+	    mesh_pt()->node_pt(n)->set_value(t,phi_1_index(),0);
 
 	  }
       }

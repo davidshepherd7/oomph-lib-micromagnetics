@@ -68,23 +68,25 @@ namespace oomph
     // {return FaceElement::zeta_nodal(n,k,i);}
 
     /// Add the element's contribution to its residual vector
-    inline void fill_in_contribution_to_residuals(Vector<double> &residuals)
+    void fill_in_contribution_to_residuals(Vector<double> &residuals)
     {
       // Call the generic residuals function with flag set to 0 using a dummy
       // matrix argument
       fill_in_generic_residual_contribution_fluxes
-	(residuals,GeneralisedElement::Dummy_matrix,0);
+    	(residuals,GeneralisedElement::Dummy_matrix,0);
     }
 
+    // /// \short Add the element's contribution to its residual vector and its
+    // /// Jacobian matrix
+    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    // 					  DenseMatrix<double> &jacobian)
+    // {
+    //   //Call the generic routine with the flag set to 1
+    //   fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
+    // }
 
-    /// \short Add the element's contribution to its residual vector and its
-    /// Jacobian matrix
-    inline void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-						 DenseMatrix<double> &jacobian)
-    {
-      //Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
-    }
+    void fill_in_bulk_contribution_to_face_jacobian
+    (DenseMatrix<double>& jacobian) const;
 
     /// \short Output function -- forward to broken version in FiniteElement
     /// until somebody decides what exactly they want to plot here...
@@ -105,7 +107,7 @@ namespace oomph
     /// \short Function to compute the shape and test functions and to return
     /// the Jacobian of mapping between local and global (Eulerian)
     /// coordinates
-    inline double shape_test(const Vector<double> &s, Shape &psi, Shape &test)
+    double shape_test(const Vector<double> &s, Shape &psi, Shape &test)
       const
     {
       //Get the shape functions
@@ -285,111 +287,187 @@ namespace oomph
 	outer_unit_normal(s,low_dim_normal);
 	for(unsigned j=0; j<Dim; j++) normal[j] = low_dim_normal[j];
 
-
+	// Get coefficients at this point
 	double exch_c = bulk_element_pt()
 	  ->get_exchange_coeff(cts_time,itp_x);
+	double llg_precess_c = bulk_element_pt()
+	  ->get_llg_precession_coeff();
 
+	// Some pre-calculations:
 	Vector<double> ndotgradmi(3,0.0);
 	for(unsigned i=0; i<3; i++)
 	  for(unsigned j=0; j<Dim; j++)
 	    ndotgradmi[i] += normal[j] * itp_dmdx(i,j);
-
-	double mdotn = VectorOps::dot(normal,itp_m);
 	Vector<double> mxndotgradmi(3,0.0);
 	VectorOps::cross(itp_m,ndotgradmi,mxndotgradmi);
+	double mdotn = VectorOps::dot(normal,itp_m);
 
-	// Note that "continue" means go on to the next step of the loop, which
-	// is perhaps not entirely clear. We use "if(not thing) then continue"
-	// statements rather than "if(thing) then .." because the amount of
-	// braces and indentation gets ridiculous with so many nested for loops
-	// and if statements.
 
-	//======================================================================
-	/// Reducded potential (phi_1) flux boundary condition
-	//======================================================================
-	//Loop over the test functions
+	// Loop over the test functions doing residual and Jacobian
+	// contributions.
 	for(unsigned l=0;l<n_node;l++)
 	  {
+	    // Get indicies for phi_1 and m equations
 	    int phi_1_eqn = nodal_local_eqn (l,phi_1_index);
+	    Vector<int> m_eqn(3,0);
 
-	    if( !(phi_1_eqn >= 0) ) continue;
-	    residuals[phi_1_eqn] += mdotn*test[l]*W;
+	    // Phi contribution (if not a dirichlet b.c.)
+	    if(phi_1_eqn >= 0)
+	      residuals[phi_1_eqn] += mdotn*test(l)*W;
+
+	    // Exchange contribution: (m x (dm/dn)) * test
+	    for(unsigned i=0; i<3; i++)
+	      {
+		m_eqn[i] = nodal_local_eqn(l,m_index[i]);
+		if(m_eqn[i] >=0)
+		  residuals[m_eqn[i]] += llg_precess_c * exch_c
+		    * mxndotgradmi[i] * test(l) * W;
+	      }
+
+	    //??ds still need to deal with surface anisotropy...
+
 
 	    // Jacobian (phi_1 w.r.t m_i)
 	    if(!flag) continue;
 	    for(unsigned l2=0; l2<n_node; l2++)
 	      {
-		for(unsigned i=0; i<3; i++)
+		// Loop over which m we are differentiating w.r.t
+		Vector<unsigned> m_unknown(3,0.0);
+		for(unsigned j=0; j<3; j++)
 		  {
-		    int m_unknown = nodal_local_eqn(l2,m_index[i]);
-		    if(!(m_unknown >= 0)) continue;
-		    jacobian(phi_1_eqn,m_unknown)
-		      += psi(l) * test(l2) * normal[i] * W;
+		    m_unknown[j] = nodal_local_eqn(l2,m_index[j]);
+		    if(!(m_unknown[j] >= 0)) continue;
+
+		    // phi_1 residual w.r.t m_j
+	    	    jacobian(phi_1_eqn,m_unknown[j])
+	    	      += psi(l2) * test(l) * normal[j] * W;
+
+		    // m residuals w.r.t m_j due to exchange boundary effects
+		    // ============================================================
+
+		    // Jacobian contribution is (using product rule):
+		    // (ihat x dm/dn) * psi * ...
+		    // + (m x ihat) * dpsidn * ...
+		    Vector<double> jhat(3,0.0); jhat[j] = 1.0;
+		    Vector<double> jxdmdn(3,0.0);
+		    VectorOps::cross(jhat,ndotgradmi,jxdmdn);
+
+		    for(unsigned i=0; i<3; i++)
+		      {
+			if(!(m_eqn[i] >= 0)) continue;
+
+			jacobian(m_eqn[i],m_unknown[j]) +=
+			  exch_c * llg_precess_c * W * test(l) *
+			  psi(l2) * jxdmdn[i];
+
+			// Unfortuantely the second term of this equation is
+			// non-zero for m_unknown in bulk nodes in the same bulk
+			// element. This means we must also include a Jacobian
+			// contribution due to the surface integral in the bulk
+			// element. This is implemented in the function ??ds
+			// called by the bulk element.
+		      }
 		  }
 	      }
 	  }
-
-
-	//??temp remove this part, equivalent to setting dmidn = 0 for i = 0,1,2
-	// //======================================================================
-	// /// M contribution (via exchange calculations)
-	// //======================================================================
-
-	// //Loop over the test functions
-	// for(unsigned l=0;l<n_node;l++){
-	//   for(unsigned j=0; j<3; j++){
-	//     int m_eqn = nodal_local_eqn(l,m_index[j]);
-	//     if(!(m_eqn >= 0)) continue;
-	//     residuals[m_eqn] += exch_c * mxndotgradmi[j] * test[l] * W;
-	//   }
-	// }
-
-	// // Jacobian (llg w.r.t. m)
-	// if(!flag) continue;
-	// for(unsigned l2=0; l2<n_node; l2++)
-	//   {
-
-	//     //??ds this needs fixing!!
-	//     double ndotgradpsil2 = 0.0;
-	//     for(unsigned j=0; j<Dim; j++)
-	//       ndotgradpsil2 += normal[j] * dpsidx(l2,j);
-
-	//     Vector<int> m_unknown(3);
-	//     for(unsigned k=0; k<3; k++)
-	//       m_unknown[k] = nodal_local_eqn(l2,m_index[k]);
-
-	//     for(unsigned j=0; j<3; j++)
-	//       {
-	// 	if(!(m_unknown[j] >= 0)) continue;
-
-	// 	// Pre-calculations for diff by m_j at node l2
-	// 	Vector<double> jhat(3,0); jhat[j] = 1;
-	// 	Vector<double> jhatpsil2(3,0.0); jhatpsil2[j] = psi(l2);
-	// 	Vector<double> mxjhat(3,0.0), jhatxndotgradmi(3,0.0);
-	// 	VectorOps::cross(itp_m,jhat,mxjhat);
-	// 	VectorOps::cross(jhat,ndotgradmi,jhatxndotgradmi);
-
-	// 	for(unsigned l=0; l<n_node; l++)
-	// 	  {
-	// 	    Vector<int> m_eqn(3);
-	// 	    for(unsigned k=0; k<3; k++)
-	// 	      m_eqn[k] = nodal_local_eqn(l,m_index[k]);
-
-	// 	    for(unsigned i=0; i<3; i++)
-	// 	      {
-	// 		if(!(m_eqn[j] >=0)) continue;
-
-	// 		jacobian(m_eqn[i],m_unknown[j])
-	// 		  += test(l) * W * exch_c *
-	// 		  ( psi(l2) * jhatxndotgradmi[i]
-	// 		    + mxjhat[i] * ndotgradpsil2 );
-	// 	      }
-	// 	  }
-	//       }
-	//
       }
   }
 
+  template<class ELEMENT>
+  void MicromagFluxElement<ELEMENT>::
+  fill_in_bulk_contribution_to_face_jacobian(DenseMatrix<double>& jacobian) const
+  {
+    // Get indices
+    Vector<unsigned> m_index(3);
+    for(unsigned i=0; i<3; i++)
+      m_index[i] = bulk_element_pt()->m_index_micromag(i);
+
+    const unsigned face_n_node = nnode();
+    const unsigned n_node = bulk_element_pt()->nnode();
+    const unsigned n_intpt = integral_pt()->nweight();
+
+    const double cts_time = bulk_element_pt()->time_pt()->time();
+
+    for(unsigned ipt=0;ipt<n_intpt;ipt++)
+      {
+	Vector<double> s(Dim-1);
+	for(unsigned i=0;i<(Dim-1);i++)
+	  s[i] = integral_pt()->knot(ipt,i);
+
+	// Get s in bulk
+	Vector<double> s_bulk(3,0.0);
+	get_local_coordinate_in_bulk(s,s_bulk);
+
+	// Get shape, test and derivatives from bulk
+	Shape psi_bulk(n_node), test_bulk(n_node);
+	DShape dpsidx_bulk(n_node,Dim), dtestdx_bulk(n_node,Dim);
+	const double J = bulk_element_pt()->
+	  dshape_dtest(s_bulk, psi_bulk, dpsidx_bulk,
+		       test_bulk, dtestdx_bulk);
+	const double W = integral_pt()->weight(ipt) * J;
+
+	// Get interpolated values
+	Vector<double> itp_x(Dim,0.0), itp_m(3,0.0);
+	for(unsigned l=0; l<face_n_node; l++)
+	  {
+	    for(unsigned j=0; j<Dim; j++)
+	      itp_x[j] += nodal_position(l,j)*psi_bulk(l);
+	    for(unsigned j=0; j<3; j++)
+	      itp_m[j] += nodal_value(l,m_index[j])*psi_bulk(l);
+	  }
+	DenseDoubleMatrix itp_dmdx(3,3,0.0);
+	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
+
+	// Get coefficients at this point
+	double exch_c = bulk_element_pt()
+	  ->get_exchange_coeff(cts_time,itp_x);
+	double llg_precess_c = bulk_element_pt()
+	  ->get_llg_precession_coeff();
+
+	// Get normal
+	Vector<double> low_dim_normal(Dim,0.0), normal(3,0.0);
+	outer_unit_normal(s,low_dim_normal);
+	for(unsigned j=0; j<Dim; j++) normal[j] = low_dim_normal[j];
+
+	// Now calculate Jacobian
+	for(unsigned l=0;l<face_n_node;l++)
+	  {
+	    for(unsigned l2=0;l2<n_node;l2++)
+	      {
+
+		// Storage for equation numbers, note that we need to
+		// differentiate by ALL the bulk nodes.
+		Vector<int> m_eqn(3);
+		Vector<int> m_unknown(3);
+
+		// Loop over m value that we are differentiating by
+		for(unsigned j=0; j<3; j++)
+		  {
+		    m_unknown[j] = bulk_element_pt()->nodal_local_eqn(l2,m_index[j]);
+		    if(!(m_unknown[j] >= 0)) continue;
+
+		    Vector<double> jhat(3,0.0), mxj(3,0.0); jhat[j] = 1.0;
+		    VectorOps::cross(itp_m,jhat,mxj);
+
+		    double ndotgradpsil2 = 0;
+		    for(unsigned i=0; i<3; i++)
+		      ndotgradpsil2 += normal[i] * dpsidx_bulk(l2,i);
+
+		    // Loop over residual that we are differentiating
+		    for(unsigned i=0; i<3; i++)
+		      {
+			m_eqn[i] = nodal_local_eqn(l,m_index[i]);
+			if(!(m_eqn[i] >= 0)) continue;
+
+			jacobian(m_eqn[i],m_unknown[j]) +=
+			  W * test_bulk(l) * exch_c * llg_precess_c
+			  * ndotgradpsil2 * mxj[i];
+		      }
+		  }
+	      }
+	  }
+      }
+  }
 
 } // End of oomph namespace
 

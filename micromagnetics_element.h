@@ -18,6 +18,9 @@ using namespace oomph;
 namespace oomph
 {
 
+  // Forward declaration of flux element
+  template <class ELEMENT> class MicromagFluxElement;
+
   //==============================================================================
   /// A class for the maths used in solving the Landau-Lifshitz-Gilbert equations.
   //==============================================================================
@@ -30,6 +33,7 @@ namespace oomph
     /// Constructor (initialises the various function pointers to null).
     MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0), Llg_source_pt(0),
 			  Applied_field_pt(0), Cryst_anis_field_pt(0),
+			  Hca_derivative_pt(0),
 			  Sat_mag_pt(0), Llg_damp_pt(0),
 			  Llg_precess_pt(0), Exchange_coeff_pt(0),
 			  Magnetostatic_coeff_pt(0),
@@ -93,10 +97,11 @@ namespace oomph
 
     }
 
+    void add_face_element_pt(FiniteElement* const face_element_pt)
+    { Face_element_pts.insert(face_element_pt); }
+
     unsigned ndof_types()
-    {
-      return required_nvalue(0);
-    }
+    { return required_nvalue(0); }
 
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
@@ -182,6 +187,30 @@ namespace oomph
     {
       if(Cryst_anis_field_pt==0) H_ca.assign(3,0.0);
       else (*Cryst_anis_field_pt)(t,x,m,H_ca);
+    }
+
+    // EFFECTIVE ANISOTROPY DERIVATIVE (w.r.t. m at node ??ds)
+    typedef  void (*HcaDerivativeFctPt)
+    (const double& t, const Vector<double>&x, const Vector<double>& M,
+     const double shape_fn_k_at_x, DenseMatrix<double>& out);
+
+    HcaDerivativeFctPt hca_derivative_pt() const {return Hca_derivative_pt;}
+    HcaDerivativeFctPt& hca_derivative_pt() {return Hca_derivative_pt;}
+
+    void get_hca_derivative(const double& t, const Vector<double>&x,
+			    const Vector<double>& M,
+			    const double shape_fn_k_at_x,
+			    DenseMatrix<double>& dhcadm) const
+    {
+      if(hca_derivative_pt()==0)
+	{
+	  std::ostringstream error_msg;
+	  error_msg << "Function pointer for derivative of crystalline anisotropy effective field not assigned.";
+	  throw OomphLibError(error_msg.str(),
+			      "MicromagEquations::get_hca_derivative",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+      else (*hca_derivative_pt())(t,x,M,shape_fn_k_at_x,dhcadm);
     }
 
     /// Access function: Pointer to saturisation magnetisation
@@ -486,7 +515,7 @@ namespace oomph
     {
       //Call the generic residuals function with flag set to 0 using a dummy matrix argument
       fill_in_generic_residual_contribution_micromag
-	(residuals,GeneralisedElement::Dummy_matrix, 0);
+    	(residuals,GeneralisedElement::Dummy_matrix, 0);
     }
 
     // /// \short Add the element's contribution to its residual vector and element
@@ -496,7 +525,11 @@ namespace oomph
     // {
     //   // Call the generic routine with the flag set to 1
     //   fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+    //    fill_in_face_element_contribution_to_jacobian(jacobian);
     // }
+
+    virtual void fill_in_face_element_contribution_to_jacobian
+    (DenseMatrix<double> &jacobian) const =0;
 
     /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
@@ -588,6 +621,10 @@ namespace oomph
     /// Pointer to function giving effective field due to the crystalline anisotropy
     TimeSpaceMagToDoubleVectFctPt Cryst_anis_field_pt;
 
+    /// Pointer to function giving the derivative of the effective field with
+    /// respect to m at node ??ds.
+    HcaDerivativeFctPt Hca_derivative_pt;
+
     /// Pointer to saturisation magnetisation
     double* Sat_mag_pt;
 
@@ -608,6 +645,9 @@ namespace oomph
 
     /// Pointer to the exact solution for phi
     TimeSpaceToDoubleFctPt Exact_phi_pt;
+
+    // List of face elements attached to this element
+    std::set<FiniteElement*> Face_element_pts;
 
   }; // End of MicromagEquations class
 
@@ -664,6 +704,19 @@ namespace oomph
 
       // Return the jacobian
       return J;
+    }
+
+    void fill_in_face_element_contribution_to_jacobian
+    (DenseMatrix<double> &jacobian) const
+    {
+      std::set<FiniteElement*>::iterator it;
+      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+	{
+	  MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+	    dynamic_cast<MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* >
+	    (*it);
+	  flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+	}
     }
 
   }; // end of QMicromagElement class declaration
@@ -745,6 +798,19 @@ namespace oomph
 
       // Return the jacobian
       return J;
+    }
+
+    void fill_in_face_element_contribution_to_jacobian
+    (DenseMatrix<double> &jacobian) const
+    {
+      std::set<FiniteElement*>::iterator it;
+      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+	{
+	  MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+	    dynamic_cast<MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* >
+	    (*it);
+	  flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+	}
     }
 
   }; // end of TMicromagElement class declaration
