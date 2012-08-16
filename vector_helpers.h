@@ -29,6 +29,17 @@ namespace VectorOps
     /// vectors
     void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output)
     {
+#ifdef PARANOID
+      if((A.size() != 3) || (B.size() != 3))
+	{
+	  std::ostringstream error_msg;
+	  error_msg << "Cross product only defined for vectors of length 3.";
+	  throw OomphLibError(error_msg.str(),
+			      "VectorOps::cross",
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+#endif
+      output.assign(3,0.0);
       output[0] = A[1]*B[2] - A[2]*B[1];
       output[1] = A[2]*B[0] - A[0]*B[2];
       output[2] = A[0]*B[1] - A[1]*B[0];

@@ -26,6 +26,7 @@
 #include "./micromagnetics_boundary_element.h"
 #include "./micromagnetics_boundary_element.cc"
 #include "./micromagnetics_flux_element.h"
+#include "./magnetic_materials.h"
 
 // Basic oomph-lib headers
 #include "generic.h"
@@ -56,10 +57,10 @@ namespace oomph
   }
 
 
-  bool small(const double& test_double)
-  {
-    return std::abs(test_double) < 1e-5;
-  }
+  // bool small(const double& test_double)
+  // {
+  //   return std::abs(test_double) < 1e-5;
+  // }
 
 
 }
