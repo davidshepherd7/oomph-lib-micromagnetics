@@ -12,9 +12,10 @@
 
 // My vector helpers
 #include "./vector_helpers.h"
+#include "./magnetic_materials.h"
 
-//??ds global variable
-extern bool fd_main_jacobian;
+// //??ds global variable
+// extern bool fd_main_jacobian;
 
 using namespace oomph;
 
@@ -34,13 +35,8 @@ namespace oomph
 
     // CONSTRUCTORS ETC.
     /// Constructor (initialises the various function pointers to null).
-    MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0), Llg_source_pt(0),
-			  Applied_field_pt(0), Cryst_anis_field_pt(0),
-			  Hca_derivative_pt(0),
-			  Sat_mag_pt(0), Llg_damp_pt(0),
-			  Llg_precess_pt(0), Exchange_coeff_pt(0),
-			  Magnetostatic_coeff_pt(0),
-			  Exact_m_pt(0), Exact_phi_pt(0)
+    MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0),
+			  Magnetic_parameters_pt(0)
     {}
 
     /// Broken copy constructor
@@ -111,9 +107,15 @@ namespace oomph
     typedef void (*TimeSpaceToDoubleVectFctPt)
     (const double& t, const Vector<double>&x,Vector<double>& out);
 
-    typedef void (*TimeSpaceMagToDoubleVectFctPt)
-    (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
+    // typedef void (*TimeSpaceMagToDoubleVectFctPt)
+    // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
+
+    MagneticParameters* magnetic_parameters_pt() const
+    {return Magnetic_parameters_pt;}
+
+    MagneticParameters*& magnetic_parameters_pt()
+    {return Magnetic_parameters_pt;}
 
     // SOURCE FUNCTIONS for testing
     /// Access function: Pointer to phi source function
@@ -144,20 +146,20 @@ namespace oomph
       else return (*Phi_1_source_pt)(t,x);
     }
 
-    /// Access function: Pointer to source function
-    TimeSpaceToDoubleVectFctPt& llg_source_pt() {return Llg_source_pt;}
+    // /// Access function: Pointer to source function
+    // TimeSpaceToDoubleVectFctPt& llg_source_pt() {return Llg_source_pt;}
 
-    /// Access function: Pointer to source function. Const version
-    TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
+    // /// Access function: Pointer to source function. Const version
+    // TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
 
-    /// Get LLG source term at (Eulerian) position x.
-    inline void get_source_llg(const double& t,
-			       const Vector<double>& x,
-			       Vector<double>& source) const
-    {
-      if(Llg_source_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
-      else (*Llg_source_pt)(t,x,source);
-    }
+    // /// Get LLG source term at (Eulerian) position x.
+    // inline void get_source_llg(const double& t,
+    // 			       const Vector<double>& x,
+    // 			       Vector<double>& source) const
+    // {
+    //   if(Llg_source_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
+    //   else (*Llg_source_pt)(t,x,source);
+    // }
 
 
     // APPLIED FIELD
@@ -171,149 +173,89 @@ namespace oomph
     inline void get_applied_field(const double& t, const Vector<double> &x,
 				  Vector<double>& H_app) const
     {
-      if(Applied_field_pt==0) H_app.assign(3,0.0);
-      else (*Applied_field_pt)(t,x,H_app);
+      H_app.assign(3,0.0);
+      if(Applied_field_pt!=0) (*Applied_field_pt)(t,x,H_app);
     }
-
-    // EFFECTIVE ANISOTROPY FIELD
-    /// Access function: Pointer to crystalline anisotropy field function
-    TimeSpaceMagToDoubleVectFctPt& cryst_anis_field_pt() {return Cryst_anis_field_pt;}
-
-    /// Access function: Pointer to crystalline anisotropy field function. Const version
-    TimeSpaceMagToDoubleVectFctPt cryst_anis_field_pt() const {return Cryst_anis_field_pt;}
 
     /// Get the crystalline anisotropy field at Eulerian position x.
     inline void get_H_cryst_anis_field(const double& t,
 				       const Vector<double> &x,
 				       const Vector<double>& m,
-				       Vector<double>& H_ca) const
+				       Vector<double>& h_ca) const
     {
-      if(Cryst_anis_field_pt==0) H_ca.assign(3,0.0);
-      else (*Cryst_anis_field_pt)(t,x,m,H_ca);
+      return magnetic_parameters_pt()->
+	crystalline_ansiotropy_field(t, x, m, h_ca);
     }
 
-    // EFFECTIVE ANISOTROPY DERIVATIVE (w.r.t. m at node ??ds)
-    typedef  void (*HcaDerivativeFctPt)
-    (const double& t, const Vector<double>&x, const Vector<double>& M,
-     const double shape_fn_k_at_x, DenseMatrix<double>& out);
-
-    HcaDerivativeFctPt hca_derivative_pt() const {return Hca_derivative_pt;}
-    HcaDerivativeFctPt& hca_derivative_pt() {return Hca_derivative_pt;}
-
     void get_hca_derivative(const double& t, const Vector<double>&x,
-			    const Vector<double>& M,
+			    const Vector<double>& m,
 			    const double shape_fn_k_at_x,
 			    DenseMatrix<double>& dhcadm) const
     {
-      if(hca_derivative_pt()==0)
-	{
-	  std::ostringstream error_msg;
-	  error_msg << "Function pointer for derivative of crystalline anisotropy effective field not assigned.";
-	  throw OomphLibError(error_msg.str(),
-			      "MicromagEquations::get_hca_derivative",
-			      OOMPH_EXCEPTION_LOCATION);
-	}
-      else (*hca_derivative_pt())(t,x,M,shape_fn_k_at_x,dhcadm);
+      return magnetic_parameters_pt()->
+	crystalline_ansiotropy_field_derivative(t,x,m,shape_fn_k_at_x,dhcadm);
     }
-
-    /// Access function: Pointer to saturisation magnetisation
-    double*& sat_mag_pt() {return Sat_mag_pt;}
-
-    /// Access function: Pointer to saturisation magnetisation, const version
-    double* sat_mag_pt() const {return Sat_mag_pt;}
 
     /// Get saturisation magnetisation at eulerian postition x.
     inline double get_sat_mag() const
     {
-      if(Sat_mag_pt==0) return 1.0;
-      else return *Sat_mag_pt;
+      return magnetic_parameters_pt()->saturation_magnetisation();
     }
 
-    /// Access function: Pointer to LLG damping coefficient
-    double*& llg_damp_pt() {return Llg_damp_pt;}
-
-    /// Access function: Pointer to LLG damping coefficient, const version
-    double* llg_damp_pt() const {return Llg_damp_pt;}
-
-    /// Get LLG damping coefficient at eulerian postition x.
+    /// Get LLG damping coefficient.
     inline double get_llg_damping_coeff() const
     {
-      if(Llg_damp_pt==0) {return 1.0;}
-      else return *Llg_damp_pt;
+      return magnetic_parameters_pt()->gilbert_damping();
     }
 
-    // LLG PRECESSION COEFF FUNCTION POINTER
-    /// Access function: Pointer to LLG precession coefficient function
-    double*& llg_precess_pt() {return Llg_precess_pt;}
-
-    /// Access function: Pointer to LLG precession coefficient function. Const version
-    double* llg_precess_pt() const {return Llg_precess_pt;}
-
-    /// Get LLG precession coefficient at eulerian postition x.
+    /// Get LLG precession coefficient.
     inline double get_llg_precession_coeff() const
     {
-      if(Llg_precess_pt==0) {return 1.0;}
-      else return *Llg_precess_pt;
+      return magnetic_parameters_pt()->gamma();
     }
-
-    // EXCHANGE COEFF FUNCTION POINTER
-    /// Access function: Pointer to exchange coefficient function
-    double*& exchange_coeff_pt() {return Exchange_coeff_pt;}
-
-    /// Access function: Pointer to exchange coefficient function. Const version
-    double* exchange_coeff_pt() const {return Exchange_coeff_pt;}
 
     /// Get exchange coefficient at eulerian postition x.
-    inline double get_exchange_coeff(const double& t, const Vector<double>& x) const
+    inline double get_exchange_coeff() const
     {
-      if(Exchange_coeff_pt==0) {return 1.0;}
-      else return *Exchange_coeff_pt;
+      return magnetic_parameters_pt()->exchange_constant();
     }
-
-    // MAGNETOSTATIC COEFF FUNCTION POINTER
-    /// Access function: Pointer to magnetostatic coefficient function
-    double*& magnetostatic_coeff_pt() {return Magnetostatic_coeff_pt;}
-
-    /// Access function: Pointer to magnetostatic coefficient function. Const version
-    double* magnetostatic_coeff_pt() const {return Magnetostatic_coeff_pt;}
 
     /// Get magnetostatic coefficient at eulerian postition x.
-    inline double get_magnetostatic_coeff(const double& t, const Vector<double>& x) const
+    inline double get_magnetostatic_coeff() const
     {
-      if(Magnetostatic_coeff_pt==0) {return 1.0;}
-      else return *Magnetostatic_coeff_pt;
+      return magnetic_parameters_pt()->magnetostatic_coefficient();
     }
 
-    // EXACT PHI FUNCTION POINTER
-    /// Access function: Pointer to exact phi function
-    TimeSpaceToDoubleFctPt& exact_phi_pt() {return Exact_phi_pt;}
+    // // EXACT PHI FUNCTION POINTER
+    // /// Access function: Pointer to exact phi function
+    // TimeSpaceToDoubleFctPt& exact_phi_pt() {return Exact_phi_pt;}
 
-    /// Access function: Pointer to exact phi function. Const version
-    TimeSpaceToDoubleFctPt exact_phi_pt() const {return Exact_phi_pt;}
+    // /// Access function: Pointer to exact phi function. Const version
+    // TimeSpaceToDoubleFctPt exact_phi_pt() const {return Exact_phi_pt;}
 
-    /// Get exact phi at eulerian postition x.
-    inline double get_exact_phi(const double& t, const Vector<double>& x) const
-    {
-      // If no exact phi function has been set, return something crazy
-      if(Exact_phi_pt==0) {return -1000.0;}
-      else return (*Exact_phi_pt)(t,x);
-    }
+    // /// Get exact phi at eulerian postition x.
+    // inline double get_exact_phi(const double& t, const Vector<double>& x) const
+    // {
+    //   // If no exact phi function has been set, return something crazy
+    //   if(Exact_phi_pt==0) {return -1000.0;}
+    //   else return (*Exact_phi_pt)(t,x);
+    // }
 
-    // EXACT M FUNCTION POINTER
-    /// Access function: Pointer to exact M function
-    TimeSpaceToDoubleVectFctPt& exact_m_pt() {return Exact_m_pt;}
+    // // EXACT M FUNCTION POINTER
+    // /// Access function: Pointer to exact M function
+    // TimeSpaceToDoubleVectFctPt& exact_m_pt() {return Exact_m_pt;}
 
-    /// Access function: Pointer to LLG exact M. Const version
-    TimeSpaceToDoubleVectFctPt exact_m_pt() const {return Exact_m_pt;}
+    // /// Access function: Pointer to LLG exact M. Const version
+    // TimeSpaceToDoubleVectFctPt exact_m_pt() const {return Exact_m_pt;}
 
-    /// Get exact M at eulerian postition x.
-    inline void get_exact_m(const double& t, const Vector<double>& x,
-			    Vector<double>& m_exact) const
-    {
-      // If no exact M function has been set empty the vector
-      if(Exact_m_pt==0) m_exact.clear();
-      else (*Exact_m_pt)(t,x,m_exact);
-    }
+    // /// Get exact M at eulerian postition x.
+    // inline void get_exact_m(const double& t, const Vector<double>& x,
+    // 			    Vector<double>& m_exact) const
+    // {
+    //   // If no exact M function has been set empty the vector
+    //   if(Exact_m_pt==0) m_exact.clear();
+    //   else (*Exact_m_pt)(t,x,m_exact);
+    // }
 
     /// Return FE representation of function value phi(s) at local coordinate s
     inline double interpolated_phi_micromag(const Vector<double> &s) const
@@ -527,11 +469,14 @@ namespace oomph
     					  DenseMatrix<double> &jacobian)
     {
       // Call the generic routine with the flag set to 1
-      if(fd_main_jacobian == true)
-    	FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
-      else
-      	fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
 
+      // //??ds debug code
+      // if(fd_main_jacobian == true)
+      // 	FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
+      // else
+
+
+      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
       fill_in_face_element_contribution_to_jacobian(jacobian);
     }
 
@@ -619,39 +564,16 @@ namespace oomph
 
     TimeSpaceToDoubleFctPt Phi_1_source_pt;
 
-    /// Pointer to LLG source function (for testing purposes)
-    TimeSpaceToDoubleVectFctPt Llg_source_pt;
+    MagneticParameters* Magnetic_parameters_pt;
 
     /// Pointer to function giving applied field.
     TimeSpaceToDoubleVectFctPt Applied_field_pt;
 
-    /// Pointer to function giving effective field due to the crystalline anisotropy
-    TimeSpaceMagToDoubleVectFctPt Cryst_anis_field_pt;
+    // /// Pointer to the exact solution for M
+    // TimeSpaceToDoubleVectFctPt Exact_m_pt;
 
-    /// Pointer to function giving the derivative of the effective field with
-    /// respect to m at node ??ds.
-    HcaDerivativeFctPt Hca_derivative_pt;
-
-    /// Pointer to saturisation magnetisation
-    double* Sat_mag_pt;
-
-    /// Pointer to LLG damping coefficient
-    double* Llg_damp_pt;
-
-    /// Pointer to LLG precession coefficient
-    double* Llg_precess_pt;
-
-    /// Pointer to exchange coefficient
-    double* Exchange_coeff_pt;
-
-    /// Pointer to magnetostatic coefficient
-    double* Magnetostatic_coeff_pt;
-
-    /// Pointer to the exact solution for M
-    TimeSpaceToDoubleVectFctPt Exact_m_pt;
-
-    /// Pointer to the exact solution for phi
-    TimeSpaceToDoubleFctPt Exact_phi_pt;
+    // /// Pointer to the exact solution for phi
+    // TimeSpaceToDoubleFctPt Exact_phi_pt;
 
     // List of face elements attached to this element
     std::set<FiniteElement*> Face_element_pts;

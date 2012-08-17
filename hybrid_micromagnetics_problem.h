@@ -7,6 +7,7 @@ description of file goes here
 */
 
 #include "generic.h"
+#include "./magnetic_materials.h"
 
 using namespace oomph;
 
@@ -22,23 +23,28 @@ namespace oomph
   public:
 
     HybridMicromagneticsProblem()
-    {
-      // Get the indicies for phi and phi_1 via casting a pointer
-      BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(this->bulk_mesh_pt()->element_pt(0));
-      Phi_index = elem_pt->phi_index_micromag();
-      Phi_1_index = elem_pt->phi_1_index_micromag();
+      : Flux_mesh_pt(0), Bem_mesh_pt(0),
+	Bulk_mesh_pt(0), Bulk_mesh_magnetic_parameters_pt(0)
+    {};
 
-      Flux_mesh_pt = new Mesh;
-      Bem_mesh_pt = new Mesh;
-    }
+    virtual void doc_solution(DocInfo& doc_info) = 0;
+
+    virtual void set_initial_condition() = 0;
+
+    /// Finish off construction of problem (once mesh and magnetic properties
+    /// have been set up).
+    void finish_building_hybrid_problem();
 
     void build_bem_mesh(Mesh* bem_mesh_pt) const;
-
 
     void build_boundary_matrix();
 
     void create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
 			      Mesh* const &surface_mesh_pt);
+
+    /// \short Get the mapping between the global equation numbering and
+    /// the boundary equation numbering.
+    void create_global_boundary_equation_number_maps();
 
     /// Get the boundary equation number from the global equation number
     unsigned get_boundary_equation_number(const Node* const boundary_node) const;
@@ -56,16 +62,26 @@ namespace oomph
     Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
     Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
 
+    MagneticParameters* magnetic_parameters_pt() const
+    {return Bulk_mesh_magnetic_parameters_pt;}
+
+    MagneticParameters*& magnetic_parameters_pt()
+    {return Bulk_mesh_magnetic_parameters_pt;}
+
+    /// Get the index of phi for use in BEM mapping
+    unsigned phi_index() const {return Phi_index;}
+
+    /// Get the index of phi_1 for use in BEM mapping
+    unsigned phi_1_index() const {return Phi_1_index;}
+
+    /// Get the flux mesh pointer.
+    Mesh* flux_mesh_pt() const {return Flux_mesh_pt;}
 
     /// Access to the boundary matrix
     DenseDoubleMatrix* boundary_matrix_pt()
     {return &Boundary_matrix;}
 
-    /// \short Get the mapping between the global equation numbering and
-    /// the boundary equation numbering.
-    void create_global_boundary_equation_number_maps();
-
-  void get_residuals(DoubleVector& residuals)
+    void get_residuals(DoubleVector& residuals)
     {
       //std::cout << "Calling your get_residuals" << std::endl;
       Problem::get_residuals(residuals);
@@ -146,21 +162,7 @@ namespace oomph
       sparse_jacobian.Matrix::sparse_indexed_output(std::string("matrices/sparse_jac_part"));
       jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
       residuals.output("matrices/residual");
-
-      // if(n_step > 0)
-      // 	exit(0);
-      // else
-      // 	n_step++;
-
     }
-
-    /// Get the index of phi for use in BEM mapping
-    unsigned phi_index() const {return Phi_index;}
-
-    /// Get the index of phi_1 for use in BEM mapping
-    unsigned phi_1_index() const {return Phi_1_index;}
-
-    Mesh* flux_mesh_pt() const {return Flux_mesh_pt;}
 
   private:
 
@@ -172,15 +174,18 @@ namespace oomph
     /// equation/matrix numbering.
     std::map<long unsigned,long unsigned> Global_phi_1_num_map;
 
-    Mesh* Bulk_mesh_pt;
-
     Mesh* Flux_mesh_pt;
 
     /// The pointer to the boundary element method mesh
     Mesh* Bem_mesh_pt;
 
-    /// Doc info object
-    DocInfo Doc_info;
+    ///
+    Mesh* Bulk_mesh_pt;
+
+    /// Store the magnetic parameters of the bulk mesh region.
+    //??ds eventually may need to be able to store multiple meshes with
+    // different parameters
+    MagneticParameters* Bulk_mesh_magnetic_parameters_pt;
 
     /// Store the index of phi for use in BEM mapping
     unsigned Phi_index;
@@ -191,55 +196,125 @@ namespace oomph
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
 
-    /// HACK, numbero f newton steps so far ??ds
-    unsigned n_step;
-
-    /// Update the problem before Newton convergence check (update boundary
-    /// conditions on phi).
-    void actions_before_newton_convergence_check(){}
-
-    /// Update the problem specs before solve.
-    void actions_before_newton_step(){}
-
-    /// Update the problem specs after solve
-    void actions_after_newton_solve();
-
-    /// Update the problem specs after solve (empty)
-    void actions_after_implicit_timestep(){}
-
   };
 
-
-  //======================================================================
-  /// When using mid-point method we must update after each solve to go from
-  /// [n+0.5] to [n+1].
-  //======================================================================
+  // ============================================================
+  /// Finish off construction of problem (once mesh has been set up)
+  // ============================================================
   template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
   void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  actions_after_newton_solve()
+  finish_building_hybrid_problem()
   {
-    // // If we are using midpoint then apply the required update (Malidi2005)
-    // if(Inputs::midpointmethod)
-    //   {
-    // 	// Get m indicies
-    // 	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(0));
-    // 	Vector<unsigned> m_indices(3,0);
-    // 	for(unsigned j=0; j<3; j++)
-    // 	  m_indices[j] = bulk_elem_pt->m_index_micromag(j);
+#ifdef PARANOID
+    if(Bulk_mesh_magnetic_parameters_pt == 0)
+      {
+	std::ostringstream error_msg;
+	error_msg << "Magnetic parameters of bulk mesh not set up.";
+	throw OomphLibError(error_msg.str(),
+			    "HybridMicromagneticsProblem::build()",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
 
-    // 	for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
-    // 	  {
-    // 	    Node* nd_pt = mesh_pt()->node_pt(i_nd);
-    // 	    for(unsigned j=0; j<3; j++)
-    // 	      {
-    // 		// m[n] --> 2*m[n] - m[n-1]
-    // 		// because we have finished this timestep and moved forward one
-    // 		double new_m = 2*(nd_pt->value(m_indices[j]))
-    // 		  - (nd_pt->value(1,m_indices[j]));
-    // 		nd_pt->set_value(m_indices[j],new_m);
-    // 	      }
-    // 	  }
-    //   }
+    if(Bulk_mesh_pt == 0)
+      {
+	std::ostringstream error_msg;
+	error_msg << "Bulk mesh pointer not set up.";
+	throw OomphLibError(error_msg.str(),
+			    "HybridMicromagneticsProblem::build()",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    // Finish bulk elements
+    // ============================================================
+    // Loop over elements in bulk mesh to set function pointers
+    for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
+      {
+	// Upcast from GeneralisedElement to the present element
+	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(bulk_mesh_pt()->element_pt(i));
+
+	// Set pointer to continuous time
+	elem_pt->time_pt() = time_pt();
+
+	// Set the function pointers and values for magnetic parameters
+	elem_pt->magnetic_parameters_pt() = magnetic_parameters_pt();
+      }
+
+    // Get the indicies for phi and phi_1 via casting a pointer
+    BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(bulk_mesh_pt()->element_pt(0));
+    Phi_index = elem_pt->phi_index_micromag();
+    Phi_1_index = elem_pt->phi_1_index_micromag();
+
+
+    // Pin the value of phi_1 to zero at a point close to the origin.
+    // ??ds this is likely to go wrong if the origin is ont he boundary, fix?!
+    // ============================================================
+    bool found = false;
+    for(unsigned nd=0; nd< bulk_mesh_pt()->nnode(); nd++)
+      {
+	Vector<double> nd_x(DIM,0.0);
+	for(unsigned j=0; j<DIM; j++)
+	  nd_x[j] = bulk_mesh_pt()->node_pt(nd)->x(j);
+	if ( small(nd_x[0]) && small(nd_x[1]) && small(nd_x[2]) )
+	  {
+	    bulk_mesh_pt()->node_pt(nd)->pin(Phi_1_index);
+	    bulk_mesh_pt()->node_pt(nd)->set_value(Phi_1_index,0.0);
+	    found = true;
+	    break;
+	  }
+      }
+    if (!(found))
+      throw OomphLibError("No node near middle","",OOMPH_EXCEPTION_LOCATION);
+
+    // Create flux elements
+    // ============================================================
+
+    // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
+    // create the face elements needed.
+    Flux_mesh_pt = new Mesh;
+    for(unsigned b=0; b < bulk_mesh_pt()->nboundary(); b++)
+      {
+	create_flux_elements(b,bulk_mesh_pt(),Flux_mesh_pt);
+      }
+
+    // Create BEM elements
+    // ============================================================
+
+    // Create integration scheme in case it is needed.
+    QVariableOrderGaussLegendre<DIM-1>* variable_scheme_pt
+      = new QVariableOrderGaussLegendre<DIM-1>; //??ds generalise to triangles??
+
+    // Create BEM elements on all boundaries and add to BEM mesh
+    Bem_mesh_pt = new Mesh;
+    build_bem_mesh(bem_mesh_pt());
+
+    // Set boundary mesh pointer in element (static memeber so only do once)
+    BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
+
+    // Set pointers in elements
+    for(unsigned i_ele = 0; i_ele < bem_mesh_pt()->nelement(); i_ele++)
+      {
+	// Cast pointer
+	BEM_ELEMENT<BULK_ELEMENT,DIM>* ele_pt
+	  = dynamic_cast< BEM_ELEMENT< BULK_ELEMENT,DIM>* >
+	  (bem_mesh_pt()->element_pt(i_ele));
+
+	// Set integration scheme
+	ele_pt->set_integration_scheme(variable_scheme_pt);
+      }
+
+    // Build global finite element mesh
+    add_sub_mesh(bulk_mesh_pt());
+    add_sub_mesh(Flux_mesh_pt);
+    build_global_mesh();
+
+    // Setup equation numbering scheme for all the finite elements
+    std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
+
+    // Make the boundary matrix (including setting up the numbering scheme).  Note
+    // that this requires the FEM numbering scheme to be already set up.
+    build_boundary_matrix();
+
   }
 
   //=============================================================================
@@ -304,9 +379,9 @@ namespace oomph
 
 // #ifdef PARANOID
 //     // If the mesh is not one I've dealt with here:
-//     if((dynamic_cast<RectangularQuadMesh<BULK_ELEMENT>*>(Bulk_mesh_pt) == 0)
-//        && (dynamic_cast<SimpleCubicMesh<BULK_ELEMENT>*>(Bulk_mesh_pt) == 0)
-//        && (dynamic_cast<TetgenMesh<BULK_ELEMENT>*>(Bulk_mesh_pt) == 0))
+//     if((dynamic_cast<RectangularQuadMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0)
+//        && (dynamic_cast<SimpleCubicMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0)
+//        && (dynamic_cast<TetgenMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0))
 //       {
 // 	std::ostringstream error_msg;
 // 	error_msg << "No corner data for this mesh.";
@@ -450,22 +525,22 @@ namespace oomph
     std::set<Node*>::iterator it, c_it;
 
     // Loop over the boundaries
-    unsigned n_boundary = Bulk_mesh_pt->nboundary();
+    unsigned n_boundary = bulk_mesh_pt()->nboundary();
     for(unsigned b=0; b<n_boundary; b++)
       {
 	// Loop over the boundary nodes on boundary b making a set of nodes
-	unsigned n_bound_node = Bulk_mesh_pt->nboundary_node(b);
+	unsigned n_bound_node = bulk_mesh_pt()->nboundary_node(b);
 	for(unsigned n=0;n<n_bound_node;n++)
-	  node_set.insert(Bulk_mesh_pt->boundary_node_pt(b,n));
+	  node_set.insert(bulk_mesh_pt()->boundary_node_pt(b,n));
 
 	// Loop over the elements on boundary b creating bem elements
-	unsigned n_bound_element = Bulk_mesh_pt->nboundary_element(b);
+	unsigned n_bound_element = bulk_mesh_pt()->nboundary_element(b);
 	for(unsigned e=0;e<n_bound_element;e++)
 	  {
 	    // Create the corresponding BEM Element
 	    BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_element_pt = new BEM_ELEMENT<BULK_ELEMENT,DIM>
-	      (Bulk_mesh_pt->boundary_element_pt(b,e),
-	       Bulk_mesh_pt->face_index_at_boundary(b,e));
+	      (bulk_mesh_pt()->boundary_element_pt(b,e),
+	       bulk_mesh_pt()->face_index_at_boundary(b,e));
 
 	    // Add the BEM element to the BEM mesh
 	    bem_mesh_pt->add_element_pt(bem_element_pt);
@@ -550,6 +625,7 @@ namespace oomph
     // Dense matrix multiplication to calculate phi (result goes in Bem_phi_values)
     Boundary_matrix.multiply(boundary_phi_1, bem_phi_values);
   }
+
 
 } // End of oomph namespace
 

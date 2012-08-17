@@ -241,15 +241,18 @@ namespace oomph
   {
     const unsigned n_node = nnode();
     const unsigned n_intpt = integral_pt()->nweight();
-    const double cts_time = bulk_element_pt()->time_pt()->time();
 
     Shape psi(n_node), test(n_node);
     DShape dpsidx(n_node,Dim), dtestdx(n_node,Dim);
 
-    unsigned phi_1_index = bulk_element_pt()->phi_1_index_micromag();
+    const unsigned phi_1_index = bulk_element_pt()->phi_1_index_micromag();
     Vector<unsigned> m_index(3);
     for(unsigned i=0; i<3; i++)
       m_index[i] = bulk_element_pt()->m_index_micromag(i);
+
+    // Get coefficients
+    const double exch_c = bulk_element_pt()->get_exchange_coeff();
+    const double llg_precess_c = bulk_element_pt()->get_llg_precession_coeff();
 
     //Loop over the integration points
     //--------------------------------
@@ -286,12 +289,6 @@ namespace oomph
 	Vector<double> low_dim_normal(Dim,0.0), normal(3,0.0);
 	outer_unit_normal(s,low_dim_normal);
 	for(unsigned j=0; j<Dim; j++) normal[j] = low_dim_normal[j];
-
-	// Get coefficients at this point
-	double exch_c = bulk_element_pt()
-	  ->get_exchange_coeff(cts_time,itp_x);
-	double llg_precess_c = bulk_element_pt()
-	  ->get_llg_precession_coeff();
 
 	// Some pre-calculations:
 	Vector<double> ndotgradmi(3,0.0);
@@ -339,8 +336,11 @@ namespace oomph
 		    if(!(m_unknown[j] >= 0)) continue;
 
 		    // phi_1 residual w.r.t m_j
-	    	    jacobian(phi_1_eqn,m_unknown[j])
-	    	      += psi(l2) * test(l) * normal[j] * W;
+		    if(phi_1_eqn >= 0)
+		      {
+			jacobian(phi_1_eqn,m_unknown[j])
+			  += psi(l2) * test(l) * normal[j] * W;
+		      }
 
 		    // m residuals w.r.t m_j due to exchange boundary effects
 		    // ============================================================
@@ -386,7 +386,9 @@ namespace oomph
     const unsigned n_node = bulk_element_pt()->nnode();
     const unsigned n_intpt = integral_pt()->nweight();
 
-    const double cts_time = bulk_element_pt()->time_pt()->time();
+    // Get coefficients
+    double exch_c = bulk_element_pt()->get_exchange_coeff();
+    double llg_precess_c = bulk_element_pt()->get_llg_precession_coeff();
 
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
@@ -417,12 +419,6 @@ namespace oomph
 	  }
 	DenseDoubleMatrix itp_dmdx(3,3,0.0);
 	bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
-
-	// Get coefficients at this point
-	double exch_c = bulk_element_pt()
-	  ->get_exchange_coeff(cts_time,itp_x);
-	double llg_precess_c = bulk_element_pt()
-	  ->get_llg_precession_coeff();
 
 	// Get normal
 	Vector<double> low_dim_normal(Dim,0.0), normal(3,0.0);

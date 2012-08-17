@@ -57,8 +57,10 @@ namespace oomph
     const unsigned n_intpt = integral_pt()->nweight();
 
     // Get coefficients
-    double llg_precess_c = get_llg_precession_coeff();
-    double llg_damp_c = get_llg_damping_coeff();
+    const double llg_precess_c = get_llg_precession_coeff();
+    const double llg_damp_c = get_llg_damping_coeff();
+    const double exch_c = get_exchange_coeff();
+    const double magstatic_c = get_magnetostatic_coeff();
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -115,12 +117,10 @@ namespace oomph
 	VectorOps::cross(itp_m, itp_dmdt, itp_mxdmdt);
 
 	// Source functions (for debugging, normally zero)
-  	double phi_source = get_phi_source(time,itp_x);
-  	double phi_1_source = get_phi_1_source(time,itp_x);
+  	const double phi_source = get_phi_source(time,itp_x);
+  	const double phi_1_source = get_phi_1_source(time,itp_x);
 
-  	// Field and space dependant coefficients
-  	double exch_c = get_exchange_coeff(time,itp_x);
-	double magstatic_c = get_magnetostatic_coeff(time,itp_x);
+  	// Fields at integration point
 	Vector<double> h_applied(3,0.0);
 	get_applied_field(time, itp_x, h_applied);
 	Vector<double> h_cryst_anis(3,0.0);
@@ -143,7 +143,7 @@ namespace oomph
   	for(unsigned l=0;l<n_node;l++)
   	  {
 	    // Total potential (phi)
-  	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
+  	    const int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
 	    // If value is not pinned and not on the boundary.( We need to treat
 	    // boundary values of phi differently since they are determined by
 	    // the boundary element matrix and phi_1.)
@@ -156,7 +156,7 @@ namespace oomph
 	      }
 
 	    // Reduced potential (phi_1), only difference is in b.c.s
-	    int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
+	    const int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
 	    if(phi_1_eqn >= 0)
 	      {
 	    	residuals[phi_1_eqn] -= phi_1_source*test(l)*W;
@@ -182,7 +182,7 @@ namespace oomph
 	    // add to residual
 	    for(unsigned i=0; i<3; i++)
 	      {
-		int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
+		const int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
 		if(m_eqn >= 0)  // If it's not a boundary condition
 		  {
 		    // dmdt, mxh_ap, mxh_ca, mxh_ms and mxdmdt terms
@@ -243,17 +243,17 @@ namespace oomph
 	    //=========================================================
 
 	    // Total potential (phi)
-	    int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
+	    const int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
 	    if((phi_eqn >= 0) && (!(node_pt(l)->is_on_boundary())))
 	      {
 		// w.r.t. phi
-		int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
+		const int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
 		if(phi_unknown >= 0)
 		  jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
 
 		// w.r.t. m
 		for(unsigned j=0; j<DIM; j++){
-		  int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		  const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
 		  if(m_unknown >= 0)
 		    jacobian(phi_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
 		}
@@ -264,17 +264,17 @@ namespace oomph
 
 	    // Reduced potential (phi_1), only difference between this and phi
 	    // is in b.c.s
-	    int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
+	    const int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
 	    if(phi_1_eqn >= 0){
 
 	      // w.r.t. phi_1
-	      int phi_1_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
+	      const int phi_1_unknown = nodal_local_eqn(l2,phi_1_index_micromag());
 	      if(phi_1_unknown >= 0)
 	    	jacobian(phi_1_eqn,phi_1_unknown) += - gradtestldotgradpsil2 * W;
 
 	      // w.r.t. m
 	      for(unsigned j=0; j<DIM; j++){
-	    	int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+	    	const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
 	    	if(m_unknown >= 0)
 	    	  jacobian(phi_1_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
 	      }
@@ -295,7 +295,7 @@ namespace oomph
 	      }
 
 	    // w.r.t. phi
-	    int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
+	    const int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
 	    if(phi_unknown >= 0){
 	      for(unsigned j=0; j<3; j++){
 	    	if(m_eqn[j] >= 0)

@@ -18,11 +18,13 @@ namespace mag_parameters
   // ============================================================
   /// A class to store magnetic material parameters.
   // ============================================================
+// TODO: normalisation, multiple mesh normalisation
   class MagneticParameters
   {
   public:
     MagneticParameters()
       : Gamma(1e-15), Gilbert_damping(0.05),
+	Magnetostatic_coefficient(1),
 	Crystalline_ansiotropy_type(mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY)
     {}
 
@@ -35,6 +37,7 @@ namespace mag_parameters
     double saturation_magnetisation() const {return Saturation_magnetisation;}
     double exchange_constant() const {return Exchange_constant;}
     double k1() const {return K1;}
+    double magnetostatic_coefficient() const {return Magnetostatic_coefficient;}
     mag_parameters::enum_crystalline_anisotropy_type crystalline_ansiotropy_type() const
     {return Crystalline_ansiotropy_type;}
 
@@ -73,7 +76,7 @@ namespace mag_parameters
     void crystalline_ansiotropy_field_derivative
     (const double& t, const Vector<double>& x,
      const Vector<double>& m, const double shape_fn_l2_at_x,
-     DenseMatrix<double>& dhcadm)
+     DenseMatrix<double>& dhcadm) const
     {
       switch (crystalline_ansiotropy_type())
 	{
@@ -104,6 +107,7 @@ namespace mag_parameters
     double& saturation_magnetisation() {return Saturation_magnetisation;}
     double& exchange_constant() {return Exchange_constant;}
     double& k1() {return K1;}
+    double& magnetostatic_coefficient() {return Magnetostatic_coefficient;}
 
     void set_cubic_anisotropy()
     {Crystalline_ansiotropy_type = mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY;}
@@ -117,7 +121,7 @@ namespace mag_parameters
     }
 
     /// Set properties as used in umag standard problem #4
-    void set_umag4()
+    void set_mumag4()
     {
       exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
       saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
@@ -141,6 +145,10 @@ namespace mag_parameters
     double Saturation_magnetisation;
     double Exchange_constant;
     double K1;
+
+    /// Coefficient of magnetostatic field, for debugging only: no physical
+    /// significance.
+    double Magnetostatic_coefficient;
 
     mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
   };
