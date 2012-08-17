@@ -13,9 +13,6 @@
 // My vector helpers
 #include "./vector_helpers.h"
 
-//??ds global variable
-extern bool fd_main_jacobian;
-
 using namespace oomph;
 
 namespace oomph
@@ -527,12 +524,11 @@ namespace oomph
     					  DenseMatrix<double> &jacobian)
     {
       // Call the generic routine with the flag set to 1
-      if(fd_main_jacobian == true)
-    	FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
+      if(Inputs::fd_main_jacobian == true)
+	fill_in_jacobian_from_internal_by_fd(residuals, jacobian);
       else
-      	fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-
-      fill_in_face_element_contribution_to_jacobian(jacobian);
+	fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+      // fill_in_face_element_contribution_to_jacobian(jacobian);
     }
 
     virtual void fill_in_face_element_contribution_to_jacobian

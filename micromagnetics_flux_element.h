@@ -76,14 +76,14 @@ namespace oomph
     	(residuals,GeneralisedElement::Dummy_matrix,0);
     }
 
-    // /// \short Add the element's contribution to its residual vector and its
-    // /// Jacobian matrix
-    // void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-    // 					  DenseMatrix<double> &jacobian)
-    // {
-    //   //Call the generic routine with the flag set to 1
-    //   fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
-    // }
+    /// \short Add the element's contribution to its residual vector and its
+    /// Jacobian matrix
+    void fill_in_contribution_to_jacobian(Vector<double> &residuals,
+    					  DenseMatrix<double> &jacobian)
+    {
+      //Call the generic routine with the flag set to 1
+      fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
+    }
 
     void fill_in_bulk_contribution_to_face_jacobian
     (DenseMatrix<double>& jacobian) const;
@@ -318,10 +318,10 @@ namespace oomph
 	    // Exchange contribution: (m x (dm/dn)) * test
 	    for(unsigned i=0; i<3; i++)
 	      {
-		m_eqn[i] = nodal_local_eqn(l,m_index[i]);
-		if(m_eqn[i] >=0)
-		  residuals[m_eqn[i]] += llg_precess_c * exch_c
-		    * mxndotgradmi[i] * test(l) * W;
+	    	m_eqn[i] = nodal_local_eqn(l,m_index[i]);
+	    	if(m_eqn[i] >=0)
+	    	  residuals[m_eqn[i]] += llg_precess_c * exch_c
+	    	    * mxndotgradmi[i] * test(l) * W;
 	      }
 
 	    //??ds still need to deal with surface anisotropy...
@@ -354,18 +354,18 @@ namespace oomph
 
 		    for(unsigned i=0; i<3; i++)
 		      {
-			if(!(m_eqn[i] >= 0)) continue;
+		    	if(!(m_eqn[i] >= 0)) continue;
 
-			jacobian(m_eqn[i],m_unknown[j]) +=
-			  exch_c * llg_precess_c * W * test(l) *
-			  psi(l2) * jxdmdn[i];
+		    	jacobian(m_eqn[i],m_unknown[j]) +=
+		    	  exch_c * llg_precess_c * W * test(l) *
+		    	  psi(l2) * jxdmdn[i];
 
-			// Unfortuantely the second term of this equation is
-			// non-zero for m_unknown in bulk nodes in the same bulk
-			// element. This means we must also include a Jacobian
-			// contribution due to the surface integral in the bulk
-			// element. This is implemented in the function ??ds
-			// called by the bulk element.
+		    	// Unfortuantely the second term of this equation is
+		    	// non-zero for m_unknown in bulk nodes in the same bulk
+		    	// element. This means we must also include a Jacobian
+		    	// contribution due to the surface integral in the bulk
+		    	// element. This is implemented in the function ??ds
+		    	// called by the bulk element.
 		      }
 		  }
 	      }

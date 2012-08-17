@@ -19,24 +19,32 @@ using namespace MathematicalConstants;
 
 /*
 
-problems with jacobian:
+  problems with jacobian:
 
-d m_y/ d m_x
+  d m_y/ d m_x
 
-d m_z/d m_x
+  d m_z/d m_x
 
-with m_x at different nodes
+  with m_x at different nodes
 
-affected by dt
+  affected by dt
 
 
-Also flux element Jacobian is wrong, but not badly so
+
+
+  Also flux element Jacobian is wrong, but not badly so
 */
+
+
+bool fd_main_jacobian;
+char folder[15];
+unsigned timestep, newtonstep;
+
 namespace Inputs
 {
   // ??ds need to do this input stuff properly..
 
-  double llg_damping = 0.01;
+  double llg_damping = 0.05;
   double llg_precession = 1;
   double exchange_coeff = 1;
   double magnetostatic_coeff = 1;
@@ -44,7 +52,7 @@ namespace Inputs
   double applied_field_coeff = 3;
 
   double dt = 1e-3;
-  double tmax = 1;
+  double tmax = 40*dt;
 
   bool adaptive_timestepping = 0;
   bool full_jacobian_fd = 0;
@@ -70,8 +78,6 @@ namespace Inputs
   // Be careful with other meshes, especially warped ones - angles not defined.
   const unsigned shape = 0;
 
-
-  // Remember these might not be in Jacobian yet!
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
     h_app.assign(3,0.0);
@@ -105,8 +111,8 @@ namespace Inputs
   // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
   // with respect to at the point x.
   void dhcadm_k(const double& t, const Vector<double>& x,
-		 const Vector<double>& m, const double shape_fn_l2_at_x,
-		 DenseMatrix<double>& dhcadm)
+		const Vector<double>& m, const double shape_fn_l2_at_x,
+		DenseMatrix<double>& dhcadm)
   {
     Vector<double> easy_axis(3,0.0);
     unsigned ax = 0;
@@ -342,7 +348,7 @@ namespace oomph
       // Finish off the residual calculation
       insert_bem_phi_residual_contribution(residuals);
 
-       // Create a sum of matrices holding the total jacobian
+      // Create a sum of matrices holding the total jacobian
       SumOfMatrices lazy_sum;
       lazy_sum.main_matrix_pt() = &sparse_jacobian;
 
@@ -375,10 +381,14 @@ namespace oomph
     		     lazy_sum.nrow(),lazy_sum.ncol());
 
       // dump jacobian for tests
+      char jac_filename[100], res_filename[100];
+      sprintf(jac_filename,"%s/jacobian%u_%u",folder,timestep,newtonstep);
+      sprintf(res_filename,"%s/residuals%u_%u",folder,timestep,newtonstep);
+
       //why are the Matrix:: needed? - because inheritence of crdouble matrix is weird!
-      sparse_jacobian.Matrix::sparse_indexed_output(std::string("matrices/sparse_jac_part"));
-      jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
-      residuals.output("matrices/residual");
+      sparse_jacobian.Matrix::sparse_indexed_output(jac_filename);
+      //jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
+      residuals.output(res_filename);
 
       // if(n_step > 0)
       // 	exit(0);
@@ -434,229 +444,242 @@ namespace oomph
     void actions_before_newton_step(){}
 
     /// Update the problem specs after solve
-    void actions_after_newton_solve();
+    void actions_after_newton_step()
+    {
+      // get values (horribly inefficient)
+      DoubleVector dofs;
+      get_dofs(dofs);
+
+      // dump values
+      char filename[100];
+      sprintf(filename,"%s/values%u_%u",folder,timestep,newtonstep);
+      dofs.output(filename);
+
+      newtonstep++;
+    }
 
     /// Update the problem specs after solve (empty)
     void actions_after_implicit_timestep(){}
+
   }; // end of problem class
 
 
-//======================================================================
-/// Constructor
-//======================================================================
-template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-ThreeDHybridProblem(const std::string& node_file_name,
-		    const std::string& element_file_name,
-		    const std::string& face_file_name)
-{
+  //======================================================================
+  /// Constructor
+  //======================================================================
+  template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+  ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  ThreeDHybridProblem(const std::string& node_file_name,
+		      const std::string& element_file_name,
+		      const std::string& face_file_name)
+  {
 
-  //??ds
-  n_step = 0;
+    //??ds
+    n_step = 0;
 
-  if(Inputs::midpointmethod)
-    {
-      if(Inputs::adaptive_timestepping)
-	std::cerr << "No adaptive midpoint yet." << std::endl;
-
-      add_time_stepper_pt(new BDF<1>);
-    }
-  else // use bdf
-    {
-      if(Inputs::adaptive_timestepping)
-	add_time_stepper_pt(new BDF<Inputs::bdforder>(true));
-      else
-	add_time_stepper_pt(new BDF<Inputs::bdforder>);
-    }
-
-  if(Inputs::full_jacobian_fd)
-    {
-      linear_solver_pt() = new FD_LU;
-    }
-  else if (Inputs::GMRES)
-    {
-      if(Inputs::sum_matrix == 1)
-	linear_solver_pt() = new GMRES<SumOfMatrices>;
-      else
-	linear_solver_pt() = new GMRES<CRDoubleMatrix>;
-
-      // // Set general preconditioner
-      // IterativeLinearSolver* it_lin_solver_pt =
-      //   dynamic_cast<IterativeLinearSolver*>(linear_solver_pt());
-      // it_lin_solver_pt->preconditioner_pt() =
-      //   new ILUZeroPreconditioner<CRDoubleMatrix>;
-      //??ds can't use it because we have this sumofmatrices class
-    }
-  else
-    {
-      linear_solver_pt() = new SuperLUSolver;
-    }
-
-  switch (Inputs::shape)
-    {
-    case 0:
+    if(Inputs::midpointmethod)
       {
-	if(Inputs::dim == 3)
-	  {
-	    // Build mesh from tetgen
-	    Bulk_mesh_pt = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
-							face_file_name, time_stepper_pt());
-	  }
-	else if (Inputs::dim == 2)
-	  {
-	    // A square mesh
-	    unsigned  ny = Inputs::nx;
-	    Bulk_mesh_pt = new RectangularQuadMesh<BULK_ELEMENT>
-	      (Inputs::nx,ny,1.0,1.0,time_stepper_pt());
-	  }
-	else
-	  {
-	    std::cerr << "dim must be 2 or 3" << std::endl;
-	    throw 123413;
-	  }
-	break;
+	if(Inputs::adaptive_timestepping)
+	  std::cerr << "No adaptive midpoint yet." << std::endl;
+
+	add_time_stepper_pt(new BDF<1>);
       }
-    case 1:
+    else // use bdf
       {
-	unsigned lx = 3, ly = 3, lz = 10;
-	unsigned ny = Inputs::nx, nz = unsigned(Inputs::nx * lz/lx);
-	if(Inputs::dim == 3)
-	  {
-	    // Cubeoid
-	    Bulk_mesh_pt = new SimpleCubicMesh<BULK_ELEMENT>
-	      (Inputs::nx,ny,nz,lx,ly,lz,time_stepper_pt());
-	  }
-	else if (Inputs::dim == 2)
-	  {
-	    Bulk_mesh_pt = new RectangularQuadMesh<BULK_ELEMENT>
-	      (Inputs::nx,nz,lx,lz,time_stepper_pt());
-	  }
+	if(Inputs::adaptive_timestepping)
+	  add_time_stepper_pt(new BDF<Inputs::bdforder>(true));
 	else
-	  {
-	    std::cerr << "dim must be 2 or 3" << std::endl;
-	    throw 123413;
-	  }
-	break;
+	  add_time_stepper_pt(new BDF<Inputs::bdforder>);
       }
-    }
 
-  // Bulk elements
-  //------------------------------------------------------------
+    if(Inputs::full_jacobian_fd)
+      {
+	linear_solver_pt() = new FD_LU;
+      }
+    else if (Inputs::GMRES)
+      {
+	if(Inputs::sum_matrix == 1)
+	  linear_solver_pt() = new GMRES<SumOfMatrices>;
+	else
+	  linear_solver_pt() = new GMRES<CRDoubleMatrix>;
 
-  // Loop over elements in bulk mesh to set function pointers
-  for(unsigned i=0; i< Bulk_mesh_pt->nelement(); i++)
-    {
-      // Upcast from GeneralisedElement to the present element
-      BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(i));
+	// // Set general preconditioner
+	// IterativeLinearSolver* it_lin_solver_pt =
+	//   dynamic_cast<IterativeLinearSolver*>(linear_solver_pt());
+	// it_lin_solver_pt->preconditioner_pt() =
+	//   new ILUZeroPreconditioner<CRDoubleMatrix>;
+	//??ds can't use it because we have this sumofmatrices class
+      }
+    else
+      {
+	linear_solver_pt() = new SuperLUSolver;
+      }
 
-      // Set pointer to continuous time
-      elem_pt->time_pt() = time_pt();
+    switch (Inputs::shape)
+      {
+      case 0:
+	{
+	  if(Inputs::dim == 3)
+	    {
+	      // Build mesh from tetgen
+	      Bulk_mesh_pt = new TetgenMesh<BULK_ELEMENT>(node_file_name, element_file_name,
+							  face_file_name, time_stepper_pt());
+	    }
+	  else if (Inputs::dim == 2)
+	    {
+	      // A square mesh
+	      unsigned  ny = Inputs::nx;
+	      Bulk_mesh_pt = new RectangularQuadMesh<BULK_ELEMENT>
+		(Inputs::nx,ny,1.0,1.0,time_stepper_pt());
+	    }
+	  else
+	    {
+	      std::cerr << "dim must be 2 or 3" << std::endl;
+	      throw 123413;
+	    }
+	  break;
+	}
+      case 1:
+	{
+	  unsigned lx = 3, ly = 3, lz = 10;
+	  unsigned ny = Inputs::nx, nz = unsigned(Inputs::nx * lz/lx);
+	  if(Inputs::dim == 3)
+	    {
+	      // Cubeoid
+	      Bulk_mesh_pt = new SimpleCubicMesh<BULK_ELEMENT>
+		(Inputs::nx,ny,nz,lx,ly,lz,time_stepper_pt());
+	    }
+	  else if (Inputs::dim == 2)
+	    {
+	      Bulk_mesh_pt = new RectangularQuadMesh<BULK_ELEMENT>
+		(Inputs::nx,nz,lx,lz,time_stepper_pt());
+	    }
+	  else
+	    {
+	      std::cerr << "dim must be 2 or 3" << std::endl;
+	      throw 123413;
+	    }
+	  break;
+	}
+      }
 
-      // Set the function pointers for parameters
-      //??ds fix this to use proper encapsulation asap
-      elem_pt->applied_field_pt() = &Inputs::applied_field;
-      elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-      elem_pt->hca_derivative_pt() = &Inputs::dhcadm_k;
-      // elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-      elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-      elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-      elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
-      elem_pt->magnetostatic_coeff_pt() = &Inputs::magnetostatic_coeff;
-    }
+    // Bulk elements
+    //------------------------------------------------------------
 
-  // Get the indicies for phi and phi_1 via casting a pointer
-  BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(Bulk_mesh_pt->element_pt(0));
-  Phi_index = elem_pt->phi_index_micromag();
-  Phi_1_index = elem_pt->phi_1_index_micromag();
+    // Loop over elements in bulk mesh to set function pointers
+    for(unsigned i=0; i< Bulk_mesh_pt->nelement(); i++)
+      {
+	// Upcast from GeneralisedElement to the present element
+	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(i));
 
-  // // ??ds temp: pin the values on
-  // if((Inputs::magnetostatic_coeff == 0))
-  //   {
-  // 	BULK_ELEMENT* some_el_pt = dynamic_cast< BULK_ELEMENT* >
-  // 	  (Bulk_mesh_pt->element_pt(0));
-  // 	for(unsigned b=0; b<Bulk_mesh_pt->nboundary(); b++)
-  // 	  {
-  // 	    for(unsigned nd=0; nd < Bulk_mesh_pt->nboundary_node(b); nd++)
-  // 	      {
-  // 		Bulk_mesh_pt->boundary_node_pt(b,nd)->
-  // 		  pin(some_el_pt->phi_index_micromag());
-  // 	      }
-  // 	  }
+	// Set pointer to continuous time
+	elem_pt->time_pt() = time_pt();
 
-  //pin_local_eqn_on_all_boundaries(phi_index,  Bulk_mesh_pt)
-  //}
+	// Set the function pointers for parameters
+	//??ds fix this to use proper encapsulation asap
+	elem_pt->applied_field_pt() = &Inputs::applied_field;
+	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+	elem_pt->hca_derivative_pt() = &Inputs::dhcadm_k;
+	// elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+	elem_pt->magnetostatic_coeff_pt() = &Inputs::magnetostatic_coeff;
+      }
 
-  // //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
-  // // i.e when r =0.
-  // bool found = false;
-  // for(unsigned nd=0; nd< Bulk_mesh_pt->nnode(); nd++)
-  //   {
-  // 	Vector<double> nd_x(DIM,0.0);
-  // 	for(unsigned j=0; j<DIM; j++)
-  // 	  nd_x[j] = Bulk_mesh_pt->node_pt(nd)->x(j);
-  // 	if ( small(nd_x[0]) && small(nd_x[1]) && small(1 - nd_x[2]) )
-  // 	  {
-  // 	    Bulk_mesh_pt->node_pt(nd)->pin(Phi_1_index);
-  // 	    Bulk_mesh_pt->node_pt(nd)->set_value(Phi_1_index,0.0);
-  // 	    found = true;
-  // 	    break;
-  // 	  }
-  //   }
-  // if (!(found))
-  //   throw OomphLibError("No node near middle","",OOMPH_EXCEPTION_LOCATION);
+    // Get the indicies for phi and phi_1 via casting a pointer
+    BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(Bulk_mesh_pt->element_pt(0));
+    Phi_index = elem_pt->phi_index_micromag();
+    Phi_1_index = elem_pt->phi_1_index_micromag();
 
+    // // ??ds temp: pin the values on
+    // if((Inputs::magnetostatic_coeff == 0))
+    //   {
+    // 	BULK_ELEMENT* some_el_pt = dynamic_cast< BULK_ELEMENT* >
+    // 	  (Bulk_mesh_pt->element_pt(0));
+    // 	for(unsigned b=0; b<Bulk_mesh_pt->nboundary(); b++)
+    // 	  {
+    // 	    for(unsigned nd=0; nd < Bulk_mesh_pt->nboundary_node(b); nd++)
+    // 	      {
+    // 		Bulk_mesh_pt->boundary_node_pt(b,nd)->
+    // 		  pin(some_el_pt->phi_index_micromag());
+    // 	      }
+    // 	  }
 
-  // Flux elements
-  //------------------------------------------------------------
+    //pin_local_eqn_on_all_boundaries(phi_index,  Bulk_mesh_pt)
+    //}
 
-  // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
-  // create the face elements needed.
-  Flux_mesh_pt = new Mesh;
-  for(unsigned b=0; b < Bulk_mesh_pt->nboundary(); b++)
-    {
-      create_flux_elements(b,Bulk_mesh_pt,Flux_mesh_pt);
-    }
-
-  // BEM elements
-  //------------------------------------------------------------
-
-  // Create integration scheme in case it is needed.
-  QVariableOrderGaussLegendre<DIM-1>* variable_scheme_pt
-    = new QVariableOrderGaussLegendre<DIM-1>;
-
-  // Create BEM elements on all boundaries and add to BEM mesh
-  Bem_mesh_pt = new Mesh;
-  build_bem_mesh(bem_mesh_pt());
-
-  // Set boundary mesh pointer in element (static memeber so only do once)
-  BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
-
-  // Set pointers in elements
-  for(unsigned i_ele = 0; i_ele < bem_mesh_pt()->nelement(); i_ele++)
-    {
-      // Cast pointer
-      BEM_ELEMENT<BULK_ELEMENT,DIM>* ele_pt
-	= dynamic_cast< BEM_ELEMENT< BULK_ELEMENT,DIM>* >
-	(bem_mesh_pt()->element_pt(i_ele));
-
-      // Set integration scheme
-      ele_pt->set_integration_scheme(variable_scheme_pt);
-    }
-
-  // Build global finite element mesh
-  add_sub_mesh(Bulk_mesh_pt);
-  add_sub_mesh(Flux_mesh_pt);
-  build_global_mesh();
-
-  // Setup equation numbering scheme for all the finite elements
-  std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
-
-  // Make the boundary matrix (including setting up the numbering scheme).  Note
-  // that this requires the FEM numbering scheme to be already set up.
-  build_boundary_matrix();
+    //??temp to help with testing phi_1 pin it's value to zero at r cos(azi) sin(polar) = 0,
+    // i.e when r =0.
+    bool found = false;
+    for(unsigned nd=0; nd< Bulk_mesh_pt->nnode(); nd++)
+      {
+	Vector<double> nd_x(DIM,0.0);
+	for(unsigned j=0; j<DIM; j++)
+	  nd_x[j] = Bulk_mesh_pt->node_pt(nd)->x(j);
+	if ( small(nd_x[0]) && small(nd_x[1]) && small(nd_x[2]) )
+	  {
+	    Bulk_mesh_pt->node_pt(nd)->pin(Phi_1_index);
+	    Bulk_mesh_pt->node_pt(nd)->set_value(Phi_1_index,0.0);
+	    found = true;
+	    break;
+	  }
+      }
+    if (!(found))
+      throw OomphLibError("No node near middle","",OOMPH_EXCEPTION_LOCATION);
 
 
-} // end of constructor
+    // Flux elements
+    //------------------------------------------------------------
+
+    // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
+    // create the face elements needed.
+    Flux_mesh_pt = new Mesh;
+    for(unsigned b=0; b < Bulk_mesh_pt->nboundary(); b++)
+      {
+	create_flux_elements(b,Bulk_mesh_pt,Flux_mesh_pt);
+      }
+
+    // BEM elements
+    //------------------------------------------------------------
+
+    // Create integration scheme in case it is needed.
+    QVariableOrderGaussLegendre<DIM-1>* variable_scheme_pt
+      = new QVariableOrderGaussLegendre<DIM-1>;
+
+    // Create BEM elements on all boundaries and add to BEM mesh
+    Bem_mesh_pt = new Mesh;
+    build_bem_mesh(bem_mesh_pt());
+
+    // Set boundary mesh pointer in element (static memeber so only do once)
+    BEM_ELEMENT<BULK_ELEMENT,DIM>::set_boundary_mesh_pt(bem_mesh_pt());
+
+    // Set pointers in elements
+    for(unsigned i_ele = 0; i_ele < bem_mesh_pt()->nelement(); i_ele++)
+      {
+	// Cast pointer
+	BEM_ELEMENT<BULK_ELEMENT,DIM>* ele_pt
+	  = dynamic_cast< BEM_ELEMENT< BULK_ELEMENT,DIM>* >
+	  (bem_mesh_pt()->element_pt(i_ele));
+
+	// Set integration scheme
+	ele_pt->set_integration_scheme(variable_scheme_pt);
+      }
+
+    // Build global finite element mesh
+    add_sub_mesh(Bulk_mesh_pt);
+    add_sub_mesh(Flux_mesh_pt);
+    build_global_mesh();
+
+    // Setup equation numbering scheme for all the finite elements
+    std::cout << "FEM number of equations: " << assign_eqn_numbers() << std::endl;
+
+    // Make the boundary matrix (including setting up the numbering scheme).  Note
+    // that this requires the FEM numbering scheme to be already set up.
+    build_boundary_matrix();
+
+
+  } // end of constructor
 
 
 
@@ -1058,37 +1081,37 @@ ThreeDHybridProblem(const std::string& node_file_name,
   }
 
 
-  //======================================================================
-  /// When using mid-point method we must update after each solveto go from
-  /// [n+0.5] to [n+1].
-  //======================================================================
-  template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-  void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-  actions_after_newton_solve()
-  {
-    // If we are using midpoint then apply the required update (Malidi2005)
-    if(Inputs::midpointmethod)
-      {
-	// Get m indicies
-	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(0));
-	Vector<unsigned> m_indices(3,0);
-	for(unsigned j=0; j<3; j++)
-	  m_indices[j] = bulk_elem_pt->m_index_micromag(j);
+  // //======================================================================
+  // /// When using mid-point method we must update after each solveto go from
+  // /// [n+0.5] to [n+1].
+  // //======================================================================
+  // template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+  // void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+  // actions_after_newton_solve()
+  // {
+  //   // If we are using midpoint then apply the required update (Malidi2005)
+  //   if(Inputs::midpointmethod)
+  //     {
+  // 	// Get m indicies
+  // 	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>(Bulk_mesh_pt->element_pt(0));
+  // 	Vector<unsigned> m_indices(3,0);
+  // 	for(unsigned j=0; j<3; j++)
+  // 	  m_indices[j] = bulk_elem_pt->m_index_micromag(j);
 
-	for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
-	  {
-	    Node* nd_pt = mesh_pt()->node_pt(i_nd);
-	    for(unsigned j=0; j<3; j++)
-	      {
-		// m[n] --> 2*m[n] - m[n-1]
-		// because we have finished this timestep and moved forward one
-		double new_m = 2*(nd_pt->value(m_indices[j]))
-		  - (nd_pt->value(1,m_indices[j]));
-		nd_pt->set_value(m_indices[j],new_m);
-	      }
-	  }
-      }
-  }
+  // 	for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
+  // 	  {
+  // 	    Node* nd_pt = mesh_pt()->node_pt(i_nd);
+  // 	    for(unsigned j=0; j<3; j++)
+  // 	      {
+  // 		// m[n] --> 2*m[n] - m[n-1]
+  // 		// because we have finished this timestep and moved forward one
+  // 		double new_m = 2*(nd_pt->value(m_indices[j]))
+  // 		  - (nd_pt->value(1,m_indices[j]));
+  // 		nd_pt->set_value(m_indices[j],new_m);
+  // 	      }
+  // 	  }
+  //     }
+  // }
 
 } // End of oomph namespace
 
@@ -1115,150 +1138,250 @@ int main(int argc, char* argv[])
   double dt = Inputs::dt;
   const double tmax = Inputs::tmax;
 
-  // Dummy error for timestepper - always be ok
-  const double dummy_t_eps = 100;
+  // // Dummy error for timestepper - always be ok
+  // const double dummy_t_eps = 100;
+
+
+  {
+    // Create the problem
+    ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+      problem(argv[1],argv[2],argv[3]);
+
+    // problem.max_newton_iterations() = 15;
+    // problem.max_residuals() = 30;
+
+    // // dump mesh for testing
+    // std::ofstream mesh_plot;
+    // mesh_plot.open("./mesh_points");
+    // for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
+    //   {
+    //     for(unsigned j=0; j<dim; j++)
+    // 	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
+    //     mesh_plot << std::endl;
+    //   }
+    // mesh_plot.close();
+
+
+    // // dump boundary for testing
+    // unsigned b = 0;
+    // std::ofstream bound_plot;
+    // bound_plot.open("./bound_points");
+    // for(unsigned nd=0; nd<problem.Bulk_mesh_pt->nboundary_node(b); nd++)
+    //   {
+    //     for(unsigned j=0; j<dim; j++)
+    // 	bound_plot << problem.Bulk_mesh_pt->boundary_node_pt(b,nd)->x(j) << " ";
+    //     bound_plot << std::endl;
+    //   }
+    // bound_plot.close();
+
+
+    // Initialise timestep, initial conditions
+    problem.initialise_dt(dt);
+    problem.set_initial_condition();
+
+    // Set up outputs and output initial conditions
+    DocInfo doc_info;
+    doc_info.set_directory("results");
+    doc_info.number()=0;
+    problem.doc_solution(doc_info);
+    doc_info.number()++;
+
+    /// Check problem
+    if(!(problem.self_test()==0))
+      throw OomphLibError("Problem self_test failed","main",
+			  OOMPH_EXCEPTION_LOCATION);
+
+    std::cout << "constructor done, everything ready" << "\n" << std::endl;
+
+    std::cout << std::endl;
+
+    // Open a trace file
+    std::ofstream trace_file;
+    char trace_filename[100];
+    sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
+    trace_file.open(trace_filename);
+
+    // DoubleVector residual_vector;
+    // problem.get_residuals(residual_vector);
+    // residual_vector.output("./matrices/residuals");
+
+    problem.boundary_matrix_pt()->Matrix::output("./matrices/bem");
+
+    // DoubleVector dummy_res;
+    // DenseMatrix<double> fd_jacobian;
+    // problem.get_fd_jacobian(dummy_res,fd_jacobian);
+    // fd_jacobian.Matrix::output("fd_jacobian");
 
 
 
-  // Create the problem
-  ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
-    problem(argv[1],argv[2],argv[3]);
+    unsigned nstep = int(tmax/dt);
 
-  // problem.max_newton_iterations() = 15;
-  // problem.max_residuals() = 30;
 
-  // // dump mesh for testing
-  // std::ofstream mesh_plot;
-  // mesh_plot.open("./mesh_points");
-  // for(unsigned nd=0; nd<problem.mesh_pt()->nnode(); nd++)
+    // Solve WITH FD:
+    fd_main_jacobian = true;
+    sprintf(folder,"fd");
+    timestep = doc_info.number();
+
+    // Standard timestepping loop
+    for(unsigned istep=0; istep<nstep; istep++)
+      {
+	std::cout << "Timestep " << istep << std::endl;
+
+	newtonstep = 0;
+
+	// Take timestep
+	problem.unsteady_newton_solve(dt);
+
+	//Output solution
+	problem.doc_solution(doc_info);
+
+	//Increment counter for solutions
+	doc_info.number()++;
+
+	//??ds increment global variable
+	timestep = doc_info.number();
+      }
+  } // memory leaks!?
+
+  {
+    // Create the problem
+    ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
+      problem(argv[1],argv[2],argv[3]);
+
+    // Initialise timestep, initial conditions
+    problem.initialise_dt(dt);
+    problem.set_initial_condition();
+
+    // Set up outputs and output initial conditions
+    DocInfo doc_info;
+    doc_info.set_directory("results");
+    doc_info.number()=0;
+    problem.doc_solution(doc_info);
+    doc_info.number()++;
+
+    /// Check problem
+    if(!(problem.self_test()==0))
+      throw OomphLibError("Problem self_test failed","main",
+			  OOMPH_EXCEPTION_LOCATION);
+
+    std::cout << "constructor done, everything ready" << "\n" << std::endl;
+
+    std::cout << std::endl;
+
+    // Open a trace file
+    std::ofstream trace_file;
+    char trace_filename[100];
+    sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
+    trace_file.open(trace_filename);
+
+    // DoubleVector residual_vector;
+    // problem.get_residuals(residual_vector);
+    // residual_vector.output("./matrices/residuals");
+
+    problem.boundary_matrix_pt()->Matrix::output("./matrices/bem");
+
+    // DoubleVector dummy_res;
+    // DenseMatrix<double> fd_jacobian;
+    // problem.get_fd_jacobian(dummy_res,fd_jacobian);
+    // fd_jacobian.Matrix::output("fd_jacobian");
+
+
+    unsigned nstep = int(tmax/dt);
+
+    // Solve without FD:
+    doc_info.number() = 1;
+    fd_main_jacobian = false;
+    sprintf(folder,"non-fd");
+    timestep = doc_info.number();
+
+    // Standard timestepping loop
+    for(unsigned istep=0; istep<nstep; istep++)
+      {
+	std::cout << "Timestep " << istep << std::endl;
+
+	newtonstep = 0;
+
+	// Take timestep
+	problem.unsteady_newton_solve(dt);
+
+	//Output solution
+	problem.doc_solution(doc_info);
+
+	//Increment counter for solutions
+	doc_info.number()++;
+
+	//??ds increment global variable
+	timestep = doc_info.number();
+      }
+
+  }
+
+  // if(Inputs::adaptive_timestepping)
   //   {
-  //     for(unsigned j=0; j<dim; j++)
-  // 	mesh_plot << problem.mesh_pt()->node_pt(nd)->x(j) << " ";
-  //     mesh_plot << std::endl;
+  //     // Adaptive while loop
+
+  //     while (problem.time_pt()->time()<tmax)
+  // 	{
+  // 	  std::cout << "Time is " << problem.time_pt()->time()<< std::endl
+  // 		    << "Current timestep is " << dt << std::endl << std::endl;
+
+
+  // 	  // Take an adaptive timestep -- the input dt is the suggested timestep.
+  // 	  // The adaptive timestepper will adjust dt until the required error
+  // 	  // tolerance is satisfied. The function returns a suggestion
+  // 	  // for the timestep that should be taken for the next step. This
+  // 	  // is either the actual timestep taken this time or a larger
+  // 	  // value if the solution was found to be "too accurate".
+  // 	  double dt_next=problem.adaptive_unsteady_newton_solve(dt,dummy_t_eps);
+
+  // 	  // Use dt_next as suggestion for the next timestep
+  // 	  dt=dt_next;
+
+  // 	  //Output solution
+  // 	  problem.doc_solution(doc_info);
+
+  // 	  trace_file << doc_info.number() << " " << problem.time_pt()->time()
+  // 		     << " " << dt_next << std::endl;
+
+  // 	  //Increment counter for solutions
+  // 	  doc_info.number()++;
+
+  // 	} // end of timestepping loop
+
+
   //   }
-  // mesh_plot.close();
-
-
-  // // dump boundary for testing
-  // unsigned b = 0;
-  // std::ofstream bound_plot;
-  // bound_plot.open("./bound_points");
-  // for(unsigned nd=0; nd<problem.Bulk_mesh_pt->nboundary_node(b); nd++)
+  // else
   //   {
-  //     for(unsigned j=0; j<dim; j++)
-  // 	bound_plot << problem.Bulk_mesh_pt->boundary_node_pt(b,nd)->x(j) << " ";
-  //     bound_plot << std::endl;
+  //     unsigned nstep = int(tmax/dt);
+
+  //     // Standard timestepping loop
+  //     for(unsigned istep=0; istep<nstep; istep++)
+  // 	{
+  // 	  std::cout << "Timestep " << istep << std::endl;
+
+  // 	  // Take timestep
+  // 	  problem.unsteady_newton_solve(dt);
+
+  // 	  //Output solution
+  // 	  problem.doc_solution(doc_info);
+
+  // 	  // DenseDoubleMatrix jacobian;
+  // 	  // DoubleVector residuals;
+  // 	  // problem.get_jacobian(residuals,jacobian);
+
+  // 	  // std::ofstream residual_file;
+  // 	  // residual_file.precision(16);
+  // 	  // char filename2[100];
+  // 	  // sprintf(filename2,"results/residual");
+  // 	  // residual_file.open(filename2);
+  // 	  // residuals.output(residual_file);
+  // 	  // residual_file.close();
+
+  // 	  //Increment counter for solutions
+  // 	  doc_info.number()++;
+  // 	}
+
   //   }
-  // bound_plot.close();
-
-
-  // Initialise timestep, initial conditions
-  problem.initialise_dt(dt);
-  problem.set_initial_condition();
-
-  // Set up outputs and output initial conditions
-  DocInfo doc_info;
-  doc_info.set_directory("results");
-  doc_info.number()=0;
-  problem.doc_solution(doc_info);
-  doc_info.number()++;
-
-  /// Check problem
-  if(!(problem.self_test()==0))
-    throw OomphLibError("Problem self_test failed","main",
-  			OOMPH_EXCEPTION_LOCATION);
-
-  std::cout << "constructor done, everything ready" << "\n" << std::endl;
-
-  std::cout << std::endl;
-
-  // Open a trace file
-  std::ofstream trace_file;
-  char trace_filename[100];
-  sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
-  trace_file.open(trace_filename);
-
-  // DoubleVector residual_vector;
-  // problem.get_residuals(residual_vector);
-  // residual_vector.output("./matrices/residuals");
-
-  problem.boundary_matrix_pt()->Matrix::output("./matrices/bem");
-
-  // DoubleVector dummy_res;
-  // DenseMatrix<double> fd_jacobian;
-  // problem.get_fd_jacobian(dummy_res,fd_jacobian);
-  // fd_jacobian.Matrix::output("fd_jacobian");
-
-
-
-
-
-  if(Inputs::adaptive_timestepping)
-    {
-      // Adaptive while loop
-
-      while (problem.time_pt()->time()<tmax)
-	{
-	  std::cout << "Time is " << problem.time_pt()->time()<< std::endl
-		    << "Current timestep is " << dt << std::endl << std::endl;
-
-
-	  // Take an adaptive timestep -- the input dt is the suggested timestep.
-	  // The adaptive timestepper will adjust dt until the required error
-	  // tolerance is satisfied. The function returns a suggestion
-	  // for the timestep that should be taken for the next step. This
-	  // is either the actual timestep taken this time or a larger
-	  // value if the solution was found to be "too accurate".
-	  double dt_next=problem.adaptive_unsteady_newton_solve(dt,dummy_t_eps);
-
-	  // Use dt_next as suggestion for the next timestep
-	  dt=dt_next;
-
-	  //Output solution
-	  problem.doc_solution(doc_info);
-
-	  trace_file << doc_info.number() << " " << problem.time_pt()->time()
-		     << " " << dt_next << std::endl;
-
-	  //Increment counter for solutions
-	  doc_info.number()++;
-
-	} // end of timestepping loop
-
-
-    }
-  else
-    {
-      unsigned nstep = int(tmax/dt);
-
-      // Standard timestepping loop
-      for(unsigned istep=0; istep<nstep; istep++)
-	{
-	  std::cout << "Timestep " << istep << std::endl;
-
-	  // Take timestep
-	  problem.unsteady_newton_solve(dt);
-
-	  //Output solution
-	  problem.doc_solution(doc_info);
-
-	  // DenseDoubleMatrix jacobian;
-	  // DoubleVector residuals;
-	  // problem.get_jacobian(residuals,jacobian);
-
-	  // std::ofstream residual_file;
-	  // residual_file.precision(16);
-	  // char filename2[100];
-	  // sprintf(filename2,"results/residual");
-	  // residual_file.open(filename2);
-	  // residuals.output(residual_file);
-	  // residual_file.close();
-
-	  //Increment counter for solutions
-	  doc_info.number()++;
-	}
-
-    }
 }
 
 #endif

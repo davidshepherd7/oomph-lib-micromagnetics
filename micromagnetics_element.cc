@@ -305,7 +305,6 @@ namespace oomph
 	    }
 
 	    // nothing w.r.t. phi1
-
 	    // w.r.t. m
 	    for(unsigned j=0; j<3; j++) // loop over the m we differentiate by
 	      {
