@@ -25,11 +25,17 @@ namespace oomph
     HybridMicromagneticsProblem()
       : Flux_mesh_pt(0), Bem_mesh_pt(0),
 	Bulk_mesh_pt(0), Bulk_mesh_magnetic_parameters_pt(0)
-    {};
+    {
+      debug_doc().disable_doc();
+      debug_doc().set_directory("debug");
+    };
 
     virtual void doc_solution(DocInfo& doc_info) = 0;
 
     virtual void set_initial_condition() = 0;
+
+    void actions_after_newton_step()
+    { debug_doc().next_newton_step(); }
 
     /// Finish off construction of problem (once mesh and magnetic properties
     /// have been set up).
@@ -61,6 +67,12 @@ namespace oomph
 
     Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
     Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
+
+    std::map<Node*,double>* corners_map_pt() const {return Corners_map_pt;}
+    std::map<Node*,double>*& corners_map_pt() {return Corners_map_pt;}
+
+    DocInfo& debug_doc() const {return Debug_doc;}
+    DocInfo& debug_doc() {return Debug_doc;}
 
     MagneticParameters* magnetic_parameters_pt() const
     {return Bulk_mesh_magnetic_parameters_pt;}
@@ -157,11 +169,32 @@ namespace oomph
       jacobian.build(dist_pt,rows,cols,values,
     		     lazy_sum.nrow(),lazy_sum.ncol());
 
-      // dump jacobian for tests
-      //why are the Matrix:: needed? - because inheritence of crdouble matrix is weird!
-      sparse_jacobian.Matrix::sparse_indexed_output(std::string("matrices/sparse_jac_part"));
-      jacobian.Matrix::sparse_indexed_output("matrices/cr_jacobian");
-      residuals.output("matrices/residual");
+
+      // This is probably very slow...
+      if(debug_doc().is_doc_enabled())
+	{
+	  // get values (horribly inefficient)
+	  DoubleVector dofs;
+	  get_dofs(dofs);
+
+	  // Get filenames
+	  char dof_filename[100], jac_filename[100], res_filename[100],
+	    spjac_filename[100];
+	  sprintf(dof_filename, "%s/dofs_%u_%u", debug_doc().directory().c_str(),
+		  debug_doc().timestep(), debug_doc().newton_step());
+	  sprintf(jac_filename, "%s/jac_%u_%u", debug_doc().directory().c_str(),
+		  debug_doc().timestep(), debug_doc().newton_step());
+	  sprintf(res_filename, "%s/spjac_%u_%u", debug_doc().directory().c_str(),
+		  debug_doc().timestep(), debug_doc().newton_step());
+	  sprintf(spjac_filename, "%s/res_%u_%u", debug_doc().directory().c_str(),
+		  debug_doc().timestep(), debug_doc().newton_step());
+
+	  // Output
+	  dofs.output(dof_filename);
+	  jacobian.Matrix::sparse_indexed_output(jac_filename);
+	  sparse_jacobian.Matrix::sparse_indexed_output(spjac_filename);
+	  residuals.output(res_filename);
+	}
     }
 
   private:
@@ -182,6 +215,10 @@ namespace oomph
     ///
     Mesh* Bulk_mesh_pt;
 
+    /// A map containing node pointers to nodes which are on sharp corners and
+    /// the angle of their corner.
+    std::map<Node*,double>* Corners_map_pt;
+
     /// Store the magnetic parameters of the bulk mesh region.
     //??ds eventually may need to be able to store multiple meshes with
     // different parameters
@@ -195,6 +232,8 @@ namespace oomph
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Boundary_matrix;
+
+    DocInfo Debug_doc;
 
   };
 
@@ -245,26 +284,15 @@ namespace oomph
     Phi_index = elem_pt->phi_index_micromag();
     Phi_1_index = elem_pt->phi_1_index_micromag();
 
-
-    // Pin the value of phi_1 to zero at a point close to the origin.
-    // ??ds this is likely to go wrong if the origin is ont he boundary, fix?!
+    // Pin a value of phi_1 to zero somewhere in the bulk_mesh.
     // ============================================================
-    bool found = false;
-    for(unsigned nd=0; nd< bulk_mesh_pt()->nnode(); nd++)
-      {
-	Vector<double> nd_x(DIM,0.0);
-	for(unsigned j=0; j<DIM; j++)
-	  nd_x[j] = bulk_mesh_pt()->node_pt(nd)->x(j);
-	if ( small(nd_x[0]) && small(nd_x[1]) && small(nd_x[2]) )
-	  {
-	    bulk_mesh_pt()->node_pt(nd)->pin(Phi_1_index);
-	    bulk_mesh_pt()->node_pt(nd)->set_value(Phi_1_index,0.0);
-	    found = true;
-	    break;
-	  }
-      }
-    if (!(found))
-      throw OomphLibError("No node near middle","",OOMPH_EXCEPTION_LOCATION);
+
+    //This is necessary to avoid having a free constant of integration (which
+    // causes scaling problems). Just get the first node ??ds not sure this is
+    // ok...
+    Node* pinned_phi_1_node_pt = Bulk_mesh_pt->node_pt(0);
+    pinned_phi_1_node_pt->pin(Phi_1_index);
+    pinned_phi_1_node_pt->set_value(Phi_1_index,0.0);
 
     // Create flux elements
     // ============================================================
@@ -377,49 +405,36 @@ namespace oomph
 	  }
       }
 
-// #ifdef PARANOID
-//     // If the mesh is not one I've dealt with here:
-//     if((dynamic_cast<RectangularQuadMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0)
-//        && (dynamic_cast<SimpleCubicMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0)
-//        && (dynamic_cast<TetgenMesh<BULK_ELEMENT>*>(bulk_mesh_pt()) == 0))
-//       {
-// 	std::ostringstream error_msg;
-// 	error_msg << "No corner data for this mesh.";
-// 	throw OomphLibError(error_msg.str(),
-// 			    "HybridMicromagneticsProblem::build_boundary_matrix()",
-// 			    OOMPH_EXCEPTION_LOCATION);
-//       }
-// #endif
+#ifdef PARANOID
+    if(corners_map_pt() == 0)
+      {
+	std::ostringstream error_msg;
+	error_msg << "Map listing sharp corners is not set up.";
+	throw OomphLibError(error_msg.str(),
+			    "HybridMicromagneticsProblem::build_boundary_matrix()",
+			    OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
 
     // Lindholm formula does not contain the solid angle contribution so add it
-    // here. Loop over the matrix diagonals adding the angle factor.
+    // here: loop over the matrix diagonals adding the angle factor.
     for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-	// // We know that for rectangles/cubeoids corner nodes are on DIM many
-	// // boundaries so check this to find the corners.
-	// unsigned n_bound = 0;
-	// if(bem_mesh_pt()->node_pt(nd)->is_on_boundary())
-	//   {
-	//     n_bound = bem_mesh_pt()->node_pt(nd)->get_boundaries_pt()->size();
-	//   }
-	// //??ds fix this sometime...
-	// if(n_bound == DIM)
-	//   {
-	//     // Get appropriate angle for rectangle/cubeoid
-	//     double angle = ((DIM == 2) ? 0.25 : 0.125);
-	//     Boundary_matrix(nd,nd) += angle;
-	//   }
-	// else if(n_bound > DIM)
-	//   throw OomphLibError("Something has gone wrong here...",
-	// 		      "HybridMicromagneticsProblem::build_boundary_matrix()",
-	// 		      OOMPH_EXCEPTION_LOCATION);
-	// else
-	{
-	  // This only accounts for points which are smooth (at least in the limit
-	  // of infinite refinement) so the solid angle contribution is
-	  // (2*pi)/(4*pi) = 0.5.
-	  Boundary_matrix(nd,nd) += 0.5;
-	}
+	// Check if the node is in the map of corner nodes
+	Node* node_pt = bem_mesh_pt()->node_pt(nd);
+	std::map<Node*,double>::const_iterator it = corners_map_pt()->find(node_pt);
+	if(it != corners_map_pt()->end())
+	  {
+	    // Add the fractional angle for this node
+	    Boundary_matrix(nd,nd) += it->second;
+	  }
+	else
+	  {
+	    // This accounts for points which are smooth (at least in the limit
+	    // of infinite refinement) so the solid angle contribution is
+	    // (2*pi)/(4*pi) = 0.5.
+	    Boundary_matrix(nd,nd) += 0.5;
+	  }
       }
   }
 
@@ -449,6 +464,18 @@ namespace oomph
 	// Get global equation number for phi_1
 	unsigned global_phi_1_number = this->bem_mesh_pt()->
 	  node_pt(i_node)->eqn_number(phi_1_index());
+
+#ifdef PARANOID
+	//Problems could occur if the index we are using ever has pinned values
+	if((global_phi_number < 0) || (global_phi_1_number < 0))
+	  {
+	    //std::cout << Global_boundary_equation_num_map << std::endl;
+	    throw OomphLibError
+	      ("Pinned equation found in one of the boundary phi values, this destroys the numbering system used to map between the boundary and finite element methods.",
+	       "HybridMicromagneticsProblem::get_boundary_equation_number",
+	       OOMPH_EXCEPTION_LOCATION);
+	  }
+#endif
 
 	// Set up the pair ready to input with key="global equation number" and
 	// value ="boundary equation number"=k.
@@ -494,15 +521,6 @@ namespace oomph
 	error_stream << "Global equation number " << global_equation_number
 		     << " is not in the global to boundary map.";
 	throw OomphLibError(error_stream.str(),
-			    "HybridMicromagneticsProblem::get_boundary_equation_number",
-			    OOMPH_EXCEPTION_LOCATION);
-      }
-
-    //Problems could occur if the index we are using ever has pinned values...
-    if(global_equation_number < 0)
-      {
-	//std::cout << Global_boundary_equation_num_map << std::endl;
-	throw OomphLibError("Pinned equation, use a different eq num?",
 			    "HybridMicromagneticsProblem::get_boundary_equation_number",
 			    OOMPH_EXCEPTION_LOCATION);
       }

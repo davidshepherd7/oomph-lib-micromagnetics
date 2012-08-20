@@ -28,10 +28,13 @@ namespace Inputs
   unsigned sum_matrix = 1;
   bool GMRES = 0;
 
+  bool debug_output = true;
+
   bool midpointmethod = 0;
   const unsigned bdforder = 2;
 
   //??ds TODO: include solid angles at corners properly (till then it can't possibly work)!
+  //??ds check that pinning phi_1 at node 0 doesn't mess up numbering + generalise
 
   // Roughly how many elements per side, scaled as required.
   const unsigned nx = 3;
@@ -154,6 +157,27 @@ ThreeDHybridProblem()
   mumag4_parameters_pt->set_mumag4();
   this->magnetic_parameters_pt() = mumag4_parameters_pt;
 
+
+  //  Create the map of sharp corner nodes and their angles for this mesh.
+  // ============================================================
+
+  std::map<Node*,double>* Corners_map_pt = new std::map<Node*,double>;
+  this->corners_map_pt() = Corners_map_pt;
+
+  for(unsigned b=0; b <this->bulk_mesh_pt()->nboundary(); b++)
+    {
+      for(unsigned nd=0; nd<this->bulk_mesh_pt()->nboundary_node(b); nd++)
+	{
+	  Node* nd_pt = this->bulk_mesh_pt()->boundary_node_pt(b,nd);
+	  std::set<unsigned>* boundaries_pt;
+	  nd_pt->get_boundaries_pt(boundaries_pt);
+	  if(boundaries_pt->size() == DIM)
+	    this->corners_map_pt()->insert(std::pair<Node*,double>(nd_pt,0.125));
+	}
+    }
+  std::cout << *Corners_map_pt << std::endl;
+
+
   // Loop over elements in bulk mesh to set applied field function pointer
   for(unsigned i=0; i< this->bulk_mesh_pt()->nelement(); i++)
     {
@@ -260,16 +284,13 @@ int main(int argc, char* argv[])
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
   // Inputs
-  const unsigned dim = Inputs::dim;
+  const unsigned dim = 3;
   const unsigned nnode_1d = 2;
-  // const double dt = 1e-3;
-  // const unsigned nstep = 10;
   double dt = Inputs::dt;
   const double tmax = Inputs::tmax;
 
   // Dummy error for timestepper - always be ok
   const double dummy_t_eps = 100;
-
 
 
   // Create the problem
@@ -286,6 +307,10 @@ int main(int argc, char* argv[])
   doc_info.number()=0;
   problem.doc_solution(doc_info);
   doc_info.number()++;
+
+  // Additional output?
+  if(Inputs::debug_output)
+    problem.debug_doc().enable_doc();
 
   /// Check problem
   if(!(problem.self_test()==0))
@@ -330,6 +355,7 @@ int main(int argc, char* argv[])
 
 	  //Increment counter for solutions
 	  doc_info.number()++;
+	  problem.debug_doc().next_timestep();
 
 	} // end of timestepping loop
 
@@ -352,6 +378,7 @@ int main(int argc, char* argv[])
 
 	  //Increment counter for solutions
 	  doc_info.number()++;
+	  problem.debug_doc().next_timestep();
 	}
 
     }
