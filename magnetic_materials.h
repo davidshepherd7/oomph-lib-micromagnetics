@@ -8,150 +8,239 @@ namespace mag_parameters
   enum enum_crystalline_anisotropy_type
     {
       //??ds check the anisotropy fns...
-      CUBIC_CRYSTALLINE_ANISOTROPY
+      UNIAXIAL_CRYSTALLINE_ANISOTROPY
     };
 
   // Magnetic constant (source: http://physics.nist.gov/)
   double mu0 = 12.566370614e-7; // in N/(A^2) (SI)
 }
 
-  // ============================================================
-  /// A class to store magnetic material parameters.
-  // ============================================================
-// TODO: normalisation, multiple mesh normalisation
-  class MagneticParameters
+using namespace mag_parameters;
+// ============================================================
+/// A class to store magnetic material parameters.
+// ============================================================
+// TODO: normalisation, multiple mesh normalisation - divide by static mean values?
+//??ds time normalisation? - just remember that we are in units of 1/gamma?
+//??ds space normalisation? - just use nm?
+class MagneticParameters
+{
+
+public:
+  MagneticParameters()
+    : Gamma(1e-15), Gilbert_damping(0.05),
+      Distance_units(1e-9),
+      Magnetostatic_debug_coeff(1.0),
+      Exchange_debug_coeff(1.0),
+      Ca_debug_coeff(1.0),
+      Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
+  {}
+
+  // Standard copy/assign constructors and deconstructor are ok: no pointers and
+  // should never be any pointers.
+  /// Get functions
+  double gamma() const {return Gamma;}
+  double gilbert_damping() const {return Gilbert_damping;}
+  double saturation_magnetisation() const {return Saturation_magnetisation;}
+  double exchange_constant() const {return Exchange_constant;}
+  double k1() const {return K1;}
+  double magnetostatic_debug_coeff() const {return Magnetostatic_debug_coeff;}
+  double exchange_debug_coeff() const {return Exchange_debug_coeff;}
+  double ca_debug_coeff() const {return Ca_debug_coeff;}
+  double distance_units() const {return Distance_units;}
+
+  double hk() const
+  {return (2 * k1()) / (mag_parameters::mu0 * saturation_magnetisation()); }
+  double hex() const
+  {return (2 * exchange_constant() ) / (mag_parameters::mu0 * saturation_magnetisation());}
+  //{return (2 * exchange_constant() * saturation_magnetisation() ) / (mag_parameters::mu0);}
+  //??ds physically I think the commented version is right but this gives
+  //correct normalisation... ??ds figure this out!
+
+  double hms() const
+  {return saturation_magnetisation();}
+
+  mag_parameters::enum_crystalline_anisotropy_type crystalline_ansiotropy_type() const
+  {return Crystalline_ansiotropy_type;}
+
+  // Normalised get functions
+  double normalised_gamma() const
+  {return 1.0;}
+  double normalised_gilbert_damping() const
+  {return gilbert_damping();}
+  double normalised_saturation_magnetisation() const
+  {return 1.0;}
+  double normalised_hex() const
+  {return (hex() * field_normalisation_factor() * exchange_debug_coeff())
+      / (distance_units() * distance_units());};
+  double normalised_hk() const //??ds probably need some distance conversion in here...
+  {return hk() * field_normalisation_factor() * ca_debug_coeff();}
+  double normalised_hms() const
+  {return hms() * field_normalisation_factor() * magnetostatic_debug_coeff();}
+
+  double field_normalisation_factor() const
+  {return 1/hms();}
+
+  // ??ds need to make sure all field normalisation factors are the same for all
+  // meshes or this falls apart!
+  double time_normalisation_factor() const
+  {return (1/gamma()) * field_normalisation_factor();}
+
+  // Get h_ca function and derivative
+  void crystalline_ansiotropy_field(const double& t, const Vector<double>& x,
+				    const Vector<double>& m, Vector<double>& h_ca)
   {
-  public:
-    MagneticParameters()
-      : Gamma(1e-15), Gilbert_damping(0.05),
-	Magnetostatic_coefficient(1),
-	Crystalline_ansiotropy_type(mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY)
-    {}
 
-    // Standard copy/assign constructors and deconstructor are ok: no pointers and
-    // should never be any pointers.
+    switch (crystalline_ansiotropy_type())
+      {
 
-    /// Get functions
-    double gamma() const {return Gamma;}
-    double gilbert_damping() const {return Gilbert_damping;}
-    double saturation_magnetisation() const {return Saturation_magnetisation;}
-    double exchange_constant() const {return Exchange_constant;}
-    double k1() const {return K1;}
-    double magnetostatic_coefficient() const {return Magnetostatic_coefficient;}
-    mag_parameters::enum_crystalline_anisotropy_type crystalline_ansiotropy_type() const
-    {return Crystalline_ansiotropy_type;}
+      case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
 
-    // Get h_ca function and derivative
-    void crystalline_ansiotropy_field(const double& t, const Vector<double>& x,
-				      const Vector<double>& m, Vector<double>& h_ca)
-    {
+	Vector<double> easy_axis(3,0.0);
+	unsigned ax = 0;
 
-      switch (crystalline_ansiotropy_type())
-	{
+	// Find which direction along the axis we want
+	if(m[ax] < 0)
+	  easy_axis[ax] = -1.0;
+	else
+	  easy_axis[ax] = +1.0;
+	h_ca = easy_axis;
 
-	case mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY:
+	// Multiply by the magnitude
+	double magnitude = std::abs(VectorOps::dot(easy_axis,m));
+	for(unsigned i=0; i<h_ca.size(); i++)
+	  h_ca[i] *= magnitude * normalised_hk();
 
-	  Vector<double> easy_axis(3,0.0);
-	  unsigned ax = 0;
+	break;
 
-	  // Find which direction along the axis we want
-	  if(m[ax] < 0)
-	    easy_axis[ax] = -1.0;
-	  else
-	    easy_axis[ax] = +1.0;
-	  h_ca = easy_axis;
+      }
+  }
 
-	  // Multiply by the magnitude
-	  double magnitude = VectorOps::dot(easy_axis,m);
-	  for(unsigned i=0; i<h_ca.size(); i++)
-	    h_ca[i] *= magnitude;
+  // Get the appropriate exchange length for this material according the the
+  // nmag user manual.
+  double exchange_length()
+  {
+    double l1 = std::sqrt( (2* exchange_constant() )
+			   / (mag_parameters::mu0 * saturation_magnetisation()
+			      * saturation_magnetisation()));
+    double l2;
+    if (k1() > 0)
+      l2 = std::sqrt( exchange_constant() / k1() );
+    else
+      l2 = 1e30; // infinite (e30 instead of higher in case we ever use floats
+		 // not doubles).
 
-	  break;
+    return std::min(l1,l2);
+  }
 
-	}
-    }
+  // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
+  // with respect to at the point x.
+  void crystalline_ansiotropy_field_derivative
+  (const double& t, const Vector<double>& x,
+   const Vector<double>& m, const double shape_fn_l2_at_x,
+   DenseMatrix<double>& dhcadm) const
+  {
+    switch (crystalline_ansiotropy_type())
+      {
 
-    // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
-    // with respect to at the point x.
-    void crystalline_ansiotropy_field_derivative
-    (const double& t, const Vector<double>& x,
-     const Vector<double>& m, const double shape_fn_l2_at_x,
-     DenseMatrix<double>& dhcadm) const
-    {
-      switch (crystalline_ansiotropy_type())
-	{
+      case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
 
-	case mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY:
+	Vector<double> easy_axis(3,0.0);
+	unsigned ax = 0;
 
-	  Vector<double> easy_axis(3,0.0);
-	  unsigned ax = 0;
+	// Find which direction along the axis we want
+	if(m[ax] < 0)
+	  easy_axis[ax] = -1.0;
+	else
+	  easy_axis[ax] = +1.0;
 
-	  // Find which direction along the axis we want
-	  if(m[ax] < 0)
-	    easy_axis[ax] = -1.0;
-	  else
-	    easy_axis[ax] = +1.0;
+	for(unsigned j=0; j<3; j++)
+	  for(unsigned i=0; i<3; i++)
+	    dhcadm(i,j) = shape_fn_l2_at_x
+	      * easy_axis[i] * easy_axis[j] * normalised_hk() ;
+	break;
+      }
+  }
 
-	  for(unsigned j=0; j<3; j++)
-	    for(unsigned i=0; i<3; i++)
-	      dhcadm(i,j) = shape_fn_l2_at_x
-		* easy_axis[i] * easy_axis[j];
-	  break;
-	}
-    }
+  void output(std::ostream& stream)
+  {
+    stream << "Magnetic parameters are:" << std::endl;
+    stream << "Gamma = " << gamma() << std::endl;
+    stream << "Damping = " << gilbert_damping() << std::endl;
+    stream << "M_s = "  << saturation_magnetisation() << std::endl;
+    stream << "Exchange constant = " << exchange_constant() <<std::endl;
+    stream << "K_1 = " << k1() << std::endl;
+    stream << std::endl;
+
+    stream << "This gives the following normalised coeffs:" << std::endl;
+    stream << "Normalised_gamma = " <<    normalised_gamma() << std::endl;
+    stream << "Normalised_gilbert_damping = " <<  normalised_gilbert_damping() << std::endl;
+    stream << "Normalised_saturation_magnetisation = " <<  normalised_saturation_magnetisation() << std::endl;
+    stream << "Normalised_hex = " <<  normalised_hex() << std::endl;
+    stream << "Normalised_hk = " <<  normalised_hk() << std::endl;
+    stream << "Normalised_hms = " <<  normalised_hms() << std::endl;
+    stream << std::endl;
+
+    stream << "Exchange length for this material is: "
+	   << exchange_length() << std::endl;
+    stream << "Your distance units are: " << distance_units()
+	   << "m" << std::endl;
+    stream << "All elements should be smaller than the exchange length (and there should be code to check this...)." << std::endl;
+  }
+
+  /// Set functions
+  double& gamma() {return Gamma;}
+  double& gilbert_damping() {return Gilbert_damping;}
+  double& saturation_magnetisation() {return Saturation_magnetisation;}
+  double& exchange_constant() {return Exchange_constant;}
+  double& k1() {return K1;}
+  double& magnetostatic_debug_coeff() {return Magnetostatic_debug_coeff;}
+  double& exchange_debug_coeff() {return Exchange_debug_coeff;}
+  double& ca_debug_coeff() {return Ca_debug_coeff;}
+  double& distance_units() {return Distance_units;}
+
+  void set_cubic_anisotropy()
+  {Crystalline_ansiotropy_type = mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY;}
+
+  // /// set properties for permalloy (Fe_20 Ni_80)
+  // void set_permalloy()
+  // {
+  //   saturation_magnetisation() = 1.04/mag_parameters::mu0; // T/mu0 unitsm
+  //   exchange_constant() = 7e-12; // J/m
+  //   k1() = -2e3; // J/(m^3)
+  // }
+
+  /// Set properties as used in umag standard problem #4
+  void set_mumag4()
+  {
+    exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
+    saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
+    k1() = 0.0;
+
+    gilbert_damping() = 0.02;
+    gamma() = 2.211e-5; // m/(As)
+  }
+
+  // etc...
+
+private:
+  double Gamma;
+  double Gilbert_damping;
+
+  double Saturation_magnetisation;
+  double Exchange_constant;
+  double K1;
+
+  double Distance_units;
+
+  /// Debug coefficients
+  double Magnetostatic_debug_coeff;
+  double Exchange_debug_coeff;
+  double Ca_debug_coeff;
 
 
-    /// Set functions
-    double& gamma() {return Gamma;}
-    double& gilbert_damping() {return Gilbert_damping;}
-    double& saturation_magnetisation() {return Saturation_magnetisation;}
-    double& exchange_constant() {return Exchange_constant;}
-    double& k1() {return K1;}
-    double& magnetostatic_coefficient() {return Magnetostatic_coefficient;}
 
-    void set_cubic_anisotropy()
-    {Crystalline_ansiotropy_type = mag_parameters::CUBIC_CRYSTALLINE_ANISOTROPY;}
-
-    /// set properties for permalloy (Fe_20 Ni_80)
-    void set_permalloy()
-    {
-      saturation_magnetisation() = 1.04/mag_parameters::mu0; // T/mu0 unitsm
-      exchange_constant() = 7e-12; // J/m
-      k1() = -2e3; // J/(m^3)
-    }
-
-    /// Set properties as used in umag standard problem #4
-    void set_mumag4()
-    {
-      exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
-      saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
-      k1() = 0.0;
-
-      gilbert_damping() = 0.02;
-      gamma() = 2.211e5; // m/(As)
-    }
-
-    void set_FePt()
-    {
-
-    }
-
-    // etc...
-
-  private:
-    double Gamma;
-    double Gilbert_damping;
-
-    double Saturation_magnetisation;
-    double Exchange_constant;
-    double K1;
-
-    /// Coefficient of magnetostatic field, for debugging only: no physical
-    /// significance.
-    double Magnetostatic_coefficient;
-
-    mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
-  };
+  mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
+};
 
 
 #endif

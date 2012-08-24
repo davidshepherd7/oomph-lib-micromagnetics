@@ -175,6 +175,8 @@ namespace oomph
     {
       H_app.assign(3,0.0);
       if(Applied_field_pt!=0) (*Applied_field_pt)(t,x,H_app);
+      for(unsigned j=0; j<3; j++)
+	H_app[j] *= magnetic_parameters_pt()->field_normalisation_factor();
     }
 
     /// Get the crystalline anisotropy field at Eulerian position x.
@@ -199,31 +201,32 @@ namespace oomph
     /// Get saturisation magnetisation at eulerian postition x.
     inline double get_sat_mag() const
     {
-      return magnetic_parameters_pt()->saturation_magnetisation();
+      //??ds this isn't included!
+      return magnetic_parameters_pt()->normalised_saturation_magnetisation();
     }
 
     /// Get LLG damping coefficient.
     inline double get_llg_damping_coeff() const
     {
-      return magnetic_parameters_pt()->gilbert_damping();
+      return magnetic_parameters_pt()->normalised_gilbert_damping();
     }
 
     /// Get LLG precession coefficient.
     inline double get_llg_precession_coeff() const
     {
-      return magnetic_parameters_pt()->gamma();
+      return magnetic_parameters_pt()->normalised_gamma();
     }
 
     /// Get exchange coefficient at eulerian postition x.
     inline double get_exchange_coeff() const
     {
-      return magnetic_parameters_pt()->exchange_constant();
+      return magnetic_parameters_pt()->normalised_hex();
     }
 
     /// Get magnetostatic coefficient at eulerian postition x.
     inline double get_magnetostatic_coeff() const
     {
-      return magnetic_parameters_pt()->magnetostatic_coefficient();
+      return magnetic_parameters_pt()->normalised_hms();
     }
 
     // // EXACT PHI FUNCTION POINTER

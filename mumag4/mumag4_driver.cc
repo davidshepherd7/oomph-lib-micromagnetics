@@ -20,35 +20,50 @@ namespace Inputs
 
   double applied_field_coeff = 3;
 
-  double dt = 1e-3;
-  double tmax = 1;
+  double dt = 1e-1;
+  double tmax = 100;
 
-  bool adaptive_timestepping = 0;
+  bool adaptive_timestepping = 1;
   bool full_jacobian_fd = 0;
-  unsigned sum_matrix = 1;
   bool GMRES = 0;
-
-  bool debug_output = true;
-
+  bool debug_output = 0;
   bool midpointmethod = 0;
-  const unsigned bdforder = 2;
 
-  //??ds TODO: include solid angles at corners properly (till then it can't possibly work)!
-  //??ds check that pinning phi_1 at node 0 doesn't mess up numbering + generalise
+  // Which field from mumag#4 should we use?
+  unsigned field_num = 1;
 
-  // Roughly how many elements per side, scaled as required.
-  const unsigned nx = 3;
+  // bool debug_parameters = false;
+  // double llg_damp = 1;
+  // double llg_precess = 1;
+  // double exch_c = 1;
+  // double magstatic_coeff = 1;
+  // double k1 = 0;
+  // double sat_mag = 1;
 
+  // Roughly how many elements to use
+  const unsigned nx = 5;
+  //const unsigned nz = 3;
+
+
+  // Applied fields from mumag std problem #4, field is normalised automatically
+  // within the element.
   void applied_field(const double& t, const Vector<double>& x, Vector<double>& h_app)
   {
-    h_app.assign(3,0.0);
-    h_app[0] = +1;
-    // h_app[1] = 0.01;
-    // h_app[2] = 0.01;
-    for(unsigned j=0; j<3; j++)
-      h_app[j] *= Inputs::applied_field_coeff;
+    if(Inputs::field_num == 1)
+      {
+	// µ0Hx=-24.6 mT, µ0Hy= 4.3 mT, µ0Hz= 0.0 mT
+	h_app.assign(3,0.0);
+	h_app[0] = -24.6e-3 / mag_parameters::mu0;
+	h_app[1] = 4.3e-3 / mag_parameters::mu0;
+      }
+    else if (Inputs::field_num == 2)
+      {
+	// µ0Hx=-35.5 mT, µ0Hy=-6.3 mT, µ0Hz= 0.0 mT
+	h_app.assign(3,0.0);
+	h_app[0] = -35.5-3 / mag_parameters::mu0;
+	h_app[1] = -6.3e-3 / mag_parameters::mu0;
+      }
   }
-
   void initial_m(const double& t, const Vector<double>& x,
 		 Vector<double>& m)
   {
@@ -56,7 +71,7 @@ namespace Inputs
     m[0] = -1;
     m[1] = -0.1;
     m[2] = -0.1;
-    normalise(m);
+    VectorOps::normalise(m);
   }
 
 };
@@ -89,10 +104,10 @@ namespace oomph
     /// Set initial condition (incl previous timesteps)
     void set_initial_condition();
 
-    /// Dummy - always reduce timestep as much as possible if fails to converge.
+    /// Dummy increase timestep by a bit if successful newton solve
     double global_temporal_error_norm()
     {
-      return 1e-8;
+      return 90;
     }
 
   }; // end of problem class
@@ -109,16 +124,19 @@ ThreeDHybridProblem()
   if(Inputs::midpointmethod)
     {
       if(Inputs::adaptive_timestepping)
-	std::cerr << "No adaptive midpoint yet." << std::endl;
-
-      this->add_time_stepper_pt(new BDF<1>);
+	{
+	  std::cerr << "No adaptive midpoint yet." << std::endl;
+	  exit(1);
+	}
+      else
+	this->add_time_stepper_pt(new BDF<1>);
     }
   else // use bdf
     {
       if(Inputs::adaptive_timestepping)
-	this->add_time_stepper_pt(new BDF<Inputs::bdforder>(true));
+	this->add_time_stepper_pt(new BDF<2>(true));
       else
-	this->add_time_stepper_pt(new BDF<Inputs::bdforder>);
+	this->add_time_stepper_pt(new BDF<2>);
     }
 
   if(Inputs::full_jacobian_fd)
@@ -127,10 +145,7 @@ ThreeDHybridProblem()
     }
   else if (Inputs::GMRES)
     {
-      if(Inputs::sum_matrix == 1)
-	this->linear_solver_pt() = new GMRES<SumOfMatrices>;
-      else
-	this->linear_solver_pt() = new GMRES<CRDoubleMatrix>;
+      this->linear_solver_pt() = new GMRES<SumOfMatrices>;
 
       // // Set general preconditioner
       // IterativeLinearSolver* it_lin_solver_pt =
@@ -144,11 +159,15 @@ ThreeDHybridProblem()
       this->linear_solver_pt() = new SuperLUSolver;
     }
 
-  unsigned lx = 3, ly = 3, lz = 10;
-  unsigned ny = Inputs::nx, nz = unsigned(Inputs::nx * lz/lx);
+  // unsigned lx = 125, ly = 500, lz = 30;
+  // unsigned nx = Inputs::nx, nz = 5, ny = Inputs::nx*unsigned((ly/lx));
+
+  unsigned lx = 10, ly = 10, lz = 10;
+  unsigned nx = Inputs::nx, nz = nx * unsigned(lz/lx), ny = Inputs::nx*unsigned(ly/lx);
+
   // Cubeoid
   this->bulk_mesh_pt() = new SimpleCubicTetMesh<BULK_ELEMENT>
-    (Inputs::nx,ny,nz,lx,ly,lz,this->time_stepper_pt());
+    (nx,ny,nz,lx,ly,lz,this->time_stepper_pt());
 
   // For some reason we have to do this manually...
   this->bulk_mesh_pt()->setup_boundary_element_info();
@@ -157,6 +176,14 @@ ThreeDHybridProblem()
   mumag4_parameters_pt->set_mumag4();
   this->magnetic_parameters_pt() = mumag4_parameters_pt;
 
+  // if(Inputs::debug_parameters)
+  //   {
+  //     mumag4_parameters_pt->exchange_constant() = Inputs::exch_c;
+  //     mumag4_parameters_pt->k1() = Inputs::k1;
+  //     mumag4_parameters_pt->gilbert_damping() = Inputs::llg_damp;
+  //     mumag4_parameters_pt->gamma() = Inputs::llg_precess;
+  //     mumag4_parameters_pt->saturation_magnetisation() = Inputs::sat_mag;
+  //   }
 
   //  Create the map of sharp corner nodes and their angles for this mesh.
   // ============================================================
@@ -203,6 +230,8 @@ doc_solution(DocInfo& doc_info)
   // Number of plot points
   unsigned npts=2;
 
+  double cts_time = this->time_pt()->time();
+
   // File set up
   std::ofstream some_file;
   char filename[100];
@@ -213,6 +242,19 @@ doc_solution(DocInfo& doc_info)
   some_file.open(filename);
   this->mesh_pt()->output(some_file,npts);
   some_file.close();
+
+  // Output means
+  Vector<double> means;
+  this->get_mean_bulk_values(means);
+
+  std::ofstream means_file;
+  means_file.open("./means",std::fstream::app);
+  means_file << cts_time;
+  for(unsigned i=0; i< means.size(); i++)
+    means_file << " " << means[i];
+  means_file << std::endl;
+  means_file.close();
+
 } // end of doc
 
 
@@ -307,6 +349,9 @@ int main(int argc, char* argv[])
   doc_info.number()=0;
   problem.doc_solution(doc_info);
   doc_info.number()++;
+
+  // Write paramters to std::out
+  problem.magnetic_parameters_pt()->output(std::cout);
 
   // Additional output?
   if(Inputs::debug_output)

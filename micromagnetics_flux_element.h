@@ -187,25 +187,25 @@ namespace oomph
     Bulk_element_pt(bulk_el_pt)
   {
     //??ds left in from PoissonFluxElement
-#ifdef PARANOID
-    {
-      //Check that the element is not a refineable 3d element
-      ELEMENT* elem_pt = new ELEMENT;
-      //If it's three-d
-      if(elem_pt->dim()==3)
-	{
-	  //Is it refineable
-	  if(dynamic_cast<RefineableElement*>(elem_pt))
-	    {
-	      //Issue a warning
-	      OomphLibWarning
-		("This flux element will not work correctly if nodes are hanging\n",
-		 "MicromagFluxElement::Constructor",
-		 OOMPH_EXCEPTION_LOCATION);
-	    }
-	}
-    }
-#endif
+// #ifdef PARANOID
+//     {
+//       //Check that the element is not a refineable 3d element
+//       ELEMENT* elem_pt = new ELEMENT;
+//       //If it's three-d
+//       if(elem_pt->dim()==3)
+// 	{
+// 	  //Is it refineable
+// 	  if(dynamic_cast<RefineableElement*>(elem_pt))
+// 	    {
+// 	      //Issue a warning
+// 	      OomphLibWarning
+// 		("This flux element will not work correctly if nodes are hanging\n",
+// 		 "MicromagFluxElement::Constructor",
+// 		 OOMPH_EXCEPTION_LOCATION);
+// 	    }
+// 	}
+//     }
+// #endif
 
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
