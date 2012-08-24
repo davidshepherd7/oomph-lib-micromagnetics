@@ -30,7 +30,7 @@ int main()
   const unsigned n_sparse_values = mat_size;
   const unsigned dense_block_size = mat_size/10;
   const unsigned max_val = 100;
-  const unsigned n_tests = 20;
+  const unsigned n_tests = 1;
 
   Vector<double> norm_error(0);
 
@@ -130,6 +130,8 @@ int main()
       CRDoubleMatrix total_matrix;
       total_matrix.build(&dist,sum_rows,sum_cols,sum_values,
 			 sum_matrix.nrow(),sum_matrix.ncol());
+
+      total_matrix.sparse_indexed_output(std::cout);
 
       DoubleVector direct_solution(dist);
       total_matrix.solve(rhs,direct_solution);

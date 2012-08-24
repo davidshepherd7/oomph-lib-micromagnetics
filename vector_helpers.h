@@ -2,6 +2,7 @@
 #define OOMPH_VECTOR_HELPERS_H
 
 #include "generic.h"
+#include "./prettyprint98.hpp"
 
 using namespace oomph;
 
@@ -14,7 +15,7 @@ namespace VectorOps
   {
 #ifdef PARANOID
     if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length", "mod_diff",
+      throw OomphLibError("Vectors must be the same length", "VectorOps::dot",
     			  OOMPH_EXCEPTION_LOCATION);
 #endif
     double temp = 0;
@@ -84,6 +85,55 @@ namespace VectorOps
     double length = mod(a);
     for(unsigned i=0; i<a.size(); i++)
       a[i] /= length;
+  }
+
+  void rowstart2rowindex(const Vector<int>& row_start, Vector<int>& row_index)
+  {
+    // Initialise
+    int nrow = row_start.back();
+    row_index.reserve(nrow);
+
+    int row = 0, i_row_index = 0;
+    for(int i_row_start=0; i_row_start < int(row_start.size()); i_row_start++)
+      {
+	int next_row_start = row_start[i_row_start + 1];
+	while(i_row_index < next_row_start)
+	  {
+	    row_index.push_back(row);
+	    i_row_index++;
+	  }
+	row++;
+      }
+  }
+
+  void rowindex2rowstart(const Vector<int>& row_index, Vector<int>& row_start)
+  {
+    row_start.clear();
+    row_start.reserve(row_index.back()+1);
+
+    row_start.push_back(0);
+
+    int i=0;
+    for(int row = 0; row < row_index.back() + 1; row++)
+      {
+	int count = 0;
+
+	// If our row is smaller than row_index[i] then it has no entries
+	if (row < row_index[i])
+	  row_start.push_back(row_start.back() + count);
+	else
+	  {
+	    // Otherwise: count the number of entries
+	    while(row == row_index[i])
+	      {
+		count++;
+		i++;
+	      }
+	    row_start.push_back(row_start.back() + count);
+	  }
+      }
+
+
   }
 
 }
