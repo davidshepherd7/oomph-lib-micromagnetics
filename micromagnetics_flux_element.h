@@ -102,6 +102,13 @@ namespace oomph
     /// Access function for the pointer the to bulk element
     ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
 
+    unsigned ndof_types()
+    {return 0;}
+
+    void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
+				 block_lookup_list)
+    {}
+
   protected:
 
     /// \short Function to compute the shape and test functions and to return

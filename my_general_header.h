@@ -27,6 +27,7 @@
 #include "./micromagnetics_boundary_element.cc"
 #include "./micromagnetics_flux_element.h"
 #include "./magnetic_materials.h"
+#include "./micromagnetics_preconditioners.h"
 
 // Basic oomph-lib headers
 #include "generic.h"

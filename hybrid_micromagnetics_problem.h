@@ -173,20 +173,22 @@ namespace oomph
 
       // for each node in bem mesh
       for(unsigned nd=0; nd< bem_mesh_pt()->nnode(); nd++)
-	{
-	  // Get a pointer
-	  Node* nd_pt = bem_mesh_pt()->node_pt(nd);
+      	{
+      	  // Get a pointer
+      	  Node* nd_pt = bem_mesh_pt()->node_pt(nd);
 
-	  // get the the bem equation number
-	  unsigned bem_eqn_num = get_boundary_equation_number(nd_pt);
-	  unsigned global_eqn_num = nd_pt->eqn_number(phi_index());
+      	  // get the the bem equation number
+      	  unsigned bem_eqn_num = get_boundary_equation_number(nd_pt);
+      	  unsigned global_eqn_num = nd_pt->eqn_number(phi_index());
 
-	  // insert appropriate value into residuals
-	  double r = bem_phi_values[bem_eqn_num]
-	    - nd_pt->value(phi_index());
+      	  // Insert appropriate value into residuals.
+      	  double r = bem_phi_values[bem_eqn_num]
+      	    - nd_pt->value(phi_index());
 
-	  residuals[global_eqn_num] = r;
-	}
+	  // Boundary values of phi are entirely determined by phi_1 so we
+	  // use = rather than +=.
+      	  residuals[global_eqn_num] = r;
+      	}
     }
 
     /// Overload get_jacobian to include the boundary matrix in a sparse form.
@@ -201,96 +203,93 @@ namespace oomph
       // Finish off the residual calculation
       insert_bem_phi_residual_contribution(residuals);
 
-      // Storage for values of total Jacobian
-      Vector<RowColVal> row_col_val;
-      unsigned bem_size = Global_boundary_equation_num_map.size();
-      unsigned total_nnz = sparse_jacobian.nnz() + bem_size
-	+ bem_size*bem_size;
-      row_col_val.reserve(total_nnz);
-      unsigned	total_ncol = sparse_jacobian.ncol();
+      // Finish off sparse jacobian
+      overwrite_bem_sparse_block(&sparse_jacobian);
 
-      // Get vector of row indicies for sparse J
-      Vector<int> sparse_jac_rowstart(sparse_jacobian.nrow() + 1), sparse_jac_rows;
-      std::copy(sparse_jacobian.row_start(),
-		sparse_jacobian.row_start() + sparse_jacobian.nrow() + 1,
-		sparse_jac_rowstart.begin());
-      VectorOps::rowstart2rowindex(sparse_jac_rowstart,sparse_jac_rows);
+      // Storage for jacobian data
+      Vector<int> row_starts, cols;
+      Vector<double> vals;
+      {
+	// Storage for values of total Jacobian
+	Vector<RowColVal> row_col_val;
+	unsigned bem_size = Global_boundary_equation_num_map.size();
+	unsigned total_nnz = sparse_jacobian.nnz() + bem_size
+	  + bem_size*bem_size;
+	row_col_val.reserve(total_nnz);
 
-      // Add sparse jacobian part rows/cols/values to our list
-      for(unsigned i=0; i<sparse_jacobian.nnz(); i++)
-	{
-	  RowColVal entry(sparse_jac_rows[i],
-			  *(sparse_jacobian.column_index() + i),
-			  *(sparse_jacobian.value() + i));
-	  row_col_val.push_back(entry);
-	}
+	// Get vector of row indicies for sparse J
+	Vector<int> sparse_jac_rowstart(sparse_jacobian.nrow() + 1), sparse_jac_rows;
+	std::copy(sparse_jacobian.row_start(),
+		  sparse_jacobian.row_start() + sparse_jacobian.nrow() + 1,
+		  sparse_jac_rowstart.begin());
+	VectorOps::rowstart2rowindex(sparse_jac_rowstart,sparse_jac_rows);
 
-      // Add -1*identity matrix to boundary entries of d(r_phi)/dphi
-      std::map<long unsigned, long unsigned>::const_iterator it;
-      for(it = Global_boundary_equation_num_map.begin();
-	  it != Global_boundary_equation_num_map.end();
-	  it++)
-	{
-	  int index = it->first;
-	  RowColVal entry(index, index, -1.0);
-	  row_col_val.push_back(entry);
-	}
+	// Add sparse jacobian part rows/cols/values to our list
+	for(unsigned i=0; i<sparse_jacobian.nnz(); i++)
+	  {
+	    RowColVal entry(sparse_jac_rows[i],
+			    *(sparse_jacobian.column_index() + i),
+			    *(sparse_jacobian.value() + i));
+	    row_col_val.push_back(entry);
+	  }
 
-      // Add the boundary matrix itself
-      std::map<long unsigned, long unsigned>::const_iterator col_it;
-      for(it = Global_boundary_equation_num_map.begin();
-	  it != Global_boundary_equation_num_map.end();
-	  it++)
-	{
-	  for(col_it = Global_phi_1_num_map.begin();
-	      col_it != Global_phi_1_num_map.end();
-	      col_it++)
-	    {
-	      int this_row = it->first;
-	      int this_col = col_it->first;
-	      double this_value = boundary_matrix_pt()->
-	      	operator()(it->second,col_it->second);
-	      //double this_value =11234.0;
-	      RowColVal entry(this_row,this_col,this_value);
-	      row_col_val.push_back(entry);
-	    }
+	// Add the boundary matrix entries to the list
+	std::map<long unsigned, long unsigned>::
+	  const_iterator row_it, col_it;
+	for(row_it = Global_boundary_equation_num_map.begin();
+	    row_it != Global_boundary_equation_num_map.end();
+	    row_it++)
+	  {
+	    for(col_it = Global_phi_1_num_map.begin();
+		col_it != Global_phi_1_num_map.end();
+		col_it++)
+	      {
+		int this_row = row_it->first;
+		int this_col = col_it->first;
+		double this_value = boundary_matrix_pt()->
+		  operator()(row_it->second,col_it->second);
+		//double this_value =11234.0;
+		RowColVal entry(this_row,this_col,this_value);
+		row_col_val.push_back(entry);
+	      }
 
-	}
+	  }
 
+	// Sort the list ready for making CRDoubleMatrix
+	std::sort(row_col_val.begin(), row_col_val.end());
 
+	// Convert back to vectors
+	unsigned length = row_col_val.size();
+	Vector<int> rows(length,0);
+	cols.assign(length,0), vals.assign(length,0.0);
+	for(unsigned i=0; i<length; i++)
+	  {
+	    rows[i] = row_col_val[i].row;
+	    cols[i] = row_col_val[i].col;
+	    vals[i] = row_col_val[i].val;
+	  }
 
-      // Sort the list ready for making CRDoubleMatrix
-      std::sort(row_col_val.begin(), row_col_val.end());
+	// Convert rows back to row_start format
+	VectorOps::rowindex2rowstart(rows, row_starts);
+      }
 
-      // Convert to CRDoubleMatrix
-      unsigned length = row_col_val.size();
-      Vector<int> rows(length), cols(length);
-      Vector<double> vals(length);
-      for(unsigned i=0; i<length; i++)
-	{
-	  rows[i] = row_col_val[i].row;
-	  cols[i] = row_col_val[i].col;
-	  vals[i] = row_col_val[i].val;
-	}
-
-      // Convert rows back to row_start format
-      Vector<int> row_starts;
-      VectorOps::rowindex2rowstart(rows, row_starts);
-
+#ifdef PARANOID
       // Check for duplicates
       for(unsigned j=1; j<cols.size(); j++)
-	{
-	  if((cols[j] == cols[j-1]) && ( rows[j] == rows[j-1]))
-	    {
-	      std::cout << "dupe: [" << cols[j] << ", " << rows[j] << ", " << vals[j]
-			<< "] and ["
-			<< cols[j-1] << ", " << rows[j-1] << ", " << vals[j-1] << "]"
-			<< std::endl;
-	    }
-	}
+      	{
+      	  if((cols[j] == cols[j-1]) && ( rows[j] == rows[j-1]))
+      	    {
+      	      std::cout << "dupe: [" << cols[j] << ", " << rows[j] << ", " << vals[j]
+      			<< "] and ["
+      			<< cols[j-1] << ", " << rows[j-1] << ", " << vals[j-1] << "]"
+      			<< std::endl;
+      	    }
+      	}
+#endif
 
       // Rebuild jacobian with new values
-      jacobian.build(sparse_jacobian.distribution_pt(),total_ncol, vals, cols, row_starts);
+      unsigned ncol = cols.size();
+      jacobian.build(sparse_jacobian.distribution_pt(),ncol, vals, cols, row_starts);
 
       // This is probably very slow...
       if(debug_doc().is_doc_enabled())
@@ -346,23 +345,9 @@ namespace oomph
       			  &Global_boundary_equation_num_map,
       			  &Global_phi_1_num_map,0);
 
-      // Add an identity matrix * -1: phi dependence on itself,
-      // delete when done with Jacobain.
-      unsigned n_bem_nodes = bem_mesh_pt()->nnode();
-      Vector<int> id_row_indices(n_bem_nodes), id_col_indices(n_bem_nodes), id_row_starts;
-      Vector<double> id_values(n_bem_nodes,-1.0);
-      for(int i=0; i<int(n_bem_nodes); i++) {id_row_indices[i] = i; id_col_indices[i] = i;}
-      VectorOps::rowindex2rowstart(id_row_indices,id_row_starts);
 
-      //??ds untested! memory leak!
-      LinearAlgebraDistribution* id_dist_pt = new LinearAlgebraDistribution(0,0,false);
-
-      CRDoubleMatrix* neg_id_matrix_pt =
-    	new CRDoubleMatrix(id_dist_pt, n_bem_nodes, id_values, id_col_indices, id_row_starts);
-      jacobian.add_matrix(neg_id_matrix_pt,
-    			  &Global_boundary_equation_num_map,
-    			  &Global_boundary_equation_num_map,
-    			  1);
+      // Overwrite the dphi_dphi boundary block with -1*I
+      overwrite_bem_sparse_block(sparse_jacobian_pt);
 
       // This is probably very slow...
       if(debug_doc().is_doc_enabled())
@@ -391,6 +376,7 @@ namespace oomph
       	}
     }
 
+    void overwrite_bem_sparse_block(CRDoubleMatrix* sparse_jacobian_pt) const;
 
   private:
 
@@ -638,6 +624,44 @@ build_boundary_matrix()
 	}
     }
 }
+
+// ============================================================
+///
+// ============================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+overwrite_bem_sparse_block(CRDoubleMatrix* sparse_jacobian_pt) const
+{
+  std::map<long unsigned, long unsigned>::const_iterator it;
+  for(it = Global_boundary_equation_num_map.begin();
+      it != Global_boundary_equation_num_map.end();
+      it++)
+    {
+      // Find where this row is in the value array and overwrite it
+      long unsigned row_start = sparse_jacobian_pt->row_start()[it->first];
+      long unsigned row_end = sparse_jacobian_pt->row_start()[it->first + 1];
+      std::cout << row_start << " " << row_end << " : "
+		<< Global_boundary_equation_num_map.size() << std::endl;
+      for(long unsigned i=row_start; i < row_end; i++)
+	{
+	  //#ifdef PARANOID
+	  // ??ds I'd like to check that I really am only overwriting dummys
+	  // but not sure how to do this.
+	  if((row_start - row_end + 1) != Global_boundary_equation_num_map.size())
+	    {
+	      std::ostringstream error_msg;
+	      error_msg << "Trying to overwrite a row of the wrong size.";
+	      throw OomphLibError(error_msg.str(),
+				  "HybridMicromagneticsProblem::get_jacobian",
+				  OOMPH_EXCEPTION_LOCATION);
+	    }
+
+	  //#endif
+	  sparse_jacobian_pt->value()[i] = -1;
+	}
+    }
+}
+
 
 //======================================================================
 /// Create the map between the global equation numbering system and the

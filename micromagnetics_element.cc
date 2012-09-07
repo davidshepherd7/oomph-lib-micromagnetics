@@ -18,6 +18,9 @@ namespace oomph
   template<unsigned DIM, unsigned NNODE_1D>
   const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
+  template<unsigned DIM>
+  const double MicromagEquations<DIM>::DummyBEMControlledEntry = 1.2345e67;
+
 
   //======================================================================
   ///
@@ -244,19 +247,28 @@ namespace oomph
 
 	    // Total potential (phi)
 	    const int phi_eqn = nodal_local_eqn(l,phi_index_micromag());
-	    if((phi_eqn >= 0) && (!(node_pt(l)->is_on_boundary())))
+	    if(phi_eqn >= 0)
 	      {
-		// w.r.t. phi
 		const int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
-		if(phi_unknown >= 0)
-		  jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
 
-		// w.r.t. m
-		for(unsigned j=0; j<DIM; j++){
-		  const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
-		  if(m_unknown >= 0)
-		    jacobian(phi_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
-		}
+		if(!(node_pt(l)->is_on_boundary()))
+		  {
+		    if(phi_eqn == phi_unknown)
+		      jacobian(phi_eqn,phi_unknown) = DummyBEMControlledEntry;
+		  }
+		else
+		  {
+		    // w.r.t. phi
+		    if(phi_unknown >= 0)
+		      jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
+
+		    // w.r.t. m
+		    for(unsigned j=0; j<DIM; j++){
+		      const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
+		      if(m_unknown >= 0)
+			jacobian(phi_eqn,m_unknown) += - dpsidx(l2,j) * test(l) * W;
+		    }
+		  }
 
 		// nothing w.r.t. phi_1 (dependence is in BEM)
 	      }
