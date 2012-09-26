@@ -12,75 +12,20 @@ using namespace oomph;
 namespace oomph
 {
 
-  // ============================================================
-  /// A very simple preconditioner... probably no use for most cases.
-  // ============================================================
-  class DiagonalPreconditioner : public Preconditioner
-  {
-  public:
+//??ds these classes should maybe just be class specialisations to SumOfMatrices?
 
-    DiagonalPreconditioner() {}
-
-    ~DiagonalPreconditioner() {}
-
-    /// \short Apply the preconditioner. This method should apply the
-    /// preconditioner operator to the vector r and return the vector z.
-    void preconditioner_solve(const DoubleVector &r, DoubleVector &z)
-    {
-      unsigned nrow = inverse_diagonal_values.nrow();
-
-#ifdef PARANOID
-      if(r.nrow() != nrow)
-	{
-	  std::ostringstream error_msg;
-	  error_msg << "Different numbers of rows in diagonal matrix and input vector ("
-		    << nrow << " vs "
-		    << r.nrow() << ").";
-	  throw OomphLibError(error_msg.str(),
-			      "DiagonalPreconditioner::preconditioner_solve",
-			      OOMPH_EXCEPTION_LOCATION);
-	}
-#endif
-
-      // (inverted) diagonal matrix * vector multiplication is very simple:
-      for(unsigned j=0; j<nrow; j++)
-	z[j] = r[j] * inverse_diagonal_values[j];
-    }
-
-    /// \short Setup the preconditioner (emtpy).
-    void setup(Problem* problem_pt, DoubleMatrixBase* matrix_pt)
-    {
-      // Get distribution info from the Jacobian
-      unsigned nrow = matrix_pt->nrow();
-
-      // Set up the inverse_diagonal_values vector
-      //??dsparallel - probably not the right dist pt
-      inverse_diagonal_values.build(problem_pt->dof_distribution_pt(),0.0);
-
-      // Fill in the inverse_diagonal_values vector
-      for(unsigned j=0; j<nrow; j++)
-	inverse_diagonal_values[j] = 1/(matrix_pt->operator()(j,j));
-
-      inverse_diagonal_values.output("preconditioner_values");
-    }
-
-    /// \short Clean up memory (empty).
-    void clean_up_memory(){};
-
-  private:
-
-    /// Store D^{-1} where D is just the diagonal entries of the Jacobian.
-    DoubleVector inverse_diagonal_values;
-
-  };
+// then again maybe not - not all SUmOfMatrices will have ignoreable extra matrices
 
   // ============================================================
   ///
   // ============================================================
   template<typename MAIN_MATRIX_TYPE>
-  class MicromagneticsBlockDiagonalPreconditioner :
+  class MMBlockDiagonalPreconditioner :
     public BlockDiagonalPreconditioner<MAIN_MATRIX_TYPE>
   {
+  public:
+
+    //??ds add broken constructors etc.
 
     /// \short Setup the preconditioner
     void setup(Problem* problem_pt,
@@ -92,8 +37,72 @@ namespace oomph
 	dynamic_cast<SumOfMatrices*>(matrix_pt);
 
       // Set up everything ignoring the added matrices
-      //??ds no need to do explicit down-cast right?
       BlockDiagonalPreconditioner<MAIN_MATRIX_TYPE>::
+	setup(problem_pt, sum_matrix_pt->main_matrix_pt());
+    }
+
+  };
+
+  // ============================================================
+  ///
+  // ============================================================
+  template<typename MAIN_MATRIX_TYPE>
+  class MMBlockTriangularPreconditioner :
+    public BlockTriangularPreconditioner<MAIN_MATRIX_TYPE>
+  {
+  public:
+
+    //??ds add broken constructors etc.
+
+    /// \short Setup the preconditioner
+    void setup(Problem* problem_pt,
+	       DoubleMatrixBase* matrix_pt)
+    {
+      std::cout << "Calling BlockTriangularPreconditioner but ignoring the dense sub-block."
+		<< std::endl;
+      SumOfMatrices* sum_matrix_pt =
+	dynamic_cast<SumOfMatrices*>(matrix_pt);
+
+      // Set up everything ignoring the added matrices
+      BlockTriangularPreconditioner<MAIN_MATRIX_TYPE>::
+	setup(problem_pt, sum_matrix_pt->main_matrix_pt());
+    }
+
+    // void block_jacobian_output(Problem* problem_pt, DoubleMatrixBase* matrix_pt,
+    // 			       const std::string& dirname)
+    // {
+    //   SumOfMatrices* sum_matrix_pt =
+    // 	dynamic_cast<SumOfMatrices*>(matrix_pt);
+
+    //   // Set up everything ignoring the added matrices
+    //   BlockTriangularPreconditioner<MAIN_MATRIX_TYPE>::
+    // 	block_jacobian_output(problem_pt, sum_matrix_pt->main_matrix_pt(), dirname);
+    // }
+
+  };
+
+  // ============================================================
+  ///
+  // ============================================================
+  template<typename MAIN_MATRIX_TYPE>
+  class MMExactBlockPreconditioner :
+    public ExactBlockPreconditioner<MAIN_MATRIX_TYPE>
+  {
+  public:
+
+    //??ds add broken constructors etc.
+
+    /// \short Setup the preconditioner
+    void setup(Problem* problem_pt,
+	       DoubleMatrixBase* matrix_pt)
+    {
+      std::cout << "Calling ExactBlockPreconditioner but ignoring the dense sub-block."
+		<< std::endl;
+      SumOfMatrices* sum_matrix_pt =
+	dynamic_cast<SumOfMatrices*>(matrix_pt);
+
+      // Set up everything ignoring the added matrices
+      ExactBlockPreconditioner<MAIN_MATRIX_TYPE>::
 	setup(problem_pt, sum_matrix_pt->main_matrix_pt());
     }
 

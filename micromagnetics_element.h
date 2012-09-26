@@ -14,9 +14,6 @@
 #include "./vector_helpers.h"
 #include "./magnetic_materials.h"
 
-// //??ds global variable
-// extern bool fd_main_jacobian;
-
 using namespace oomph;
 
 namespace oomph
@@ -74,36 +71,53 @@ namespace oomph
 				      block_lookup_list)
 
     {
+      // Clear list (just in case)
+      // block_lookup_list.clear();
+
       // Loop over all nodes then all unpinned values (dofs) at each node. For
       // each of these we create a pair giving the global equation number and
       // the corresponding dof type (number).
-
       for(unsigned nd=0; nd<nnode(); nd++)
 	{
 
+	  //??ds  not sure this is ok
+	  // The total number of indexes used in this element
+	  unsigned n_index = node_pt(nd)->nvalue();
 
-	  // for(unsigned dof=0; dof<node_pt(nd)->nvalue(); dof++)
-	  //   {
-	  //     int local_eqn_number = nodal_local_eqn(nd,dof);
-	  //     if(local_eqn_number >= 0)
-	  // 	{
-	  // 	  std::pair<unsigned,unsigned> block_lookup;
-	  // 	  block_lookup.first = eqn_number(local_eqn_number);
-	  // 	  block_lookup.second = dof;
-	  // 	  block_lookup_list.push_front(block_lookup);
-	  // 	  //??ds why do we use push front?
-	  // 	  //??ds why do we use lists?
-	  // 	}
-	  //   }
+	  // Construct lists of equation numbers and dof numbers
+	  Vector<unsigned> global_equation_number(n_index), dof_type(n_index);
+	  for(unsigned index=0; index<n_index; index++)
+	    {
+	      int local_eqn_number = this->nodal_local_eqn(nd,index);
+	      if(local_eqn_number >= 0)
+		{
+		  global_equation_number[index] = eqn_number(local_eqn_number);
+		  dof_type[index] = index;
+		}
+	    }
+
+	  // Set this using the BEM elements instead
+	  // // If this is a boundary node then we want to give phi a different dof
+	  // // number (since it is determined by BEM).
+	  // if(node_pt(nd)->is_on_boundary())
+	  //   dof_type[phi_index_micromag()] = n_index;
+
+	  // Put it into the block lookup list
+	  for(unsigned index = 0; index<n_index; index++)
+	    {
+	      std::pair<unsigned long, unsigned> lookup;
+	      lookup.first = global_equation_number[index];
+	      lookup.second = dof_type[index];
+	      block_lookup_list.push_front(lookup);
+	    }
 	}
-
     }
 
     void add_face_element_pt(FiniteElement* const face_element_pt)
     { Face_element_pts.insert(face_element_pt); }
 
     unsigned ndof_types()
-    { return required_nvalue(0); }
+    {return required_nvalue(0);}
 
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
@@ -143,7 +157,7 @@ namespace oomph
 
     /// Get phi_1 source term at (Eulerian) position x.
     inline double get_phi_1_source(const double t,
-				 const Vector<double>& x) const
+				   const Vector<double>& x) const
     {
       if(Phi_1_source_pt==0) return 0.0;
       else return (*Phi_1_source_pt)(t,x);
@@ -476,10 +490,8 @@ namespace oomph
     {
       // Call the generic routine with the flag set to 1
 
-      // //??ds debug code
-      // if(fd_main_jacobian == true)
-      // 	FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
-      // else
+      //??ds debug code
+      //FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
 
 
       fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
@@ -520,6 +532,12 @@ namespace oomph
 	}
 
     } // end of dM_dt_micromag
+
+
+    /// A dummy double to hold space in Jacobian matrices for entries that are
+    /// determined by the boundary element method part of the hybrid method
+    /// (until it can be filled in at the problem level).
+    static const double DummyBEMControlledEntry;
 
   protected:
 
@@ -583,11 +601,6 @@ namespace oomph
 
     // List of face elements attached to this element
     std::set<FiniteElement*> Face_element_pts;
-
-    /// A dummy double to hold space in Jacobian matrices for entries that are
-    /// determined by the boundary element method part of the hybrid method
-    /// (until it can be filled in at the problem level).
-    static const double DummyBEMControlledEntry;
 
   }; // End of MicromagEquations class
 

@@ -19,7 +19,7 @@ namespace oomph
   const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
   template<unsigned DIM>
-  const double MicromagEquations<DIM>::DummyBEMControlledEntry = 1.2345e67;
+  const double MicromagEquations<DIM>::DummyBEMControlledEntry = 10;
 
 
   //======================================================================
@@ -251,10 +251,16 @@ namespace oomph
 	      {
 		const int phi_unknown = nodal_local_eqn(l2,phi_index_micromag());
 
-		if(!(node_pt(l)->is_on_boundary()))
+		// The diagonal of the phi phi block is non-zero but it is
+		// determined by the BEM method. Because of the way FEM assembly
+		// is handled we cannot put the values in here. So for now we
+		// put in dummy values to reserve space in the sparse matrix.
+		if(node_pt(l)->is_on_boundary())
 		  {
 		    if(phi_eqn == phi_unknown)
 		      jacobian(phi_eqn,phi_unknown) = DummyBEMControlledEntry;
+		    else
+		      jacobian(phi_eqn,phi_unknown) = 0.0;
 		  }
 		else
 		  {
@@ -270,7 +276,7 @@ namespace oomph
 		    }
 		  }
 
-		// nothing w.r.t. phi_1 (dependence is in BEM)
+		// nothing w.r.t. phi_1 (dependence is in BEM matrix)
 	      }
 
 

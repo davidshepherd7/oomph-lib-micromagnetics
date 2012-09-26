@@ -35,7 +35,7 @@ namespace oomph
     /// outside of this element for calculation of boundary matrix).
     static Mesh* Boundary_mesh_pt;
 
-    ELEMENT* Bulk_element_pt;
+    // ELEMENT* Bulk_element_pt;
 
   public:
 
@@ -72,19 +72,30 @@ namespace oomph
     }
 
     unsigned phi_index_micromag() const
-    {return bulk_element_pt()->phi_index_micromag();}
+    {return micromag_bulk_element_pt()->phi_index_micromag();}
 
     unsigned phi_1_index_micromag() const
-    {return bulk_element_pt()->phi_1_index_micromag();}
+    {return micromag_bulk_element_pt()->phi_1_index_micromag();}
 
     unsigned m_index_micromag(const unsigned& i) const
-    {return bulk_element_pt()->m_index_micromag(i);}
+    {return micromag_bulk_element_pt()->m_index_micromag(i);}
 
-    /// Pointer to higher-dimensional "bulk" element
-    ELEMENT*& bulk_element_pt() {return Bulk_element_pt;}
+    // /// Pointer to higher-dimensional "bulk" element
+    // ELEMENT*& bulk_element_pt()
+    // {return Bulk_element_pt;}
 
     /// Pointer to higher-dimensional "bulk" element (const version)
-    ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
+    ELEMENT* micromag_bulk_element_pt() const
+    {
+      ELEMENT* pt = dynamic_cast<ELEMENT*>(this->Bulk_element_pt);
+      if (pt == 0)
+	{
+	  OomphLibError("Failed to cast pointer",
+			"",
+			OOMPH_EXCEPTION_LOCATION);
+	}
+      return pt;
+    }
 
     // double& local_bem_phi_value(const unsigned& l)
     // {return Local_bem_phi_value[l];}
@@ -139,38 +150,33 @@ namespace oomph
     {
       unsigned phi_1_index = phi_1_index_micromag();
       unsigned phi_index = phi_index_micromag();
-      unsigned bulk_dof_types = bulk_element_pt()->ndof_types();
 
-      // We just need to move the boundary values of phi into their own blocks
+      // We just want to move the boundary values of phi into their own blocks
       for(unsigned nd=0; nd<nnode(); nd++)
 	{
-	  int phi_1_local = bulk_element_pt()->nodal_local_eqn(nd,phi_1_index);
+	  int phi_1_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_1_index);
 	  if(phi_1_local >=0)
 	    {
 	      std::pair<unsigned,unsigned> block_lookup;
-	      block_lookup.first = bulk_element_pt()->eqn_number(phi_1_local);
-	      block_lookup.second = bulk_dof_types + 1;
+	      block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_1_local);
+	      block_lookup.second = 0;
 	      block_lookup_list.push_front(block_lookup);
 	    }
 
-	  int phi_local = bulk_element_pt()->nodal_local_eqn(nd,phi_index);
+	  int phi_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_index);
 	  if(phi_local >=0)
 	    {
 	      std::pair<unsigned,unsigned> block_lookup;
-	      block_lookup.first = bulk_element_pt()->eqn_number(phi_local);
-	      block_lookup.second = bulk_dof_types + 1;
+	      block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_local);
+	      block_lookup.second = 1;
 	      block_lookup_list.push_front(block_lookup);
 	    }
 	}
     }
 
-    unsigned ndof_types()
-    {
-      return bulk_element_pt()->ndof_types() + additional_ndof_types();
-    }
-
-    unsigned additional_ndof_types()
-    { return 2; }
+    /// Number of dof types added by this element. We add two: one each for the
+    /// boundary values of phi and phi_1.
+    unsigned ndof_types() {return 2;}
 
     /// Output function - do nothing
     void output(std::ostream &outfile, const unsigned &n_plot=5) const {}
