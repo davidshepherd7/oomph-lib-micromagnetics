@@ -47,7 +47,7 @@ namespace oomph
     // re-normalise
     void actions_after_newton_solve()
     {
-      renormalise_magnetisation();
+      // renormalise_magnetisation();
     }
 
     void renormalise_magnetisation()
@@ -72,8 +72,7 @@ namespace oomph
 
     void build_boundary_matrix();
 
-    void create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
-			      Mesh* const &surface_mesh_pt);
+    void create_flux_elements(const unsigned& b);
 
     /// \short Get the mapping between the global equation numbering and
     /// the boundary equation numbering.
@@ -126,8 +125,11 @@ namespace oomph
     {
       //std::cout << "Calling your get_residuals" << std::endl;
       Problem::get_residuals(residuals);
+
+      //??dsparallel need to override the parallelism on residuals somehow...
+      // alternatively we could properly parallelise dense matrix
+      // multiplication.
       insert_bem_phi_residual_contribution(residuals);
-      // residuals.output(std::cout);
     }
 
     void get_mean_bulk_values(Vector<double>& means)
@@ -165,10 +167,18 @@ namespace oomph
       return 0;
     }
 
+
+    // ============================================================
+    /// Calculate boundary values for phi from BEM
+    // ============================================================
     void insert_bem_phi_residual_contribution(DoubleVector& residuals) const
     {
-      // calculate values for phi from bem
-      DoubleVector bem_phi_values;
+      // Parallelisation: Do not distribute because dense matrix cannot be
+      // distributed. ??dsparallel
+      LinearAlgebraDistribution
+	dist(communicator_pt(), bem_mesh_pt()->nnode(), false);
+
+      DoubleVector bem_phi_values(dist);
       get_bem_phi_values(bem_phi_values);
 
       // for each node in bem mesh
@@ -212,7 +222,7 @@ namespace oomph
       {
 	// Storage for values of total Jacobian
 	Vector<RowColVal> row_col_val;
-	unsigned bem_size = Global_boundary_equation_num_map.size();
+	unsigned bem_size = Global_to_boundary_equation_map.size();
 	unsigned total_nnz = sparse_jacobian.nnz() + bem_size
 	  + bem_size*bem_size;
 	row_col_val.reserve(total_nnz);
@@ -236,8 +246,8 @@ namespace oomph
 	// Add the boundary matrix entries to the list
 	std::map<long unsigned, long unsigned>::
 	  const_iterator row_it, col_it;
-	for(row_it = Global_boundary_equation_num_map.begin();
-	    row_it != Global_boundary_equation_num_map.end();
+	for(row_it = Global_to_boundary_equation_map.begin();
+	    row_it != Global_to_boundary_equation_map.end();
 	    row_it++)
 	  {
 	    for(col_it = Global_phi_1_num_map.begin();
@@ -271,21 +281,22 @@ namespace oomph
 
 	// Convert rows back to row_start format
 	VectorOps::rowindex2rowstart(rows, row_starts);
-      }
+
 
 #ifdef PARANOID
-      // Check for duplicates
-      for(unsigned j=1; j<cols.size(); j++)
-      	{
-      	  if((cols[j] == cols[j-1]) && ( rows[j] == rows[j-1]))
-      	    {
-      	      std::cout << "dupe: [" << cols[j] << ", " << rows[j] << ", " << vals[j]
-      			<< "] and ["
-      			<< cols[j-1] << ", " << rows[j-1] << ", " << vals[j-1] << "]"
-      			<< std::endl;
-      	    }
-      	}
+	// Check for duplicates
+	for(unsigned j=1; j<cols.size(); j++)
+	  {
+	    if((cols[j] == cols[j-1]) && ( rows[j] == rows[j-1]))
+	      {
+		std::cout << "dupe: [" << cols[j] << ", " << rows[j] << ", " << vals[j]
+			  << "] and ["
+			  << cols[j-1] << ", " << rows[j-1] << ", " << vals[j-1] << "]"
+			  << std::endl;
+	      }
+	  }
 #endif
+      }
 
       // Rebuild jacobian with new values
       unsigned ncol = cols.size();
@@ -294,8 +305,11 @@ namespace oomph
       // This is probably very slow...
       if(debug_doc().is_doc_enabled())
     	{
-    	  // get values (horribly inefficient)
-    	  DoubleVector dofs;
+	  // Parallelisation: distribute using the problems communcator,
+	  // split rows evenly over all processors. ??dsparallel
+	  LinearAlgebraDistribution
+	    dist(communicator_pt(), residuals.nrow(), true);
+    	  DoubleVector dofs(dist);
     	  get_dofs(dofs);
 
     	  // Get filenames
@@ -326,35 +340,40 @@ namespace oomph
     {
       std::cout << "Calling your get_jacobian function using SumOfMatrices." << std::endl;
 
-      // Create a matrix to store the sparse part of the Jacobian and get it
+      // Create a matrix to store the sparse part of the Jacobian, put it into
+      // the SumOfMatrices. Tell the SumOfMatrices to delete it when we are done
+      // with this solve.
       CRDoubleMatrix* sparse_jacobian_pt = new CRDoubleMatrix;
+      jacobian.main_matrix_pt() = sparse_jacobian_pt;
+      jacobian.set_delete_main_matrix();
+
+      // Fill in values from FEM part
       Problem::get_jacobian(residuals,*sparse_jacobian_pt);
 
-      // Set as the main (first) matrix of the sum.
-      jacobian.main_matrix_pt() = sparse_jacobian_pt;
 
-      // Set the sparse part of the Jacobian to be deleted along with the sum of
-      // the matrices - avoid a memory leak.
-      jacobian.set_delete_main_matrix();
+      double extra_stuff_start_time = TimingHelpers::timer();
+
+      // Overwrite the dphi_dphi boundary block with -1*I (sparse BEM part)
+      overwrite_bem_sparse_block(sparse_jacobian_pt);
 
       // Add the boundary element matrix to the total Jacobian. It represents
       // the derivative of phi with respect to phi_1 so each entry goes in the
       // phi row and the phi_1 column of the respective element (this is done
-      // via the two maps). Don't delete when done.
+      // via the two maps). 0 says don't delete when done.
       jacobian.add_matrix(boundary_matrix_pt(),
-      			  &Global_boundary_equation_num_map,
-      			  &Global_phi_1_num_map,0);
+      			  &Global_to_boundary_equation_map,
+      			  &Global_phi_1_num_map,
+			  0);
 
-
-      // Overwrite the dphi_dphi boundary block with -1*I
-      overwrite_bem_sparse_block(sparse_jacobian_pt);
-
-      // This is probably very slow...
+      // Output for debugging purposes. This is probably very slow...
       if(debug_doc().is_doc_enabled())
       	{
-      	  // get values (horribly inefficient)
-      	  DoubleVector dofs;
-      	  get_dofs(dofs);
+	  // Parallelisation: distribute using the problems communcator, split
+	  // rows evenly over all processors. ??dsparallel
+	  LinearAlgebraDistribution
+	    dist(communicator_pt(), residuals.nrow(), true);
+    	  DoubleVector dofs(dist);
+    	  get_dofs(dofs);
 
       	  // Get filenames
       	  char dof_filename[100], jac_filename[100], res_filename[100],
@@ -374,15 +393,19 @@ namespace oomph
       	  sparse_jacobian_pt->Matrix::sparse_indexed_output(spjac_filename);
       	  residuals.output(res_filename);
       	}
+
+      double extra_stuff_stop_time = TimingHelpers::timer();
+      std::cout << "Set up time increase due to BEM and/or debug output was " <<
+	extra_stuff_stop_time - extra_stuff_start_time << std::endl;
     }
 
-    void overwrite_bem_sparse_block(CRDoubleMatrix* sparse_jacobian_pt) const;
+    void overwrite_bem_sparse_block(CRDoubleMatrix* const sparse_jacobian_pt) const;
 
   private:
 
     /// The map between the global equation numbers for phi and the boundary
     /// equation/matrix numbering.
-    std::map<long unsigned,long unsigned> Global_boundary_equation_num_map;
+    std::map<long unsigned,long unsigned> Global_to_boundary_equation_map;
 
     /// The map between the global equation numbers for phi_1 and the boundary
     /// equation/matrix numbering.
@@ -476,21 +499,22 @@ finish_building_hybrid_problem()
   // ============================================================
 
   //This is necessary to avoid having a free constant of integration (which
-  // causes scaling problems). Just get the first node ??ds not sure this is
-  // ok...
+  // causes scaling problems). Just get the first boundary node ??ds not sure
+  // this is ok...
   Node* pinned_phi_1_node_pt = get_non_boundary_node(bulk_mesh_pt());
   pinned_phi_1_node_pt->pin(Phi_1_index);
   pinned_phi_1_node_pt->set_value(Phi_1_index,0.0);
 
-  // Create flux elements
+  // Create flux elements (in a seperate mesh so that block preconditioning
+  // works).
   // ============================================================
 
-  // We want Neumann (flux) boundary condtions on phi_1 on all boundaries so
+  // We want Neumann (flux) boundary condtions on phi_1 on all boundaries, so
   // create the face elements needed.
   Flux_mesh_pt = new Mesh;
   for(unsigned b=0; b < bulk_mesh_pt()->nboundary(); b++)
     {
-      create_flux_elements(b,bulk_mesh_pt(),Flux_mesh_pt);
+      create_flux_elements(b);
     }
 
   // Create BEM elements
@@ -521,7 +545,8 @@ finish_building_hybrid_problem()
 
   // Build global finite element mesh
   add_sub_mesh(bulk_mesh_pt());
-  add_sub_mesh(Flux_mesh_pt);
+  add_sub_mesh(flux_mesh_pt());
+  // add_sub_mesh(bem_mesh_pt());
   build_global_mesh();
 
   // Setup equation numbering scheme for all the finite elements
@@ -530,7 +555,6 @@ finish_building_hybrid_problem()
   // Make the boundary matrix (including setting up the numbering scheme).  Note
   // that this requires the FEM numbering scheme to be already set up.
   build_boundary_matrix();
-
 }
 
 //=============================================================================
@@ -543,7 +567,7 @@ build_boundary_matrix()
   // Create the mapping from global to boundary equations
   create_global_boundary_equation_number_maps();
 
-  //std::cout << Global_boundary_equation_num_map << std::endl;
+  //std::cout << Global_to_boundary_equation_map << std::endl;
 
   // get the number of nodes in the boundary problem
   unsigned long n_node = bem_mesh_pt()->nnode();
@@ -623,44 +647,9 @@ build_boundary_matrix()
 	  Boundary_matrix(nd,nd) += 0.5;
 	}
     }
+
 }
 
-// ============================================================
-///
-// ============================================================
-template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
-void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-overwrite_bem_sparse_block(CRDoubleMatrix* sparse_jacobian_pt) const
-{
-  std::map<long unsigned, long unsigned>::const_iterator it;
-  for(it = Global_boundary_equation_num_map.begin();
-      it != Global_boundary_equation_num_map.end();
-      it++)
-    {
-      // Find where this row is in the value array and overwrite it
-      long unsigned row_start = sparse_jacobian_pt->row_start()[it->first];
-      long unsigned row_end = sparse_jacobian_pt->row_start()[it->first + 1];
-      std::cout << row_start << " " << row_end << " : "
-		<< Global_boundary_equation_num_map.size() << std::endl;
-      for(long unsigned i=row_start; i < row_end; i++)
-	{
-	  //#ifdef PARANOID
-	  // ??ds I'd like to check that I really am only overwriting dummys
-	  // but not sure how to do this.
-	  if((row_start - row_end + 1) != Global_boundary_equation_num_map.size())
-	    {
-	      std::ostringstream error_msg;
-	      error_msg << "Trying to overwrite a row of the wrong size.";
-	      throw OomphLibError(error_msg.str(),
-				  "HybridMicromagneticsProblem::get_jacobian",
-				  OOMPH_EXCEPTION_LOCATION);
-	    }
-
-	  //#endif
-	  sparse_jacobian_pt->value()[i] = -1;
-	}
-    }
-}
 
 
 //======================================================================
@@ -672,7 +661,7 @@ void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 create_global_boundary_equation_number_maps()
 {
   // Initialise the map
-  Global_boundary_equation_num_map.clear();
+  Global_to_boundary_equation_map.clear();
   Global_phi_1_num_map.clear();
 
   // Initialise counters for number of unique boundary nodes included so far
@@ -694,7 +683,7 @@ create_global_boundary_equation_number_maps()
       //Problems could occur if the index we are using ever has pinned values
       if((global_phi_number < 0) || (global_phi_1_number < 0))
 	{
-	  //std::cout << Global_boundary_equation_num_map << std::endl;
+	  //std::cout << Global_to_boundary_equation_map << std::endl;
 	  throw OomphLibError
 	    ("Pinned equation found in one of the boundary phi values, this destroys the numbering system used to map between the boundary and finite element methods.",
 	     "HybridMicromagneticsProblem::get_boundary_equation_number",
@@ -710,7 +699,7 @@ create_global_boundary_equation_number_maps()
 	= std::make_pair(global_phi_1_number,k_phi_1);
 
       // Add entry to map and store whether this was a new addition
-      bool new_addition_phi = (Global_boundary_equation_num_map.insert(input_pair_phi)
+      bool new_addition_phi = (Global_to_boundary_equation_map.insert(input_pair_phi)
 			       ).second;
       bool new_addition_phi_1 = (Global_phi_1_num_map.insert(input_pair_phi_1)
 				 ).second;
@@ -720,13 +709,13 @@ create_global_boundary_equation_number_maps()
       if(new_addition_phi_1) k_phi_1++;
     }
 
-  //std::cout << Global_boundary_equation_num_map << std::endl;
+  //std::cout << Global_to_boundary_equation_map << std::endl;
   // std::cout << Global_phi_1_num_map << std::endl;
 }
 
 //======================================================================
-/// Given the global equation number return the boundary equation number. Most
-/// of the function is an error check.
+/// Given a pointer to a boundary node find the corresponding row/column in the
+/// BEM matrix.
 //======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 unsigned HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
@@ -739,8 +728,8 @@ get_boundary_equation_number(const Node* const boundary_node_pt) const
 #ifdef PARANOID
   // If the iterator is placed at the end the given global equation number is
   // not in the map, so return an error.
-  if(Global_boundary_equation_num_map.find(global_equation_number)
-     == Global_boundary_equation_num_map.end())
+  if(Global_to_boundary_equation_map.find(global_equation_number)
+     == Global_to_boundary_equation_map.end())
     {
       std::ostringstream error_stream;
       error_stream << "Global equation number " << global_equation_number
@@ -751,7 +740,7 @@ get_boundary_equation_number(const Node* const boundary_node_pt) const
     }
 #endif
 
-  return Global_boundary_equation_num_map.find(global_equation_number)->second;
+  return Global_to_boundary_equation_map.find(global_equation_number)->second;
 }
 
 
@@ -800,21 +789,20 @@ build_bem_mesh(Mesh* bem_mesh_pt) const
 //======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
-create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
-		     Mesh* const &surface_mesh_pt)
+create_flux_elements(const unsigned& b)
 {
   // How many bulk elements are adjacent to boundary b?
-  unsigned n_element = bulk_mesh_pt->nboundary_element(b);
+  unsigned n_element = bulk_mesh_pt()->nboundary_element(b);
 
   // Loop over the bulk elements adjacent to boundary b
   for(unsigned e=0;e<n_element;e++)
     {
       // Get pointer to the bulk element that is adjacent to boundary b
       BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>
-	(bulk_mesh_pt->boundary_element_pt(b,e));
+	(bulk_mesh_pt()->boundary_element_pt(b,e));
 
       // What is the index of the face of the bulk element at the boundary
-      int face_index = bulk_mesh_pt->face_index_at_boundary(b,e);
+      int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
 
       // Build the corresponding prescribed-flux element
       MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
@@ -824,7 +812,7 @@ create_flux_elements(const unsigned& b, Mesh* const &bulk_mesh_pt,
       bulk_elem_pt->add_face_element_pt(flux_element_pt);
 
       // Add the prescribed-flux element to the mesh
-      surface_mesh_pt->add_element_pt(flux_element_pt);
+      flux_mesh_pt()->add_element_pt(flux_element_pt);
 
     } // End of loop over bulk elements adjacent to boundary b
 }
@@ -833,9 +821,17 @@ template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigne
 void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 get_boundary_phi_1(DoubleVector& boundary_phi_1) const
 {
-  // Initialise vector
-  LinearAlgebraDistribution dummy(0,bem_mesh_pt()->nnode(),false);
-  boundary_phi_1.build(dummy,0.0);
+#ifdef PARANOID
+  if(!(boundary_phi_1.built()))
+    {
+      std::ostringstream error_msg;
+      error_msg << "Distribution should be set up for boundary_phi_1 before"
+		<< " passing it into this function.";
+      throw OomphLibError(error_msg.str(),
+			  "HybridMicromagneticsProblem::get_boundary_phi_1",
+			  OOMPH_EXCEPTION_LOCATION);
+    }
+#endif
 
   for(unsigned i_nd=0; i_nd< bem_mesh_pt()->nnode(); i_nd++)
     {
@@ -857,17 +853,65 @@ template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigne
 void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 get_bem_phi_values(DoubleVector& bem_phi_values) const
 {
-  // In order to use DoubleVector (for matrix multiplications) we need to have
-  // this thingy. In our serial case it just gives a number of rows.
-  LinearAlgebraDistribution dummy(0,bem_mesh_pt()->nnode(),false);
+  // Parallelisation: Do not distribute because dense matrix cannot be
+  // distributed. ??dsparallel
+  LinearAlgebraDistribution
+    dist(communicator_pt(), bem_mesh_pt()->nnode(), false);
 
   // Assemble a vector of phi_1 values on boundary nodes
-  DoubleVector boundary_phi_1;
+  DoubleVector boundary_phi_1(dist);
   get_boundary_phi_1(boundary_phi_1);
 
   // Dense matrix multiplication to calculate phi (result goes in Bem_phi_values)
   Boundary_matrix.multiply(boundary_phi_1, bem_phi_values);
 }
+
+// ============================================================
+///
+// ============================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void HybridMicromagneticsProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+overwrite_bem_sparse_block(CRDoubleMatrix* const sj_pt) const
+{
+  std::map<long unsigned, long unsigned>::const_iterator it;
+  for(it = Global_to_boundary_equation_map.begin();
+      it != Global_to_boundary_equation_map.end();
+      it++)
+    {
+      // Find where this row is in the CRDoubleMatrix
+      long int jacobian_row = it->first;
+      long unsigned row_start = sj_pt->row_start()[jacobian_row];
+      long unsigned row_end = sj_pt->row_start()[jacobian_row+1];
+
+      for(unsigned i=row_start; i<row_end; i++)
+	{
+	  // Sort of check if anything other than the dummy value has been added
+	  // to the entry by checking if there is any remainder. Not perfect
+	  // because it is possible (but unlikely) that we could have no
+	  // remainder by fluke.
+	  if(!(std::fmod(sj_pt->value()[i],
+			 MicromagEquations<DIM>::DummyBEMControlledEntry)
+	       < 1e-10))
+	    {
+	      std::ostringstream error_msg;
+	      error_msg << "Trying to overwrite a value to which something else has (probably) been added.";
+	      throw OomphLibError(error_msg.str(),
+				  "HybridMicromagneticsProblem::overwrite_bem_sparse_block",
+				  OOMPH_EXCEPTION_LOCATION);
+	    }
+
+
+	  if (sj_pt->column_index()[i] == jacobian_row)
+	    sj_pt->value()[i] = -1;
+	  else
+	    {
+	      sj_pt->value()[i] = 0;
+	      std::cerr << "Overwrote non-diagonal values, this is ok if you are FD-ing the jacobian but otherwise might be a problem." << std::endl;
+	    }
+	}
+    }
+}
+
 
 } // End of oomph namespace
 
