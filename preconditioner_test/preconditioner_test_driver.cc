@@ -31,7 +31,9 @@ namespace Inputs
       block_exact,
     };
 
-  double dt = 0.5e-2;
+  double dt = 0.1;
+  unsigned nx = 10, ny = nx, nz = nx;
+
   double tmax = 500;
 
   bool adaptive_timestepping = 0;
@@ -40,10 +42,16 @@ namespace Inputs
   bool debug_output = 0;
   bool midpointmethod = 0;
 
-  enum MMPrecond preconditioner_type = Inputs::block_upper_triangular;
+  enum MMPrecond preconditioner_type = Inputs::block_exact;
 
-  unsigned output_block_jacobian_at_timestep = 5;
+  // Just run the solver tests?
+  bool solver_tests = 1;
 
+  // Output BEM?
+  bool dump_bem = 1;
+  unsigned output_timestep = 0;
+
+  // Combine blocks?
   bool block_combine_bulk_and_boundary_phi = 0;
   bool block_combine_bulk_and_boundary_phi_1 = 0;
   bool block_combine_m_directions = 0;
@@ -58,7 +66,6 @@ namespace Inputs
 
   // A cube
   double lx = 10, ly = 10, lz = 10;
-  unsigned nx = 4, ny = 4, nz = 4;
 
   // Applied fields from mumag std problem #4, field is normalised automatically
   // within the element.
@@ -118,6 +125,13 @@ namespace oomph
     {
       return 90;
     }
+
+    /// Construct the mapping between dofs as assigned in elements and the final
+    /// blocks depending on which dofs we want lumped together.
+    void build_dof_to_block_map(const bool combine_m_directions,
+                                const bool combine_bulk_and_boundary_phi_1,
+                                const bool combine_bulk_and_boundary_phi,
+                                Vector<unsigned>& dof_to_block_map) const;
 
   }; // end of problem class
 
@@ -287,46 +301,21 @@ ThreeDHybridProblem(const unsigned& a, const unsigned& b, const unsigned& c)
 
           // We have to create vectors x where x[i] = the block that dof i goes
           // in.
+          Vector<unsigned> dof_to_block_map;
+          build_dof_to_block_map(Inputs::block_combine_m_directions,
+                                 Inputs::block_combine_bulk_and_boundary_phi_1,
+                                 Inputs::block_combine_bulk_and_boundary_phi,
+                                 dof_to_block_map);
 
-          // Create vector of a specific and unlikely number so that we can see if
-          // the dof has been assigned a block yet.
-          unsigned unassigned_dof_magic_number = 7654321;
-          Vector<unsigned> dof_to_block_map(7,unassigned_dof_magic_number);
-
-          // Assign dofs to be in the same block in some specific cases
-          unsigned dofs_so_far = 0;
-          if(Inputs::block_combine_m_directions)
-            {
-              dof_to_block_map[0] = dofs_so_far;
-              dof_to_block_map[1] = dofs_so_far;
-              dof_to_block_map[2] = dofs_so_far;
-              dofs_so_far++;
-            }
-          if(Inputs::block_combine_bulk_and_boundary_phi)
-            {
-              dof_to_block_map[3] = dofs_so_far;
-              dof_to_block_map[5] = dofs_so_far;
-              dofs_so_far++;
-            }
-          if(Inputs::block_combine_bulk_and_boundary_phi_1)
-            {
-              dof_to_block_map[4] = dofs_so_far;
-              dof_to_block_map[6] = dofs_so_far;
-              dofs_so_far++;
-            }
-
-          // Fill in the rest of the entries as needed to be in seperate blocks
-          for(unsigned j=0; j<dof_to_block_map.size(); j++)
-            {
-              if(dof_to_block_map[j] == unassigned_dof_magic_number)
-                {
-                  dof_to_block_map[j] = dofs_so_far;
-                  dofs_so_far++;
-                }
-            }
-          //??ds possible problem here - does it matter what order the block are
-          //in ever? Because this will reorder them all over the place. Probably
-          //doesn't matter except maybe for rounding error type issues.
+          // // Fill in the rest of the entries as needed to be in seperate blocks
+          // for(unsigned j=0; j<dof_to_block_map.size(); j++)
+          //   {
+          //     if(dof_to_block_map[j] == unassigned_dof_magic_number)
+          //       {
+          //         dof_to_block_map[j] = dofs_so_far;
+          //         dofs_so_far++;
+          //       }
+          //   }
 
           std::cout << "dof to block mapping is: " << dof_to_block_map << std::endl;
 
@@ -340,12 +329,94 @@ ThreeDHybridProblem(const unsigned& a, const unsigned& b, const unsigned& c)
       this->linear_solver_pt() = new SuperLUSolver;
     }
 
+  if(Inputs::dump_bem)
+    {
+      this->boundary_matrix_pt()->Matrix<double, DenseMatrix<double> >::
+        output("bem_matrix");
+    }
+
 } // end of constructor
 
 
-  //======================================================================
-  /// Output function
-  //======================================================================
+  // =================================================================
+  /// Construct the mapping between dofs as assigned in elements and the final
+  /// blocks depending on which dofs we want lumped together.
+  // =================================================================
+template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
+void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
+build_dof_to_block_map(const bool combine_m_directions,
+                       const bool combine_bulk_and_boundary_phi_1,
+                       const bool combine_bulk_and_boundary_phi,
+                       Vector<unsigned>& dof_to_block_map) const
+{
+  // Create vector of a specific and unlikely number so that we can see if
+  // the dof has been assigned a block yet.
+  unsigned unassigned_dof_magic_number = 76543;
+  dof_to_block_map.assign(7,unassigned_dof_magic_number);
+
+  // Assign dofs to be in the same block in some specific cases
+  unsigned dofs_so_far = 0;
+  if(combine_m_directions)
+    {
+      dof_to_block_map[this->m_index(0)] = dofs_so_far;
+      dof_to_block_map[this->m_index(1)] = dofs_so_far;
+      dof_to_block_map[this->m_index(2)] = dofs_so_far;
+      dofs_so_far++;
+    }
+  else
+    {
+      dof_to_block_map[this->m_index(0)] = dofs_so_far++;
+      dof_to_block_map[this->m_index(1)] = dofs_so_far++;
+      dof_to_block_map[this->m_index(2)] = dofs_so_far++;
+    }
+
+  if(combine_bulk_and_boundary_phi_1)
+    {
+      dof_to_block_map[this->phi_1_index()] = dofs_so_far;
+      dof_to_block_map[5] = dofs_so_far;
+      dofs_so_far++;
+    }
+  else
+    {
+      dof_to_block_map[this->phi_1_index()] = dofs_so_far++;
+      dof_to_block_map[5] = dofs_so_far++;
+    }
+
+  if(combine_bulk_and_boundary_phi)
+    {
+      dof_to_block_map[this->phi_index()] = dofs_so_far;
+      dof_to_block_map[6] = dofs_so_far;
+      dofs_so_far++;
+    }
+  else
+    {
+      dof_to_block_map[this->phi_index()] = dofs_so_far++;
+      dof_to_block_map[6] = dofs_so_far++;
+    }
+
+#ifdef PARANOID
+  for(unsigned j=0; j<dof_to_block_map.size(); j++)
+    {
+      if(dof_to_block_map[j] == unassigned_dof_magic_number)
+        {
+          std::ostringstream error_msg;
+          error_msg << "Dof number " << j << " was not assigned in the dof to block map.";
+          throw OomphLibError(error_msg.str(),
+                              "ThreeDHybridProblem::build_dof_to_block_map",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+#endif
+
+  //??ds warning: if the dof numberings in MicromagneticsElement or the
+  // boundary elements changes this will all be wrong! Also if you need
+  // specific blocks be sure to account for this rearrangement!
+}
+
+
+//======================================================================
+/// Output function
+//======================================================================
 template<class BULK_ELEMENT, template<class,unsigned> class BEM_ELEMENT, unsigned DIM>
 void ThreeDHybridProblem<BULK_ELEMENT,BEM_ELEMENT,DIM>::
 doc_solution(DocInfo& doc_info)
@@ -438,29 +509,244 @@ set_initial_condition()
   // Reset backed up time for global timestepper
   this->time_pt()->time()=backed_up_time;
 }
-
-
 } // End of oomph namespace
+
+namespace PreconditionerHelpers
+{
+
+  /// Generate a double in [0,1].
+  double rand01()
+  {
+    unsigned n = 10000;
+    return double( rand() % n) / double(n);
+  }
+
+  /// Fill a doublevector with random entries between zero and one.
+  void randomise_vector(DoubleVector& vec)
+  {
+    unsigned n = vec. nrow();
+    for(unsigned j=0; j<n; j++)
+      vec[j] = rand01();
+  }
+
+  /// Do a superlu solve with random rhs and discard result (only useful for timings).
+  double superlusolve(CRDoubleMatrix* matrix_pt)
+  {
+    LinearAlgebraDistribution* dist_pt = matrix_pt->distribution_pt();
+    DoubleVector rhs(dist_pt), soln(dist_pt);
+    randomise_vector(rhs);
+
+    double start_time = TimingHelpers::timer();
+    matrix_pt->solve(rhs,soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  double cgamgsolve(CRDoubleMatrix* matrix_pt)
+  {
+    LinearAlgebraDistribution* dist_pt = matrix_pt->distribution_pt();
+    DoubleVector rhs(dist_pt), soln(dist_pt);
+    randomise_vector(rhs);
+
+    // Construct CG solver
+    CG<CRDoubleMatrix> cg;
+
+    double start_time = TimingHelpers::timer();
+
+    // Solve
+    HyprePreconditioner amg;
+    amg.hypre_method() = HyprePreconditioner::BoomerAMG;
+    cg.preconditioner_pt() = &amg;
+    cg.solve(matrix_pt, rhs, soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  double cgilu0solve(CRDoubleMatrix* matrix_pt)
+  {
+    LinearAlgebraDistribution* dist_pt = matrix_pt->distribution_pt();
+    DoubleVector rhs(dist_pt), soln(dist_pt);
+    randomise_vector(rhs);
+
+    // Construct CG solver
+    CG<CRDoubleMatrix> cg;
+
+    double start_time = TimingHelpers::timer();
+
+    // Solve
+    ILUZeroPreconditioner<CRDoubleMatrix> ilu0;
+    cg.preconditioner_pt() = &ilu0;
+    cg.solve(matrix_pt, rhs, soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  double gmresamgsolve(CRDoubleMatrix* matrix_pt)
+  {
+    LinearAlgebraDistribution* dist_pt = matrix_pt->distribution_pt();
+    DoubleVector rhs(dist_pt), soln(dist_pt);
+    randomise_vector(rhs);
+
+    // Construct GMRES solver
+    GMRES<CRDoubleMatrix> gmres;
+
+    double start_time = TimingHelpers::timer();
+
+    // Solve
+    HyprePreconditioner amg;
+    amg.hypre_method() = HyprePreconditioner::BoomerAMG;
+    gmres.preconditioner_pt() = &amg;
+    gmres.solve(matrix_pt, rhs, soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  double gmresilu0solve(CRDoubleMatrix* matrix_pt)
+  {
+    LinearAlgebraDistribution* dist_pt = matrix_pt->distribution_pt();
+    DoubleVector rhs(dist_pt), soln(dist_pt);
+    randomise_vector(rhs);
+
+    // Construct GMRES solver
+    GMRES<CRDoubleMatrix> gmres;
+
+    double start_time = TimingHelpers::timer();
+
+    // Solve
+    ILUZeroPreconditioner<CRDoubleMatrix> ilu0;
+    gmres.preconditioner_pt() = &ilu0;
+    gmres.solve(matrix_pt, rhs, soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  double multiply(DoubleMatrixBase* dense_block_pt)
+  {
+    // Dummy dist with no communicator
+    LinearAlgebraDistribution dist(0,dense_block_pt->nrow(),false);
+    DoubleVector rhs(dist), soln(dist);
+    randomise_vector(rhs);
+
+    double start_time = TimingHelpers::timer();
+
+    dense_block_pt->multiply(rhs,soln);
+
+    double stop_time = TimingHelpers::timer();
+    return stop_time - start_time;
+  }
+
+  void run_preconditioner_tests(Problem* problem_pt)
+  {
+    // Get a hybrid micromagnetics problem pt
+    // This cast is a stupid hack but I don't care anymore... :(
+    ThreeDHybridProblem< TMicromagElement <3,2>, MicromagFaceElement, 3 >*
+      prob_pt =
+      dynamic_cast<ThreeDHybridProblem< TMicromagElement <3,2>,
+                                        MicromagFaceElement, 3 >*>
+    (problem_pt);
+
+  // Calculate the jacobian
+  DoubleVector residuals;
+  SumOfMatrices sumjacobian;
+  prob_pt->get_jacobian(residuals, sumjacobian);
+
+  // Get the sparse part of Jacobian and the dense sub block.
+  CRDoubleMatrix* jacobian_pt
+  = dynamic_cast<CRDoubleMatrix*>(sumjacobian.main_matrix_pt());
+  DoubleMatrixBase* dense_block_pt = sumjacobian.added_matrix_pt(0);
+
+  // Set up a dummy preconditioner to get blocks of the Jacobian
+  DummyBlockPreconditioner<CRDoubleMatrix> blocker;
+  blocker.add_mesh(prob_pt->bulk_mesh_pt());
+  blocker.add_mesh(prob_pt->bem_mesh_pt());
+
+  // Create a mapping to lump F block into one block and boundary/bulk phis into
+  // one block.
+  Vector<unsigned> dof_to_block_map;
+  prob_pt->build_dof_to_block_map(1,1,1,dof_to_block_map);
+  blocker.set_dof_to_block_map(dof_to_block_map);
+  //??ds warning: if the dof numberings in MicromagneticsElement or the
+  // boundary elements changes this will all be wrong!
+  unsigned f_dof(0), phi1_dof(1), phi_dof(2);
+
+  std::cout << dof_to_block_map << std::endl;
+
+  // Finish setting up the blocking dummy preconditioner
+  blocker.setup(problem_pt, jacobian_pt);
+
+  // Get F, phi, phi1 blocks
+  CRDoubleMatrix *f_block_pt(0), *phi1_block_pt(0), *phi_block_pt(0);
+  blocker.get_block(f_dof, f_dof, f_block_pt);
+  blocker.get_block(phi1_dof, phi1_dof, phi1_block_pt);
+  blocker.get_block(phi_dof, phi_dof, phi_block_pt);
+
+  // // Should fail if i got blocking right
+  // CRDoubleMatrix *dummy(0);
+  // blocker.get_block(4,4,dummy);
+
+  std::cout << std::endl
+  << "************************************************************"
+  << std::endl;
+
+  Vector<std::string> solve_types;
+  solve_types.push_back("LU");
+  solve_types.push_back("Krylov+amg");
+  solve_types.push_back("Krylov+ilu0");
+
+  Vector<double> f_times(solve_types.size());
+  f_times[0] = superlusolve(f_block_pt);
+  f_times[1] = gmresamgsolve(f_block_pt);
+  f_times[2] =  -100; //gmresilu0solve(f_block_pt);
+
+  Vector<double> phi_times(solve_types.size());
+  phi_times[0] = superlusolve(phi_block_pt);
+  phi_times[1] = cgamgsolve(phi_block_pt);
+  phi_times[2] = cgilu0solve(phi_block_pt);
+
+  Vector<double> phi1_times(solve_types.size());
+  phi1_times[0] = superlusolve(phi1_block_pt);
+  phi1_times[1] = cgamgsolve(phi1_block_pt);
+  phi1_times[2] = cgilu0solve(phi1_block_pt);
+
+  std::cout << "matrix " << solve_types << std::endl;
+  std::cout << "f " << f_times << std::endl;
+  std::cout << "phi " << phi_times << std::endl;
+  std::cout << "phi1 " << phi1_times << std::endl;
+
+  }
+
+}
+
+
 
 // takes x,y,z nelements, dt and output_step
 int main(int argc, char* argv[])
 {
 
-  CommandLineArgs::setup(argc,argv);
+  unsigned a, b, c, output_timestep;
+  double dt;
 
-  // if(argc < 5)
-  //   {
-  //     std::cout << "Not enough command line inputs." << std::endl;
-  //     exit(1);
-  //   }
-  const unsigned a = atoi(argv[1]);
-  const unsigned b = atoi(argv[2]);
-  const unsigned c = atoi(argv[3]);
-  double dt = atof(argv[4]);
-  const unsigned output_timestep = atoi(argv[5]);
-
-  CommandLineArgs::output();
-
+  if(argc < 5)
+    {
+      std::cout << "Not enough command line inputs." << std::endl;
+      // a = 30; b = 30; c = 100;
+      a = Inputs::nx; b = Inputs::ny; c = Inputs::nz;
+      dt = Inputs::dt;
+      output_timestep = Inputs::output_timestep;
+    }
+  else
+    {
+      a = atoi(argv[1]);
+      b = atoi(argv[2]);
+      c = atoi(argv[3]);
+      dt = atof(argv[4]);
+      output_timestep = atoi(argv[5]);
+    }
 
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
@@ -501,10 +787,10 @@ int main(int argc, char* argv[])
   if(Inputs::debug_output)
     problem.debug_doc().enable_doc();
 
-  /// Check problem
-  if(!(problem.self_test()==0))
-    throw OomphLibError("Problem self_test failed","main",
-                        OOMPH_EXCEPTION_LOCATION);
+  // /// Check problem
+  // if(!(problem.self_test()==0))
+  //   throw OomphLibError("Problem self_test failed","main",
+  //                       OOMPH_EXCEPTION_LOCATION);
 
   std::cout << "constructor done, everything ready" << "\n" << std::endl;
 
@@ -514,20 +800,12 @@ int main(int argc, char* argv[])
   sprintf(trace_filename,"%s/trace.dat",doc_info.directory().c_str());
   trace_file.open(trace_filename);
 
-  // for(unsigned el=0; el< problem.bulk_mesh_pt()->nelement(); el++)
-  //   {
-  //     std::cout << problem.bulk_mesh_pt()->element_pt(el)->ndof_types() << std::endl;
-  //   }
-
   // Pointer casting to get a block preconditioner pointer
   IterativeLinearSolver* it_lin_solver_pt =
     dynamic_cast<IterativeLinearSolver*>(problem.linear_solver_pt());
   GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* prec_pt =
     dynamic_cast<GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* >
     (it_lin_solver_pt->preconditioner_pt());
-
-  // std::cout << "Trying..." << std::endl;
-  // std::cout << problem.bem_mesh_pt()->element_pt(1)->bulk_element_pt() << std::endl;
 
   if(Inputs::adaptive_timestepping)
     {
@@ -575,7 +853,15 @@ int main(int argc, char* argv[])
 
           // If this is the step where we wanted the blocked jacobian ouput then do it
           if(istep == output_timestep)
-            prec_pt->set_block_output_to_files("blocks/jac");
+            {
+              if(Inputs::solver_tests)
+                {
+                  PreconditionerHelpers::run_preconditioner_tests(&problem);
+                  exit(0);
+                }
+              else
+                prec_pt->set_block_output_to_files("blocks/jac");
+            }
           else
             prec_pt->disable_block_output_to_files();
 
@@ -602,5 +888,7 @@ int main(int argc, char* argv[])
 #endif
 
 }
+
+
 
 #endif
