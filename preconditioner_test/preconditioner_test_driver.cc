@@ -331,8 +331,7 @@ ThreeDHybridProblem(const unsigned& a, const unsigned& b, const unsigned& c)
 
   if(Inputs::dump_bem)
     {
-      this->boundary_matrix_pt()->Matrix<double, DenseMatrix<double> >::
-        output("bem_matrix");
+      this->boundary_matrix_pt()-> output("bem_matrix");
     }
 
 } // end of constructor

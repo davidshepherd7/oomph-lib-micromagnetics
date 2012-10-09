@@ -220,6 +220,16 @@ public:
     gamma() = 2.211e-5; // m/(As)
   }
 
+  void set_nmag_rectangle()
+  {
+    saturation_magnetisation() = 0.86e6; // A/m
+    exchange_constant() = 13.0e-12; // J/m
+    k1() = 0.0;
+
+    gilbert_damping() = 0.5;
+    gamma() = 2.210173e5; // m/(As)
+  }
+
   // etc...
 
 private:
