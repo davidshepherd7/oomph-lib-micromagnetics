@@ -20,8 +20,7 @@ using namespace oomph;
 namespace oomph
 {
 
- template<class ELEMENT>
-  class GenericPoissonProblem : public Problem
+ template<class ELEMENT> class GenericPoissonProblem : public Problem
  {
 
  public:
@@ -32,7 +31,7 @@ namespace oomph
 
   /// Typedef because the full name is far too long
   typedef typename PoissonFluxElement<ELEMENT>::PoissonPrescribedFluxFctPt
-   PoissonFluxFctPt;
+  PoissonFluxFctPt;
 
   // Note: typename is needed here and in some places below because the
   // definitions of the things after "typename" are in other files and the
@@ -40,11 +39,11 @@ namespace oomph
   // functions. (I think...)
 
   /// Constructor: Pass pointer to source function
- GenericPoissonProblem() :
-  Bulk_mesh_number(-10), Flux_mesh_number(-10),
+  GenericPoissonProblem() :
+   Bulk_mesh_number(-10), Flux_mesh_number(-10),
    Poisson_dof_number(0), Source_fct_pt(0),
    Exact_solution_fct_pt(0)
-    {}
+  {}
 
   /// Destructor (empty)
   ~GenericPoissonProblem() {}
@@ -118,23 +117,23 @@ namespace oomph
 
   /// Set function for Source_fct_pt.
   void set_source_fct_pt
-   (typename ELEMENT::PoissonSourceFctPt const source_fct_pt)
+  (typename ELEMENT::PoissonSourceFctPt const source_fct_pt)
   {Source_fct_pt = source_fct_pt;}
 
   /// Const access function for Source_fct_pt.
   typename ELEMENT::PoissonSourceFctPt source_fct_pt() const
-   {
-    if(Source_fct_pt == 0)
-     {
-      std::ostringstream error_msg;
-      error_msg << "Source function pointer for this problem "
-                << "has not been set yet.";
-      throw OomphLibError(error_msg.str(),
-                          "",
-                          OOMPH_EXCEPTION_LOCATION);
-     }
-    return Source_fct_pt;
-   }
+  {
+   if(Source_fct_pt == 0)
+    {
+     std::ostringstream error_msg;
+     error_msg << "Source function pointer for this problem "
+	       << "has not been set yet.";
+     throw OomphLibError(error_msg.str(),
+			 "",
+			 OOMPH_EXCEPTION_LOCATION);
+    }
+   return Source_fct_pt;
+  }
 
   /// Add a bulk mesh and set up numbering
   void set_bulk_mesh(Mesh* b_mesh)
@@ -193,11 +192,11 @@ namespace oomph
 
   /// \short Non-const access function for Exact_solution_fct_pt.
   FiniteElement::SteadyExactSolutionFctPt& exact_solution_fct_pt()
-   {return Exact_solution_fct_pt;}
+  {return Exact_solution_fct_pt;}
 
   /// \short Const access function for Exact_solution_fct_pt.
   FiniteElement::SteadyExactSolutionFctPt exact_solution_fct_pt() const
-   {return Exact_solution_fct_pt;}
+  {return Exact_solution_fct_pt;}
 
  private:
 
@@ -228,11 +227,11 @@ namespace oomph
 
   /// Inaccessible copy constructor
   GenericPoissonProblem(const GenericPoissonProblem& dummy)
-   {BrokenCopy::broken_copy("GenericPoissonProblem");}
+  {BrokenCopy::broken_copy("GenericPoissonProblem");}
 
   /// Inaccessible assignment operator
   void operator=(const GenericPoissonProblem& dummy)
-   {BrokenCopy::broken_assign("GenericPoissonProblem");}
+  {BrokenCopy::broken_assign("GenericPoissonProblem");}
 
  };
 
@@ -240,163 +239,163 @@ namespace oomph
  /// Finish off building the problem (once everything has been set).
  // =================================================================
  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::
-  build()
-  {
+ void GenericPoissonProblem<ELEMENT>::
+ build()
+ {
 #ifdef PARANOID
-   for(unsigned i=0; i<Dirichlet_conditions.size(); i++)
-    {
-     if(Dirichlet_conditions[i].second == 0)
-      {
-       std::ostringstream error_msg;
-       error_msg << "Dirichlet function pointer number "
-                 << i << " is unassigned.";
-       throw OomphLibError(error_msg.str(),
-                           "",
-                           OOMPH_EXCEPTION_LOCATION);
-      }
-    }
+  for(unsigned i=0; i<Dirichlet_conditions.size(); i++)
+   {
+    if(Dirichlet_conditions[i].second == 0)
+     {
+      std::ostringstream error_msg;
+      error_msg << "Dirichlet function pointer number "
+		<< i << " is unassigned.";
+      throw OomphLibError(error_msg.str(),
+			  "",
+			  OOMPH_EXCEPTION_LOCATION);
+     }
+   }
 #endif
 
-   // Loop over the bulk elements to set up element-specific things
-   unsigned n_element = bulk_mesh_pt()->nelement();
-   for(unsigned i=0;i<n_element;i++)
-    {
-     // Upcast from GeneralisedElement to the present element
-     ELEMENT *el_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
+  // Loop over the bulk elements to set up element-specific things
+  unsigned n_element = bulk_mesh_pt()->nelement();
+  for(unsigned i=0;i<n_element;i++)
+   {
+    // Upcast from GeneralisedElement to the present element
+    ELEMENT *el_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
 
-     // Set the source function pointer
-     el_pt->source_fct_pt() = Source_fct_pt;
-    }
+    // Set the source function pointer
+    el_pt->source_fct_pt() = Source_fct_pt;
+   }
 
-   // Set the values on Dirichlet boundaries in case they are needed before
-   // any Newton solves take place (and so we pass self tests).
-   update_dirichlet_conditions();
+  // Set the values on Dirichlet boundaries in case they are needed before
+  // any Newton solves take place (and so we pass self tests).
+  update_dirichlet_conditions();
 
-   // Combine the meshes into a global mesh
-   build_global_mesh();
+  // Combine the meshes into a global mesh
+  build_global_mesh();
 
-   // Set up equation numbering scheme
-   std::cout <<"Poisson number of equations: " << assign_eqn_numbers() << std::endl;
-  }
+  // Set up equation numbering scheme
+  std::cout <<"Poisson number of equations: " << assign_eqn_numbers() << std::endl;
+ }
 
  // =====================================================================
  /// Create Poisson flux elements on the b-th boundary of the bulk mesh,
  /// add the elements to the flux mesh and set the prescribed flux pointer.
  //=======================================================================
  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::set_neumann_boundary
-  (const unsigned &b, PoissonFluxFctPt const prescribed_flux_pt)
-  {
-   // If we don't have a flux mesh yet then make one
-   if(Flux_mesh_number == -10)
-    {
-     Flux_mesh_number = add_sub_mesh(new Mesh);
-    }
+ void GenericPoissonProblem<ELEMENT>::set_neumann_boundary
+ (const unsigned &b, PoissonFluxFctPt const prescribed_flux_pt)
+ {
+  // If we don't have a flux mesh yet then make one
+  if(Flux_mesh_number == -10)
+   {
+    Flux_mesh_number = add_sub_mesh(new Mesh);
+   }
 
-   // Loop over the bulk elements adjacent to boundary b
-   unsigned n_element = bulk_mesh_pt()->nboundary_element(b);
-   for(unsigned e=0;e<n_element;e++)
-    {
-     // Get pointer to the bulk element that is adjacent to boundary b
-     ELEMENT* bulk_elem_pt = dynamic_cast<ELEMENT*>
-      (bulk_mesh_pt()->boundary_element_pt(b,e));
+  // Loop over the bulk elements adjacent to boundary b
+  unsigned n_element = bulk_mesh_pt()->nboundary_element(b);
+  for(unsigned e=0;e<n_element;e++)
+   {
+    // Get pointer to the bulk element that is adjacent to boundary b
+    ELEMENT* bulk_elem_pt = dynamic_cast<ELEMENT*>
+     (bulk_mesh_pt()->boundary_element_pt(b,e));
 
-     // What is the index of the face of the bulk element e on bondary b
-     int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
+    // What is the index of the face of the bulk element e on bondary b
+    int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
 
-     // Build the corresponding prescribed-flux element
-     PoissonFluxElement<ELEMENT>* flux_element_pt = new
-      PoissonFluxElement<ELEMENT>(bulk_elem_pt,face_index);
+    // Build the corresponding prescribed-flux element
+    PoissonFluxElement<ELEMENT>* flux_element_pt = new
+     PoissonFluxElement<ELEMENT>(bulk_elem_pt,face_index);
 
-     // Add the prescribed-flux element to the surface mesh
-     flux_mesh_pt()->add_element_pt(flux_element_pt);
+    // Add the prescribed-flux element to the surface mesh
+    flux_mesh_pt()->add_element_pt(flux_element_pt);
 
-     // Set the prescribed flux on this element
-     flux_element_pt->flux_fct_pt() = prescribed_flux_pt;
+    // Set the prescribed flux on this element
+    flux_element_pt->flux_fct_pt() = prescribed_flux_pt;
 
-    } //end of loop over bulk elements adjacent to boundary b
+   } //end of loop over bulk elements adjacent to boundary b
 
-  } // end of create_flux_elements
+ } // end of create_flux_elements
 
 
  // =================================================================
  /// Doc the solution.
  // =================================================================
  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::doc_solution(DocInfo& doc_info)
+ void GenericPoissonProblem<ELEMENT>::doc_solution(DocInfo& doc_info)
   const
-  {
+ {
 
-   std::ofstream some_file;
-   char filename[100];
+  std::ofstream some_file;
+  char filename[100];
 
-   // Number of plot points
-   unsigned npts;
-   npts=5;
+  // Number of plot points
+  unsigned npts;
+  npts=5;
 
-   // Output solution
-   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-           doc_info.number());
-   some_file.open(filename);
-   bulk_mesh_pt()->output(some_file,npts);
-   some_file.close();
+  // Output solution
+  sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
+	  doc_info.number());
+  some_file.open(filename);
+  bulk_mesh_pt()->output(some_file,npts);
+  some_file.close();
 
-   // If we have an exact solution then use it:
-   if(exact_solution_fct_pt() != 0)
-    {
+  // If we have an exact solution then use it:
+  if(exact_solution_fct_pt() != 0)
+   {
 
-     // Output exact solution
-     sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-             doc_info.number());
-     some_file.open(filename);
-     bulk_mesh_pt()->output_fct(some_file, npts, exact_solution_fct_pt());
-     some_file.close();
+    // Output exact solution
+    sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
+	    doc_info.number());
+    some_file.open(filename);
+    bulk_mesh_pt()->output_fct(some_file, npts, exact_solution_fct_pt());
+    some_file.close();
 
 
-     // Doc error and return of the square of the L2 error
-     double error,norm;
-     sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
-             doc_info.number());
-     some_file.open(filename);
-     bulk_mesh_pt()->compute_error(some_file, exact_solution_fct_pt(),
-                                   error, norm);
-     some_file.close();
+    // Doc error and return of the square of the L2 error
+    double error,norm;
+    sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
+	    doc_info.number());
+    some_file.open(filename);
+    bulk_mesh_pt()->compute_error(some_file, exact_solution_fct_pt(),
+				  error, norm);
+    some_file.close();
 
-     // Doc L2 error and norm of solution
-     std::cout << "\nNorm of error   : " << sqrt(error) << std::endl;
-     std::cout << "Norm of solution: " << sqrt(norm) << std::endl << std::endl;
+    // Doc L2 error and norm of solution
+    std::cout << "\nNorm of error   : " << sqrt(error) << std::endl;
+    std::cout << "Norm of solution: " << sqrt(norm) << std::endl << std::endl;
 
-    }
-   else
-    {
-     std::cout << "No exact soution pointer given." << std::endl;
-    }
-  }
+   }
+  else
+   {
+    std::cout << "No exact soution pointer given." << std::endl;
+   }
+ }
 
  // =================================================================
  /// Get the norm of the error (requires exact solution fct_pt). Used for
  /// testing purposes.
  // =================================================================
  template<class ELEMENT>
-  double GenericPoissonProblem<ELEMENT>::get_error_norm() const
-  {
-   double error, norm;
-   std::ofstream dummy_file;
+ double GenericPoissonProblem<ELEMENT>::get_error_norm() const
+ {
+  double error, norm;
+  std::ofstream dummy_file;
 
-   if(exact_solution_fct_pt() != 0)
-    {
-     bulk_mesh_pt()->compute_error(dummy_file, exact_solution_fct_pt(),
-                                   error, norm);
-    }
-   else
-    {
-     throw OomphLibError("No exact solution set.",
-                         "GenericPoissonProblem::get_error_norm",
-                         OOMPH_EXCEPTION_LOCATION);
-    }
-   return sqrt(error);
-  }
+  if(exact_solution_fct_pt() != 0)
+   {
+    bulk_mesh_pt()->compute_error(dummy_file, exact_solution_fct_pt(),
+				  error, norm);
+   }
+  else
+   {
+    throw OomphLibError("No exact solution set.",
+			"GenericPoissonProblem::get_error_norm",
+			OOMPH_EXCEPTION_LOCATION);
+   }
+  return sqrt(error);
+ }
 
 
 } // End of oomph namespace

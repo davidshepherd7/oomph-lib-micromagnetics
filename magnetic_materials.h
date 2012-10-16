@@ -5,34 +5,38 @@
 
 namespace mag_parameters
 {
-  enum enum_crystalline_anisotropy_type
-    {
-      //??ds check the anisotropy fns...
-      UNIAXIAL_CRYSTALLINE_ANISOTROPY
-    };
+ enum enum_crystalline_anisotropy_type
+  {
+   //??ds check the anisotropy fns...
+   UNIAXIAL_CRYSTALLINE_ANISOTROPY
+  };
 
-  // Magnetic constant (source: http://physics.nist.gov/)
-  double mu0 = 12.566370614e-7; // in N/(A^2) (SI)
+ // Magnetic constant (source: http://physics.nist.gov/)
+ double mu0 = 12.566370614e-7; // in N/(A^2) (SI)
 }
 
 using namespace mag_parameters;
-// ============================================================
-/// A class to store magnetic material parameters.
-// ============================================================
-// TODO: normalisation, multiple mesh normalisation - divide by static mean values?
-//??ds time normalisation? - just remember that we are in units of 1/gamma?
-//??ds space normalisation? - just use nm?
-class MagneticParameters
+
+namespace oomph
 {
 
-public:
+ // ============================================================
+ /// A class to store magnetic material parameters.
+ // ============================================================
+ // TODO: normalisation, multiple mesh normalisation - divide by static mean values?
+ //??ds time normalisation? - just remember that we are in units of 1/gamma?
+ //??ds space normalisation? - just use nm?
+ class MagneticParameters
+ {
+
+ public:
   MagneticParameters()
-    : Gamma(1e-15), Gilbert_damping(0.05),
-      Distance_units(1e-9),
-      Magnetostatic_debug_coeff(1.0),
-      Exchange_debug_coeff(1.0),
-      Ca_debug_coeff(1.0),
-      Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
+   : Gamma(1e-15), Gilbert_damping(0.05),
+     Distance_units(1e-9),
+     Magnetostatic_debug_coeff(1.0),
+     Exchange_debug_coeff(1.0),
+     Ca_debug_coeff(1.0),
+     Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
   {}
 
   // Standard copy/assign constructors and deconstructor are ok: no pointers and
@@ -71,7 +75,7 @@ public:
   {return 1.0;}
   double normalised_hex() const
   {return (hex() * field_normalisation_factor() * exchange_debug_coeff())
-      / (distance_units() * distance_units());};
+    / (distance_units() * distance_units());};
   double normalised_hk() const //??ds probably need some distance conversion in here...
   {return hk() * field_normalisation_factor() * ca_debug_coeff();}
   double normalised_hms() const
@@ -90,46 +94,46 @@ public:
 				    const Vector<double>& m, Vector<double>& h_ca)
   {
 
-    switch (crystalline_ansiotropy_type())
-      {
+   switch (crystalline_ansiotropy_type())
+    {
 
-      case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
+    case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
 
-	Vector<double> easy_axis(3,0.0);
-	unsigned ax = 0;
+     Vector<double> easy_axis(3,0.0);
+     unsigned ax = 0;
 
-	// Find which direction along the axis we want
-	if(m[ax] < 0)
-	  easy_axis[ax] = -1.0;
-	else
-	  easy_axis[ax] = +1.0;
-	h_ca = easy_axis;
+     // Find which direction along the axis we want
+     if(m[ax] < 0)
+      easy_axis[ax] = -1.0;
+     else
+      easy_axis[ax] = +1.0;
+     h_ca = easy_axis;
 
-	// Multiply by the magnitude
-	double magnitude = std::abs(VectorOps::dot(easy_axis,m));
-	for(unsigned i=0; i<h_ca.size(); i++)
-	  h_ca[i] *= magnitude * normalised_hk();
+     // Multiply by the magnitude
+     double magnitude = std::abs(VectorOps::dot(easy_axis,m));
+     for(unsigned i=0; i<h_ca.size(); i++)
+      h_ca[i] *= magnitude * normalised_hk();
 
-	break;
+     break;
 
-      }
+    }
   }
 
   // Get the appropriate exchange length for this material according the the
   // nmag user manual.
   double exchange_length()
   {
-    double l1 = std::sqrt( (2* exchange_constant() )
-			   / (mag_parameters::mu0 * saturation_magnetisation()
-			      * saturation_magnetisation()));
-    double l2;
-    if (k1() > 0)
-      l2 = std::sqrt( exchange_constant() / k1() );
-    else
-      l2 = 1e30; // infinite (e30 instead of higher in case we ever use floats
-		 // not doubles).
+   double l1 = std::sqrt( (2* exchange_constant() )
+			  / (mag_parameters::mu0 * saturation_magnetisation()
+			     * saturation_magnetisation()));
+   double l2;
+   if (k1() > 0)
+    l2 = std::sqrt( exchange_constant() / k1() );
+   else
+    l2 = 1e30; // infinite (e30 instead of higher in case we ever use floats
+   // not doubles).
 
-    return std::min(l1,l2);
+   return std::min(l1,l2);
   }
 
   // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
@@ -139,52 +143,52 @@ public:
    const Vector<double>& m, const double shape_fn_l2_at_x,
    DenseMatrix<double>& dhcadm) const
   {
-    switch (crystalline_ansiotropy_type())
-      {
+   switch (crystalline_ansiotropy_type())
+    {
 
-      case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
+    case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
 
-	Vector<double> easy_axis(3,0.0);
-	unsigned ax = 0;
+     Vector<double> easy_axis(3,0.0);
+     unsigned ax = 0;
 
-	// Find which direction along the axis we want
-	if(m[ax] < 0)
-	  easy_axis[ax] = -1.0;
-	else
-	  easy_axis[ax] = +1.0;
+     // Find which direction along the axis we want
+     if(m[ax] < 0)
+      easy_axis[ax] = -1.0;
+     else
+      easy_axis[ax] = +1.0;
 
-	for(unsigned j=0; j<3; j++)
-	  for(unsigned i=0; i<3; i++)
-	    dhcadm(i,j) = shape_fn_l2_at_x
-	      * easy_axis[i] * easy_axis[j] * normalised_hk() ;
-	break;
-      }
+     for(unsigned j=0; j<3; j++)
+      for(unsigned i=0; i<3; i++)
+       dhcadm(i,j) = shape_fn_l2_at_x
+	* easy_axis[i] * easy_axis[j] * normalised_hk() ;
+     break;
+    }
   }
 
   void output(std::ostream& stream)
   {
-    stream << "Magnetic parameters are:" << std::endl;
-    stream << "Gamma = " << gamma() << std::endl;
-    stream << "Damping = " << gilbert_damping() << std::endl;
-    stream << "M_s = "  << saturation_magnetisation() << std::endl;
-    stream << "Exchange constant = " << exchange_constant() <<std::endl;
-    stream << "K_1 = " << k1() << std::endl;
-    stream << std::endl;
+   stream << "Magnetic parameters are:" << std::endl;
+   stream << "Gamma = " << gamma() << std::endl;
+   stream << "Damping = " << gilbert_damping() << std::endl;
+   stream << "M_s = "  << saturation_magnetisation() << std::endl;
+   stream << "Exchange constant = " << exchange_constant() <<std::endl;
+   stream << "K_1 = " << k1() << std::endl;
+   stream << std::endl;
 
-    stream << "This gives the following normalised coeffs:" << std::endl;
-    stream << "Normalised_gamma = " <<    normalised_gamma() << std::endl;
-    stream << "Normalised_gilbert_damping = " <<  normalised_gilbert_damping() << std::endl;
-    stream << "Normalised_saturation_magnetisation = " <<  normalised_saturation_magnetisation() << std::endl;
-    stream << "Normalised_hex = " <<  normalised_hex() << std::endl;
-    stream << "Normalised_hk = " <<  normalised_hk() << std::endl;
-    stream << "Normalised_hms = " <<  normalised_hms() << std::endl;
-    stream << std::endl;
+   stream << "This gives the following normalised coeffs:" << std::endl;
+   stream << "Normalised_gamma = " <<    normalised_gamma() << std::endl;
+   stream << "Normalised_gilbert_damping = " <<  normalised_gilbert_damping() << std::endl;
+   stream << "Normalised_saturation_magnetisation = " <<  normalised_saturation_magnetisation() << std::endl;
+   stream << "Normalised_hex = " <<  normalised_hex() << std::endl;
+   stream << "Normalised_hk = " <<  normalised_hk() << std::endl;
+   stream << "Normalised_hms = " <<  normalised_hms() << std::endl;
+   stream << std::endl;
 
-    stream << "Exchange length for this material is: "
-	   << exchange_length() << std::endl;
-    stream << "Your distance units are: " << distance_units()
-	   << "m" << std::endl;
-    stream << "All elements should be smaller than the exchange length (and there should be code to check this...)." << std::endl;
+   stream << "Exchange length for this material is: "
+	  << exchange_length() << std::endl;
+   stream << "Your distance units are: " << distance_units()
+	  << "m" << std::endl;
+   stream << "All elements should be smaller than the exchange length (and there should be code to check this...)." << std::endl;
   }
 
   /// Set functions
@@ -212,27 +216,27 @@ public:
   /// Set properties as used in umag standard problem #4
   void set_mumag4()
   {
-    exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
-    saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
-    k1() = 0.0;
+   exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
+   saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
+   k1() = 0.0;
 
-    gilbert_damping() = 0.02;
-    gamma() = 2.211e-5; // m/(As)
+   gilbert_damping() = 0.02;
+   gamma() = 2.211e-5; // m/(As)
   }
 
   void set_nmag_rectangle()
   {
-    saturation_magnetisation() = 0.86e6; // A/m
-    exchange_constant() = 13.0e-12; // J/m
-    k1() = 0.0;
+   saturation_magnetisation() = 0.86e6; // A/m
+   exchange_constant() = 13.0e-12; // J/m
+   k1() = 0.0;
 
-    gilbert_damping() = 0.5;
-    gamma() = 2.210173e5; // m/(As)
+   gilbert_damping() = 0.5;
+   gamma() = 2.210173e5; // m/(As)
   }
 
   // etc...
 
-private:
+ private:
   double Gamma;
   double Gilbert_damping;
 
@@ -250,7 +254,8 @@ private:
 
 
   mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
-};
+ };
 
+}
 
 #endif
