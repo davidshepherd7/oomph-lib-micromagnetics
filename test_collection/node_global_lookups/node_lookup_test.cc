@@ -1,7 +1,7 @@
 
 #include "../poisson_test_problem.h"
 
-#include "../../micromagnetics_boundary_element_handler.h"
+#include "../../boundary_element_handler.h"
 
 using namespace oomph;
 
