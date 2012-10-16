@@ -10,6 +10,8 @@ Makefile.in
 *.[oa]
 *.out
 *_driver
+*_test
+compiler_options
 
 # backups/emacs files
 .emacs.*
@@ -28,7 +30,7 @@ rules
 *.gif
 *.mesh
 *dump*
-trace
+*trace
 octave*
 
 # tetgen files
