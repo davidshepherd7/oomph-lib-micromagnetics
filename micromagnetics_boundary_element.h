@@ -28,15 +28,6 @@ namespace oomph
   class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
 			      public virtual FaceElement
   {
-
-  private:
-
-    /// \short Pointer to the boundary mesh (needed to access nodes
-    /// outside of this element for calculation of boundary matrix).
-    static Mesh* Boundary_mesh_pt;
-
-    // ELEMENT* Bulk_element_pt;
-
   public:
 
     /// \short Constructor, takes the pointer to the bulk element and the
@@ -200,10 +191,10 @@ namespace oomph
 				   const Vector<double>& n) const;
 
     /// Const access function for mesh pointer
-    static Mesh* boundary_mesh_pt() {return Boundary_mesh_pt;}
+    const Mesh* boundary_mesh_pt() const {return Boundary_mesh_pt;}
 
     /// Set function for mesh pointer
-    static void set_boundary_mesh_pt(Mesh* boundary_mesh_pointer)
+    void set_boundary_mesh_pt(const Mesh* const boundary_mesh_pointer)
     {Boundary_mesh_pt = boundary_mesh_pointer;}
 
     /// Get the max difference between two vectors relative to that element of vector1
@@ -252,6 +243,10 @@ namespace oomph
     {return 0;}
 
   private:
+
+   /// \short Pointer to the boundary mesh (needed to access nodes
+   /// outside of this element for calculation of boundary matrix).
+   const Mesh* Boundary_mesh_pt;
 
     /// Add the element's contribution to the boundary element matrix using adaptive quadrature.
     void fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix) const;

@@ -31,8 +31,8 @@ namespace Inputs
       block_exact,
     };
 
-  double dt = 0.1;
-  unsigned nx = 10, ny = nx, nz = nx;
+  double dt = 0.001;
+  unsigned nx = 4, ny = nx, nz = nx;
 
   double tmax = 500;
 
@@ -177,27 +177,6 @@ ThreeDHybridProblem(const unsigned& a, const unsigned& b, const unsigned& c)
   mumag4_parameters_pt->set_mumag4();
   this->magnetic_parameters_pt() = mumag4_parameters_pt;
 
-
-  //  Create the map of sharp corner nodes and their angles for this mesh.
-  // ============================================================
-
-  std::map<Node*,double>* Corners_map_pt = new std::map<Node*,double>;
-  this->corners_map_pt() = Corners_map_pt;
-
-  for(unsigned b=0; b <this->bulk_mesh_pt()->nboundary(); b++)
-    {
-      for(unsigned nd=0; nd<this->bulk_mesh_pt()->nboundary_node(b); nd++)
-        {
-          Node* nd_pt = this->bulk_mesh_pt()->boundary_node_pt(b,nd);
-          std::set<unsigned>* boundaries_pt;
-          nd_pt->get_boundaries_pt(boundaries_pt);
-          if(boundaries_pt->size() == DIM)
-            this->corners_map_pt()->insert(std::pair<Node*,double>(nd_pt,0.125));
-        }
-    }
-  std::cout << *Corners_map_pt << std::endl;
-
-
   // Loop over elements in bulk mesh to set applied field function pointer
   for(unsigned i=0; i< this->bulk_mesh_pt()->nelement(); i++)
     {
@@ -331,7 +310,7 @@ ThreeDHybridProblem(const unsigned& a, const unsigned& b, const unsigned& c)
 
   if(Inputs::dump_bem)
     {
-      this->boundary_matrix_pt()-> output("bem_matrix");
+      this->bem_handler_pt()->boundary_matrix_pt()->output("bem_matrix");
     }
 
 } // end of constructor
@@ -470,9 +449,11 @@ set_initial_condition()
   Vector<unsigned> m_index_micromag(3,0);
   BULK_ELEMENT* elem_pt = dynamic_cast< BULK_ELEMENT* >(this->bulk_mesh_pt()->element_pt(0));
   for(unsigned i=0; i<3; i++)
+   {
     m_index_micromag[i] = elem_pt->m_index_micromag(i);
+   }
 
-  //Find number of nodes in mesh
+  // Find number of nodes in mesh
   unsigned num_nod = this->mesh_pt()->nnode();
 
   // Set continuous times at previous timesteps:
@@ -480,7 +461,7 @@ set_initial_condition()
   Vector<double> prev_time(nprev_steps+1);
   for (int t=nprev_steps;t>=0;t--)
     {
-      prev_time[t]=this->time_pt()->time(t);
+     prev_time[t]=this->time_pt()->time(t);
     }
 
   // Loop over current & previous timesteps
@@ -747,8 +728,10 @@ int main(int argc, char* argv[])
       output_timestep = atoi(argv[5]);
     }
 
+#ifdef PARANOID
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+#endif
 
 #ifdef OOMPH_HAS_MPI
   // Initialise oomph-lib's MPI
@@ -767,6 +750,8 @@ int main(int argc, char* argv[])
   // Create the problem
   ThreeDHybridProblem< TMicromagElement <dim,nnode_1d>, MicromagFaceElement, dim >
     problem(a,b,c);
+
+  //problem.boundary_matrix_pt()->sparse_indexed_output(std::cout);
 
   // Initialise timestep, initial conditions
   problem.initialise_dt(dt);
@@ -874,7 +859,7 @@ int main(int argc, char* argv[])
           doc_info.number()++;
           problem.debug_doc().next_timestep();
 
-          // ??ds temp: Stop once output is done
+          // ??ds temp?: Stop once output is done
           if(istep == output_timestep)
             exit(0);
         }
