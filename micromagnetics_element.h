@@ -5,14 +5,14 @@
 // Generic oomph-lib routines
 #include "generic.h"
 
-// Print vectors nicely (c++0x)
-#include <iostream>
-#include <vector>
+// Print vectors nicely
 #include "./prettyprint98.hpp"
 
 // My vector helpers
 #include "./vector_helpers.h"
 #include "./magnetic_materials.h"
+
+#include "./micromagnetics_flux_element.h"
 
 using namespace oomph;
 
@@ -33,7 +33,8 @@ namespace oomph
   // CONSTRUCTORS ETC.
   /// Constructor (initialises the various function pointers to null).
   MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0),
-			Magnetic_parameters_pt(0)
+                        Magnetic_parameters_pt(0),
+                        Applied_field_pt(0)
   {}
 
   /// Broken copy constructor
@@ -60,15 +61,15 @@ namespace oomph
 #ifdef PARANOID
    if(k>=3)
     throw OomphLibError("M only has 3 indices",
-			"MicromagEquations::m_index_micromag",
-			OOMPH_EXCEPTION_LOCATION);
+                        "MicromagEquations::m_index_micromag",
+                        OOMPH_EXCEPTION_LOCATION);
 #endif
    return 2 + k; // equations 2,3,4
   }
 
   /// Function determining how to block the Jacobian.
   void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
-				    block_lookup_list)
+                                    block_lookup_list)
 
   {
    // Clear list (just in case)
@@ -90,10 +91,10 @@ namespace oomph
       {
        int local_eqn_number = this->nodal_local_eqn(nd,index);
        if(local_eqn_number >= 0)
-	{
-	 global_equation_number[index] = eqn_number(local_eqn_number);
-	 dof_type[index] = index;
-	}
+        {
+         global_equation_number[index] = eqn_number(local_eqn_number);
+         dof_type[index] = index;
+        }
       }
 
      // Set this using the BEM elements instead
@@ -128,10 +129,10 @@ namespace oomph
   // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
 
-  MagneticParameters* magnetic_parameters_pt() const
+  const MagneticParameters* magnetic_parameters_pt() const
   {return Magnetic_parameters_pt;}
 
-  MagneticParameters*& magnetic_parameters_pt()
+  const MagneticParameters*& magnetic_parameters_pt()
   {return Magnetic_parameters_pt;}
 
   // SOURCE FUNCTIONS for testing
@@ -143,7 +144,7 @@ namespace oomph
 
   /// Get phi source term at (Eulerian) position x.
   inline double get_phi_source(const double t,
-			       const Vector<double>& x) const
+                               const Vector<double>& x) const
   {
    if(Phi_source_pt==0) return 0.0;
    else return (*Phi_source_pt)(t,x);
@@ -157,7 +158,7 @@ namespace oomph
 
   /// Get phi_1 source term at (Eulerian) position x.
   inline double get_phi_1_source(const double t,
-				 const Vector<double>& x) const
+                                 const Vector<double>& x) const
   {
    if(Phi_1_source_pt==0) return 0.0;
    else return (*Phi_1_source_pt)(t,x);
@@ -188,7 +189,7 @@ namespace oomph
 
   /// Get the applied field at Eulerian position x.
   inline void get_applied_field(const double& t, const Vector<double> &x,
-				Vector<double>& H_app) const
+                                Vector<double>& H_app) const
   {
    H_app.assign(3,0.0);
    if(Applied_field_pt!=0) (*Applied_field_pt)(t,x,H_app);
@@ -198,20 +199,20 @@ namespace oomph
 
   /// Get the crystalline anisotropy field at Eulerian position x.
   inline void get_H_cryst_anis_field(const double& t,
-				     const Vector<double> &x,
-				     const Vector<double>& m,
-				     Vector<double>& h_ca) const
+                                     const Vector<double> &x,
+                                     const Vector<double>& m,
+                                     Vector<double>& h_ca) const
   {
-   return magnetic_parameters_pt()->
+   magnetic_parameters_pt()->
     crystalline_ansiotropy_field(t, x, m, h_ca);
   }
 
   void get_hca_derivative(const double& t, const Vector<double>&x,
-			  const Vector<double>& m,
-			  const double shape_fn_k_at_x,
-			  DenseMatrix<double>& dhcadm) const
+                          const Vector<double>& m,
+                          const double shape_fn_k_at_x,
+                          DenseMatrix<double>& dhcadm) const
   {
-   return magnetic_parameters_pt()->
+   magnetic_parameters_pt()->
     crystalline_ansiotropy_field_derivative(t,x,m,shape_fn_k_at_x,dhcadm);
   }
 
@@ -335,7 +336,7 @@ namespace oomph
 
   /// Return FE representation of M at local coordinate s and current time.
   inline void interpolated_m_micromag(const Vector<double> &s,
-				      Vector<double>& itp_m) const
+                                      Vector<double>& itp_m) const
   {
    //Find number of nodes
    const unsigned n_node = nnode();
@@ -363,7 +364,7 @@ namespace oomph
 
   /// Return FE representation of M at local coordinate s and current time.
   inline void interpolated_dmdx_micromag(const Vector<double> &s,
-					 DenseDoubleMatrix& itp_dmdx) const
+                                         DenseDoubleMatrix& itp_dmdx) const
   {
    // Get number of nodes
    const unsigned n_node = nnode();
@@ -386,7 +387,7 @@ namespace oomph
   }
 
   inline void interpolated_dphidx_micromag(const Vector<double>& s,
-					   Vector<double>& itp_dphidx) const
+                                           Vector<double>& itp_dphidx) const
   {
    //Find number of nodes
    const unsigned n_node = nnode();
@@ -408,7 +409,7 @@ namespace oomph
   /// \short Return FE representation of solution vector (phis,M,H_ex)
   /// at local coordinate s and current time.
   inline void interpolated_solution_micromag(const Vector<double> &s,
-					     Vector<double>& itp_solution) const
+                                             Vector<double>& itp_solution) const
   {
    //Find number of nodes
    const unsigned n_node = nnode();
@@ -444,7 +445,7 @@ namespace oomph
   /// initilisations.
   //??ds unchecked
   void interpolated_ht_micromag(const Vector<double>& s,
-				Vector<double>& h_total)
+                                Vector<double>& h_total)
   {
    Vector<double> x(3,0.0);
    interpolated_x(s,x);
@@ -466,13 +467,13 @@ namespace oomph
 
   /// Output exact solution at n_plot points
   void output_fct(std::ostream &outfile, const unsigned &n_plot,
-		  const double& time,
-		  FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt);
+                  const double& time,
+                  FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt);
 
   /// Get error by comparing with exact solution and get norm of exact solution.
   void compute_error(std::ostream &outfile,
-		     FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
-		     const double& time, double& error, double& norm);
+                     FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
+                     const double& time, double& error, double& norm);
 
   // RESIDUALS + JACOBIAN
   /// Add the element's contribution to its residual vector (wrapper)
@@ -486,7 +487,7 @@ namespace oomph
   /// \short Add the element's contribution to its residual vector and element
   /// Jacobian matrix (wrapper)
   void fill_in_contribution_to_jacobian(Vector<double> &residuals,
-					DenseMatrix<double> &jacobian)
+                                        DenseMatrix<double> &jacobian)
   {
    // Call the generic routine with the flag set to 1
 
@@ -522,21 +523,21 @@ namespace oomph
        // Loop over past and present times and add the contributions to
        // the time derivative
        for(unsigned t=0;t<n_time_steps;t++)
-	{
-	 // ??ds The "1" in weights is the derrivative order (i.e. 1:
-	 // dM/dt, 2: d^2M/dt^2) I think...
-	 dmdt[j] += time_stepper_pt->weight(1,t)
-	  *nodal_value(t,l,m_index_micromag(j));
-	}
+        {
+         // ??ds The "1" in weights is the derrivative order (i.e. 1:
+         // dM/dt, 2: d^2M/dt^2) I think...
+         dmdt[j] += time_stepper_pt->weight(1,t)
+          *nodal_value(t,l,m_index_micromag(j));
+        }
       } // End of loop over directions
     }
 
   } // end of dM_dt_micromag
 
 
-  /// A dummy double to hold space in Jacobian matrices for entries that are
-  /// determined by the boundary element method part of the hybrid method
-  /// (until it can be filled in at the problem level).
+    /// A dummy double to hold space in Jacobian matrices for entries that are
+    /// determined by the boundary element method part of the hybrid method
+    /// (until it can be filled in at the problem level).
   static const double DummyBEMControlledEntry;
 
  protected:
@@ -544,19 +545,19 @@ namespace oomph
   /// Fill in contribution to residuals and jacobian (if flag is set) from
   /// these equations (compatible with multiphysics)
   void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
-						      DenseMatrix<double> &jacobian,
-						      const unsigned& flag) const;
+                                                      DenseMatrix<double> &jacobian,
+                                                      const unsigned& flag) const;
 
   /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
   virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
-			      Shape &test, DShape &dtestdx) const=0;
+                              Shape &test, DShape &dtestdx) const=0;
 
   /// Get the field at current time (pass in x,m, dphidx for
   /// efficiency).
   inline void interpolated_ht_micromag_efficient(const Vector<double>& x,
-						 const Vector<double>& m,
-						 const Vector<double>& itp_dphidx,
-						 Vector<double>& h_total)
+                                                 const Vector<double>& m,
+                                                 const Vector<double>& itp_dphidx,
+                                                 Vector<double>& h_total)
    const
   {
    // Get time
@@ -588,7 +589,7 @@ namespace oomph
 
   TimeSpaceToDoubleFctPt Phi_1_source_pt;
 
-  MagneticParameters* Magnetic_parameters_pt;
+  const MagneticParameters* Magnetic_parameters_pt;
 
   /// Pointer to function giving applied field.
   TimeSpaceToDoubleVectFctPt Applied_field_pt;

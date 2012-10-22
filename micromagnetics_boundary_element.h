@@ -26,21 +26,21 @@ namespace oomph
  //===========================================================================
  template<class ELEMENT,unsigned DIM>
  class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
-			     public virtual FaceElement
+                             public virtual FaceElement
  {
  public:
 
   /// \short Constructor, takes the pointer to the bulk element and the
   /// index of the face to which the element is attached.
-  MicromagFaceElement(FiniteElement* const &bulk_el_pt,
-		      const int& face_index);
+  MicromagFaceElement(FiniteElement* const bulk_el_pt,
+                      const int& face_index);
 
   ///\short  Broken empty constructor
   MicromagFaceElement()
   {
    throw OomphLibError("Don't call empty constructor for MicromagFaceElement",
-		       "MicromagFaceElement::MicromagFaceElement()",
-		       OOMPH_EXCEPTION_LOCATION);
+                       "MicromagFaceElement::MicromagFaceElement()",
+                       OOMPH_EXCEPTION_LOCATION);
   }
 
   /// Broken copy constructor
@@ -62,14 +62,14 @@ namespace oomph
    return 0;
   }
 
-  unsigned phi_index_micromag() const
-  {return micromag_bulk_element_pt()->phi_index_micromag();}
+  // unsigned phi_index_micromag() const
+  // {return micromag_bulk_element_pt()->phi_index_micromag();}
 
-  unsigned phi_1_index_micromag() const
-  {return micromag_bulk_element_pt()->phi_1_index_micromag();}
+  // unsigned phi_1_index_micromag() const
+  // {return micromag_bulk_element_pt()->phi_1_index_micromag();}
 
-  unsigned m_index_micromag(const unsigned& i) const
-  {return micromag_bulk_element_pt()->m_index_micromag(i);}
+  // unsigned m_index_micromag(const unsigned& i) const
+  // {return micromag_bulk_element_pt()->m_index_micromag(i);}
 
   // /// Pointer to higher-dimensional "bulk" element
   // ELEMENT*& bulk_element_pt()
@@ -81,9 +81,9 @@ namespace oomph
    ELEMENT* pt = dynamic_cast<ELEMENT*>(this->Bulk_element_pt);
    if (pt == 0)
     {
-     OomphLibError("Failed to cast pointer",
-		   "",
-		   OOMPH_EXCEPTION_LOCATION);
+     throw OomphLibError("Failed to cast pointer",
+                         "",
+                         OOMPH_EXCEPTION_LOCATION);
     }
    return pt;
   }
@@ -100,7 +100,7 @@ namespace oomph
   /// the FaceElement representation, by default (needed to break
   /// indeterminacy if bulk element is SolidElement)
   double zeta_nodal(const unsigned &n, const unsigned &k,
-		    const unsigned &i) const
+                    const unsigned &i) const
   {return FaceElement::zeta_nodal(n,k,i);}
 
   // /// Add the element's contribution to its residual vector and Jacobian - all
@@ -190,8 +190,8 @@ namespace oomph
   /// The parameters x and y are the positions of source and point of interest
   /// (interchangable), n is the normal unit vector out of the surface.
   double green_normal_derivative(const Vector<double>& x,
-				 const Vector<double>& y,
-				 const Vector<double>& n) const;
+                                 const Vector<double>& y,
+                                 const Vector<double>& n) const;
 
   /// Const access function for mesh pointer
   const Mesh* boundary_mesh_pt() const {return Boundary_mesh_pt;}
@@ -202,12 +202,12 @@ namespace oomph
 
   /// Get the max difference between two vectors relative to that element of vector1
   double max_rel_error(const Vector<double> &vector1,
-		       const Vector<double> &vector2) const;
+                       const Vector<double> &vector2) const;
 
   /// dump out important values for testing
   void dump_values(const Vector< Vector<double> > &x_kn,
-		   const Vector<double> &source_node_x,
-		   const Vector<Vector<double> > &normal) const;
+                   const Vector<double> &source_node_x,
+                   const Vector<Vector<double> > &normal) const;
 
  protected:
 
@@ -215,7 +215,7 @@ namespace oomph
   /// the Jacobian of mapping between local and global (Eulerian)
   /// coordinates
   inline double shape_and_test(const Vector<double> &s,
-			       ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
+                               ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
   {
    // Get the shape function and set test = shape
    shape(s,psi);
@@ -230,7 +230,7 @@ namespace oomph
   /// the Jacobian of mapping between local and global (Eulerian)
   /// coordinates
   inline double shape_and_test_at_knot(const unsigned &ipt,
-				       ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
+                                       ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
   {
    // Get the shape function and set test = shape
    shape_at_knot(ipt,psi);
@@ -262,8 +262,8 @@ namespace oomph
   /// Calculate the contribution of a triangular region to the boundary
   /// element matrix using analytic calculations from Lindholm1984.
   void analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_nds,
-					   const Vector<unsigned>& l,
-					   DenseMatrix<double>& boundary_matrix) const;
+                                           const Vector<unsigned>& l,
+                                           DenseMatrix<double>& boundary_matrix) const;
 
  };
 
@@ -276,7 +276,7 @@ namespace oomph
  //===========================================================================
  template<class ELEMENT,unsigned DIM>
  MicromagFaceElement<ELEMENT,DIM>::
- MicromagFaceElement(FiniteElement* const &bulk_el_pt, const int &face_index)
+ MicromagFaceElement(FiniteElement* const bulk_el_pt, const int &face_index)
   : FaceGeometry<ELEMENT>(), FaceElement()
  {
   // Let the bulk element build the FaceElement, i.e. setup the pointers
@@ -355,48 +355,48 @@ namespace oomph
       // Check if this order of integration has been used yet, if not calculate things
       if( order_is_calculated[i_order] != 1)
        {
-	// Get new order
-	unsigned new_order = order_list[i_order];
+        // Get new order
+        unsigned new_order = order_list[i_order];
 
-	// Get the number of knots at this order
-	unsigned n_knot = v_int_pt->nweight(new_order);
+        // Get the number of knots at this order
+        unsigned n_knot = v_int_pt->nweight(new_order);
 
-	// Calculate and push back values at each knot
-	for(unsigned kn=0; kn<n_knot; kn++)
-	 {
-	  // Get the local coordinate
-	  Vector<double> s(el_dim,0.0);
-	  for(unsigned j=0; j<el_dim; j++)
-	   s[j] = v_int_pt->knot(kn,j,new_order);
+        // Calculate and push back values at each knot
+        for(unsigned kn=0; kn<n_knot; kn++)
+         {
+          // Get the local coordinate
+          Vector<double> s(el_dim,0.0);
+          for(unsigned j=0; j<el_dim; j++)
+           s[j] = v_int_pt->knot(kn,j,new_order);
 
-	  // Get the unit normal
-	  Vector<double> local_normal(node_dim,0.0);
-	  outer_unit_normal(s,local_normal);
-	  normal[i_order].push_back(local_normal);
+          // Get the unit normal
+          Vector<double> local_normal(node_dim,0.0);
+          outer_unit_normal(s,local_normal);
+          normal[i_order].push_back(local_normal);
 
-	  // Get the Jacobian*weight
-	  jw[i_order].push_back(J_eulerian(s)
-				* v_int_pt->weight(kn,new_order));
+          // Get the Jacobian*weight
+          jw[i_order].push_back(J_eulerian(s)
+                                * v_int_pt->weight(kn,new_order));
 
-	  // Get shape and test(=shape) functions
-	  ShapeWithDeepCopy psi_local(n_element_node);
-	  shape(s,psi_local);
-	  psi[i_order].push_back(psi_local);
-	  test[i_order].push_back(psi_local);
+          // Get shape and test(=shape) functions
+          ShapeWithDeepCopy psi_local(n_element_node);
+          shape(s,psi_local);
+          psi[i_order].push_back(psi_local);
+          test[i_order].push_back(psi_local);
 
-	  // Get the global coordinate
-	  Vector<double> x_local(node_dim,0.0);
-	  for(unsigned l=0; l<n_element_node; l++)
-	   {
-	    for(unsigned j=0; j<node_dim; j++)
-	     x_local[j] += nodal_position(l,j)*psi[i_order][kn][l];
-	   }
-	  x_kn[i_order].push_back(x_local);
+          // Get the global coordinate
+          Vector<double> x_local(node_dim,0.0);
+          for(unsigned l=0; l<n_element_node; l++)
+           {
+            for(unsigned j=0; j<node_dim; j++)
+             x_local[j] += nodal_position(l,j)*psi[i_order][kn][l];
+           }
+          x_kn[i_order].push_back(x_local);
 
-	 }
+         }
 
-	// Record that the new order has been calculated
-	order_is_calculated[i_order] = 1;
+        // Record that the new order has been calculated
+        order_is_calculated[i_order] = 1;
        }
 
       ////////////////////////////////////////////////////////////
@@ -407,21 +407,21 @@ namespace oomph
       double n_knot = v_int_pt->nweight(order);
       for(unsigned kn=0;kn<n_knot;kn++)
        {
-	double dgreendn =
-	 green_normal_derivative(x_kn[i_order][kn],source_node_x,
-				 normal[i_order][kn]);
+        double dgreendn =
+         green_normal_derivative(x_kn[i_order][kn],source_node_x,
+                                 normal[i_order][kn]);
 
-	// Loop over test functions, i.e. local/target nodes, adding contributions
-	for(unsigned l=0; l<n_element_node; l++)
-	 temp_bm[l] -= dgreendn *test[i_order][kn][l] *jw[i_order][kn];
+        // Loop over test functions, i.e. local/target nodes, adding contributions
+        for(unsigned l=0; l<n_element_node; l++)
+         temp_bm[l] -= dgreendn *test[i_order][kn][l] *jw[i_order][kn];
        }
       ////////////////////////////////////////////////////////////
 
       // Output values at knots if we are (probably) about to fail
       if (i_order > 4)
        {
-	std::cout << i_order << std::endl;
-	dump_values(x_kn[i_order],source_node_x,normal[i_order]);
+        std::cout << i_order << std::endl;
+        dump_values(x_kn[i_order],source_node_x,normal[i_order]);
        }
 
 
@@ -461,15 +461,15 @@ namespace oomph
      }
     // Repeat while the difference is too large and the order is small enough
     while(( (reldiff>reltol) && (i_order < n_order) )
-	  // Always repeat at least once to get a real reldiff value.
-	  || (i_order == 0));
+          // Always repeat at least once to get a real reldiff value.
+          || (i_order == 0));
 
     // If we hit the order limit without being accurate enough give an error
     if (i_order >= n_order)
      {
       throw OomphLibError("Quadrature order not high enough.",
-			  "MicromagFaceElement::fill_in_be_contribution_adaptive",
-			  OOMPH_EXCEPTION_LOCATION);
+                          "MicromagFaceElement::fill_in_be_contribution_adaptive",
+                          OOMPH_EXCEPTION_LOCATION);
      }
 
     // When done add the values in the temp vector to the real boundary matrix
@@ -484,8 +484,8 @@ namespace oomph
  template<class ELEMENT,unsigned DIM>
  void MicromagFaceElement<ELEMENT,DIM>::
  dump_values(const Vector< Vector<double> > &x_kn,
-	     const Vector<double> &source_node_x,
-	     const Vector<Vector<double> > &normal) const
+             const Vector<double> &source_node_x,
+             const Vector<Vector<double> > &normal) const
  {
   // Get the values
   Vector<double> gnd(x_kn.size(),0.0);
@@ -545,8 +545,8 @@ namespace oomph
  template<class ELEMENT,unsigned DIM>
  double MicromagFaceElement<ELEMENT,DIM>::
  green_normal_derivative(const Vector<double>& x,
-			 const Vector<double>& y,
-			 const Vector<double>& n) const
+                         const Vector<double>& y,
+                         const Vector<double>& n) const
  {
   // Get dimensions
   const unsigned node_dim = nodal_dimension();
@@ -559,8 +559,8 @@ namespace oomph
   if(std::abs(n_sq - 1.0) > 1e-10)
    {
     throw OomphLibError("n is not a unit vector",
-			"MicromagFaceElement::green_normal_derivative",
-			OOMPH_EXCEPTION_LOCATION);
+                        "MicromagFaceElement::green_normal_derivative",
+                        OOMPH_EXCEPTION_LOCATION);
    }
 #endif
 
@@ -759,13 +759,13 @@ namespace oomph
   // Check 3d
   if(nodal_dimension() !=3)
    throw OomphLibError("Analytic calculation of boundary matrix only works in 3D.",
-		       "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-		       OOMPH_EXCEPTION_LOCATION);
+                       "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+                       OOMPH_EXCEPTION_LOCATION);
 
   if(nnode_1d() != 2)
    throw OomphLibError("Analytic calculation of boundary matrix only works for linear (i.e. flat) elements.",
-		       "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-		       OOMPH_EXCEPTION_LOCATION);
+                       "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+                       OOMPH_EXCEPTION_LOCATION);
 
   // ??ds check no hanging nodes - not sure what to do there yet
 #endif
@@ -816,8 +816,8 @@ namespace oomph
   else
    {
     throw OomphLibError("Unhandled number of vertex nodes in boundary element. Could be the wrong dimension, hanging nodes or higher order elements. Hanging nodes could be implemented but higher order elements or lower dimension cannot (afaik).",
-			"MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-			OOMPH_EXCEPTION_LOCATION);
+                        "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
+                        OOMPH_EXCEPTION_LOCATION);
    }
  }
 
@@ -828,8 +828,8 @@ namespace oomph
  template<class ELEMENT,unsigned DIM>
  void MicromagFaceElement<ELEMENT,DIM>::
  analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_tn,
-				     const Vector<unsigned>& l,
-				     DenseMatrix<double>& boundary_matrix) const
+                                     const Vector<unsigned>& l,
+                                     DenseMatrix<double>& boundary_matrix) const
  {
   // Only works in 3D and for triangles (3 nodes)
   const unsigned node_dim = 3;
@@ -912,7 +912,7 @@ namespace oomph
      {
       unsigned next_node = (i+1)%n_node;
       P[i] = std::log( (rhol[i] + rhol[next_node] + side_length[i])
-		       /(rhol[i] + rhol[next_node] - side_length[i]) );
+                       /(rhol[i] + rhol[next_node] - side_length[i]) );
      }
 
 
@@ -922,15 +922,15 @@ namespace oomph
     // which only happens for a source within the triangle. Both of these
     // cases would give zeta < 1e-8.
     double ratio = (rhol[0]*rhol[1]*rhol[2]
-		    + rhol[0] * dot(rho[1],rho[2])
-		    + rhol[1] * dot(rho[0],rho[2])
-		    + rhol[2] * dot(rho[1],rho[0]))
+                    + rhol[0] * dot(rho[1],rho[2])
+                    + rhol[1] * dot(rho[0],rho[2])
+                    + rhol[2] * dot(rho[1],rho[0]))
      /
      std::sqrt(2
-	       *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
-	       *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
-	       *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
-	       );
+               *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
+               *(rhol[1]*rhol[0] + dot(rho[1],rho[0]) )
+               *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
+               );
 
     // Round-off errors can cause ratio to be out of range for inverse cos
     // so we need to check it.

@@ -1,6 +1,7 @@
-#ifndef OOMPH_MICROMAGNETICS_ELEMENT_H
+#ifndef OOMPH_MICROMAGNETICS_ELEMENT_CC
+#define OOMPH_MICROMAGNETICS_ELEMENT_CC
+
 #include "micromagnetics_element.h"
-#define OOMPH_MICROMAGNETICS_ELEMENT_H
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -326,7 +327,7 @@ namespace oomph
       // w.r.t. m
       for(unsigned j=0; j<3; j++) // loop over the m we differentiate by
        {
-        if(!(m_unknown[j] >= 0)) continue;
+        if((!(m_unknown[j] >= 0)) || (!(m_eqn[j] >= 0))) continue;
 
         Vector<double> jhat(3,0.0); jhat[j] = 1.0;
 
