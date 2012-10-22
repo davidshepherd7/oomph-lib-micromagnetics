@@ -1,4 +1,7 @@
 
+// Floating point debugging
+#include <fenv.h>
+
 #include "../poisson_test_problem.h"
 
 using namespace oomph;
@@ -15,6 +18,9 @@ int generic_poisson_test()
 
 int main()
 {
+ // Enable some floating point error checkers
+ feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+
  int result = generic_poisson_test();
 
  if(result == 0)

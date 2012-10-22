@@ -1,4 +1,7 @@
 
+// Floating point debugging
+#include <fenv.h>
+
 #include "../poisson_test_problem.h"
 
 #include "../../boundary_element_handler.h"
@@ -66,6 +69,9 @@ int node_lookup_test()
 
 int main()
 {
+ // Enable some floating point error checkers
+ feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+
  int result = node_lookup_test();
 
  if(result == 0)

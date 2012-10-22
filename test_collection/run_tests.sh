@@ -15,21 +15,27 @@ for dir in $dir_list; do
     # make (with output recorded in a trace)
     if make > "make_trace"
     then
-
-	# if it worked then run all the executables in the folder
-	exec_files=`find "./" -executable -type f`
-	for executable in $exec_files; do
+        # if there is a test.sh script run it
+        if [ -e test.sh ]
+        then
+            if ./test.sh > test_trace
+            then echo `basename $dir` "passed"
+            else echo "*** $dir failed!"
+            fi
+        else
+  	    # otherwise run all the executables in the folder
+	    exec_files=`find "./" -executable -type f`
+	    for executable in $exec_files; do
 
 	    # Record the output and report the result:
-	    if ${executable} > "${executable}_trace"
-	    then
-		echo "${executable} passed"
-	    else
-		echo "*** ${executable} FAILED!"
-	    fi
-
-	done
-
+	        if ${executable} > "${executable}_trace"
+	        then
+		    echo "${executable} passed"
+	        else
+		    echo "*** ${executable} FAILED!"
+	        fi
+	    done
+        fi
 	# if make failed then say so
     else
 	echo "*** Make FAILED in $dir!"
