@@ -10,7 +10,7 @@ Makefile.in
 *.[oa]
 *.out
 *_driver
-*_test
+
 compiler_options
 
 # backups/emacs files
