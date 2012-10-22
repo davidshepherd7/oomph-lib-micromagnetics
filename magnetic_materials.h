@@ -91,7 +91,8 @@ namespace oomph
 
   // Get h_ca function and derivative
   void crystalline_ansiotropy_field(const double& t, const Vector<double>& x,
-				    const Vector<double>& m, Vector<double>& h_ca)
+                                    const Vector<double>& m, Vector<double>& h_ca)
+   const
   {
 
    switch (crystalline_ansiotropy_type())
@@ -124,8 +125,8 @@ namespace oomph
   double exchange_length()
   {
    double l1 = std::sqrt( (2* exchange_constant() )
-			  / (mag_parameters::mu0 * saturation_magnetisation()
-			     * saturation_magnetisation()));
+                          / (mag_parameters::mu0 * saturation_magnetisation()
+                             * saturation_magnetisation()));
    double l2;
    if (k1() > 0)
     l2 = std::sqrt( exchange_constant() / k1() );
@@ -160,7 +161,7 @@ namespace oomph
      for(unsigned j=0; j<3; j++)
       for(unsigned i=0; i<3; i++)
        dhcadm(i,j) = shape_fn_l2_at_x
-	* easy_axis[i] * easy_axis[j] * normalised_hk() ;
+        * easy_axis[i] * easy_axis[j] * normalised_hk() ;
      break;
     }
   }
@@ -185,9 +186,9 @@ namespace oomph
    stream << std::endl;
 
    stream << "Exchange length for this material is: "
-	  << exchange_length() << std::endl;
+          << exchange_length() << std::endl;
    stream << "Your distance units are: " << distance_units()
-	  << "m" << std::endl;
+          << "m" << std::endl;
    stream << "All elements should be smaller than the exchange length (and there should be code to check this...)." << std::endl;
   }
 
@@ -234,6 +235,19 @@ namespace oomph
    gamma() = 2.210173e5; // m/(As)
   }
 
+  void set_simple_llg_parameters()
+  {
+   saturation_magnetisation() = 1.0; // normalised units
+   exchange_constant() = 0.5 * mag_parameters::mu0; // this gives hex = 1
+   k1() = 0.0;
+   gamma() = 1;
+   distance_units() = 1;
+
+   // The only real parameter left here (can be varied):
+   gilbert_damping() = 0.5;
+  }
+
+
   // etc...
 
  private:
@@ -255,6 +269,44 @@ namespace oomph
 
   mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
  };
+
+ // // ============================================================
+ // ///
+ // // ============================================================
+ // class NonNormalisedMagneticParameters
+ // {
+ // public:
+
+ //   /// Default constructor
+ //   NonNormalisedMagneticParameters() :
+ //     Hk(0.0), Hex(1.0), Gamma(1.0), Gilbert_damping(0.5)
+ //   {}
+
+
+ //   // Access functions
+ //   // ============================================================
+
+ //   double hk() const
+ //   {return Hk;}
+
+ //   double hex() const
+ //   {return Hex;}
+
+ //   double gamma() const {return Gamma;}
+
+ //   double gilbert_damping() const {return Gilbert_damping;}
+
+ // private:
+
+ //   double Hk;
+
+ //   double Hex;
+
+ //   double Gamma;
+
+ //   double Gilbert_damping;
+
+ // };
 
 }
 
