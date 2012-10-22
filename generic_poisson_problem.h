@@ -56,7 +56,8 @@ namespace oomph
   void set_neumann_boundary(const unsigned &b,
                             PoissonFluxFctPt const prescribed_flux_pt);
 
-  /// Pin nodes on boundary b of bulk mesh.
+  /// \short Pin nodes on boundary b of bulk mesh with the value given by a
+  /// function pointer.
   void set_dirichlet_boundary(const unsigned &b,
                               const DirichletFctPt condition_fct_pt)
   {
@@ -72,8 +73,28 @@ namespace oomph
    std::pair<unsigned, DirichletFctPt> dcb;
    dcb.first = b;
    dcb.second = condition_fct_pt;
-   Dirichlet_conditions.push_back(dcb);
+   Dirichlet_function_conditions.push_back(dcb);
   }
+
+
+  void set_dirichlet_boundary_by_vector(const unsigned& b,
+                                        const DoubleVector* boundary_values_pt)
+  {
+   // Pin all nodes on boundary b
+   unsigned n_node = bulk_mesh_pt()->nboundary_node(b);
+   for(unsigned nd=0;nd<n_node;nd++)
+    {
+     // We assume that Poisson elements only have one dof, pin it:
+     bulk_mesh_pt()->boundary_node_pt(b,nd)->pin(Poisson_dof_number);
+    }
+
+   // Store pointer to vector where boundary values will be put
+   std::pair<unsigned, const DoubleVector*> dcb;
+   dcb.first = b;
+   dcb.second = boundary_values_pt;
+   Dirichlet_vector_conditions.push_back(dcb);
+  }
+
 
   /// Finish building the problem once everything has been set.
   void build();
@@ -84,13 +105,16 @@ namespace oomph
    update_dirichlet_conditions();
   }
 
-
+  /// (Re-)apply the Dirichlet conditions on the boundaries which have
+  /// been set as Dirichlet. Note: boundary assigned by vector then
+  /// highest boundary number takes priority if values differ at corners.
   void update_dirichlet_conditions()
   {
-   for(unsigned i=0; i<Dirichlet_conditions.size(); i++)
+   // Conditions assigned by function pointer
+   for(unsigned i=0; i<Dirichlet_function_conditions.size(); i++)
     {
-     unsigned b = Dirichlet_conditions[i].first;
-     DirichletFctPt fct_pt = Dirichlet_conditions[i].second;
+     unsigned b = Dirichlet_function_conditions[i].first;
+     DirichletFctPt fct_pt = Dirichlet_function_conditions[i].second;
 
      for(unsigned nd=0; nd< bulk_mesh_pt()->nboundary_node(b); nd++)
       {
@@ -104,6 +128,19 @@ namespace oomph
 
        // Assign it
        node_pt->set_value(Poisson_dof_number, value[0]);
+      }
+    }
+
+   // Conditions assigned by vector
+   for(unsigned i=0; i<Dirichlet_vector_conditions.size(); i++)
+    {
+     unsigned b = Dirichlet_vector_conditions[i].first;
+     const DoubleVector* vec_pt = Dirichlet_vector_conditions[i].second;
+
+     for(unsigned nd=0; nd< bulk_mesh_pt()->nboundary_node(b); nd++)
+      {
+       Node* node_pt = bulk_mesh_pt()->boundary_node_pt(b,nd);
+       node_pt->set_value(Poisson_dof_number, (*vec_pt)[nd]);
       }
     }
   }
@@ -127,10 +164,10 @@ namespace oomph
     {
      std::ostringstream error_msg;
      error_msg << "Source function pointer for this problem "
-	       << "has not been set yet.";
+               << "has not been set yet.";
      throw OomphLibError(error_msg.str(),
-			 "",
-			 OOMPH_EXCEPTION_LOCATION);
+                         "",
+                         OOMPH_EXCEPTION_LOCATION);
     }
    return Source_fct_pt;
   }
@@ -221,9 +258,13 @@ namespace oomph
   /// (for validation).
   FiniteElement::SteadyExactSolutionFctPt Exact_solution_fct_pt;
 
-  /// \short Storage a list of Dirichlet boundaries and pointers to the
-  /// functions which define their values.
-  Vector<std::pair<unsigned, DirichletFctPt> > Dirichlet_conditions;
+  /// \short Storage for a list of Dirichlet boundaries and pointers to
+  /// the functions which define their values.
+  Vector<std::pair<unsigned, DirichletFctPt> > Dirichlet_function_conditions;
+
+  /// \short Storage for a list of Dirichlet boundaries and pointers to
+  /// the vectors which define their values.
+  Vector<std::pair<unsigned, const DoubleVector*> > Dirichlet_vector_conditions;
 
   /// Inaccessible copy constructor
   GenericPoissonProblem(const GenericPoissonProblem& dummy)
@@ -243,16 +284,29 @@ namespace oomph
  build()
  {
 #ifdef PARANOID
-  for(unsigned i=0; i<Dirichlet_conditions.size(); i++)
+  for(unsigned i=0; i<Dirichlet_function_conditions.size(); i++)
    {
-    if(Dirichlet_conditions[i].second == 0)
+    if(Dirichlet_function_conditions[i].second == 0)
      {
       std::ostringstream error_msg;
       error_msg << "Dirichlet function pointer number "
-		<< i << " is unassigned.";
+                << i << " is unassigned.";
       throw OomphLibError(error_msg.str(),
-			  "",
-			  OOMPH_EXCEPTION_LOCATION);
+                          "",
+                          OOMPH_EXCEPTION_LOCATION);
+     }
+   }
+
+  for(unsigned i=0; i<Dirichlet_vector_conditions.size(); i++)
+   {
+    if(Dirichlet_vector_conditions[i].second == 0)
+     {
+      std::ostringstream error_msg;
+      error_msg << "Dirichlet vector pointer number "
+                << i << " is unassigned.";
+      throw OomphLibError(error_msg.str(),
+                          "",
+                          OOMPH_EXCEPTION_LOCATION);
      }
    }
 #endif
@@ -336,7 +390,7 @@ namespace oomph
 
   // Output solution
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-	  doc_info.number());
+          doc_info.number());
   some_file.open(filename);
   bulk_mesh_pt()->output(some_file,npts);
   some_file.close();
@@ -347,7 +401,7 @@ namespace oomph
 
     // Output exact solution
     sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-	    doc_info.number());
+            doc_info.number());
     some_file.open(filename);
     bulk_mesh_pt()->output_fct(some_file, npts, exact_solution_fct_pt());
     some_file.close();
@@ -356,10 +410,10 @@ namespace oomph
     // Doc error and return of the square of the L2 error
     double error,norm;
     sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
-	    doc_info.number());
+            doc_info.number());
     some_file.open(filename);
     bulk_mesh_pt()->compute_error(some_file, exact_solution_fct_pt(),
-				  error, norm);
+                                  error, norm);
     some_file.close();
 
     // Doc L2 error and norm of solution
@@ -386,13 +440,13 @@ namespace oomph
   if(exact_solution_fct_pt() != 0)
    {
     bulk_mesh_pt()->compute_error(dummy_file, exact_solution_fct_pt(),
-				  error, norm);
+                                  error, norm);
    }
   else
    {
     throw OomphLibError("No exact solution set.",
-			"GenericPoissonProblem::get_error_norm",
-			OOMPH_EXCEPTION_LOCATION);
+                        "GenericPoissonProblem::get_error_norm",
+                        OOMPH_EXCEPTION_LOCATION);
    }
   return sqrt(error);
  }

@@ -178,13 +178,35 @@ namespace oomph
  public:
 
   /// Default constructor
-  BoundaryElementHandler() {}
+  BoundaryElementHandler()
+  {
+   // Boundary meshes do not "own" their nodes. However the Mesh
+   // destructor doesn't know that and so will try to delete the
+   // nodes. Hence we create the mesh using new so that the mesh
+   // destructor is never called.
+
+   // The proper way to do this would probably be to create a new
+   // MeshDontDeleteNodes class which changes the destructor.
+   Bem_mesh_pt = new Mesh;
+  }
 
   /// Destructor
-  ~BoundaryElementHandler() {}
+  ~BoundaryElementHandler()
+  {
+   // Delete the elements of the Bem mesh (but not the nodes).
+   for(unsigned e=0, ne=Bem_mesh_pt->nelement(); e < ne; e++)
+    {
+     delete Bem_mesh_pt->element_pt(e);
+    }
+   Bem_mesh_pt = 0;
+  }
 
   /// Put the (output) values of the bem into a vector.
-  void get_bem_values(DoubleVector& bem_values) const;
+  void get_bem_values(DoubleVector &bem_output_values) const;
+
+  /// Put the (output) values of the bem into a series of vectors (one
+  /// per boundary).
+  void get_bem_values(const Vector<DoubleVector*> &bem_output_values) const;
 
   /// Build the mesh, lookup schemes and matrix in that order.
   void build()
@@ -225,7 +247,7 @@ namespace oomph
   /// Access to the pointer to the boundary element method mesh. Use
   /// pointer for consistency with everything else ever even though we
   /// store the actual value in the class.
-  const Mesh* bem_mesh_pt() const {return &Bem_mesh;}
+  const Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
   /// Const access to the boundary matrix
   const DenseDoubleMatrix* boundary_matrix_pt() const
@@ -291,10 +313,11 @@ namespace oomph
 
   /// The pointer to the "boundary element" mesh (as in boundary element method
   /// not finite elements on the boundary).
-  Mesh Bem_mesh;
+  Mesh* Bem_mesh_pt;
 
   /// A list of the boundaries (on various meshes) to which the boundary
-  /// element method should be applied.
+  /// element method should be applied. ??ds will multiple meshes work?
+  /// are they needed? probably not for anything I do...
   Vector<std::pair<unsigned, const Mesh*> > Bem_boundaries;
 
   /// Pointer to storage for the list of nodal angles/solid angles.
@@ -346,8 +369,8 @@ namespace oomph
     std::ostringstream error_msg;
     error_msg << "";
     throw OomphLibError(error_msg.str(),
-			"",
-			OOMPH_EXCEPTION_LOCATION);
+                        "",
+                        OOMPH_EXCEPTION_LOCATION);
    }
 
   // Check the corner list has been set up
@@ -356,8 +379,8 @@ namespace oomph
     std::ostringstream error_msg;
     error_msg << "List of the sharp corners of the mesh has not been set up.";
     throw OomphLibError(error_msg.str(),
-			"BoundaryElementHandler::build_bem_mesh",
-			OOMPH_EXCEPTION_LOCATION);
+                        "BoundaryElementHandler::build_bem_mesh",
+                        OOMPH_EXCEPTION_LOCATION);
    }
 
 #endif
@@ -396,9 +419,9 @@ namespace oomph
       // Loop over all nodes in the mesh and add contributions from this element
       for(unsigned long s_nd=0; s_nd<n_node; s_nd++)
        {
-	Boundary_matrix(l_number,s_nd) -= element_boundary_matrix(l,s_nd);
-	// I think the sign here is negative because the lindholm formula
-	// is for +ve but our final equation has negative kernel...
+        Boundary_matrix(l_number,s_nd) -= element_boundary_matrix(l,s_nd);
+        // I think the sign here is negative because the lindholm formula
+        // is for +ve but our final equation has negative kernel...
        }
      }
    }
@@ -423,10 +446,10 @@ namespace oomph
    {
     std::ostringstream error_msg;
     error_msg << "No BEM boundaries are set so there is no need"
-	      << " to call build_bem_mesh().";
+              << " to call build_bem_mesh().";
     throw OomphLibWarning(error_msg.str(),
-			  "BoundaryElementHandler::build_bem_mesh",
-			  OOMPH_EXCEPTION_LOCATION);
+                          "BoundaryElementHandler::build_bem_mesh",
+                          OOMPH_EXCEPTION_LOCATION);
    }
 #endif
 
@@ -453,17 +476,17 @@ namespace oomph
       // Create the corresponding BEM Element
       BEM_ELEMENT* bem_element_pt =
        new BEM_ELEMENT (mesh_pt->boundary_element_pt(b,e),
-			mesh_pt->face_index_at_boundary(b,e));
+                        mesh_pt->face_index_at_boundary(b,e));
 
       // Add the new BEM element to the BEM mesh
-      Bem_mesh.add_element_pt(bem_element_pt);
+      Bem_mesh_pt->add_element_pt(bem_element_pt);
 
       //??ds
       // // Set integration pointer
       // bem_element_pt->set_integration_scheme(bem_integration_scheme_pt());
 
       // Set the mesh pointer
-      bem_element_pt->set_boundary_mesh_pt(&Bem_mesh);
+      bem_element_pt->set_boundary_mesh_pt(bem_mesh_pt());
      }
    }
 
@@ -471,7 +494,7 @@ namespace oomph
   std::set<Node*>::iterator it;
   for(it=node_set.begin(); it!=node_set.end(); it++)
    {
-    Bem_mesh.add_node_pt(*it);
+    Bem_mesh_pt->add_node_pt(*it);
    }
 
  }
@@ -505,11 +528,11 @@ namespace oomph
 
  // =================================================================
  /// Put the output values from the boundary element method into a
- /// vector.
+ /// DoubleVector.
  // =================================================================
  template<class BEM_ELEMENT>
  void BoundaryElementHandler<BEM_ELEMENT>::
- get_bem_values(DoubleVector& bem_output_values) const
+ get_bem_values(DoubleVector &bem_output_values) const
  {
   // Get the boundary matrix linear algebra distribution (if there is one).
   LinearAlgebraDistribution dist;
@@ -529,6 +552,47 @@ namespace oomph
   boundary_matrix_pt()->multiply(input_values, bem_output_values);
  }
 
+ // =================================================================
+ /// Put the output values from the boundary element method into vectors
+ /// (one per boundary). Not exceptionally efficient....
+ // =================================================================
+ template<class BEM_ELEMENT>
+ void BoundaryElementHandler<BEM_ELEMENT>::
+ get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
+ {
+  // Get as one big vector
+  DoubleVector full_vector;
+  get_bem_values(full_vector);
+
+  // Need this later
+  OomphCommunicator comm_pt = full_vector.distribution_pt()
+   ->communicator_pt();
+
+  // Now split it up into vectors on each boundary
+  for(unsigned i=0, ni=Bem_boundaries.size(); i < ni; i++)
+   {
+    // Get info on this boundary
+    unsigned b = Bem_boundaries[i].first;
+    const Mesh* m_pt = Bem_boundaries[i].second;
+    unsigned nnode = m_pt->nboundary_node(b);
+
+    // Make sure the vector is the right size
+    LinearAlgebraDistribution dist(comm_pt, nnode);
+    bem_output_values[i]->build(&dist, 0.0);
+
+    // Fill it in
+    for(unsigned nd=0; nd<nnode; nd++)
+     {
+      unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
+      unsigned l_eqn = output_lookup_pt()->global_to_node(g_eqn);
+
+      (*bem_output_values[i])[nd] = full_vector[l_eqn];
+     }
+   }
+
+  // full_vector.output(std::cout);
+
+ }
 
 } // End of oomph namespace
 
