@@ -135,34 +135,37 @@ namespace oomph
    //fill_in_be_contribution_adaptive(boundary_matrix);
   }
 
-  /// Function determining how to block the Jacobian.
+  /// Function determining how to block the Jacobian. Just move boundary
+  /// values of phi into their own blocks.
   void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
-				    block_lookup_list)
+                                    block_lookup_list)
   {
-   unsigned phi_1_index = phi_1_index_micromag();
-   unsigned phi_index = phi_index_micromag();
+   // unsigned phi_1_index = phi_1_index_micromag();
+   // unsigned phi_index = phi_index_micromag();
 
-   // We just want to move the boundary values of phi into their own blocks
-   for(unsigned nd=0; nd<nnode(); nd++)
-    {
-     int phi_1_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_1_index);
-     if(phi_1_local >=0)
-      {
-       std::pair<unsigned,unsigned> block_lookup;
-       block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_1_local);
-       block_lookup.second = 0;
-       block_lookup_list.push_front(block_lookup);
-      }
+   // // We just want to move the boundary values of phi into their own blocks
+   // for(unsigned nd=0; nd<nnode(); nd++)
+   //  {
+   //   int phi_1_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_1_index);
+   //   if(phi_1_local >=0)
+   //    {
+   //     std::pair<unsigned,unsigned> block_lookup;
+   //     block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_1_local);
+   //     block_lookup.second = 0;
+   //     block_lookup_list.push_front(block_lookup);
+   //    }
 
-     int phi_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_index);
-     if(phi_local >=0)
-      {
-       std::pair<unsigned,unsigned> block_lookup;
-       block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_local);
-       block_lookup.second = 1;
-       block_lookup_list.push_front(block_lookup);
-      }
-    }
+   //   int phi_local = micromag_bulk_element_pt()->nodal_local_eqn(nd,phi_index);
+   //   if(phi_local >=0)
+   //    {
+   //     std::pair<unsigned,unsigned> block_lookup;
+   //     block_lookup.first = micromag_bulk_element_pt()->eqn_number(phi_local);
+   //     block_lookup.second = 1;
+   //     block_lookup_list.push_front(block_lookup);
+   //    }
+   //  }
+
+   //??ds - removed for now!
   }
 
   /// Number of dof types added by this element. We add two: one each for the
