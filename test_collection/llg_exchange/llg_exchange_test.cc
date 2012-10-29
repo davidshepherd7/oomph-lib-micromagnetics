@@ -21,11 +21,6 @@ using namespace MathematicalConstants;
 
 namespace Inputs
 {
-  double dt = 0.1;
-  double tmax = 0.1;
-
-  unsigned nx = 10, ny = nx;
-  double lx = 1.0, ly = lx;
 
   void initial_m(const double& t, const Vector<double> &x, Vector<double> &m)
   {
@@ -58,17 +53,15 @@ int main()
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  double dt = Inputs::dt;
-  double tmax = Inputs::tmax;
+  double dt = 0.1;
+  unsigned nstep = 5;
 
   // Build problem
   ImplicitLLGProblem<TMicromagElement<2,2> >
-    problem(Inputs::nx, Inputs::ny, Inputs::lx, Inputs::ly,
-            Inputs::applied_field);
-
+    problem(10, 10, 1.0, 1.0, Inputs::applied_field); 
 
   // Fiddle with exchange strength.
-  problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/5;
+  problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/2;
   // Complicated because of normalisation. To get |Hex| = 1 we have to get
   // the exchange constant to mu0. Here we want |Hex| = 0.2 so divide by
   // 5...
@@ -87,7 +80,6 @@ int main()
   problem.doc_solution(doc_info);
 
   // Timestep
-  unsigned nstep = int(tmax/dt);
   for(unsigned t=0; t < nstep; t++)
     {
       std::cout << "Timestep " << t << std::endl;
@@ -97,14 +89,18 @@ int main()
 
       // Output
       problem.doc_solution(doc_info);
-      doc_info.number()++;
     }
 
-  // // ??ds
-  // // Check solution
-  // double avg_m = problem.average_magnetisation();
 
-  // error checks not done yet so pretend to fail
+  // Output final solution for testing
+  {
+    // Number of plot points
+    unsigned npts = 1;
 
-  return 244;
+    // Output solution with specified number of plot points per element
+    std::ofstream final_solution("validation/generated_solution_at_t0.5.dat");
+    problem.mesh_pt()->output(final_solution,npts);
+    final_solution.close();
+  }
+
 }
