@@ -381,40 +381,36 @@ namespace oomph
     const
   {
 
-    std::ofstream some_file;
-    char filename[100];
+    using namespace StringConversion;
 
     // Number of plot points
     unsigned npts;
     npts=5;
 
     // Output solution
-    sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-            doc_info.number());
-    some_file.open(filename);
-    bulk_mesh_pt()->output(some_file,npts);
-    some_file.close();
+    std::ofstream soln_file((doc_info.directory() + "/soln"
+                             + to_string(doc_info.number()) + ".dat").c_str());
+    bulk_mesh_pt()->output(soln_file,npts);
+    soln_file.close();
 
     // If we have an exact solution then use it:
     if(exact_solution_fct_pt() != 0)
       {
 
         // Output exact solution
-        sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-                doc_info.number());
-        some_file.open(filename);
-        bulk_mesh_pt()->output_fct(some_file, npts, exact_solution_fct_pt());
-        some_file.close();
+        std::ofstream exact_file((doc_info.directory() + "/exact_soln"
+                                  + to_string(doc_info.number()) + ".dat").c_str());
+        bulk_mesh_pt()->output_fct(exact_file, npts, exact_solution_fct_pt());
+        exact_file.close();
 
 
         // Doc error and return of the square of the L2 error
         double error,norm;
-        sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
-                doc_info.number());
-        some_file.open(filename);
-        bulk_mesh_pt()->compute_error(some_file, exact_solution_fct_pt(),
+        std::ofstream error_file((doc_info.directory() + "/error"
+                                  + to_string(doc_info.number()) + ".dat").c_str());
+        bulk_mesh_pt()->compute_error(error_file, exact_solution_fct_pt(),
                                       error, norm);
-        some_file.close();
+        error_file.close();
 
         // Doc L2 error and norm of solution
         std::cout << "\nNorm of error   : " << sqrt(error) << std::endl;

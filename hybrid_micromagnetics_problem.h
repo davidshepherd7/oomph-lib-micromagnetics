@@ -13,6 +13,7 @@
 #include "./boundary_element_handler.h"
 
 using namespace oomph;
+using namespace StringConversion;
 
 namespace oomph
 {
@@ -255,28 +256,22 @@ namespace oomph
         {
           // Parallelisation: distribute using the problems communcator,
           // split rows evenly over all processors. ??dsparallel
-          LinearAlgebraDistribution
-            dist(communicator_pt(), residuals.nrow(), true);
+          LinearAlgebraDistribution dist(communicator_pt(), residuals.nrow(),
+                                         true);
           DoubleVector dofs(dist);
           get_dofs(dofs);
 
-          // Get filenames
-          char dof_filename[100], jac_filename[100], res_filename[100],
-            spjac_filename[100];
-          sprintf(dof_filename, "%s/dofs_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(jac_filename, "%s/jac_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(res_filename, "%s/res_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(spjac_filename, "%s/spjac_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-
+          // Label with time and Newton step numbers
+          std::string label("_" + to_string(debug_doc().timestep())
+                            + "_" + to_string(debug_doc().newton_step()));
+          
           // Output
-          dofs.output(dof_filename);
-          jacobian.sparse_indexed_output(jac_filename);
-          sparse_jacobian.sparse_indexed_output(spjac_filename);
-          residuals.output(res_filename);
+          dofs.output(debug_doc().directory() + "/dofs" + label);
+          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac" 
+                                         + label);
+          sparse_jacobian.sparse_indexed_output(debug_doc().directory() 
+                                                + "/dofs" + label);
+          residuals.output (debug_doc().directory() + "/dofs" + label);
         }
     }
 
@@ -329,23 +324,14 @@ namespace oomph
           DoubleVector dofs(dist);
           get_dofs(dofs);
 
-          // Get filenames
-          char dof_filename[100], jac_filename[100], res_filename[100],
-            spjac_filename[100];
-          sprintf(dof_filename, "%s/dofs_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(jac_filename, "%s/jac_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(res_filename, "%s/res_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
-          sprintf(spjac_filename, "%s/spjac_%u_%u", debug_doc().directory().c_str(),
-                  debug_doc().timestep(), debug_doc().newton_step());
+          std::string label("_" + to_string(debug_doc().timestep())
+                            + "_" + to_string(debug_doc().newton_step()));
 
-          // Output
-          dofs.output(dof_filename);
-          jacobian.sparse_indexed_output(jac_filename);
-          sparse_jacobian_pt->sparse_indexed_output(spjac_filename);
-          residuals.output(res_filename);
+          // Output:
+          dofs.output(debug_doc().directory() + "/dofs" + label);
+          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac" + label);
+          sparse_jacobian_pt->sparse_indexed_output(debug_doc().directory() + "/res" + label);
+          residuals.output(debug_doc().directory() + "/spjac" + label);
         }
 
     }
