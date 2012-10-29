@@ -5,7 +5,7 @@
 //#include "meshes/simple_rectangular_tri_mesh.h"
 #include "meshes/tetgen_mesh.h"
 
-#include "../../implicit_llg_exchange_problem.h"
+#include "../../implicit_llg_problem.h"
 
 
 
