@@ -16,7 +16,8 @@ compiler_options
 # backups/emacs files
 .emacs.*
 *~
-\#*\#
+.#*
+
 
 # outputs
 results*
@@ -32,6 +33,8 @@ rules
 *dump*
 *trace
 octave*
+*.dat
+*.vtu
 
 # tetgen files
 *.poly
