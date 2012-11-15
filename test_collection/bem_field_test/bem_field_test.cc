@@ -52,9 +52,9 @@ namespace oomph
 
       // Pin a single phi_1 value so that the problem is fully determined.
       // This is necessary to avoid having a free constant of integration
-      // (which causes scaling problems). Just pin get the first non boundary
+      // (which causes scaling problems). Just pin the first non boundary
       // node ??ds not sure this is ok...
-      Node* pinned_phi_1_node_pt = get_non_boundary_node(phi_1_mesh_pt);
+      Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_non_boundary_node();
       pinned_phi_1_node_pt->pin(0);
       pinned_phi_1_node_pt->set_value(0,0.0);
       Phi_1_problem.build();
@@ -90,6 +90,7 @@ namespace oomph
       // Cast to iterative solver pointers
       IterativeLinearSolver* phi_it_solver_pt =
         dynamic_cast<IterativeLinearSolver*>(Phi_problem.linear_solver_pt());
+
       IterativeLinearSolver* phi_1_it_solver_pt =
         dynamic_cast<IterativeLinearSolver*>(Phi_1_problem.linear_solver_pt());
 
@@ -98,6 +99,7 @@ namespace oomph
       amg_phi_pt = new HyprePreconditioner;
       phi_it_solver_pt->preconditioner_pt() = amg_phi_pt;
       amg_phi_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+
       amg_phi_1_pt = new HyprePreconditioner;
       phi_1_it_solver_pt->preconditioner_pt() = amg_phi_1_pt;
       amg_phi_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
@@ -120,8 +122,6 @@ namespace oomph
 
       // Update boundary values of phi
       Bem_handler.get_bem_values(Phi_boundary_values_pts);
-
-      // Phi_boundary_values_pts[0]->output(std::cout);
 
       // Solve for phi
       Phi_problem.newton_solve();
@@ -156,27 +156,6 @@ namespace oomph
     /// call a function to get the boundary values filled in but c++ member
     /// functions pointers are useless...
     Vector<DoubleVector*> Phi_boundary_values_pts;
-
-    /// Find a node not on any boundary in mesh_pt (used for pinning a
-    /// single node in a purely Neumann problem so that it is fully
-    /// determined).
-    Node* get_non_boundary_node(Mesh* mesh_pt)
-    {
-      for(unsigned nd=0; nd< mesh_pt->nnode(); nd++)
-        {
-          Node * node_pt = mesh_pt->node_pt(nd);
-          if(! (node_pt->is_on_boundary()))
-            return node_pt;
-        }
-
-      std::ostringstream error_msg;
-      error_msg << "No non-boundary nodes in the mesh.";
-      throw OomphLibError(error_msg.str(),
-                          "HybridMicromagneticsProblem::get_non_boundary_node",
-                          OOMPH_EXCEPTION_LOCATION);
-      // Never get here!
-      return 0;
-    }
 
   };
 
@@ -314,6 +293,9 @@ int main()
   TetgenMesh<TPoissonElement<3,2> > sphere_mesh("mesh.1.node",
                                                 "mesh.1.ele",
                                                 "mesh.1.face");
+  //??ds - must be a more elegant way to have two identical meshes... or
+  // avoid having two altogether... how can we be sure that we don't break
+  // everything by applying changes (e.g. refinement) to only one mesh?
 
 
   // Set a divergence of M (M = constant so divM = 0).
@@ -338,8 +320,6 @@ int main()
   magnetostatic_problem.average_magnetostatic_field(average_field);
   double rel_err = (average_field[0] - (-1.0/3.0))/average_field[0];
   double abs_err = average_field[0] - (-1.0/3.0);
-
-  std::cout << average_field << std::endl;
 
   // Check close/convergence to analytical value
   std::cout

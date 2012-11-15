@@ -61,10 +61,10 @@ namespace oomph
     const unsigned n_intpt = integral_pt()->nweight();
 
     // Get coefficients
-    const double llg_precess_c = get_llg_precession_coeff();
-    const double llg_damp_c = get_llg_damping_coeff();
-    const double exch_c = get_exchange_coeff();
-    const double magstatic_c = get_magnetostatic_coeff();
+    const double llg_precess_c = llg_precession_coeff();
+    const double llg_damp_c = llg_damping_coeff();
+    const double exch_c = exchange_coeff();
+    const double magstatic_c = magnetostatic_coeff();
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -126,7 +126,7 @@ namespace oomph
 
         // Fields at integration point
         Vector<double> h_applied(3,0.0);
-        get_applied_field(time, itp_x, h_applied);
+        get_applied_field(time, itp_x, s, h_applied);
         Vector<double> h_cryst_anis(3,0.0);
         get_H_cryst_anis_field(time, itp_x, itp_m, h_cryst_anis);
 
@@ -138,6 +138,11 @@ namespace oomph
         Vector<double> mxhms(3,0.0), h_magnetostatic(3,0.0);
         for(unsigned j=0; j<3; j++) {h_magnetostatic[j] = -1 * magstatic_c * itp_dphidx[j];}
         VectorOps::cross(itp_m,h_magnetostatic,mxhms);
+
+        if(VectorOps::mod(h_magnetostatic) != 0.0)
+          {
+            std::cout <<  "non-zero hms from built in phis!" << std::endl;
+          }
 
         //======================================================================
         /// Use the above values to calculate the residuals
@@ -153,6 +158,7 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(node_pt(l)->is_on_boundary())))
               {
+                std::cout <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*test(l)*W;         // div(m)
                 for(unsigned k=0;k<DIM;k++)                       // Poisson
@@ -163,6 +169,7 @@ namespace oomph
             const int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
+                std::cout <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*test(l)*W;
                 for(unsigned k=0;k<DIM;k++)
@@ -173,8 +180,8 @@ namespace oomph
             //=================================================
 
             // Exchange residual contribution after integration by parts:
-            Vector<double> gradtestdotgradmi(3,0.0); //?? possibly could optimise
-            //- this is calculated twice
+            //??ds possibly could optimise - this is calculated twice
+            Vector<double> gradtestdotgradmi(3,0.0);
             for(unsigned i=0; i<3; i++)
               for(unsigned j=0; j<DIM; j++)
                 gradtestdotgradmi[i] += dtestdx(l,j) * itp_dmdx(i,j);
@@ -182,6 +189,13 @@ namespace oomph
             // Cross product for exchange contribution
             Vector<double> mxexch(3,0.0);
             VectorOps::cross(itp_m, gradtestdotgradmi, mxexch);
+
+            // std::cout << "mxhapp  = " << itp_mxhapp[0] << " "
+            //           << itp_mxhapp[1] <<  " " << itp_mxhapp[2] << "\n";
+            // std::cout << "mxhms  = " << mxhms[0] << " "
+            //           << mxhms[1]<< " " << mxhms[2] << "\n";
+            // std::cout << "mxexch  = " << mxexch[0] << " "
+            //           << mxexch[1] << " " << mxexch[2] << std::endl;
 
             // add to residual
             for(unsigned i=0; i<3; i++)

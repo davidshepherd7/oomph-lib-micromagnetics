@@ -31,10 +31,14 @@ namespace oomph
 
   public:
     MagneticParameters()
-      : Gamma(1e-15), Gilbert_damping(0.05),
+      : Gamma(2.211e5), Gilbert_damping(0.05),
+        Saturation_magnetisation(1.0),
+        Exchange_constant(0.5 * mag_parameters::mu0), // gives exchange strength = 1
+        K1(0.0),
         Distance_units(1e-9),
         Magnetostatic_debug_coeff(1.0),
         Exchange_debug_coeff(1.0),
+        Boundary_exchange_debug_coeff(1.0),
         Ca_debug_coeff(1.0),
         Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
     {}
@@ -49,17 +53,17 @@ namespace oomph
     double k1() const {return K1;}
     double magnetostatic_debug_coeff() const {return Magnetostatic_debug_coeff;}
     double exchange_debug_coeff() const {return Exchange_debug_coeff;}
+    double boundary_exchange_debug_coeff() const {return Boundary_exchange_debug_coeff;}
     double ca_debug_coeff() const {return Ca_debug_coeff;}
     double distance_units() const {return Distance_units;}
 
+    // Coefficients of each of the fields (before normalisation).
     double hk() const
     {return (2 * k1()) / (mag_parameters::mu0 * saturation_magnetisation()); }
     double hex() const
-    {return (2 * exchange_constant() ) / (mag_parameters::mu0 * saturation_magnetisation());}
-    //{return (2 * exchange_constant() * saturation_magnetisation() ) / (mag_parameters::mu0);}
-    //??ds physically I think the commented version is right but this gives
-    //correct normalisation... ??ds figure this out!
-
+    {return (2 * exchange_constant()) /
+        (mag_parameters::mu0 * saturation_magnetisation()
+         * distance_units() * distance_units());}
     double hms() const
     {return saturation_magnetisation();}
 
@@ -74,15 +78,20 @@ namespace oomph
     double normalised_saturation_magnetisation() const
     {return 1.0;}
     double normalised_hex() const
-    {return (hex() * field_normalisation_factor() * exchange_debug_coeff())
-        / (distance_units() * distance_units());};
+    {return hex() * field_normalisation_factor() * exchange_debug_coeff();}
     double normalised_hk() const //??ds probably need some distance conversion in here...
     {return hk() * field_normalisation_factor() * ca_debug_coeff();}
     double normalised_hms() const
     {return hms() * field_normalisation_factor() * magnetostatic_debug_coeff();}
 
+    // Normalise by the maximum of the field "strengths" (??ds not accounted for
+    // v. large applied fields here, not sure how to do it...)
     double field_normalisation_factor() const
-    {return 1/hms();}
+    {
+#warning ??ds messing with normalisations
+      // return 1/hex_str;
+      return 1/hms();
+    }
 
     // ??ds need to make sure all field normalisation factors are the same for all
     // meshes or this falls apart!
@@ -122,7 +131,7 @@ namespace oomph
 
     // Get the appropriate exchange length for this material according the the
     // nmag user manual.
-    double exchange_length()
+    double exchange_length() const
     {
       double l1 = std::sqrt( (2* exchange_constant() )
                              / (mag_parameters::mu0 * saturation_magnetisation()
@@ -166,7 +175,7 @@ namespace oomph
         }
     }
 
-    void output(std::ostream& stream)
+    void output(std::ostream& stream) const
     {
       stream << "Magnetic parameters are:" << std::endl;
       stream << "Gamma = " << gamma() << std::endl;
@@ -200,6 +209,7 @@ namespace oomph
     double& k1() {return K1;}
     double& magnetostatic_debug_coeff() {return Magnetostatic_debug_coeff;}
     double& exchange_debug_coeff() {return Exchange_debug_coeff;}
+    double& boundary_exchange_debug_coeff() {return Boundary_exchange_debug_coeff;}
     double& ca_debug_coeff() {return Ca_debug_coeff;}
     double& distance_units() {return Distance_units;}
 
@@ -222,7 +232,7 @@ namespace oomph
       k1() = 0.0;
 
       gilbert_damping() = 0.02;
-      gamma() = 2.211e-5; // m/(As)
+      gamma() = 2.211e5; // m/(As)
     }
 
     void set_nmag_rectangle()
@@ -263,50 +273,14 @@ namespace oomph
     /// Debug coefficients
     double Magnetostatic_debug_coeff;
     double Exchange_debug_coeff;
+    double Boundary_exchange_debug_coeff;
     double Ca_debug_coeff;
+
 
 
 
     mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
   };
-
-  // // ============================================================
-  // ///
-  // // ============================================================
-  // class NonNormalisedMagneticParameters
-  // {
-  // public:
-
-  //   /// Default constructor
-  //   NonNormalisedMagneticParameters() :
-  //     Hk(0.0), Hex(1.0), Gamma(1.0), Gilbert_damping(0.5)
-  //   {}
-
-
-  //   // Access functions
-  //   // ============================================================
-
-  //   double hk() const
-  //   {return Hk;}
-
-  //   double hex() const
-  //   {return Hex;}
-
-  //   double gamma() const {return Gamma;}
-
-  //   double gilbert_damping() const {return Gilbert_damping;}
-
-  // private:
-
-  //   double Hk;
-
-  //   double Hex;
-
-  //   double Gamma;
-
-  //   double Gilbert_damping;
-
-  // };
 
 }
 

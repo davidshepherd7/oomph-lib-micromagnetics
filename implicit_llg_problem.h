@@ -31,22 +31,24 @@ namespace oomph
 
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
-      Ele_pt(0), Applied_field_fct_pt(0) {}
+      Ele_pt(0), Applied_field_fct_pt(0), Renormalise_each_time_step(false) {}
 
     /// Make a problem with the default mesh and timestepper
     ImplicitLLGProblem(const unsigned &nx,
                        const unsigned &ny,
                        const double &lx,
                        const double &ly,
-                       AppliedFieldFctPt input_applied_field_pt) :
+                       AppliedFieldFctPt input_applied_field_pt,
+                       const bool adaptive_flag=false) :
       Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt)
     {
       // Create timestepper
-      BDF<2>* bdf2_pt = new BDF<2>;
+      BDF<2>* bdf2_pt = new BDF<2>(adaptive_flag);
       add_time_stepper_pt(bdf2_pt);
 
       // Create mesh
-      mesh_pt() = new SimpleRectangularTriMesh<ELEMENT>(nx,ny,lx,ly,bdf2_pt);
+      bulk_mesh_pt() = new SimpleRectangularTriMesh<ELEMENT>(nx,ny,lx,ly,bdf2_pt);
+      bulk_mesh_pt()->setup_boundary_element_info();
 
       // Set up some simple parameters
       mag_parameters_pt()->set_simple_llg_parameters();
@@ -63,7 +65,7 @@ namespace oomph
     //   Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt)
     // {
     //   // Set mesh, timestepper and applied field
-    //   mesh_pt() = input_mesh_pt;
+    //   bulk_mesh_pt() = input_mesh_pt;
     //   add_time_stepper_pt(time_stepper_pt);
 
     //   // Everything else
@@ -74,7 +76,7 @@ namespace oomph
     void build()
     {
 #ifdef PARANOID
-      if((mesh_pt() == 0) || (applied_field_fct_pt() == 0)
+      if((bulk_mesh_pt() == 0) || (applied_field_fct_pt() == 0)
          || (time_stepper_pt() == 0))
         {
           std::ostringstream error_msg;
@@ -94,29 +96,26 @@ namespace oomph
       // max_residuals() *= 2;
 
       // Get a pointer to an element for use later
-      Ele_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(0));
+      Ele_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(0));
 
       // Find out the problem dimensions
       Dim = Ele_pt->nodal_dimension();
 
-      // //??ds boundary conditions - pin boundary m for now to zero...
-      // for(unsigned b=0, nb= mesh_pt()->nboundary(); b < nb; b++)
-      //   {
-      //     for(unsigned nd=0, nnd=mesh_pt()->nboundary_node(b); nd<nnd; nd++)
-      //       {
-      //         Node* nd_pt = mesh_pt()->boundary_node_pt(b,nd);
-      //         for(unsigned j=0; j<Dim; j++)
-      //           {
-      //             nd_pt->pin(m_index(j));
-      //             nd_pt->set_value(m_index(j),0.0);
-      //           }
-      //       }
-      //   }
+      // Boundary conditions - our finite element discretisation requires
+      // residual addition of m x dm/dn along the boundary (due to need to
+      // reduce the order of the laplacian on m in exchange field).
+
+      // Create mesh of MicromagFluxElement<ELEMENT> to add boundary contribution
+      surface_exchange_mesh_pt() = new Mesh;
+      for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
+        {
+          create_surface_exchange_elements(b);
+        }
 
       // Finish off elements
-      for(unsigned i=0; i< mesh_pt()->nelement(); i++)
+      for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
         {
-          ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(mesh_pt()->element_pt(i));
+          ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
 
           // Set pointer to continuous time
           elem_pt->time_pt() = time_pt();
@@ -129,9 +128,9 @@ namespace oomph
         }
 
       // Pin all phi dofs...??ds remove them from element?
-      for(unsigned nd=0, nnode=mesh_pt()->nnode(); nd<nnode; nd++)
+      for(unsigned nd=0, nnode=bulk_mesh_pt()->nnode(); nd<nnode; nd++)
         {
-          Node* nd_pt = mesh_pt()->node_pt(nd);
+          Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
 
           nd_pt->pin(phi_index());
           nd_pt->pin(phi_1_index());
@@ -139,8 +138,13 @@ namespace oomph
           nd_pt->set_value(phi_1_index(),0.0);
         }
 
+      // Build the global mesh
+      add_sub_mesh(bulk_mesh_pt());
+      add_sub_mesh(surface_exchange_mesh_pt());
+      build_global_mesh();
+
       // Do equation numbering
-      std::cout <<"Number of equations: " << assign_eqn_numbers() << std::endl;
+      std::cout << "LLG Number of equations: " << assign_eqn_numbers() << std::endl;
     }
 
     /// Destructor
@@ -153,9 +157,9 @@ namespace oomph
     /// Renormalise magnetisation to 1 (needed with BDF2)
     void renormalise_magnetisation()
     {
-      for(unsigned nd=0; nd<mesh_pt()->nnode(); nd++)
+      for(unsigned nd=0; nd<bulk_mesh_pt()->nnode(); nd++)
         {
-          Node* nd_pt = mesh_pt()->node_pt(nd);
+          Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
           Vector<double> m_values(3,0.0);
           for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
           VectorOps::normalise(m_values);
@@ -167,7 +171,7 @@ namespace oomph
     void actions_after_newton_solve()
     {
       // If we're using BDF we need to keep M normalised.
-      if(dynamic_cast<BDF<2>* >(time_stepper_pt()) != 0)
+      if(renormalise_each_time_step())
         {
           renormalise_magnetisation();
         }
@@ -181,13 +185,13 @@ namespace oomph
 
 
       // Number of plot points
-      unsigned npts = 1;
+      unsigned npts = 2;
 
       // Output solution with specified number of plot points per element
       std::string filename(doc_info.directory() + "/soln" +
                            doc_info.number_as_string() + ".dat");
       some_file.open(filename.c_str());
-      mesh_pt()->output(some_file,npts);
+      bulk_mesh_pt()->output(some_file,npts);
       some_file.close();
 
       // Increment number used as output label
@@ -197,6 +201,95 @@ namespace oomph
     /// Set up an initial M
     void set_initial_condition(const InitialMFctPt initial_m_pt);
 
+    /// Error for adaptive timestepper (rms of nodal error determined by
+    /// comparison with explicit timestepper result).
+    double global_temporal_error_norm()
+    {
+      double global_error = 0.0;
+
+      //Find out how many nodes there are in the problem
+      unsigned n_node = bulk_mesh_pt()->nnode();
+
+      //Loop over the nodes and calculate the estimated error in the values
+      for(unsigned i=0;i<n_node;i++)
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              // Get error in solution: Difference between predicted
+              // (explicit timestepper) and actual value for each m.
+              double error = bulk_mesh_pt()->node_pt(i)->time_stepper_pt()->
+                temporal_error_in_value(bulk_mesh_pt()->node_pt(i),m_index(j));
+
+              //Add the square of the individual error to the global error
+              global_error += error*error;
+            }
+        }
+
+      // Divide by the number of nodes
+      global_error /= 3*double(n_node);
+
+      // Return square root...
+      return sqrt(global_error);
+    }
+
+
+    void mean_magnetisation(Vector<double> &m) const
+    {
+      // Reset m
+      m.assign(3,0.0);
+
+      // Sum over all nodes in mesh
+      unsigned nnode = bulk_mesh_pt()->nnode();
+      for(unsigned nd=0; nd<nnode; nd++)
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              m[j] += bulk_mesh_pt()->node_pt(nd)->value(m_index(j));
+            }
+        }
+
+      // Divide by number of nodes in mesh
+      for(unsigned j=0; j<3; j++)
+        {
+          m[j] /= nnode;
+        }
+    }
+
+    /// \short Abs of mean difference of actual m and m given by a function
+    /// at the middle of each element.
+    double compare_m_with_function(const InitialMFctPt fct_pt) const
+    {
+      double diff = 0.0;
+
+      // Compare at middle of element
+      Vector<double> s(3,0.0);
+      for(unsigned j=0; j<dim(); j++) s[j] = 0.5;
+
+      // Sum the difference over all elements
+      for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
+        {
+          ELEMENT* ele_pt = dynamic_cast<ELEMENT* >
+            (bulk_mesh_pt()->element_pt(e));
+
+          Vector<double> numerical_m(3,0.0);
+          ele_pt->interpolated_m_micromag(s,numerical_m);
+
+          Vector<double> x(dim(),0.0), exact_m(3,0.0);
+          ele_pt->interpolated_x(s,x);
+          double t = this->time();
+          fct_pt(t, x, exact_m);
+
+          for(unsigned j=0; j<3; j++)
+            {
+              diff += std::abs(numerical_m[j] - exact_m[j]);
+            }
+        }
+
+      // Divide to get the mean
+      diff /= (3 * bulk_mesh_pt()->nelement());
+
+      return diff;
+    }
 
     // Access functions
     // ============================================================
@@ -228,6 +321,25 @@ namespace oomph
     const MagneticParameters* mag_parameters_pt() const
     {return &Magnetic_parameters;}
 
+    /// \short Non-const access function for Renormalise_each_time_step.
+    bool& renormalise_each_time_step() {return Renormalise_each_time_step;}
+
+    /// \short Const access function for Renormalise_each_time_step.
+    bool renormalise_each_time_step() const {return Renormalise_each_time_step;}
+
+    /// \short Non-const access function for Surface_exchange_mesh_pt.
+    Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
+
+    /// \short Const access function for Surface_exchange_mesh_pt.
+    Mesh* surface_exchange_mesh_pt() const {return Surface_exchange_mesh_pt;}
+
+    /// \short Non-const access function for Bulk_mesh_pt.
+    Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
+
+    /// \short Const access function for Bulk_mesh_pt.
+    Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
+
+
   private:
 
     /// A pointer to an element (used to get index numbers)
@@ -241,6 +353,20 @@ namespace oomph
 
     /// Magnetic parameters storage. ??ds should maybe go in meshes?
     MagneticParameters Magnetic_parameters;
+
+    /// Normalise magnetisation problem after each step?
+    bool Renormalise_each_time_step;
+
+    /// Pointer to bulk mesh (i.e. the magnetic material).
+    Mesh* Bulk_mesh_pt;
+
+    /// Pointer to the mesh of face elements for dealing with boundary
+    /// conditions caused by reducing order of differentiation in exchange
+    /// term.
+    Mesh* Surface_exchange_mesh_pt;
+
+    /// Create
+    void create_surface_exchange_elements(const unsigned& b);
 
     /// Inaccessible copy constructor
     ImplicitLLGProblem(const ImplicitLLGProblem & dummy)
@@ -310,6 +436,37 @@ namespace oomph
 
     // Reset backed up time for global timestepper
     this->time_pt()->time()=backed_up_time;
+  }
+
+
+  //======================================================================
+  /// Create
+  //======================================================================
+  template<class ELEMENT>
+  void ImplicitLLGProblem<ELEMENT>::
+  create_surface_exchange_elements(const unsigned& b)
+  {
+    // Loop over the bulk elements adjacent to boundary b
+    for(unsigned e=0, ne=bulk_mesh_pt()->nboundary_element(b);e<ne;e++)
+      {
+        // Get pointer to the bulk element that is adjacent to boundary b
+        ELEMENT* bulk_elem_pt = dynamic_cast<ELEMENT*>
+          (bulk_mesh_pt()->boundary_element_pt(b,e));
+
+        // What is the index of the face of the bulk element at the boundary
+        int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
+
+        // Build the corresponding prescribed-flux element
+        MicromagFluxElement<ELEMENT>* flux_element_pt =
+          new MicromagFluxElement<ELEMENT>(bulk_elem_pt,face_index);
+
+        // Pass a pointer to the flux element to the bulk element
+        bulk_elem_pt->add_face_element_pt(flux_element_pt);
+
+        // Add the prescribed-flux element to the mesh
+        surface_exchange_mesh_pt()->add_element_pt(flux_element_pt);
+
+      } // End of loop over bulk elements adjacent to boundary b
   }
 
 

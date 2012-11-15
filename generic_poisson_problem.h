@@ -20,7 +20,8 @@ using namespace oomph;
 namespace oomph
 {
 
-  template<class ELEMENT> class GenericPoissonProblem : public Problem
+  template<class ELEMENT, class FLUX_ELEMENT = PoissonFluxElement<ELEMENT> >
+  class GenericPoissonProblem : public Problem
   {
 
   public:
@@ -30,7 +31,7 @@ namespace oomph
     typedef FiniteElement::SteadyExactSolutionFctPt DirichletFctPt;
 
     /// Typedef because the full name is far too long
-    typedef typename PoissonFluxElement<ELEMENT>::PoissonPrescribedFluxFctPt
+    typedef typename FLUX_ELEMENT::PoissonPrescribedFluxFctPt
     PoissonFluxFctPt;
 
     // Note: typename is needed here and in some places below because the
@@ -61,13 +62,13 @@ namespace oomph
     void set_dirichlet_boundary(const unsigned &b,
                                 const DirichletFctPt condition_fct_pt)
     {
-      // Pin all nodes on boundary b
-      unsigned n_node = bulk_mesh_pt()->nboundary_node(b);
-      for(unsigned nd=0;nd<n_node;nd++)
-        {
-          // We assume that Poisson elements only have one dof, pin it:
-          bulk_mesh_pt()->boundary_node_pt(b,nd)->pin(Poisson_dof_number);
-        }
+      // // Pin all nodes on boundary b
+      // unsigned n_node = bulk_mesh_pt()->nboundary_node(b);
+      // for(unsigned nd=0;nd<n_node;nd++)
+      //   {
+      //     // We assume that Poisson elements only have one dof, pin it:
+      //     bulk_mesh_pt()->boundary_node_pt(b,nd)->pin(Poisson_dof_number);
+      //   }
 
       // Store function pointer to compute values on boundary b
       std::pair<unsigned, DirichletFctPt> dcb;
@@ -80,13 +81,13 @@ namespace oomph
     void set_dirichlet_boundary_by_vector(const unsigned& b,
                                           const DoubleVector* boundary_values_pt)
     {
-      // Pin all nodes on boundary b
-      unsigned n_node = bulk_mesh_pt()->nboundary_node(b);
-      for(unsigned nd=0;nd<n_node;nd++)
-        {
-          // We assume that Poisson elements only have one dof, pin it:
-          bulk_mesh_pt()->boundary_node_pt(b,nd)->pin(Poisson_dof_number);
-        }
+      // // Pin all nodes on boundary b
+      // unsigned n_node = bulk_mesh_pt()->nboundary_node(b);
+      // for(unsigned nd=0;nd<n_node;nd++)
+      //   {
+      //     // We assume that Poisson elements only have one dof, pin it:
+      //     bulk_mesh_pt()->boundary_node_pt(b,nd)->pin(Poisson_dof_number);
+      //   }
 
       // Store pointer to vector where boundary values will be put
       std::pair<unsigned, const DoubleVector*> dcb;
@@ -279,8 +280,8 @@ namespace oomph
   // =================================================================
   /// Finish off building the problem (once everything has been set).
   // =================================================================
-  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::
+  template<class ELEMENT, class FLUX_ELEMENT>
+  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::
   build()
   {
 #ifdef PARANOID
@@ -311,6 +312,29 @@ namespace oomph
       }
 #endif
 
+    // Pin Dirichlet boundaries set by functions
+    for(unsigned i=0, n=Dirichlet_function_conditions.size(); i<n; i++)
+      {
+        unsigned b = Dirichlet_function_conditions[i].first;
+        for(unsigned nd=0, nnd=bulk_mesh_pt()->nboundary_node(b); nd<nnd; nd++)
+          {
+            Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b,nd);
+            nd_pt->pin(Poisson_dof_number);
+          }
+      }
+
+    // Pin Dirichlet boundaries set by vectors
+    for(unsigned i=0, n=Dirichlet_vector_conditions.size(); i<n; i++)
+      {
+        unsigned b = Dirichlet_vector_conditions[i].first;
+        for(unsigned nd=0, nnd=bulk_mesh_pt()->nboundary_node(b); nd<nnd; nd++)
+          {
+            Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b,nd);
+            nd_pt->pin(Poisson_dof_number);
+          }
+      }
+
+
     // Loop over the bulk elements to set up element-specific things
     unsigned n_element = bulk_mesh_pt()->nelement();
     for(unsigned i=0;i<n_element;i++)
@@ -330,15 +354,15 @@ namespace oomph
     build_global_mesh();
 
     // Set up equation numbering scheme
-    std::cout <<"Poisson number of equations: " << assign_eqn_numbers() << std::endl;
+    std::cout << "Poisson number of equations: " << assign_eqn_numbers() << std::endl;
   }
 
   // =====================================================================
   /// Create Poisson flux elements on the b-th boundary of the bulk mesh,
   /// add the elements to the flux mesh and set the prescribed flux pointer.
   //=======================================================================
-  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::set_neumann_boundary
+  template<class ELEMENT, class FLUX_ELEMENT>
+  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::set_neumann_boundary
   (const unsigned &b, PoissonFluxFctPt const prescribed_flux_pt)
   {
     // If we don't have a flux mesh yet then make one
@@ -359,8 +383,8 @@ namespace oomph
         int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
 
         // Build the corresponding prescribed-flux element
-        PoissonFluxElement<ELEMENT>* flux_element_pt = new
-          PoissonFluxElement<ELEMENT>(bulk_elem_pt,face_index);
+        FLUX_ELEMENT* flux_element_pt = new
+          FLUX_ELEMENT(bulk_elem_pt,face_index);
 
         // Add the prescribed-flux element to the surface mesh
         flux_mesh_pt()->add_element_pt(flux_element_pt);
@@ -376,8 +400,8 @@ namespace oomph
   // =================================================================
   /// Doc the solution.
   // =================================================================
-  template<class ELEMENT>
-  void GenericPoissonProblem<ELEMENT>::doc_solution(DocInfo& doc_info)
+  template<class ELEMENT, class FLUX_ELEMENT>
+  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::doc_solution(DocInfo& doc_info)
     const
   {
 
@@ -427,8 +451,8 @@ namespace oomph
   /// Get the norm of the error (requires exact solution fct_pt). Used for
   /// testing purposes.
   // =================================================================
-  template<class ELEMENT>
-  double GenericPoissonProblem<ELEMENT>::get_error_norm() const
+  template<class ELEMENT, class FLUX_ELEMENT>
+  double GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::get_error_norm() const
   {
     double error, norm;
     std::ofstream dummy_file;

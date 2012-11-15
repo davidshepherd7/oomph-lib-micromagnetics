@@ -16,6 +16,8 @@
 
 #include "generic.h"
 
+#include "./prettyprint98.hpp"
+
 using namespace oomph;
 
 namespace oomph
@@ -54,9 +56,11 @@ namespace oomph
       // Get dimension (from first node)
       unsigned dim = mesh_pt->node_pt(0)->ndim();
 
-      // The angle is assumed to be 1/(2^dim), since it is rectangular or
+      // The corner_angle is assumed to be 1/(2^dim), since it is rectangular or
       // cubeoid.
-      double angle = 1 / std::pow(2,dim);
+      double corner_angle = 1 / std::pow(2.0,dim);
+
+      std::cout <<  corner_angle << std::endl;
 
       // Loop over nodes
       for(unsigned nd=0; nd<nnode; nd++)
@@ -84,7 +88,12 @@ namespace oomph
           // assume it is a smooth point and so the angle is 0.5
           if(boundaries_pt->size() == dim)
             {
-              Corners[nd] = angle;
+              Corners[nd] = corner_angle;
+            }
+          else if((dim == 3) && (boundaries_pt->size() == (dim - 1)))
+            {
+              // in 3d we also have edges with solid angle pi/4pi
+              Corners[nd] = 0.25;
             }
           else
             {
@@ -92,6 +101,7 @@ namespace oomph
               Corners[nd] = 0.5;
             }
         }
+
     }
 
     /// Set up corners for a smooth mesh (i.e. no sharp corners).
@@ -107,7 +117,7 @@ namespace oomph
       // Assume that the bem matrix is a densedoublematrix so that we can write
       // to it with operator().
 
-#ifdef PARANOID
+      //#ifdef PARANOID
       // Check that the list has been set up
       if(!(is_set_up()))
         {
@@ -127,13 +137,15 @@ namespace oomph
                               "",
                               OOMPH_EXCEPTION_LOCATION);
         }
-#endif
+      //#endif
 
       // Add the fractional angles
       for(unsigned nd=0, s=Corners.size(); nd<s; nd++)
         {
           bem_matrix(nd,nd) += Corners[nd];
         }
+
+      // std::cout << this->Corners << std::endl;
     }
 
     /// Check if the list has been set up.
@@ -218,7 +230,6 @@ namespace oomph
       Input_lookup.build(bem_mesh_pt(), input_index());
       Output_lookup.build(bem_mesh_pt(), output_index());
 
-      // Set up the corners ??ds this is stupid!
       corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
 
       // Construct the (dense) matrix

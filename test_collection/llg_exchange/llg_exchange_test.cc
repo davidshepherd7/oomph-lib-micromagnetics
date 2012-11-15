@@ -30,7 +30,7 @@ namespace Inputs
     // m[1] = cos(x[1]*2*Pi);
     // m[2] = 1.0 - m[0] - m[1];
 
-    m[0] = x[0]/2 + x[1]/2;
+    m[0] = x[0]/4 + x[1]/4 + 1.0/4.0;
     m[1] = (1 - m[0]);
     m[2] = 0.0;
 
@@ -42,7 +42,7 @@ namespace Inputs
                      Vector<double> &h_app)
   {
     h_app.assign(3,0.0);
-    h_app[0] = 0.01;
+    h_app[0] = 2.0;
   }
 
 }
@@ -53,54 +53,74 @@ int main()
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  double dt = 0.1;
-  unsigned nstep = 5;
-
   // Build problem
   ImplicitLLGProblem<TMicromagElement<2,2> >
-    problem(10, 10, 1.0, 1.0, Inputs::applied_field); 
+    problem(10, 10, 1.0, 1.0, Inputs::applied_field, true);
 
   // Fiddle with exchange strength.
   problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/2;
   // Complicated because of normalisation. To get |Hex| = 1 we have to get
-  // the exchange constant to mu0. Here we want |Hex| = 0.2 so divide by
-  // 5...
-  problem.mag_parameters_pt()->gilbert_damping() = 0.1;
+  // the exchange constant to mu0/2.
+
+  // Make it nice and quick to solve (since this is a test).
+  problem.mag_parameters_pt()->gilbert_damping() = 0.8;
 
   //??ds better solver in the end?
 
   // Initialise
-  problem.initialise_dt(dt);
   problem.set_initial_condition(Inputs::initial_m);
+  double eps = 1e-4;
+  double tmax = 7;
+  double dt = 0.03; // initial suggestion for dt
 
   // Set up output
   DocInfo doc_info;
   doc_info.set_directory("results");
 
-  problem.doc_solution(doc_info);
+  // problem.doc_solution(doc_info);
 
-  // Timestep
-  for(unsigned t=0; t < nstep; t++)
+  // Do one timestep with known dt to test intermediate results
+  {
+    std::cout << "step number = " << doc_info.number()
+              << ", time = " << problem.time_pt()->time()
+              << std::endl;
+
+    problem.unsteady_newton_solve(dt);
+
+    std::cout << " dt = " << dt << std::endl;
+
+    // Output
+    std::ofstream first_solution("validation/generated_solution_at_t0.03.dat");
+    problem.mesh_pt()->output(first_solution,2);
+    first_solution.close();
+  }
+
+  // Timestep to end
+  while(problem.time_pt()->time() < tmax)
     {
-      std::cout << "Timestep " << t << std::endl;
+      std::cout << "step number = " << doc_info.number()
+                << ", time = " << problem.time_pt()->time()
+                << std::endl;
 
-      // Step
-      problem.unsteady_newton_solve(dt);
+      // Step (use recommended next time step from previous step).
+      dt = problem.adaptive_unsteady_newton_solve(dt,eps);
 
-      // Output
-      problem.doc_solution(doc_info);
+      std::cout << " dt = " << dt << std::endl;
+
+      // // Output
+      // problem.doc_solution(doc_info);
     }
 
 
-  // Output final solution for testing
-  {
-    // Number of plot points
-    unsigned npts = 1;
+  // Check solution--should have converged to M = [1,0,0] by now.
+  Vector<double> m;
+  problem.mean_magnetisation(m); m[0] -= 1;
 
-    // Output solution with specified number of plot points per element
-    std::ofstream final_solution("validation/generated_solution_at_t0.5.dat");
-    problem.mesh_pt()->output(final_solution,npts);
-    final_solution.close();
-  }
+  double tol = 1e-3;
+  for(unsigned j=0; j<3; j++)
+    {
+      if( std::abs(m[j]) > tol) return 2;
+    }
 
+  return 0;
 }

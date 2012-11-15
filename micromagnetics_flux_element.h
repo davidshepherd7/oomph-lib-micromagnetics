@@ -16,6 +16,9 @@
 
 #include "generic.h"
 
+//??ds
+#include <iomanip>
+
 using namespace oomph;
 
 namespace oomph
@@ -88,14 +91,12 @@ namespace oomph
     void fill_in_bulk_contribution_to_face_jacobian
     (DenseMatrix<double>& jacobian) const;
 
-    /// \short Output function -- forward to broken version in FiniteElement
-    /// until somebody decides what exactly they want to plot here...
+    /// \short Output function -- forward to broken version in FiniteElement.
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {FiniteElement::output(outfile,n_plot);}
 
     /// \short C-style output function -- forward to broken version in
-    /// FiniteElement until somebody decides what exactly they want to plot
-    /// here...
+    /// FiniteElement.
     void output(FILE* file_pt, const unsigned &n_plot=5)
     {FiniteElement::output(file_pt,n_plot);}
 
@@ -105,6 +106,7 @@ namespace oomph
     unsigned ndof_types()
     {return 0;}
 
+    /// \short Element makes no changes to dof numbering - do nothing.
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
                                       block_lookup_list)
     {}
@@ -127,35 +129,6 @@ namespace oomph
       return J_eulerian(s);
     }
 
-    double dshape_dtest(const Vector<double>& s, Shape& psi, DShape& dpsidx,
-                        Shape& test, DShape& dtestdx)
-      const
-    {
-      // Get s in bulk
-      Vector<double> s_bulk(3,0.0);
-      get_local_coordinate_in_bulk(s,s_bulk);
-
-      // get dshape dtest from bulk
-      unsigned bulk_n_node = bulk_element_pt()->nnode();
-      Shape dummy1(bulk_n_node), dummy2(bulk_n_node);
-      DShape dpsidx_bulk(bulk_n_node,Dim), dtestdx_bulk(bulk_n_node,Dim);
-      bulk_element_pt()->dshape_dtest(s_bulk,dummy1,dpsidx_bulk,dummy2,dtestdx_bulk);
-
-      // Find shape derivatives which are actually in the face element
-      for(unsigned l=0; l<this->nnode(); l++)
-        {
-          unsigned l_bulk = bulk_node_number(l);
-          for(unsigned j=0; j<Dim; j++)
-            {
-              dpsidx(l,j) = dpsidx_bulk(l_bulk,j);
-              dtestdx(l,j) = dtestdx_bulk(l_bulk,j);
-            } //??ds should check this...
-        }
-
-      // Get shape, test and J
-      return shape_test(s,psi,test);
-    }
-
     /// \short Add the element's contribution to its residual vector. When
     /// flag=1 (or 0): do (or don't) compute the contribution to the Jacobian as
     /// well.
@@ -166,7 +139,7 @@ namespace oomph
   private:
 
     ///The spatial dimension of the problem
-    unsigned Dim;
+    unsigned Nodal_dim;
 
     /// Pointer to the attached bulk element
     ELEMENT* Bulk_element_pt;
@@ -193,27 +166,6 @@ namespace oomph
     FaceElement(),
     Bulk_element_pt(bulk_el_pt)
   {
-    //??ds left in from PoissonFluxElement
-    // #ifdef PARANOID
-    //     {
-    //       //Check that the element is not a refineable 3d element
-    //       ELEMENT* elem_pt = new ELEMENT;
-    //       //If it's three-d
-    //       if(elem_pt->dim()==3)
-    //   {
-    //     //Is it refineable
-    //     if(dynamic_cast<RefineableElement*>(elem_pt))
-    //       {
-    //         //Issue a warning
-    //         OomphLibWarning
-    //           ("This flux element will not work correctly if nodes are hanging\n",
-    //            "MicromagFluxElement::Constructor",
-    //            OOMPH_EXCEPTION_LOCATION);
-    //       }
-    //   }
-    //     }
-    // #endif
-
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
     // element), etc.
@@ -221,18 +173,7 @@ namespace oomph
 
     // Extract the dimension of the problem from the dimension of
     // the first node
-    Dim = this->node_pt(0)->ndim();
-
-    // // Fill in the index values
-    // Phi_1_index_micromag = bulk_element_pt()->phi_1_index_micromag();
-    // M_index_micromag.push_back(bulk_element_pt()->m_index_micromag(0));
-    // M_index_micromag.push_back(bulk_element_pt()->m_index_micromag(1));
-    // M_index_micromag.push_back(bulk_element_pt()->m_index_micromag(2));
-
-    // Exchange_index_micromag.push_back(bulk_element_pt()->exchange_index_micromag(0));
-    // Exchange_index_micromag.push_back(bulk_element_pt()->exchange_index_micromag(1));
-    // Exchange_index_micromag.push_back(bulk_element_pt()->exchange_index_micromag(2));
-
+    Nodal_dim = this->node_pt(0)->ndim();
   }
 
 
@@ -250,36 +191,38 @@ namespace oomph
     const unsigned n_intpt = integral_pt()->nweight();
 
     Shape psi(n_node), test(n_node);
-    DShape dpsidx(n_node,Dim), dtestdx(n_node,Dim);
 
-    const unsigned phi_1_index = bulk_element_pt()->phi_1_index_micromag();
+    //const unsigned phi_1_index = bulk_element_pt()->phi_1_index_micromag();
     Vector<unsigned> m_index(3);
     for(unsigned i=0; i<3; i++)
       m_index[i] = bulk_element_pt()->m_index_micromag(i);
 
     // Get coefficients
-    const double exch_c = bulk_element_pt()->get_exchange_coeff();
-    const double llg_precess_c = bulk_element_pt()->get_llg_precession_coeff();
+    const double exch_c = bulk_element_pt()->exchange_coeff();
+    const double llg_precess_c = bulk_element_pt()->llg_precession_coeff();
+
+    const double boundary_exch_debug = bulk_element_pt()->magnetic_parameters_pt()
+      ->boundary_exchange_debug_coeff();
 
     //Loop over the integration points
     //--------------------------------
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
         // Local coords
-        Vector<double> s(Dim-1);
-        for(unsigned i=0;i<(Dim-1);i++)
+        Vector<double> s(Nodal_dim-1);
+        for(unsigned i=0;i<(Nodal_dim-1);i++)
           s[i] = integral_pt()->knot(ipt,i);
 
         const double J = shape_test(s,psi,test);
         const double W = integral_pt()->weight(ipt) * J;
 
         // Get the shape/test functions and derrivatives
-        dshape_dtest(s,psi,dpsidx,test,dtestdx);
+        shape_test(s,psi,test);
 
-        Vector<double> itp_x(Dim,0.0), itp_m(3,0.0);
+        Vector<double> itp_x(Nodal_dim,0.0), itp_m(3,0.0);
         for(unsigned l=0; l<n_node; l++)
           {
-            for(unsigned j=0; j<Dim; j++)
+            for(unsigned j=0; j<Nodal_dim; j++)
               itp_x[j] += nodal_position(l,j)*psi(l);
             for(unsigned j=0; j<3; j++)
               itp_m[j] += nodal_value(l,m_index[j])*psi(l);
@@ -293,18 +236,23 @@ namespace oomph
         DenseDoubleMatrix itp_dmdx(3,3,0.0);
         bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
 
-        Vector<double> low_dim_normal(Dim,0.0), normal(3,0.0);
-        outer_unit_normal(s,low_dim_normal);
-        for(unsigned j=0; j<Dim; j++) normal[j] = low_dim_normal[j];
+        // Vector<double> low_dim_normal(Nodal_dim,0.0), normal(3,0.0);
+        Vector<double> normal(Nodal_dim,0.0);
+        outer_unit_normal(s,normal);
+        // for(unsigned j=0; j<Nodal_dim; j++) normal[j] = low_dim_normal[j];
 
         // Some pre-calculations:
-        Vector<double> ndotgradmi(3,0.0);
+        Vector<double> dmdn(3,0.0);
         for(unsigned i=0; i<3; i++)
-          for(unsigned j=0; j<Dim; j++)
-            ndotgradmi[i] += normal[j] * itp_dmdx(i,j);
-        Vector<double> mxndotgradmi(3,0.0);
-        VectorOps::cross(itp_m,ndotgradmi,mxndotgradmi);
-        double mdotn = VectorOps::dot(normal,itp_m);
+          for(unsigned j=0; j<Nodal_dim; j++)
+            dmdn[i] += normal[j] * itp_dmdx(i,j);
+
+        // std::cout << "from residual dmdn at x = " << itp_x << " is " << dmdn << std::endl
+        //           << "       m is " << itp_m << std::endl;
+
+        Vector<double> mxdmdn(3,0.0);
+        VectorOps::cross(itp_m,dmdn,mxdmdn);
+        //double mdotn = VectorOps::dot(normal,itp_m);
 
 
         // Loop over the test functions doing residual and Jacobian
@@ -312,164 +260,242 @@ namespace oomph
         for(unsigned l=0;l<n_node;l++)
           {
             // Get indicies for phi_1 and m equations
-            int phi_1_eqn = nodal_local_eqn (l,phi_1_index);
+            // int phi_1_eqn = nodal_local_eqn (l,phi_1_index);
             Vector<int> m_eqn(3,0);
 
-            // Phi contribution (if not a dirichlet b.c.)
-            if(phi_1_eqn >= 0)
-              residuals[phi_1_eqn] += mdotn*test(l)*W;
+            //??ds
+            // // Phi contribution (if not a dirichlet b.c.)
+            // if(phi_1_eqn >= 0)
+            //   residuals[phi_1_eqn] += mdotn*test(l)*W;
 
             // Exchange contribution: (m x (dm/dn)) * test
             for(unsigned i=0; i<3; i++)
               {
                 m_eqn[i] = nodal_local_eqn(l,m_index[i]);
                 if(m_eqn[i] >=0)
-                  residuals[m_eqn[i]] += llg_precess_c * exch_c
-                    * mxndotgradmi[i] * test(l) * W;
+                  {
+                    residuals[m_eqn[i]] += llg_precess_c * exch_c
+                      * boundary_exch_debug
+                      * mxdmdn[i] * test(l) * W;
+                  }
               }
 
             //??ds still need to deal with surface anisotropy...
 
 
-            // Jacobian (phi_1 w.r.t m_i)
-            if(!flag) continue;
-            for(unsigned l2=0; l2<n_node; l2++)
-              {
-                // Loop over which m we are differentiating w.r.t
-                Vector<unsigned> m_unknown(3,0.0);
-                for(unsigned j=0; j<3; j++)
-                  {
-                    m_unknown[j] = nodal_local_eqn(l2,m_index[j]);
-                    if(!(m_unknown[j] >= 0)) continue;
+            // // Jacobian (phi_1 w.r.t m_i)
+            // if(!flag) continue;
+            // for(unsigned l2=0; l2<n_node; l2++)
+            //   {
+            //     // Loop over which m we are differentiating w.r.t
+            //     Vector<unsigned> m_unknown(3,0.0);
+            //     for(unsigned j=0; j<3; j++)
+            //       {
+            //         m_unknown[j] = nodal_local_eqn(l2,m_index[j]);
+            //         if(!(m_unknown[j] >= 0)) continue;
 
-                    // phi_1 residual w.r.t m_j
-                    if(phi_1_eqn >= 0)
-                      {
-                        jacobian(phi_1_eqn,m_unknown[j])
-                          += psi(l2) * test(l) * normal[j] * W;
-                      }
+            //         // phi_1 residual w.r.t m_j
+            //         if(phi_1_eqn >= 0)
+            //           {
+            //             jacobian(phi_1_eqn,m_unknown[j])
+            //               += psi(l2) * test(l) * normal[j] * W;
+            //           }
 
-                    // m residuals w.r.t m_j due to exchange boundary effects
-                    // ============================================================
+            //         // m residuals w.r.t m_j due to exchange boundary
+            //         // effects has to be handled by bulk element since it
+            //         // involves derivatives of m. So it is affected by
+            //         // nodes which are not in the face element.
 
-                    // Jacobian contribution is (using product rule):
-                    // (ihat x dm/dn) * psi * ...
-                    // + (m x ihat) * dpsidn * ...
-                    Vector<double> jhat(3,0.0); jhat[j] = 1.0;
-                    Vector<double> jxdmdn(3,0.0);
-                    VectorOps::cross(jhat,ndotgradmi,jxdmdn);
 
-                    for(unsigned i=0; i<3; i++)
-                      {
-                        if(!(m_eqn[i] >= 0)) continue;
-
-                        jacobian(m_eqn[i],m_unknown[j]) +=
-                          exch_c * llg_precess_c * W * test(l) *
-                          psi(l2) * jxdmdn[i];
-
-                        // Unfortuantely the second term of this equation is
-                        // non-zero for m_unknown in bulk nodes in the same bulk
-                        // element. This means we must also include a Jacobian
-                        // contribution due to the surface integral in the bulk
-                        // element. This is implemented in the function ??ds
-                        // called by the bulk element.
-                      }
-                  }
-              }
+            //       }
+            //   }
           }
+
+        // std::cout <<  normal << std::endl;
+
       }
+
+    // std::cout << "residuals are:" <<  residuals << std::endl;
   }
 
   template<class ELEMENT>
   void MicromagFluxElement<ELEMENT>::
   fill_in_bulk_contribution_to_face_jacobian(DenseMatrix<double>& jacobian) const
   {
-    // Get indices
-    Vector<unsigned> m_index(3);
-    for(unsigned i=0; i<3; i++)
-      m_index[i] = bulk_element_pt()->m_index_micromag(i);
 
-    const unsigned face_n_node = nnode();
-    const unsigned n_node = bulk_element_pt()->nnode();
-    const unsigned n_intpt = integral_pt()->nweight();
+    // Get some values
+    const ELEMENT* be_pt = bulk_element_pt();
+    const unsigned bulk_nnode = be_pt->nnode();
+    const unsigned nodal_dim = this->node_pt(0)->ndim();
+    const unsigned face_ele_dim = this->dim();
 
-    // Get coefficients
-    double exch_c = bulk_element_pt()->get_exchange_coeff();
-    double llg_precess_c = bulk_element_pt()->get_llg_precession_coeff();
-
-    for(unsigned ipt=0;ipt<n_intpt;ipt++)
+    // Integration using surface element points/scheme
+    for(unsigned ipt=0, nipt=this->integral_pt()->nweight(); ipt<nipt;ipt++)
       {
-        Vector<double> s(Dim-1);
-        for(unsigned i=0;i<(Dim-1);i++)
-          s[i] = integral_pt()->knot(ipt,i);
+        // Get integration data (knot, weight)
+        Vector<double> face_s(face_ele_dim,0.0), bulk_s(nodal_dim,0.0);
+        for(unsigned j=0; j<face_ele_dim; j++) face_s[j] = this->integral_pt()->knot(ipt,j);
+        this->get_local_coordinate_in_bulk(face_s, bulk_s);
 
-        // Get s in bulk
-        Vector<double> s_bulk(3,0.0);
-        get_local_coordinate_in_bulk(s,s_bulk);
+        double w = this->integral_pt()->weight(ipt);
 
-        // Get shape, test and derivatives from bulk
-        Shape psi_bulk(n_node), test_bulk(n_node);
-        DShape dpsidx_bulk(n_node,Dim), dtestdx_bulk(n_node,Dim);
-        const double J = bulk_element_pt()->
-          dshape_dtest(s_bulk, psi_bulk, dpsidx_bulk,
-                       test_bulk, dtestdx_bulk);
-        const double W = integral_pt()->weight(ipt) * J;
+        // Get shape functions and  for the bulk element.
+        Shape psi(bulk_nnode), test(bulk_nnode);
+        DShape dpsidx(bulk_nnode,nodal_dim), dtestdx(bulk_nnode,nodal_dim);
+        be_pt->dshape_dtest(bulk_s,psi,dpsidx,test,dtestdx);
 
-        // Get interpolated values
-        Vector<double> itp_x(Dim,0.0), itp_m(3,0.0);
-        for(unsigned l=0; l<face_n_node; l++)
+        // Get the Jacobian of transformation (from reference element) for
+        // the face element (since that is the length/area/volume we are
+        // integrating over).
+        double J = J_eulerian(face_s);
+        double W = w * J;
+
+        // Get the unit normal
+        Vector<double> normal(nodal_dim, 0.0);
+        this->outer_unit_normal(face_s,normal);
+        // std::cout << normal << std::endl;
+
+
+        // Calculate n dot gradpsi for each node's shape function
+        Vector<double> dpsidn(bulk_nnode,0.0);
+        for(unsigned l=0; l<bulk_nnode; l++)
           {
-            for(unsigned j=0; j<Dim; j++)
-              itp_x[j] += nodal_position(l,j)*psi_bulk(l);
-            for(unsigned j=0; j<3; j++)
-              itp_m[j] += nodal_value(l,m_index[j])*psi_bulk(l);
-          }
-        DenseDoubleMatrix itp_dmdx(3,3,0.0);
-        bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
-
-        // Get normal
-        Vector<double> low_dim_normal(Dim,0.0), normal(3,0.0);
-        outer_unit_normal(s,low_dim_normal);
-        for(unsigned j=0; j<Dim; j++) normal[j] = low_dim_normal[j];
-
-        // Now calculate Jacobian
-        for(unsigned l=0;l<face_n_node;l++)
-          {
-            for(unsigned l2=0;l2<n_node;l2++)
+            for(unsigned j=0; j<nodal_dim; j++)
               {
-
-                // Storage for equation numbers, note that we need to
-                // differentiate by ALL the bulk nodes.
-                Vector<int> m_eqn(3);
-                Vector<int> m_unknown(3);
-
-                // Loop over m value that we are differentiating by
-                for(unsigned j=0; j<3; j++)
-                  {
-                    m_unknown[j] = bulk_element_pt()->nodal_local_eqn(l2,m_index[j]);
-                    if(!(m_unknown[j] >= 0)) continue;
-
-                    Vector<double> jhat(3,0.0), mxj(3,0.0); jhat[j] = 1.0;
-                    VectorOps::cross(itp_m,jhat,mxj);
-
-                    double ndotgradpsil2 = 0;
-                    for(unsigned i=0; i<3; i++)
-                      ndotgradpsil2 += normal[i] * dpsidx_bulk(l2,i);
-
-                    // Loop over residual that we are differentiating
-                    for(unsigned i=0; i<3; i++)
-                      {
-                        m_eqn[i] = nodal_local_eqn(l,m_index[i]);
-                        if(!(m_eqn[i] >= 0)) continue;
-
-                        jacobian(m_eqn[i],m_unknown[j]) +=
-                          W * test_bulk(l) * exch_c * llg_precess_c
-                          * ndotgradpsil2 * mxj[i];
-                      }
-                  }
+                dpsidn[l] += normal[j] * dpsidx(l,j);
               }
           }
+
+        // std::cout << std::endl << dpsidn << std::endl << std::endl;
+
+        // Interpolate magnetisation and dmdn
+        Vector<double> itp_m(3,0.0), itp_dmdn(3,0.0);
+        for(unsigned l=0; l<bulk_nnode; l++)
+          {
+            for(unsigned j=0; j<3; j++)
+              {
+                itp_m[j] += be_pt->nodal_value(l, be_pt->m_index_micromag(j))
+                  * psi(l);
+                itp_dmdn[j] += be_pt->nodal_value(l, be_pt->m_index_micromag(j))
+                  * dpsidn[l];
+              }
+          }
+
+        Vector<double> itp_x(Nodal_dim,0.0);
+        for(unsigned l=0; l<bulk_nnode; l++)
+          {
+            for(unsigned j=0; j<Nodal_dim; j++)
+              {
+                itp_x[j] += be_pt->nodal_position(l,j)*psi(l);
+              }
+          }
+
+        // std::cout << "from jacobian dmdn at x = " << itp_x << " is " << itp_dmdn << std::endl
+        //           << "       m is " << itp_m << std::endl;
+
+        // Get constants
+        double exch_c = be_pt->exchange_coeff();
+        double llg_precess_c = be_pt->llg_precession_coeff();
+
+        const double boundary_exch_debug = bulk_element_pt()->magnetic_parameters_pt()
+          ->boundary_exchange_debug_coeff();
+
+        // Do the Jacobian calculation
+        // ============================================================
+
+        // Loop over the variable we differentiate by (nodes).
+        for(unsigned l_var=0; l_var<bulk_nnode; l_var++)
+          {
+
+            // Calculate some things...
+            Vector<double> stuff(3,0.0);
+            for(unsigned i=0; i<3; i++)
+              {
+                stuff[i] = psi(l_var) * itp_dmdn[i] - itp_m[i] * dpsidn[l_var];
+              } //??ds
+
+            // std::cout << itp_dmdn << std::endl;
+            // std::cout << itp_m << std::endl;
+
+            // Loop over the variable we differentiate by (components).
+            for(unsigned i_var=0; i_var<3; i_var++)
+              {
+                // Get the eqn number for the variable, skip if pinned.
+                const int var_en =
+                  be_pt->nodal_local_eqn(l_var,be_pt->m_index_micromag(i_var));
+                if(var_en < 0) continue;
+
+                // Unit vector in i_var direction
+                Vector<double> jhat(3,0.0); jhat[i_var] = 1.0;
+
+                Vector<double> jxstuff(3,0.0);
+                VectorOps::cross(jhat, stuff, jxstuff); //??ds
+
+                // for(unsigned i=0; i<3; i++)
+                //   {
+
+                //     std::cout << std::setw( 12 ) << jxstuff[i];
+                //   }
+                // std::cout << std::endl;
+
+                // Loop over residuals (one for each node).
+                for(unsigned l_res=0; l_res<bulk_nnode; l_res++)
+                  {
+                    // Check if this node is in the face element (otherwise there
+                    // is no residual contribution so no Jacobian contribution).
+                    if(this->get_node_number(be_pt->node_pt(l_res)) == -1) continue;
+                    //??ds possibly a cleaner way of doing this? Loop over face
+                    //nodes and convert number?
+
+                    // Loop over components of residual.
+                    for(unsigned i_res=0; i_res<3; i_res++)
+                      {
+                        // Get eqn number, skip if pinned.
+                        const int res_en
+                          = be_pt->nodal_local_eqn(l_res, be_pt->m_index_micromag(i_res));
+                        if(res_en < 0) continue;
+
+                        jacobian(res_en,var_en) += llg_precess_c * exch_c
+                          * boundary_exch_debug
+                          * jxstuff[i_res] * test(l_res) * W;
+
+                        //??ds which value of J (=W/w) should we be using?
+                        //bulk probably... but that is different to the one
+                        //used for residuals...
+
+                        // jacobian(res_en,var_en) += W
+                        //   * jxstuff[i_res]; //??ds wrong!
+                      }
+                  }
+
+              }
+          }
+
       }
+
+    //??ds
+
+    // // Loop over residuals (one for each node).
+    // for(unsigned l_res=0; l_res<bulk_nnode; l_res++)
+    //   {
+    //     //if(this->get_node_number(be_pt->node_pt(l_res)) == -1) continue;
+
+    //     for(unsigned l_var=0; l_var<bulk_nnode; l_var++)
+    //       {
+    //         std::cout <<  "residual: " << l_res << ", variable: " << l_var << std::endl;
+
+    //         for(unsigned j=0; j<3; j++)
+    //           {
+    //             for(unsigned i=0; i<3; i++)
+    //               {
+    //                 std::cout << std::setw( 12 ) << jacobian(l_res*3 + j, l_var*3 + i);
+    //               }
+    //             std::cout << std::endl;
+    //           }
+    //       }
+    //   }
+
+    //jacobian.output(std::cout);
   }
 
 } // End of oomph namespace

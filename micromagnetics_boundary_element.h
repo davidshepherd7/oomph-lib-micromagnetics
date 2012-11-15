@@ -75,18 +75,20 @@ namespace oomph
     // ELEMENT*& bulk_element_pt()
     // {return Bulk_element_pt;}
 
-    /// Pointer to higher-dimensional "bulk" element (const version)
-    ELEMENT* micromag_bulk_element_pt() const
-    {
-      ELEMENT* pt = dynamic_cast<ELEMENT*>(this->Bulk_element_pt);
-      if (pt == 0)
-        {
-          throw OomphLibError("Failed to cast pointer",
-                              "",
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-      return pt;
-    }
+
+    //??ds need this?
+    // /// Pointer to higher-dimensional "bulk" element (const version)
+    // ELEMENT* micromag_bulk_element_pt() const
+    // {
+    //   ELEMENT* pt = dynamic_cast<ELEMENT*>(this->Bulk_element_pt);
+    //   if (pt == 0)
+    //     {
+    //       throw OomphLibError("Failed to cast pointer",
+    //                           "",
+    //                           OOMPH_EXCEPTION_LOCATION);
+    //     }
+    //   return pt;
+    // }
 
     // double& local_bem_phi_value(const unsigned& l)
     // {return Local_bem_phi_value[l];}
@@ -94,14 +96,14 @@ namespace oomph
     // double local_bem_phi_value(const unsigned& l) const
     // {return Local_bem_phi_value[l];}
 
-    /// \short Specify the value of nodal zeta from the face geometry
-    /// The "global" intrinsic coordinate of the element when
-    /// viewed as part of a geometric object should be given by
-    /// the FaceElement representation, by default (needed to break
-    /// indeterminacy if bulk element is SolidElement)
-    double zeta_nodal(const unsigned &n, const unsigned &k,
-                      const unsigned &i) const
-    {return FaceElement::zeta_nodal(n,k,i);}
+    // /// \short Specify the value of nodal zeta from the face geometry
+    // /// The "global" intrinsic coordinate of the element when
+    // /// viewed as part of a geometric object should be given by
+    // /// the FaceElement representation, by default (needed to break
+    // /// indeterminacy if bulk element is SolidElement)
+    // double zeta_nodal(const unsigned &n, const unsigned &k,
+    //                   const unsigned &i) const
+    // {return FaceElement::zeta_nodal(n,k,i);}
 
     // /// Add the element's contribution to its residual vector and Jacobian - all
     // /// contributions due to BEM are done here.
@@ -136,7 +138,7 @@ namespace oomph
     }
 
     /// Function determining how to block the Jacobian. Just move boundary
-    /// values of phi into their own blocks.
+    /// values of phi into their own blocks. ??ds
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
                                       block_lookup_list)
     {
@@ -170,7 +172,7 @@ namespace oomph
 
     /// Number of dof types added by this element. We add two: one each for the
     /// boundary values of phi and phi_1.
-    unsigned ndof_types() {return 2;}
+    unsigned ndof_types() {return 0;} //??ds
 
     /// Output function - do nothing
     void output(std::ostream &outfile, const unsigned &n_plot=5) const {}
