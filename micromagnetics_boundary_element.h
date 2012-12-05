@@ -7,6 +7,7 @@
 #include "./micromagnetics_element.cc"
 #include "./variable_order_quadrature.h"
 #include <functional>
+#include <algorithm>
 
 // magpar definitions
 #include "./magpar_requirements.h"
@@ -24,7 +25,7 @@ namespace oomph
   //===========================================================================
   ///
   //===========================================================================
-  template<class ELEMENT,unsigned DIM>
+  template<class ELEMENT>
   class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
                               public virtual FaceElement
   {
@@ -133,8 +134,11 @@ namespace oomph
     /// Jacobian matrix
     void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix) const
     {
-      fill_in_be_contribution_analytic(boundary_matrix);
-      //fill_in_be_contribution_adaptive(boundary_matrix);
+#warning using numerical integration in BEM
+      fill_in_be_contribution_adaptive(boundary_matrix);
+
+      // #warning using analytic integration in BEM
+      // fill_in_be_contribution_analytic(boundary_matrix);
     }
 
     /// Function determining how to block the Jacobian. Just move boundary
@@ -211,6 +215,11 @@ namespace oomph
                      const Vector<double> &source_node_x,
                      const Vector<Vector<double> > &normal) const;
 
+
+    /// ??ds Debugging function
+    bool normals_match(const Vector<unsigned> &node_list) const;
+
+
   protected:
 
     /// \short Function to compute the shape and test functions and to return
@@ -276,8 +285,8 @@ namespace oomph
   /// at the max. or min. value of the "fixed" local coordinate
   /// in the bulk element.
   //===========================================================================
-  template<class ELEMENT,unsigned DIM>
-  MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  MicromagFaceElement<ELEMENT>::
   MicromagFaceElement(FiniteElement* const bulk_el_pt, const int &face_index)
     : FaceGeometry<ELEMENT>(), FaceElement()
   {
@@ -289,39 +298,32 @@ namespace oomph
 
   /// Get boundary element matrix contributions for this element using
   /// an adaptive scheme.
-  template<class ELEMENT,unsigned DIM>
-  void MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  void MicromagFaceElement<ELEMENT>::
   fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix)
     const
   {
     // Find out dimension of element
-    const unsigned el_dim = DIM-1, node_dim = nodal_dimension();
+    const unsigned el_dim = dim(), node_dim = nodal_dimension();
 
     //Find out how many nodes there are
     const unsigned n_element_node = nnode();
 
-    // Cast pointer to the final integration scheme
-#ifdef PARANOID
-    // Dynamic casts are slow but type checked
-    //??ds put try/catch in here and call oomphlib error if fails?
-    // don't think this error check is working...
-    // need to generalise to pick the right scheme (T or Q)
-    QVariableOrderGaussLegendre<el_dim>* v_int_pt =
-      dynamic_cast<QVariableOrderGaussLegendre<el_dim>* >(integral_pt());
-#else
-    QVariableOrderGaussLegendre<el_dim>* v_int_pt =
-      static_cast<QVariableOrderGaussLegendre<el_dim>*>(integral_pt());
-#endif
+    // Cast pointer to the a variable order integration scheme
+    BaseVariableOrderQuadrature* v_int_pt =
+      polymorphic_cast<BaseVariableOrderQuadrature* >(integral_pt());
+
 
     // Start of adaptive integration scheme
     //====================================
 
     // Setup error parameters for adaptive integration
-    double reltol = 1e-10, reldiff;
+    double reltol = 1e-8, reldiff;
 
     // Set up storage to keep track of orders used:
     //std::vector<unsigned> order_list = {2,4,8,16,32,64,128,256,};
     unsigned array_list[] = {2,4,8,16,32,64,128,256,};
+    // unsigned array_list[] = {128,256};
     std::vector<unsigned> order_list(array_list,array_list+7);
     unsigned n_order = order_list.size();
     Vector<unsigned> order_is_calculated(n_order,0);
@@ -377,8 +379,27 @@ namespace oomph
                     normal[i_order].push_back(local_normal);
 
                     // Get the Jacobian*weight
-                    jw[i_order].push_back(J_eulerian(s)
-                                          * v_int_pt->weight(kn,new_order));
+                    double J = J_eulerian(s);
+                    jw[i_order].push_back(J * v_int_pt->weight(kn,new_order));
+#ifdef PARANOID
+                    // Check that the Jacobian of the transformation isn't
+                    // inverted or singular.
+                    if(std::abs(J) < 1e-6)
+                      {
+                        std::ostringstream error_msg;
+                        error_msg << "Singular Jacobian!";
+                        throw OomphLibError(error_msg.str(),
+                                            "", OOMPH_EXCEPTION_LOCATION);
+                      }
+                    if(J < 0.0)
+                      {
+                        std::ostringstream error_msg;
+                        error_msg << "Inverted Jacobian!";
+                        throw OomphLibError(error_msg.str(),
+                                            "", OOMPH_EXCEPTION_LOCATION);
+                      }
+#endif
+
 
                     // Get shape and test(=shape) functions
                     ShapeWithDeepCopy psi_local(n_element_node);
@@ -410,81 +431,50 @@ namespace oomph
             for(unsigned kn=0;kn<n_knot;kn++)
               {
                 double dgreendn =
-                  green_normal_derivative(x_kn[i_order][kn],source_node_x,
+                  green_normal_derivative(source_node_x, x_kn[i_order][kn],
                                           normal[i_order][kn]);
 
                 // Loop over test functions, i.e. local/target nodes, adding contributions
                 for(unsigned l=0; l<n_element_node; l++)
-                  temp_bm[l] -= dgreendn *test[i_order][kn][l] *jw[i_order][kn];
+                  {
+                    temp_bm[l] += dgreendn *test[i_order][kn][l] *jw[i_order][kn];
+                  }
               }
             ////////////////////////////////////////////////////////////
 
-            // Output values at knots if we are (probably) about to fail
-            if (i_order > 4)
-              {
-                std::cout << i_order << std::endl;
-                dump_values(x_kn[i_order],source_node_x,normal[i_order]);
-              }
-
-
             // Compare with previous result
-            reldiff = max_rel_error(temp_bm,temp_bm_prev);
-
-            // if(i_order > 4)
-            //   {
-            //       std::cout << "i_order = " << i_order << std::endl;
-            //       std::cout << "i_sn = " << i_sn << std::endl;
-
-            //       std::cout << "source node location = ";
-            //       for(unsigned i=0; i<source_node_x.size(); i++)
-            //         std::cout << source_node_x[i] << ",";
-            //       std::cout << std::endl;
-
-            //       std::cout << "rough element location = ";
-            //       for(unsigned i=0; i<x_kn[0][0].size(); i++)
-            //         std::cout << x_kn[0][0][i] << ",";
-            //       std::cout << std::endl;
-
-            //       std::cout << "previous estimates: ";
-            //       for(unsigned i=0; i<temp_bm_prev.size(); i++)
-            //         std::cout << temp_bm_prev[i] << ",";
-            //       std::cout << std::endl;
-
-            //       std::cout << "current estimates : ";
-            //       for(unsigned i=0; i<temp_bm.size(); i++)
-            //         std::cout << temp_bm[i] << ",";
-            //       std::cout << std::endl;
-
-            //       std::cout << "reldiff = " << reldiff << std::endl  << std::endl << std::endl;
-            //   }
+            reldiff = max_rel_error(temp_bm, temp_bm_prev);
 
             // Go to the next order
             i_order++;
-          }
-        // Repeat while the difference is too large and the order is small enough
-        while(( (reldiff>reltol) && (i_order < n_order) )
-              // Always repeat at least once to get a real reldiff value.
-              || (i_order == 0));
 
-        // If we hit the order limit without being accurate enough give an error
-        if (i_order >= n_order)
-          {
-            throw OomphLibError("Quadrature order not high enough.",
-                                "MicromagFaceElement::fill_in_be_contribution_adaptive",
-                                OOMPH_EXCEPTION_LOCATION);
+            // If we've hit the order limit without being accurate enough give an error
+            if((i_order >= n_order) && (reldiff>reltol))
+              {
+                std::ostringstream error_msg;
+                error_msg << "Quadrature order not high enough, returning with relative error "
+                          << reldiff << " (reltol is set to " << reltol << ")." << std::endl;
+                throw OomphLibWarning(error_msg.str(),
+                                      "MicromagFaceElement::fill_in_be_contribution_adaptive",
+                                      OOMPH_EXCEPTION_LOCATION);
+              }
           }
+        // Repeat while the difference is too large (or at least run twice)
+        while( (reldiff>reltol) || (i_order == 1) );
 
-        // When done add the values in the temp vector to the real boundary matrix
+        // Add the values in the temp vector to the real boundary matrix
         for(unsigned l=0; l<n_element_node; l++)
-          boundary_matrix(l,i_sn) += temp_bm[l];
+          {
+            boundary_matrix(l,i_sn) += temp_bm[l];
+          }
 
       } // End of loop over source nodes
 
   } // End of function
 
   // Given all the values for a certain order, dump them out
-  template<class ELEMENT,unsigned DIM>
-  void MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  void MicromagFaceElement<ELEMENT>::
   dump_values(const Vector< Vector<double> > &x_kn,
               const Vector<double> &source_node_x,
               const Vector<Vector<double> > &normal) const
@@ -494,14 +484,14 @@ namespace oomph
     Vector< Vector<double> > s_kn(x_kn.size());
     for(unsigned kn=0; kn<x_kn.size(); kn++)
       {
-        gnd[kn] = green_normal_derivative(x_kn[kn],source_node_x,normal[kn]);
+        gnd[kn] = green_normal_derivative(source_node_x, x_kn[kn], normal[kn]);
       }
 
-    // Output
-    std::cout << "For source node at " << source_node_x << std::endl;
+    // // Output
+    // std::cout << "For source node at " << source_node_x << std::endl;
 
-    for(unsigned kn=0; kn<x_kn.size(); kn++)
-      std::cout << "s = " << s_kn[kn] << ", green normal deriv = " << gnd[kn] << std::endl;
+    // for(unsigned kn=0; kn<x_kn.size(); kn++)
+    //   std::cout << "s = " << s_kn[kn] << ", green normal deriv = " << gnd[kn] << std::endl;
 
   }
 
@@ -510,42 +500,23 @@ namespace oomph
   /// Get the maximum elementwise difference between two vectors relative to the
   /// appropriate element of v1.
   //============================================================
-  template<class ELEMENT,unsigned DIM>
-  double MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  double MicromagFaceElement<ELEMENT>::
   max_rel_error(const Vector<double> &v1, const Vector<double> &v2) const
   {
-#ifdef PARANOID
-    if(v1.size() != v2.size())
-      {
-        std::cerr << "Vectors are of different sizes." << std::endl;
-      }
-#endif
+    // Get the element-wise relative difference between the two vectors
+    Vector<double> diff;
+    VectorOps::relative_abs_vector_diff(v1, v2, diff);
 
-    // Get the element-wise difference between the vectors
-    Vector<double> diff(v1.size());
-    for(unsigned l=0; l<v1.size(); l++)
-      diff[l] = std::abs(v1[l] - v2[l]);
-
-    // Find the location of the maximum difference
-    Vector<double>::iterator worst_error_it
-      = std::max_element(diff.begin(),diff.end());
-
-    // If the worst absolute error is close to zero return zero. This is sort of
-    // a hack - if the actual values are tiny then this is wrong, but if the
-    // absolute values are tiny things will go wrong anyway and/or the values
-    // are unimportant.
-    if( v1[worst_error_it - diff.begin()] < 1e-9)
-      return 0.0;
-
-    // Divide the maximum difference by the corresponding element of v1.
-    return (*worst_error_it) / v1[worst_error_it - diff.begin()];
+    // Return the maximum
+    return *(std::max_element(diff.begin(),diff.end()));
   }
 
   //======================================================================
   ///
   //======================================================================
-  template<class ELEMENT,unsigned DIM>
-  double MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  double MicromagFaceElement<ELEMENT>::
   green_normal_derivative(const Vector<double>& x,
                           const Vector<double>& y,
                           const Vector<double>& n) const
@@ -555,10 +526,7 @@ namespace oomph
 
 #ifdef PARANOID
     // Check that n is a unit vector
-    double n_sq = 0.0;
-    for(unsigned i=0; i<node_dim; i++)
-      n_sq += n[i]*n[i];
-    if(std::abs(n_sq - 1.0) > 1e-10)
+    if(std::abs(two_norm(n) - 1.0) > 1e-10)
       {
         throw OomphLibError("n is not a unit vector",
                             "MicromagFaceElement::green_normal_derivative",
@@ -567,45 +535,27 @@ namespace oomph
 #endif
 
     // Calculate the distance r from x to y.
-    double r(0.0), r_sq(0.0);
-    for(unsigned i=0; i<node_dim; i++)
-      r_sq += pow((x[i] - y[i]),2);
-
-    r = sqrt(r_sq);
+    Vector<double> r; VectorOps::vector_diff(y,x,r);
+    double norm_r = VectorOps::two_norm(r);
 
     //??ds if x is a potentially singular point CHEAT
     //??ds could go horribly wrong, probably fine so long as not actually singular
     //??ds only works in 2d anyway
-    if(r < 1e-6)
-      {
-        // This is approximately true because the r and n unit vectors
-        // become perpendicular as x approaches y. Hence n.r = 0 and
-        // the whole function is zero.
-        return 0;
-      }
 
-    // Calculate the unit vector in direction r = x - y
-    Vector<double> r_unit(node_dim,0.0);
-    for(unsigned i=0; i<node_dim; i++)
-      r_unit[i] = (x[i] - y[i])/r;
+    // This is approximately true because the r and n unit vectors
+    // become perpendicular as x approaches y. Hence n.r = 0 and
+    // the whole function is zero.
+    if(norm_r < 1e-6) return 0;
+
+    // Calculate the unit vector in direction of r
+    Vector<double> unit_r = r; VectorOps::normalise(unit_r);
 
     // Calculate dot product of n with the unit vector in direction r.
-    double ndotr(0.0);
-    for(unsigned i=0; i<node_dim; i++)
-      ndotr += r_unit[i]*n[i];
+    double ndotr = VectorOps::dot(n,unit_r);
 
-    if(std::abs(ndotr) < 1e-8)
-      return 0.0;
-
-    // std::cout << "ndotr = " << ndotr << std::endl;
-    // std::cout << "r = " << r << std::endl;
-    // std::cout << "greens/ndotr = " << -1/Pi * std::pow((2*r),-1) * 2 << std::endl;
-    // std::cout << "greens = " <<  -1/Pi * ndotr * std::pow((2*r),-1*(dim()-1)) * 2 << std::endl;
-
-    // dgreendn = -n dot r * 1/pi * (1/2)^(node_dim-1) * (1/r)^node_dim
     // See write up for details of calculation.
-    double exponent = - (double(node_dim) - 1);
-    return (1.0/Pi) * ndotr * std::pow((2.0*r),exponent); //??ds had *2 here for some reason...
+    double mdm1 = - (double(node_dim) - 1);
+    return (-1.0/Pi) * ndotr * std::pow((2.0*norm_r), mdm1); //??ds had *2 here for some reason...
   }
 
   /*
@@ -750,85 +700,122 @@ namespace oomph
     return(0);
   }
 
+
+  template<class ELEMENT>
+  bool MicromagFaceElement<ELEMENT>::
+  normals_match(const Vector<unsigned> &node_list) const
+  {
+
+#warning using a long, expensive test to check if nodes need to be swapped
+    // ??Ds
+    // Get global nodal positions
+    Vector<Vector<double> > x_tn(3);
+    for(unsigned l=0, nl=node_list.size(); l<nl; l++)
+      {
+        x_tn[l].assign(3,0.0);
+        node_pt(node_list[l])->position(x_tn[l]);
+      }
+
+
+    // Only works in 3D and for triangles (3 nodes)
+    const unsigned node_dim = 3;
+    const unsigned n_node = 3;
+
+    /* First some pre-calculations to get everything ready. */
+
+    // Calculate the length of the triangle sides and the unit vectors along the
+    // triangle sides.
+    Vector<Vector<double> > side_direction(n_node);
+    for(unsigned i=0; i < n_node; i++)
+      {
+        // Get the next node around the triangle (i.e. 0 -> 1 -> 2 -> 0 etc.).
+        unsigned next_node = (i+1)%n_node;
+
+        // Get the vector along this side (xi in Lindholm1984)
+        vector_diff(x_tn[next_node],x_tn[i],side_direction[i]);
+      }
+
+    // Calculate the normal to triangle. Assuming flat element => same
+    // everywhere so we can just take the cross product of any two vectors in
+    // the plane. Use the first two edge vectors.
+    Vector<double> normal(node_dim,0.0);
+    cross(side_direction[0],side_direction[1],normal);
+
+    //??ds
+    Vector<double> oomph_normal(node_dim, 0.0);
+    Vector<double> s(dim(), 0.3);
+    outer_unit_normal(s, oomph_normal);
+
+    return VectorOps::dot(oomph_normal, normal) > 0;
+  }
+
+
   //======================================================================
   ///
   //======================================================================
-  template<class ELEMENT,unsigned DIM>
-  void MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  void MicromagFaceElement<ELEMENT>::
   fill_in_be_contribution_analytic(DenseMatrix<double> &boundary_matrix) const
   {
 #ifdef PARANOID
     // Check 3d
     if(nodal_dimension() !=3)
-      throw OomphLibError("Analytic calculation of boundary matrix only works in 3D.",
-                          "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-                          OOMPH_EXCEPTION_LOCATION);
+      {
+        std::ostringstream err;
+        err << "Analytic calculation of boundary matrix only works in 3D.";
+        throw OomphLibError(err.str(),
+                            "MicromagFaceElement::fill_in_be_contribution_analytic",
+                            OOMPH_EXCEPTION_LOCATION);
+      }
 
     if(nnode_1d() != 2)
-      throw OomphLibError("Analytic calculation of boundary matrix only works for linear (i.e. flat) elements.",
-                          "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-                          OOMPH_EXCEPTION_LOCATION);
+      {
+        std::ostringstream err;
+        err << "Analytic calculation of boundary matrix only "
+            << "works for linear (i.e. nnode_1d = 2) elements.";
+        throw OomphLibError(err.str(),
+                            "MicromagFaceElement::fill_in_be_contribution_analytic",
+                            OOMPH_EXCEPTION_LOCATION);
+      }
 
     // ??ds check no hanging nodes - not sure what to do there yet
 #endif
 
-    // List of the node numbers for the three nodes that we are taking to be the
-    // three corners of the triangle.
-    Vector<unsigned> l(3,0);
-    l[0] = 0; l[1] = 1; l[2] = 2; // Start with the first three nodes
+    // List of the node numbers for the three nodes that we are taking to
+    // be the three corners of the triangle.
+    Vector<unsigned> node_list(3,0);
+    node_list[0] = 0; node_list[1] = 1; node_list[2] = 2;
 
-    // Get global nodal positions for first three nodes
+    if(!(normals_match(node_list)))
+      {
+        std::swap(node_list[0], node_list[1]);
+        // std::cout << "swapping" << std::endl;
+      }
+
+    if(!(normals_match(node_list)))
+      {
+        std::cout <<  "!!! still not the same normal!" << std::endl;
+      }
+
+    // Get global nodal positions
     Vector<Vector<double> > x_nds(3);
-    x_nds[0].assign(3,0.0); node_pt(0)->position(x_nds[0]);
-    x_nds[1].assign(3,0.0); node_pt(1)->position(x_nds[1]);
-    x_nds[2].assign(3,0.0); node_pt(2)->position(x_nds[2]);
-
-    //    std::cout << x_nds[0] << " " << x_nds[1] << " " << x_nds[2] << " " << std::endl;
-
-    // Convert element into triangle sub-elements (do nothing if elements are
-    // already triangular).
-    if(this->nvertex_node() == 3)
+    for(unsigned l=0, nl=node_list.size(); l<nl; l++)
       {
-        // Evaluate the integral
-        analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
-
-        //         for(unsigned i=0; i<3; i++)
-        //           {
-        //             for(unsigned j=0; j<boundary_mesh_pt()->nnode(); j++)
-        //               std::cout << boundary_matrix(i,j) << " ";
-        //             std::cout << std::endl;
-        //           }
-        // std::cout << std::endl;
-        // std::cout << std::endl;
-        // std::cout << std::endl;
-
+        x_nds[l].assign(3,0.0);
+        node_pt(node_list[l])->position(x_nds[l]);
       }
-    else if(this->nvertex_node() == 4)
-      {
-        // Evaluate for the triangle formed by the first three nodes
-        analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
 
-        // Change a node to the opposite vertex to form a new triangle and
-        // repeat
-        node_pt(3)->position(x_nds[1]);
-        // std::cout << x_nds[0] << " " << x_nds[1] << " " << x_nds[2] << " " << std::endl;
-        l[1] = 3; //??ds I think this might go wrong...
-        analytic_integral_dgreendn_triangle(x_nds, l, boundary_matrix);
-      }
-    else
-      {
-        throw OomphLibError("Unhandled number of vertex nodes in boundary element. Could be the wrong dimension, hanging nodes or higher order elements. Hanging nodes could be implemented but higher order elements or lower dimension cannot (afaik).",
-                            "MicromagFaceElement<ELEMENT,DIM>::fill_in_be_contribution_analytic",
-                            OOMPH_EXCEPTION_LOCATION);
-      }
+    // Evaluate the integrals and store in boundary_matrix
+    analytic_integral_dgreendn_triangle(x_nds, node_list, boundary_matrix);
+
   }
 
   //======================================================================
   ///
   //??ds could pass in unit normal since same for all triangle sub-elements
   //======================================================================
-  template<class ELEMENT,unsigned DIM>
-  void MicromagFaceElement<ELEMENT,DIM>::
+  template<class ELEMENT>
+  void MicromagFaceElement<ELEMENT>::
   analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_tn,
                                       const Vector<unsigned>& l,
                                       DenseMatrix<double>& boundary_matrix) const
@@ -852,21 +839,21 @@ namespace oomph
         vector_diff(x_tn[next_node],x_tn[i],side_direction[i]);
 
         // Get the length of this side (s in Lindholm1984)
-        side_length[i] = mod(side_direction[i]);
+        side_length[i] = VectorOps::two_norm(side_direction[i]);
       }
 
-    // Calculate the non-unit normal to triangle. Assuming flat element => same
+    // Calculate the normal to triangle. Assuming flat element => same
     // everywhere so we can just take the cross product of any two vectors in
     // the plane. Use the first two edge vectors.
-    Vector<double> unit_normal(node_dim,0.0);
-    cross(side_direction[0],side_direction[1],unit_normal);
+    Vector<double> normal(node_dim,0.0);
+    cross(side_direction[0],side_direction[1],normal);
 
     // Calculate area of triangle using the cross product of the (unnormalised)
     // side_direction vectors, already calculated since it is the normal.
-    double area = mod(unit_normal)/2.0;
+    double area = VectorOps::two_norm(normal)/2.0;
 
-    // Normalise the unit normal and side direction vectors now that we have the
-    // area.
+    // Get unit vectors of the above now that we have the area.
+    Vector<double> unit_normal = normal;
     normalise(unit_normal);
     for(unsigned i=0; i<n_node; i++) normalise(side_direction[i]);
 
@@ -877,7 +864,9 @@ namespace oomph
         gamma[i].assign(n_node,0.0); // Initialise gamma[i]
         unsigned next_node = (i+1)%n_node; // Get next triangle vertex
         for(unsigned j=0; j<n_node; j++)
-          gamma[i][j] = dot(side_direction[next_node],side_direction[j]);
+          {
+            gamma[i][j] = dot(side_direction[next_node], side_direction[j]);
+          }
       }
 
     /* Now evaluate the integral for every boundary node and add to
@@ -894,7 +883,7 @@ namespace oomph
         for(unsigned i_nd=0; i_nd<n_node; i_nd++)
           {
             vector_diff(x_tn[i_nd],x_sn,rho[i_nd]);
-            rhol[i_nd] = mod(rho[i_nd]);
+            rhol[i_nd] = VectorOps::two_norm(rho[i_nd]);
           }
 
         // Calculate zeta: the distance between the element and the source node
@@ -905,8 +894,7 @@ namespace oomph
         // n.r = 0, nothing to calculate or add so we can move on to the next
         // source node.
         double tol = 1e-8;
-        if( (std::abs(zeta) < tol) )
-          continue;
+        if( std::abs(zeta) < tol ) continue;
 
         // Calculate "P" (see paper Lindholm1984) for each node in the triangle
         Vector<double> P(n_node,0.0);
@@ -934,8 +922,8 @@ namespace oomph
                     *(rhol[0]*rhol[2] + dot(rho[0],rho[2]) )
                     );
 
-        // Round-off errors can cause ratio to be out of range for inverse cos
-        // so we need to check it.
+        // Round-off errors can cause ratio to be out of range for acos so
+        // we need to check it.
         if(ratio > 1.0) ratio = 1.0;
         else if(ratio < -1.0) ratio = -1.0;
 
@@ -956,7 +944,6 @@ namespace oomph
         // //??temp calculate with magpar code for testing
         // Vector<double> magpar_contribution(3,0.0);
         // Bele(x_sn, x_tn[0], x_tn[1], x_tn[2], magpar_contribution);
-        // Vector<double> oomph_contribution(3,0.0);
 
         /* Now put it all together and add the contribution to the boundary
            element matrix */
@@ -965,8 +952,16 @@ namespace oomph
             unsigned next_node = (i_tn+1)%n_node;
 
             // Add contribution to the appropriate value in the boundary matrix
-            boundary_matrix(l[i_tn],i_sn) += (side_length[next_node]/(8*Pi*area))
+            double oomph_contribution = (side_length[next_node]/(8*Pi*area))
               *((etal[next_node] * omega) - (zeta * dot(gamma[i_tn],P)));
+
+            // if(std::abs(oomph_contribution - magpar_contribution[i_tn]) > 1e-7)
+            //   {
+            //     std::cout << std::abs(oomph_contribution - magpar_contribution[i_tn])
+            //               << std::endl;
+            //   }
+
+            boundary_matrix(l[i_tn],i_sn) += oomph_contribution;
 
             // Note that Lindholm does include the factor of 1/(4*pi) in his
             // operator. Also note that he does NOT include the solid angle

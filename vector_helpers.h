@@ -18,6 +18,7 @@ namespace VectorOps
       throw OomphLibError("Vectors must be the same length", "VectorOps::dot",
                           OOMPH_EXCEPTION_LOCATION);
 #endif
+
     double temp = 0;
     for(unsigned i=0; i<a.size(); i++)
       temp += a[i] * b[i];
@@ -46,7 +47,7 @@ namespace VectorOps
   }
 
 
-  inline double mod(const Vector<double>& a)
+  inline double two_norm(const Vector<double>& a)
   {
     return std::sqrt(dot(a,a));
   }
@@ -56,34 +57,77 @@ namespace VectorOps
   {
 #ifdef PARANOID
     if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length", "mod_diff",
+      throw OomphLibError("Vectors must be the same length", "vector_diff",
                           OOMPH_EXCEPTION_LOCATION);
 #endif
+
     diff.assign(a.size(),0.0);
     for(unsigned i=0; i<a.size(); i++)
-      diff[i] = a[i] - b[i];
+      {
+        diff[i] = a[i] - b[i];
+      }
   }
 
   inline void abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
                               Vector<double>& diff)
   {
+    // Get differences
     vector_diff(a,b,diff);
+
+    // Convert to absolute values
     for(unsigned i=0; i<a.size(); i++)
-      diff[i] = std::abs(diff[i]);
+      {
+        diff[i] = std::abs(diff[i]);
+      }
   }
 
-  inline double mod_diff(const Vector<double>& a, const Vector<double>& b)
+
+  inline bool numerical_zero(const double &a)
+  {
+    return std::abs(a) < 1e-10;
+  }
+
+  inline void relative_abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
+                                       Vector<double>& diff)
+  {
+#ifdef PARANOID
+    if (a.size() != b.size())
+      throw OomphLibError("Vectors must be the same length", "vector_diff",
+                          OOMPH_EXCEPTION_LOCATION);
+#endif
+
+    diff.assign(a.size(), 0.0);
+    for(unsigned i=0; i<a.size(); i++)
+      {
+        // if a[i] is not zero then just do it normally
+        if( !(numerical_zero(a[i])))
+          {
+            diff[i] = std::abs( (a[i] - b[i]) / a[i] );
+          }
+
+        // If a is zero but b isn't then relative error is large
+        else if( !(numerical_zero(b[i]))) diff[i] = 1.0;
+
+        // If both values are roughly zero then there is no error
+        else diff[i] = 0.0;
+      }
+
+  }
+
+  inline double two_norm_diff(const Vector<double>& a, const Vector<double>& b)
   {
     Vector<double> diff(a.size(),0.0);
     vector_diff(a,b,diff);
-    return mod(diff);
+    return two_norm(diff);
   }
 
   inline void normalise(Vector<double>& a)
   {
-    double length = mod(a);
+    double length = two_norm(a);
     for(unsigned i=0; i<a.size(); i++)
-      a[i] /= length;
+      {
+        a[i] /= length;
+      }
   }
 
   void rowstart2rowindex(const Vector<int>& row_start, Vector<int>& row_index)
@@ -199,6 +243,38 @@ namespace VectorOps
               }
           }
       }
+  }
+
+  double rel_dense_matrix_diff(DenseMatrix<double> &mat1, DenseMatrix<double> &mat2)
+  {
+    if((mat1.nrow() != mat2.nrow())
+       || (mat1.ncol() != mat2.ncol()))
+      {
+        std::cout <<  "Different number of rows/cols" << std::endl;
+        return 2.341e200;
+      }
+
+    double total_diff = 0.0;
+    for(unsigned i=0; i< mat1.nrow(); i++)
+      {
+        for(unsigned j=0; j< mat1.ncol(); j++)
+          {
+            double val = std::abs(mat1(i,j));
+            if(!numerical_zero(val))
+              {
+                total_diff += mat1(i,j) - mat2(i,j) / val;
+              }
+          }
+      }
+
+    return total_diff / double( mat1.nrow() * mat1.ncol());
+  }
+
+
+  bool numerically_close(const Vector<double> &x1,
+                         const Vector<double> &x2)
+  {
+    return numerical_zero(two_norm_diff(x1,x2));
   }
 
 

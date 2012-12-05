@@ -4,8 +4,6 @@
 /*
   TODO:
 
-  * Store integration scheme?
-
   * Parallelisation?
 
   * some way to check if the mesh has changed?
@@ -18,6 +16,8 @@
 
 #include "./prettyprint98.hpp"
 
+#include "./vector_helpers.h"
+
 using namespace oomph;
 
 namespace oomph
@@ -26,6 +26,9 @@ namespace oomph
   // =================================================================
   /// Simple class to store a list of angles associated with nodes of the
   /// boundary element mesh for assembly of the matrix.
+  // Assumptions: mesh pointer provided is the boundary element mesh AND
+  // the boundary element mesh numbering is being used for BEM lookup in
+  // the matrix.
   // =================================================================
   class CornerAngleList
   {
@@ -59,8 +62,6 @@ namespace oomph
       // The corner_angle is assumed to be 1/(2^dim), since it is rectangular or
       // cubeoid.
       double corner_angle = 1 / std::pow(2.0,dim);
-
-      std::cout <<  corner_angle << std::endl;
 
       // Loop over nodes
       for(unsigned nd=0; nd<nnode; nd++)
@@ -117,7 +118,7 @@ namespace oomph
       // Assume that the bem matrix is a densedoublematrix so that we can write
       // to it with operator().
 
-      //#ifdef PARANOID
+#ifdef PARANOID
       // Check that the list has been set up
       if(!(is_set_up()))
         {
@@ -137,15 +138,31 @@ namespace oomph
                               "",
                               OOMPH_EXCEPTION_LOCATION);
         }
-      //#endif
+#endif
 
       // Add the fractional angles
       for(unsigned nd=0, s=Corners.size(); nd<s; nd++)
         {
           bem_matrix(nd,nd) += Corners[nd];
         }
+    }
 
-      // std::cout << this->Corners << std::endl;
+
+    void set_up_from_input_data
+    (const Mesh* const mesh_pt,
+     const Vector<std::pair<Vector<double>, double> >* const input_data_pt)
+    {
+      // Initialise to default values
+      Corners.assign(mesh_pt->nnode(),0.5);
+
+      // Look through input list of corner locations + angles, find the
+      // corners and add to our list.
+      for(unsigned i=0; i<input_data_pt->size(); i++)
+        {
+          unsigned bem_node_number =
+            find_node_by_position_in_mesh(mesh_pt, (*input_data_pt)[i].first);
+          Corners[bem_node_number] = (*input_data_pt)[i].second;
+        }
     }
 
     /// Check if the list has been set up.
@@ -156,6 +173,31 @@ namespace oomph
     }
 
   private:
+
+    unsigned find_node_by_position_in_mesh(const Mesh* mesh_pt,
+                                           const Vector<double> &x) const
+    {
+      for(unsigned nd=0, nnode=mesh_pt->nnode(); nd<nnode; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+
+          Vector<double> node_x(x.size(), 0.0);
+          nd_pt->position(node_x);
+
+          if( VectorOps::numerically_close(x, node_x) )
+            {
+              return nd;
+            }
+        }
+
+      std::ostringstream error_msg;
+      error_msg << "Failed to find node at " << x;
+      throw OomphLibError(error_msg.str(),
+                          "",
+                          OOMPH_EXCEPTION_LOCATION);
+      return 0;
+    }
+
 
     /// Storage for the location and angle of the corners.
     Vector<double> Corners;
@@ -190,7 +232,9 @@ namespace oomph
   public:
 
     /// Default constructor
-    BoundaryElementHandler()
+    BoundaryElementHandler() : Integration_scheme_pt(0), Bem_mesh_pt(0),
+                               Input_index(0), Output_index(0),
+                               Input_corner_data_pt(0)
     {
       // Boundary meshes do not "own" their nodes. However the Mesh
       // destructor doesn't know that and so will try to delete the
@@ -199,6 +243,7 @@ namespace oomph
 
       // The proper way to do this would probably be to create a new
       // MeshDontDeleteNodes class which changes the destructor.
+
       Bem_mesh_pt = new Mesh;
     }
 
@@ -230,10 +275,22 @@ namespace oomph
       Input_lookup.build(bem_mesh_pt(), input_index());
       Output_lookup.build(bem_mesh_pt(), output_index());
 
-      corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
+      // Set up the corner angle data
+      if(input_corner_data_pt() != 0)
+        {
+          corner_list_pt()->set_up_from_input_data(bem_mesh_pt(),
+                                                   input_corner_data_pt());
+        }
+      // If none has been provided then assume rectangular mesh ??ds
+      // generalise?
+      else
+        {
+          std::cout << "No input corner list, assuming rectangular..." << std::endl;
+          corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
+        }
 
       // Construct the (dense) matrix
-      build_boundary_matrix();
+      build_bem_matrix();
     }
 
     /// Use BEM on boundary b of the mesh.
@@ -261,11 +318,11 @@ namespace oomph
     const Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
     /// Const access to the boundary matrix
-    const DenseDoubleMatrix* boundary_matrix_pt() const
-    {return &Boundary_matrix;}
+    const DenseDoubleMatrix* bem_matrix_pt() const
+    {return &Bem_matrix;}
 
     /// Non-const access to the boundary matrix
-    DenseDoubleMatrix* boundary_matrix_pt() {return &Boundary_matrix;}
+    DenseDoubleMatrix* bem_matrix_pt() {return &Bem_matrix;}
 
     /// \short Non-const access function for Input_index.
     unsigned& input_index() {return Input_index;}
@@ -312,6 +369,20 @@ namespace oomph
     /// with the boundary matrix.
     void get_bm_distribution(LinearAlgebraDistribution& dist) const;
 
+    /// \short Non-const access function for Integration_scheme.
+    Integral* &integration_scheme_pt() {return Integration_scheme_pt;}
+
+    /// \short Const access function for Integration_scheme.
+    const Integral* integration_scheme_pt() const {return Integration_scheme_pt;}
+
+
+    const Vector<std::pair<Vector<double>,double> >* const input_corner_data_pt() const
+    {return Input_corner_data_pt;}
+
+    Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt()
+    {return Input_corner_data_pt;}
+
+
   private:
 
     /// \short Lookup between output value global equation numbers and node
@@ -321,6 +392,9 @@ namespace oomph
     /// \short Lookup between input value global equation numbers and node
     /// numbers within mesh.
     NodeGlobalNumbersLookup Input_lookup;
+
+    /// \short Storage for the adaptive integration scheme to be used.
+    Integral* Integration_scheme_pt;
 
     /// The pointer to the "boundary element" mesh (as in boundary element method
     /// not finite elements on the boundary).
@@ -342,14 +416,17 @@ namespace oomph
     unsigned Output_index;
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
-    DenseDoubleMatrix Boundary_matrix;
+    DenseDoubleMatrix Bem_matrix;
+
+    /// Temporary storage for corner data (before processing).
+    Vector<std::pair<Vector<double>,double> >* Input_corner_data_pt;
 
     /// Construct BEM elements on boundaries listed in Bem_boundaries and add
     /// to the Bem_mesh.
     void build_bem_mesh();
 
     /// Construct the boundary matrix using the Bem_mesh.
-    void build_boundary_matrix();
+    void build_bem_matrix();
 
     /// \short Get the mapping between the global equation numbering and
     /// the boundary equation numbering.
@@ -371,19 +448,10 @@ namespace oomph
   //==========================================================================
   template<class BEM_ELEMENT>
   void BoundaryElementHandler<BEM_ELEMENT>::
-  build_boundary_matrix()
+  build_bem_matrix()
   {
 
 #ifdef PARANOID
-    if(0)
-      {
-        std::ostringstream error_msg;
-        error_msg << "";
-        throw OomphLibError(error_msg.str(),
-                            "",
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-
     // Check the corner list has been set up
     if((corner_list_pt() == 0) || !(corner_list_pt()->is_set_up()))
       {
@@ -394,20 +462,34 @@ namespace oomph
                             OOMPH_EXCEPTION_LOCATION);
       }
 
+    // Check that mesh pointer in elements are equal to mesh pointer here
+    for(unsigned e=0, ne=bem_mesh_pt()->nelement(); e < ne; e++)
+      {
+        BEM_ELEMENT* ele_pt = dynamic_cast<BEM_ELEMENT*>(bem_mesh_pt()->element_pt(e));
+        if (ele_pt->boundary_mesh_pt() != bem_mesh_pt())
+          {
+            std::ostringstream error_msg;
+            error_msg << "Wrong mesh pointers in elements.";
+            throw OomphLibError(error_msg.str(),
+                                "BoundaryElementHandler::build_bem_mesh",
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+      }
+
 #endif
 
     // Get the number of nodes in the boundary problem
     unsigned long n_node = bem_mesh_pt()->nnode();
 
     // Initialise and resize the boundary matrix
-    Boundary_matrix.resize(n_node,n_node);
-    Boundary_matrix.initialise(0.0);
+    Bem_matrix.resize(n_node,n_node);
+    Bem_matrix.initialise(0.0);
 
     // Loop over all elements in the BEM mesh
     unsigned long n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned long e=0;e<n_bem_element;e++)
       {
-        // Get the pointer to the element (and cast to FiniteElement)
+        // Get the pointer to the element and cast it.
         BEM_ELEMENT* elem_pt = dynamic_cast<BEM_ELEMENT* >
           (bem_mesh_pt()->element_pt(e));
 
@@ -430,16 +512,20 @@ namespace oomph
             // Loop over all nodes in the mesh and add contributions from this element
             for(unsigned long s_nd=0; s_nd<n_node; s_nd++)
               {
-                Boundary_matrix(l_number,s_nd) -= element_boundary_matrix(l,s_nd);
-                // I think the sign here is negative because the lindholm formula
-                // is for +ve but our final equation has negative kernel...
+                unsigned global_s_number
+                  = bem_mesh_pt()->node_pt(s_nd)->eqn_number(input_index());
+                unsigned s_number = output_lookup_pt()->global_to_node(global_s_number);
+
+                // Rows are indexed by output (source node) number, columns
+                // are indexed by input (l) number.
+                Bem_matrix(s_number, l_number) += element_boundary_matrix(l,s_nd);
               }
           }
       }
 
-    // Lindholm formula does not contain the solid angle contribution so add
-    // it.
-    corner_list_pt()->add_corner_contributions(Boundary_matrix);
+    // Lindholm formula/adaptive integral does not contain the solid angle
+    // contribution so add it.
+    corner_list_pt()->add_corner_contributions(Bem_matrix);
 
   }
 
@@ -492,9 +578,8 @@ namespace oomph
             // Add the new BEM element to the BEM mesh
             Bem_mesh_pt->add_element_pt(bem_element_pt);
 
-            //??ds
-            // // Set integration pointer
-            // bem_element_pt->set_integration_scheme(bem_integration_scheme_pt());
+            // Set integration pointer
+            bem_element_pt->set_integration_scheme(integration_scheme_pt());
 
             // Set the mesh pointer
             bem_element_pt->set_boundary_mesh_pt(bem_mesh_pt());
@@ -522,13 +607,13 @@ namespace oomph
     // Try to cast to a distributed object.
     const DistributableLinearAlgebraObject* dist_bm_pt =
       dynamic_cast<const DistributableLinearAlgebraObject* >
-      (boundary_matrix_pt());
+      (bem_matrix_pt());
 
     // If it's not distributable (i.e. if the cast failed) then make a dummy
     // one, otherwise copy the distribution.
     if(dist_bm_pt == 0)
       {
-        dist.build(0, boundary_matrix_pt()->nrow(), false);
+        dist.build(0, bem_matrix_pt()->nrow(), false);
       }
     else
       {
@@ -556,11 +641,15 @@ namespace oomph
     // Get input values
     for(unsigned nd=0, nnode=bem_mesh_pt()->nnode(); nd<nnode; nd++)
       {
-        input_values[nd] = bem_mesh_pt()->node_pt(nd)->value(input_index());
+        unsigned geqn = bem_mesh_pt()->node_pt(nd)->eqn_number(0);
+        unsigned in_eqn = input_lookup_pt()->global_to_node(geqn);
+
+        input_values[in_eqn] = bem_mesh_pt()->node_pt(nd)->value(input_index());
       }
 
     // Matrix multiply to get output values
-    boundary_matrix_pt()->multiply(input_values, bem_output_values);
+    bem_matrix_pt()->multiply(input_values, bem_output_values);
+
   }
 
   // =================================================================
@@ -576,7 +665,7 @@ namespace oomph
     get_bem_values(full_vector);
 
     // Need this later
-    OomphCommunicator comm_pt = full_vector.distribution_pt()
+    OomphCommunicator* comm_pt = full_vector.distribution_pt()
       ->communicator_pt();
 
     // Now split it up into vectors on each boundary
@@ -590,18 +679,17 @@ namespace oomph
         // Make sure the vector is the right size
         LinearAlgebraDistribution dist(comm_pt, nnode);
         bem_output_values[i]->build(&dist, 0.0);
+        //??ds risky, segfaults? -- dist destroyed before bem_output_values.
 
         // Fill it in
         for(unsigned nd=0; nd<nnode; nd++)
           {
             unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
-            unsigned l_eqn = output_lookup_pt()->global_to_node(g_eqn);
+            unsigned out_eqn = output_lookup_pt()->global_to_node(g_eqn);
 
-            (*bem_output_values[i])[nd] = full_vector[l_eqn];
+            (*bem_output_values[i])[nd] = full_vector[out_eqn];
           }
       }
-
-    // full_vector.output(std::cout);
 
   }
 

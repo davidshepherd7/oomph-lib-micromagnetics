@@ -139,7 +139,7 @@ namespace oomph
         for(unsigned j=0; j<3; j++) {h_magnetostatic[j] = -1 * magstatic_c * itp_dphidx[j];}
         VectorOps::cross(itp_m,h_magnetostatic,mxhms);
 
-        if(VectorOps::mod(h_magnetostatic) != 0.0)
+        if(VectorOps::two_norm(h_magnetostatic) != 0.0)
           {
             std::cout <<  "non-zero hms from built in phis!" << std::endl;
           }

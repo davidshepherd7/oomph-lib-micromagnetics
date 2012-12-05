@@ -345,28 +345,24 @@ namespace oomph
     inline void interpolated_m_micromag(const Vector<double> &s,
                                         Vector<double>& itp_m) const
     {
-      //Find number of nodes
+      // Find number of nodes
       const unsigned n_node = nnode();
 
-      //Local shape function
+      // Get local shape function
       Shape psi(n_node);
-
-      //Find values of shape function
       shape(s,psi);
 
-      // Initialise m
+      // Interpolate m
       itp_m.assign(3,0.0);
-
-      // Loop over dimensions of M
       for(unsigned k=0; k<3; k++)
         {
-          //Loop over the local nodes and sum
+          // For each component sum over the contributions due to each node
+          // in this element.
           for(unsigned l=0;l<n_node;l++)
             {
-              itp_m[k] += this->nodal_value(l,m_index_micromag(k))*psi[l];
+              itp_m[k] += this->nodal_value(l, m_index_micromag(k))*psi[l];
             }
         }
-
     }
 
     /// Return FE representation of M at local coordinate s and current time.
@@ -468,7 +464,7 @@ namespace oomph
     // }
 
     /// Get divergence of magnetisation (for poisson source).
-    double normalised_divergence_m(const unsigned &ipt)
+    double divergence_m(const unsigned &ipt)
     {
       // Get values
       const unsigned n_node = nnode();
@@ -477,7 +473,7 @@ namespace oomph
 
       // Sum up the derivatives
       double div_m = 0.0;
-      for(unsigned j=0; j<3; j++)
+      for(unsigned j=0; j<DIM; j++)
         {
           for(unsigned l=0; l<n_node; l++)
             {
@@ -599,7 +595,7 @@ namespace oomph
 
     //   // Magnetostatic field is -1* dphi/dx, multiply by a coeff too alow easy
     //   // switching on and off for debugging.
-    //   double magnetostatic_coeff = magnetostatic_coeff(time,x);
+    //   double magnetosttaic_coeff = magnetostatic_coeff(time,x);
     //   Vector<double> h_ms(3,0.0);
     //   for(unsigned i=0; i<h_ms.size(); i++)
     //     h_ms[i] *= -1 * magnetostatic_coeff;
@@ -794,6 +790,11 @@ namespace oomph
     /// Destructor
     ~MagnetostaticFieldEquations() {}
 
+    bool self_test() const
+    {
+      return FiniteElement::self_test();
+    }
+
     /// Get the magnetostatic field at local coordinate point s in the element.
     void magnetostatic_field(const Vector<double> &s, Vector<double> &hms) const
     {
@@ -805,7 +806,7 @@ namespace oomph
 
       // Interpolate
       hms.assign(3,0.0);
-      for(unsigned j=0; j<3; j++)
+      for(unsigned j=0; j<DIM; j++)
         {
           for(unsigned l=0; l<n_node; l++)
             {
@@ -823,51 +824,8 @@ namespace oomph
                             const Vector<double>& x,
                             double& source) const
     {
-      // Lots of checks because this is stupid really...
-#ifdef PARANOID
-      if(Micromag_element_pt == 0)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Magnetics element pointer not set.";
-          throw OomphLibError(error_msg.str(),
-                              "",
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-
-      if(this->nnode() != Micromag_element_pt->nnode())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              "",
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      if(this->dim() != Micromag_element_pt->dim())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              "",
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      if(this->integral_pt() != Micromag_element_pt->integral_pt())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must have the same integration scheme for this to"
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              "",
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-
       // Get contribution from divergence of M at this integration point.
-      source = Micromag_element_pt->normalised_divergence_m(ipt);
+      source = Micromag_element_pt->divergence_m(ipt);
 
       // Get contribution from any real source functions.
       double poisson_source;
@@ -879,10 +837,75 @@ namespace oomph
     // ============================================================
 
     /// \short Non-const access function for Micromag_element_pt.
-    MicromagEquations<DIM>*& micromag_element_pt() {return Micromag_element_pt;}
+    MicromagEquations<DIM>* micromag_element_pt() const
+    {return micromag_element_pt();}
+
+    void set_micromag_element_pt(MicromagEquations<DIM>* ele_pt)
+    {Micromag_element_pt = ele_pt;}
 
     /// \short Const access function for Micromag_element_pt.
-    MicromagEquations<DIM>* micromag_element_pt() const {return Micromag_element_pt;}
+    MicromagEquations<DIM>*& micromag_element_pt()
+    {
+      // Lots of checks because this is stupid really...
+#ifdef PARANOID
+      if(Micromag_element_pt == 0)
+        {
+          std::ostringstream error_msg;
+          error_msg << "Magnetics element pointer not set.";
+          throw OomphLibError(error_msg.str(),
+                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if(this->nnode() != Micromag_element_pt->nnode())
+        {
+          std::ostringstream error_msg;
+          error_msg << "Elements must be the same geometry for this to "
+                    << "work... sorry for the hackyness. Maybe you can fix it.";
+          throw OomphLibError(error_msg.str(),
+                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if(this->dim() != Micromag_element_pt->dim())
+        {
+          std::ostringstream error_msg;
+          error_msg << "Elements must be the same geometry for this to "
+                    << "work... sorry for the hackyness. Maybe you can fix it.";
+          throw OomphLibError(error_msg.str(),
+                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if(this->integral_pt() != Micromag_element_pt->integral_pt())
+        {
+          std::ostringstream error_msg;
+          error_msg << "Elements must have the same integration scheme for this to"
+                    << "work... sorry for the hackyness. Maybe you can fix it.";
+          throw OomphLibError(error_msg.str(),
+                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // Check node positions
+      for(unsigned nd=0, n_nd=this->nnode(); nd<n_nd; nd++)
+        {
+          for(unsigned j=0; j<this->node_pt(nd)->ndim(); j++)
+            {
+              if(this->node_pt(nd)->position(j)
+                 != Micromag_element_pt->node_pt(nd)->position(j))
+                {
+                  std::ostringstream error_msg;
+                  error_msg << "Mismatch in positions.";
+                  throw OomphLibError(error_msg.str(),
+                                      "",
+                                      OOMPH_EXCEPTION_LOCATION);
+                }
+            }
+        }
+#endif
+      return Micromag_element_pt;
+    }
 
   private:
 

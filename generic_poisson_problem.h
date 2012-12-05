@@ -107,8 +107,10 @@ namespace oomph
     }
 
     /// (Re-)apply the Dirichlet conditions on the boundaries which have
-    /// been set as Dirichlet. Note: boundary assigned by vector then
-    /// highest boundary number takes priority if values differ at corners.
+    /// been set as Dirichlet. Note: if values differ where two boundaries
+    /// overlap then priority is 1) vector conditions > function
+    /// conditions, 2) higher boundary number conditions > lower boundary
+    /// number conditions. Might want to change this...
     void update_dirichlet_conditions()
     {
       // Conditions assigned by function pointer
@@ -135,8 +137,8 @@ namespace oomph
       // Conditions assigned by vector
       for(unsigned i=0; i<Dirichlet_vector_conditions.size(); i++)
         {
-          unsigned b = Dirichlet_vector_conditions[i].first;
-          const DoubleVector* vec_pt = Dirichlet_vector_conditions[i].second;
+          const unsigned b = Dirichlet_vector_conditions[i].first;
+          const DoubleVector* const vec_pt = Dirichlet_vector_conditions[i].second;
 
           for(unsigned nd=0; nd< bulk_mesh_pt()->nboundary_node(b); nd++)
             {
@@ -376,7 +378,7 @@ namespace oomph
     for(unsigned e=0;e<n_element;e++)
       {
         // Get pointer to the bulk element that is adjacent to boundary b
-        ELEMENT* bulk_elem_pt = dynamic_cast<ELEMENT*>
+        ELEMENT* bulk_elem_pt = polymorphic_cast<ELEMENT*>
           (bulk_mesh_pt()->boundary_element_pt(b,e));
 
         // What is the index of the face of the bulk element e on bondary b

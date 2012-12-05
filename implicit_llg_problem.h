@@ -105,12 +105,13 @@ namespace oomph
       // residual addition of m x dm/dn along the boundary (due to need to
       // reduce the order of the laplacian on m in exchange field).
 
-      // Create mesh of MicromagFluxElement<ELEMENT> to add boundary contribution
-      surface_exchange_mesh_pt() = new Mesh;
-      for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
-        {
-          create_surface_exchange_elements(b);
-        }
+#warning no surface exchange bcs
+      // // Create mesh of MicromagFluxElement<ELEMENT> to add boundary contribution
+      // surface_exchange_mesh_pt() = new Mesh;
+      // for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
+      //   {
+      //     create_surface_exchange_elements(b);
+      //   }
 
       // Finish off elements
       for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
@@ -140,7 +141,7 @@ namespace oomph
 
       // Build the global mesh
       add_sub_mesh(bulk_mesh_pt());
-      add_sub_mesh(surface_exchange_mesh_pt());
+      //add_sub_mesh(surface_exchange_mesh_pt());
       build_global_mesh();
 
       // Do equation numbering
