@@ -40,7 +40,8 @@ namespace oomph
         Exchange_debug_coeff(1.0),
         Boundary_exchange_debug_coeff(1.0),
         Ca_debug_coeff(1.0),
-        Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
+        Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY),
+        Surface_anisotropy_enabled(0)
     {}
 
     // Standard copy/assign constructors and deconstructor are ok: no pointers and
@@ -56,6 +57,7 @@ namespace oomph
     double boundary_exchange_debug_coeff() const {return Boundary_exchange_debug_coeff;}
     double ca_debug_coeff() const {return Ca_debug_coeff;}
     double distance_units() const {return Distance_units;}
+    bool surface_anisotropy_enabled() const {return Surface_anisotropy_enabled;}
 
     // Coefficients of each of the fields (before normalisation).
     double hk() const
@@ -276,10 +278,9 @@ namespace oomph
     double Boundary_exchange_debug_coeff;
     double Ca_debug_coeff;
 
-
-
-
     mag_parameters::enum_crystalline_anisotropy_type Crystalline_ansiotropy_type;
+
+    bool Surface_anisotropy_enabled;
   };
 
 }

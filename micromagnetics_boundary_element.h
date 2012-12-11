@@ -311,7 +311,7 @@ namespace oomph
 
     // Cast pointer to the a variable order integration scheme
     BaseVariableOrderQuadrature* v_int_pt =
-      polymorphic_cast<BaseVariableOrderQuadrature* >(integral_pt());
+      checked_dynamic_cast<BaseVariableOrderQuadrature* >(integral_pt());
 
 
     // Start of adaptive integration scheme

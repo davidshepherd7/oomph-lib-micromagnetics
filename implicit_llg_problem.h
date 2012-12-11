@@ -105,8 +105,8 @@ namespace oomph
       // residual addition of m x dm/dn along the boundary (due to need to
       // reduce the order of the laplacian on m in exchange field).
 
-#warning no surface exchange bcs
-      // // Create mesh of MicromagFluxElement<ELEMENT> to add boundary contribution
+      // // Create mesh of MicromagFluxElement<ELEMENT> to add boundary
+      // // contribution (if any).
       // surface_exchange_mesh_pt() = new Mesh;
       // for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
       //   {
@@ -141,7 +141,7 @@ namespace oomph
 
       // Build the global mesh
       add_sub_mesh(bulk_mesh_pt());
-      //add_sub_mesh(surface_exchange_mesh_pt());
+      // add_sub_mesh(surface_exchange_mesh_pt());
       build_global_mesh();
 
       // Do equation numbering
@@ -290,6 +290,91 @@ namespace oomph
       diff /= (3 * bulk_mesh_pt()->nelement());
 
       return diff;
+    }
+
+    double mean_norm_m_error() const
+    {
+      double temp_error = 0;
+
+      unsigned nnode = bulk_mesh_pt()->nnode();
+      for(unsigned nd=0; nd<nnode; nd++)
+        {
+          Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+          Vector<double> m_values(3,0.0);
+          for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
+
+          double m_2norm = VectorOps::two_norm(m_values);
+          temp_error += m_2norm - 1;
+        }
+
+      return temp_error/double(nnode);
+    }
+
+    void norm_m_error(double &m_error_avg, double &m_error_stddev) const
+    {
+      // Get mean from other function
+      m_error_avg = mean_norm_m_error();
+
+      // Calculate std deviation
+      double temp_stddev = 0.0;
+      unsigned nnode=bulk_mesh_pt()->nnode();
+      for(unsigned nd=0; nd<nnode; nd++)
+        {
+          Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+          Vector<double> m_values(3,0.0);
+          for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
+
+          double m_2norm = VectorOps::two_norm(m_values);
+          temp_stddev += std::pow( m_2norm - 1 - m_error_avg ,2);
+        }
+
+      temp_stddev /= nnode;
+      m_error_stddev = std::sqrt(temp_stddev);
+    }
+
+
+    /// Elementwise calculation of m . dm/dn on the boundaries. This gives a good measure of
+    /// orthogonality of m and dmdn.
+    double mean_orthogonality_m_error() const
+    {
+      unsigned nele = surface_exchange_mesh_pt()->nelement();
+      double temp_sum = 0.0;
+
+      // Calculate m . dm/dn for each element
+      for(unsigned e=0; e < nele; e++)
+        {
+          MicromagFluxElement<ELEMENT>* ele_pt
+            = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
+            (surface_exchange_mesh_pt()->element_pt(e));
+          Vector<double> s(ele_pt->dim(), 0.5); // middle of element
+          temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
+        }
+
+      // Take average
+      return temp_sum / double(nele);
+    }
+
+    void orthogonality_m_error(double &orthogonality_error_avg,
+                               double &orthogonality_error_stddev) const
+    {
+      orthogonality_error_avg = mean_orthogonality_m_error();
+
+      unsigned nele = surface_exchange_mesh_pt()->nelement();
+      double temp_sum = 0.0;
+
+      // Calculate m . dm/dn for each element
+      for(unsigned e=0; e < nele; e++)
+        {
+          MicromagFluxElement<ELEMENT>* ele_pt
+            = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
+            (surface_exchange_mesh_pt()->element_pt(e));
+          Vector<double> s(ele_pt->dim(), 0.5); // middle of element
+          temp_sum += pow( ele_pt->interpolated_mdotdmdn_micromag(s)
+                           - orthogonality_error_avg, 2);
+        }
+
+      // Take stddev
+      orthogonality_error_stddev = std::sqrt(temp_sum / double(nele));
     }
 
     // Access functions

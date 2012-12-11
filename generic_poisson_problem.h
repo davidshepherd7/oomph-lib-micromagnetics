@@ -378,7 +378,7 @@ namespace oomph
     for(unsigned e=0;e<n_element;e++)
       {
         // Get pointer to the bulk element that is adjacent to boundary b
-        ELEMENT* bulk_elem_pt = polymorphic_cast<ELEMENT*>
+        ELEMENT* bulk_elem_pt = checked_dynamic_cast<ELEMENT*>
           (bulk_mesh_pt()->boundary_element_pt(b,e));
 
         // What is the index of the face of the bulk element e on bondary b

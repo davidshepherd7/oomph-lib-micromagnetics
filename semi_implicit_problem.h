@@ -483,6 +483,24 @@ namespace oomph
     field_avgs.close();
 
 
+    // Get average (and standard deviation) of |m| - 1 and |m|.dm/dn
+    double m_error_avg(0), m_error_stddev(0), orthogonality_error_avg(0),
+      orthogonality_error_stddev(0);
+    llg_sub_problem_pt()->norm_m_error(m_error_avg, m_error_stddev);
+    llg_sub_problem_pt()->orthogonality_m_error
+      (orthogonality_error_avg, orthogonality_error_stddev);
+
+    // Write them to file
+    std::ofstream errors((doc_info.directory()+"/errors").c_str(),std::ios::app);
+    errors << llg_sub_problem_pt()->time()
+           << " " << m_error_avg
+           << " " << m_error_stddev
+           << " " << orthogonality_error_avg
+           << " " << orthogonality_error_stddev
+           << std::endl;
+    errors.close();
+
+
     // Output convergence data if we have it
     if(llg_sub_problem_pt()->record_convergence_data())
       {
@@ -501,7 +519,7 @@ namespace oomph
   void SemiImplicitHybridMicromagneticsProblem<FIELD_ELEMENT, MM_ELEMENT>::
   average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const
   {
-    const unsigned nodal_dim = polymorphic_cast<FIELD_ELEMENT*>
+    const unsigned nodal_dim = checked_dynamic_cast<FIELD_ELEMENT*>
       (Phi_problem.mesh_pt()->element_pt(0))->node_pt(0)->ndim();
 
     // Pick a point in the middle of the element
@@ -511,7 +529,7 @@ namespace oomph
     // Loop over all elements calculating the value in the middle of the element
     for(unsigned e=0, ne=Phi_problem.mesh_pt()->nelement(); e < ne; e++)
       {
-        FIELD_ELEMENT* ele_pt = polymorphic_cast<FIELD_ELEMENT*>
+        FIELD_ELEMENT* ele_pt = checked_dynamic_cast<FIELD_ELEMENT*>
           (Phi_problem.mesh_pt()->element_pt(e));
 
         // Get the shape function and eulerian coordinate derivative at

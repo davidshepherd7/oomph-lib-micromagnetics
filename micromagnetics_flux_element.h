@@ -88,6 +88,7 @@ namespace oomph
       fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
     }
 
+
     void fill_in_bulk_contribution_to_face_jacobian
     (DenseMatrix<double>& jacobian) const;
 
@@ -103,6 +104,11 @@ namespace oomph
     /// Access function for the pointer the to bulk element
     ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
 
+    unsigned m_index_micromag(const unsigned &i) const
+    {
+      return bulk_element_pt()->m_index_micromag(i);
+    }
+
     unsigned ndof_types()
     {return 0;}
 
@@ -110,6 +116,44 @@ namespace oomph
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
                                       block_lookup_list)
     {}
+
+    /// Return  m . dm/dn at s.
+    double interpolated_mdotdmdn_micromag(const Vector<double> &s) const
+    {
+      // dm_i/dn = dm_i/dx . normal
+
+      // Get shape functions
+      Shape psi(nnode()); DShape dpsidx(nnode(),dim());
+      dshape_local(s,psi,dpsidx);
+
+      // Get unit normal
+      Vector<double> normal(nodal_dimension(),0.0);
+      outer_unit_normal(s, normal);
+
+      // For each m direction
+      Vector<double> dmdn(3,0.0), m(3,0.0);
+      for(unsigned i_m=0; i_m<3; i_m++)
+        {
+
+          // Interpolate dm_idx and m_i
+          Vector<double> dmidx(nodal_dimension(),0.0);
+          for(unsigned l=0, nl=nnode(); l<nl; l++)
+            {
+              for(unsigned j=0; j<dim(); j++)
+                {
+                  dmidx[j] += nodal_value(l,m_index_micromag(i_m))*dpsidx(l,j);
+                }
+
+              m[i_m] += nodal_value(l,m_index_micromag(i_m)) * psi(l);
+            }
+
+          // Take dot product
+          dmdn[i_m] = VectorOps::dot(dmidx, normal);
+        }
+
+      // Get m . dm/dn (because it's easy now and we probably need it)
+      return VectorOps::dot(m,dmdn);
+    }
 
   protected:
 
@@ -187,6 +231,18 @@ namespace oomph
    DenseMatrix<double> &jacobian,
    const unsigned& flag)
   {
+    // If no surface anisotropy then nothing to do here
+    if(!bulk_element_pt()->magnetic_parameters_pt()->surface_anisotropy_enabled())
+      {
+        return;
+      }
+
+    std::ostringstream error_msg;
+    error_msg << "Surface anisotropy is not implemented";
+    throw OomphLibError(error_msg.str(),
+                        "fill_in_contribution_to_jacobian",
+                        OOMPH_EXCEPTION_LOCATION);
+
     const unsigned n_node = nnode();
     const unsigned n_intpt = integral_pt()->nweight();
 
@@ -322,6 +378,19 @@ namespace oomph
   void MicromagFluxElement<ELEMENT>::
   fill_in_bulk_contribution_to_face_jacobian(DenseMatrix<double>& jacobian) const
   {
+
+    // If no surface anisotropy then nothing to do here
+    if(!bulk_element_pt()->magnetic_parameters_pt()->surface_anisotropy_enabled())
+      {
+        return;
+      }
+
+    std::ostringstream error_msg;
+    error_msg << "Surface anisotropy is not implemented";
+    throw OomphLibError(error_msg.str(),
+                        "fill_in_contribution_to_jacobian",
+                        OOMPH_EXCEPTION_LOCATION);
+
 
     // Get some values
     const ELEMENT* be_pt = bulk_element_pt();

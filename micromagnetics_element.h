@@ -77,45 +77,28 @@ namespace oomph
 
     {
       // Clear list (just in case)
-      // block_lookup_list.clear();
+      block_lookup_list.clear();
 
       // Loop over all nodes then all unpinned values (dofs) at each node. For
       // each of these we create a pair giving the global equation number and
       // the corresponding dof type (number).
       for(unsigned nd=0; nd<nnode(); nd++)
         {
-
-          //??ds  not sure this is ok
-          // The total number of indexes used in this element
-          unsigned n_index = node_pt(nd)->nvalue();
-
-          // Construct lists of equation numbers and dof numbers
-          Vector<unsigned> global_equation_number(n_index), dof_type(n_index);
-          for(unsigned index=0; index<n_index; index++)
+          // Put it into the block lookup list
+          for(unsigned index = 0, nindex=node_pt(nd)->nvalue(); index<nindex; index++)
             {
               int local_eqn_number = this->nodal_local_eqn(nd,index);
               if(local_eqn_number >= 0)
                 {
-                  global_equation_number[index] = eqn_number(local_eqn_number);
-                  dof_type[index] = index;
+                  int global_eqn_number = eqn_number(local_eqn_number);
+                  std::pair<unsigned long, unsigned> lookup;
+                  lookup.first = global_eqn_number;
+                  lookup.second = index;
+                  block_lookup_list.push_front(lookup);
                 }
             }
-
-          // Set this using the BEM elements instead
-          // // If this is a boundary node then we want to give phi a different dof
-          // // number (since it is determined by BEM).
-          // if(node_pt(nd)->is_on_boundary())
-          //   dof_type[phi_index_micromag()] = n_index;
-
-          // Put it into the block lookup list
-          for(unsigned index = 0; index<n_index; index++)
-            {
-              std::pair<unsigned long, unsigned> lookup;
-              lookup.first = global_equation_number[index];
-              lookup.second = dof_type[index];
-              block_lookup_list.push_front(lookup);
-            }
         }
+
     }
 
     void add_face_element_pt(FiniteElement* const face_element_pt)
@@ -440,7 +423,6 @@ namespace oomph
         }
 
     }
-
 
     // /// Get total field at position x. There is a more efficient private version
     // /// of this function for use in residual calculations etc. This version does
