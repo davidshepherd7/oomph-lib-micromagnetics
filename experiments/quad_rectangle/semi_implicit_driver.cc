@@ -36,7 +36,7 @@ namespace Inputs
     m[0] = 1.0;
     m[1] = 0.0;
     m[2] = 1.0;
-
+    
     // #warning wrong initial m
     // m[0] = sin(x[0]*2*Pi);
     // m[1] = cos(x[1]*2*Pi);
@@ -75,13 +75,11 @@ int main(int argc, char** argv)
 
   // Default values
   double lx = 30, ly = lx, lz = 100;
-  unsigned nx = 4, refines = 1;
+  unsigned nx = 7;
   std::string outdir("results");
 
   // Get command line args
   CommandLineArgs::setup(argc,argv);
-  CommandLineArgs::specify_command_line_flag("-unstructured_mesh", &refines);
-  CommandLineArgs::specify_command_line_flag("-structured_mesh", &nx);
   CommandLineArgs::specify_command_line_flag("-nx", &nx);
   CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
   CommandLineArgs::parse_and_assign();
@@ -94,48 +92,25 @@ int main(int argc, char** argv)
 
   Mesh *phi1_mesh_pt(0), *phi_mesh_pt(0), *llg_mesh_pt(0);
 
-  if(CommandLineArgs::command_line_flag_has_been_set("-unstructured_mesh"))
-    {
-      // Unstructured meshes
-      phi1_mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<dim,nnode1d> >
-        ("cubeoid."+to_string(refines)+".node",
-         "cubeoid."+to_string(refines)+".ele",
-         "cubeoid."+to_string(refines)+".face");
-      phi_mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<dim,nnode1d> >
-        ("cubeoid."+to_string(refines)+".node",
-         "cubeoid."+to_string(refines)+".ele",
-         "cubeoid."+to_string(refines)+".face");
-      llg_mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<dim,nnode1d> >
-        ("cubeoid."+to_string(refines)+".node",
-         "cubeoid."+to_string(refines)+".ele",
-         "cubeoid."+to_string(refines)+".face", &ts);
-
-      // For some reason we have to do this manually...
-      llg_mesh_pt->setup_boundary_element_info();
-      phi_mesh_pt->setup_boundary_element_info();
-      phi1_mesh_pt->setup_boundary_element_info();
-    }
-  else // default to structured tets
-    {
-      // Structured meshes
-      phi1_mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<dim,nnode1d> >
-        (nx,ny,nz, lx,ly,lz);
-      phi_mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<dim,nnode1d> >
-        (nx,ny,nz, lx,ly,lz);
-      llg_mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<dim,nnode1d> >
-        (nx,ny,nz, lx,ly,lz, &ts);
-
-      // For some reason we have to do this manually...
-      llg_mesh_pt->setup_boundary_element_info();
-      phi_mesh_pt->setup_boundary_element_info();
-      phi1_mesh_pt->setup_boundary_element_info();
-    }
+  // Structured meshes
+  phi1_mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<dim,nnode1d> >
+    (nx,ny,nz, lx,ly,lz);
+  phi_mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<dim,nnode1d> >
+    (nx,ny,nz, lx,ly,lz);
+  llg_mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<dim,nnode1d> >
+    (nx,ny,nz, lx,ly,lz, &ts);
+      
+  // For some reason we have to do this manually...
+  llg_mesh_pt->setup_boundary_element_info();
+  phi_mesh_pt->setup_boundary_element_info();
+  phi1_mesh_pt->setup_boundary_element_info();
+    
 
   // Build problem
   SemiImplicitHybridMicromagneticsProblem
-    <TMagnetostaticFieldElement<dim,nnode1d>,
-    TSemiImplicitMicromagElement<dim,nnode1d> > problem
-    (phi1_mesh_pt, phi_mesh_pt, llg_mesh_pt, &Inputs::no_applied_field);
+    <QMagnetostaticFieldElement<dim,nnode1d>,
+     QSemiImplicitMicromagElement<dim,nnode1d> > problem
+  (phi1_mesh_pt, phi_mesh_pt, llg_mesh_pt, &Inputs::no_applied_field);
 
 
   // Set up the magnetic parameters
