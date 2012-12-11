@@ -106,6 +106,13 @@ int main(int argc, char *argv[])
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
+  // Get command line args
+  CommandLineArgs::setup(argc,argv);
+  CommandLineArgs::specify_command_line_flag("-do2d");
+  CommandLineArgs::specify_command_line_flag("-do3d");
+  CommandLineArgs::parse_and_assign();
+  CommandLineArgs::output();
+
   // General parameters
   // ============================================================
 
@@ -117,14 +124,18 @@ int main(int argc, char *argv[])
   as.push_back(MathematicalConstants::Pi);
   as.push_back(std::sqrt(2));
 
+  // Make another, nicer list of a values for 3d because we can't refine well in 3d.
+  Vector<double> threedas;
+  threedas.push_back(0.1);
+
   // Try with a few intial conditions
   Vector<Inputs::InitialMFctPt> initial_conds;
-  // initial_conds.push_back(&Inputs::steady_state_initial_m_y_variations);
-  // initial_conds.push_back(&Inputs::steady_state_initial_m_x_variations);
+  initial_conds.push_back(&Inputs::steady_state_initial_m_y_variations);
+  initial_conds.push_back(&Inputs::steady_state_initial_m_x_variations);
 
-  double eps = 1e-10; // Need a really small eps to stay in steady state,
-                      // possibly because we need to use mid-point
-                      // really...
+  double eps = 1e-6; // Need a really small eps to stay in steady state,
+  // possibly because we need to use mid-point
+  // really...
   double tmax = 10;
   double  dt = 0.03;
 
@@ -132,16 +143,10 @@ int main(int argc, char *argv[])
   DocInfo doc_info;
   doc_info.set_directory("results");
 
-
-  // Decide which tests to run
-  bool run_2d = true;
-  bool run_3d = true;
-
-
   // A 2D problem
   // ============================================================
 
-  if(run_2d)
+  if(CommandLineArgs::command_line_flag_has_been_set("-do2d"))
     {
       // Build problem
       ImplicitLLGProblem<TMicromagElement<2,2> >
@@ -225,7 +230,7 @@ int main(int argc, char *argv[])
 
   // Try a 3d version
   // ============================================================
-  if(run_3d)
+  if(CommandLineArgs::command_line_flag_has_been_set("-do3d"))
     {
 
       // Build mesh
@@ -248,11 +253,6 @@ int main(int argc, char *argv[])
 
       // Add a z varying inital condition to the list
       initial_conds.push_back(Inputs::steady_state_initial_m_z_variations);
-
-      // Make a new, nicer list of a values because we can't refine well in z
-      // direction.
-      Vector<double> threedas;
-      threedas.push_back(0.1);
 
       for(unsigned i_ic=0; i_ic<initial_conds.size(); i_ic++)
         {
@@ -278,7 +278,8 @@ int main(int argc, char *argv[])
                 * 4;
 
               std::cout << std::endl
-                        << "error = " << threedproblem.compare_m_with_function(initial_conds[i_ic])
+                        << "error = "
+                        << threedproblem.compare_m_with_function(initial_conds[i_ic])
                         << std::endl;
 
               // Timestep to end
@@ -296,7 +297,8 @@ int main(int argc, char *argv[])
                   // Output
                   threedproblem.doc_solution(doc_info);
 
-                  std::cout << "error = " << threedproblem.compare_m_with_function(initial_conds[i_ic])
+                  std::cout << "error = "
+                            << threedproblem.compare_m_with_function(initial_conds[i_ic])
                             << std::endl;
                 }
 

@@ -65,6 +65,7 @@ namespace oomph
       // both zero because they are in seperate problems
       Bem_handler.input_index() = 0;
       Bem_handler.output_index() = 0;
+      Bem_handler.integration_scheme_pt() = new TVariableOrderGaussLegendre<2>; //??ds memory leak
       Bem_handler.build();
 
 
@@ -94,6 +95,7 @@ namespace oomph
       IterativeLinearSolver* phi_1_it_solver_pt =
         dynamic_cast<IterativeLinearSolver*>(Phi_1_problem.linear_solver_pt());
 
+#ifdef OOMPH_HAS_HYPRE
       // AMG preconditioners
       HyprePreconditioner *amg_phi_pt, *amg_phi_1_pt;
       amg_phi_pt = new HyprePreconditioner;
@@ -103,6 +105,7 @@ namespace oomph
       amg_phi_1_pt = new HyprePreconditioner;
       phi_1_it_solver_pt->preconditioner_pt() = amg_phi_1_pt;
       amg_phi_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+#endif
 
       // // ILU0 preconditioners
       // phi_it_solver_pt->preconditioner_pt()=new ILUZeroPreconditioner<CRDoubleMatrix>;
@@ -139,11 +142,14 @@ namespace oomph
     /// \short Const access function for Phi_mesh_pt.
     Mesh* phi_mesh_pt() const {return Phi_problem.bulk_mesh_pt();}
 
+    /// \short Const access function for Phi_mesh_pt.
+    Mesh* phi1_mesh_pt() const {return Phi_1_problem.bulk_mesh_pt();}
+
   private:
 
     /// Bem handler object - provide functions and data needed for hybird
     /// BEM method (dim hardcoded to 3, probably ok).
-    BoundaryElementHandler<MicromagFaceElement<ELEMENT, 3> > Bem_handler;
+    BoundaryElementHandler<MicromagFaceElement<ELEMENT> > Bem_handler;
 
     /// The problem for the preliminary poisson solve to get boundary
     /// conditions on the magnetostatic potential solve.
@@ -222,9 +228,14 @@ namespace oomph
     npts=3;
 
     // Output solution with specified number of plot points per element
-    sprintf(filename,"results/solution%i.dat",label);
+    sprintf(filename,"results/phi_solution%i.dat",label);
     some_file.open(filename);
     phi_mesh_pt()->output(some_file,npts);
+    some_file.close();
+
+    sprintf(filename,"results/phi1_solution%i.dat",label);
+    some_file.open(filename);
+    phi1_mesh_pt()->output(some_file,npts);
     some_file.close();
   }
 
@@ -252,7 +263,7 @@ namespace Inputs
   void div_M(const Vector<double>& x, double& f)
   {
     // Finite difference it...
-    double eps = 0.001;
+    double eps = 1e-10;
 
     Vector<double> Mxp, Mxm, Myp, Mym, Mzp, Mzm;
     Vector<double> Xxp(x), Xxm(x), Xyp(x), Xym(x), Xzp(x), Xzm(x);
@@ -318,8 +329,10 @@ int main()
   // Compute field
   Vector<double> average_field(3,0.0);
   magnetostatic_problem.average_magnetostatic_field(average_field);
-  double rel_err = (average_field[0] - (-1.0/3.0))/average_field[0];
-  double abs_err = average_field[0] - (-1.0/3.0);
+  double rel_err = std::abs((average_field[0] - (-1.0/3.0))/average_field[0]);
+  double abs_err = std::abs(average_field[0] - (-1.0/3.0));
+
+  std::cout << average_field << std::endl;
 
   // Check close/convergence to analytical value
   std::cout
@@ -338,5 +351,9 @@ int main()
                 << "Relative error is too large!" << std::endl;
       return 1;
     }
+
+  // Also check that y,z components are *all* close to zero (not average)
+
+  // Also check that std-dev of x is not too high?
   return 0;
 }

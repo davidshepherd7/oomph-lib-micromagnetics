@@ -23,8 +23,8 @@ for dir in $dir_list; do
             else echo "*** $dir failed!"
             fi
         else
-  	    # otherwise run all the executables in the folder
-	    exec_files=`find "./" -executable -type f`
+  	    # otherwise run all the executables in the folder (ignore backups)
+	    exec_files=`find "./" -executable -type f | grep -v ".~/"`
 	    for executable in $exec_files; do
 
 	    # Record the output and report the result:
