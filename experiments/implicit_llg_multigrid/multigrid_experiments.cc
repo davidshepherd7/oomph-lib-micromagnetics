@@ -23,8 +23,9 @@ namespace Inputs
   {
     m.assign(3,0.0);
 
-    m[0] = sin(x[0]*2*Pi) + sin(x[1]*2*Pi);
-    m[1] = cos(x[0]*2*Pi) + cos(x[1]*2*Pi);
+    double l = 0.4;
+    m[0] = sin(x[0]*2*Pi*l) + sin(x[1]*2*Pi*l);
+    m[1] = cos(x[0]*2*Pi*l) + cos(x[1]*2*Pi*l);
     m[2] = 1.0 - m[0] - m[1];
 
     // m[0] = x[0]/2 + x[1]/2;
@@ -42,8 +43,9 @@ namespace Inputs
   {
     m.assign(3,0.0);
 
-    m[0] = sin(x[0]*2*Pi) + sin(x[1]*2*Pi) + sin(x[2]*2*Pi);
-    m[1] = cos(x[0]*2*Pi) + cos(x[1]*2*Pi) + cos(x[2]*2*Pi);
+    double l = 5;
+    m[0] = sin(x[0]*2*Pi*l) + sin(x[1]*2*Pi*l) + sin(x[2]*2*Pi*l);
+    m[1] = cos(x[0]*2*Pi*l) + cos(x[1]*2*Pi*l) + cos(x[2]*2*Pi*l);
     m[2] = 1.0 - m[0] - m[1];
 
     // m[0] = x[0]/2 + x[1]/2;
@@ -58,7 +60,7 @@ namespace Inputs
                      Vector<double> &h_app)
   {
     h_app.assign(3,0.0);
-    h_app[2] = 1e9;
+    h_app[2] = 1;
   }
 
 }
@@ -66,10 +68,22 @@ namespace Inputs
 
 int main(int argc, char** argv)
 {
+
+  // Start MPI
+#ifdef OOMPH_HAS_MPI
+  MPI_Helpers::init(argc,argv);
+#endif
+
   // Default values
-  unsigned nx(10), ny(10), refines(1); //refinement for different grid types
-  double dt(1e-2), tmax(100*dt);
+  unsigned nx(20), ny(20), refines(1); //refinement for different grid types
+  double dt(1e-4), tmax(100);
   std::string outdir("results"), prec(""), mesh_type("");
+
+  double eps = 1e-3;
+
+  // Default to adaptive BDF2
+  bool adaptive_flag = true;
+  bool use_midpoint = false;
 
   // amg params
   unsigned amg_smoother_type(9);
@@ -92,13 +106,23 @@ int main(int argc, char** argv)
   CommandLineArgs::output();
 
   // Enable some floating point error checkers
-  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+  //  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  // Create problem, timestepper
+  // Create problem
   const unsigned dim = 2;
   ImplicitLLGProblem<TMicromagElement<dim,2> > problem;
-  BDF<2>* bdf2_pt = new BDF<2>;
-  problem.add_time_stepper_pt(bdf2_pt);
+
+  // Create timestepper
+  TimeStepper* ts_pt = 0;
+  if(use_midpoint)
+    {
+      ts_pt = new BDF<1>(adaptive_flag);
+    }
+  else
+    {
+      ts_pt = new BDF<2>(adaptive_flag);
+    }
+  problem.add_time_stepper_pt(ts_pt);
 
   // Create mesh
   Mesh* mesh_pt(0);
@@ -107,7 +131,7 @@ int main(int argc, char** argv)
     {
       if(dim != 2) { std::cerr << "WRONG DIM." <<std::endl; return 10; }
       mesh_pt = new SimpleRectangularTriMesh<TMicromagElement<dim,2> >
-        (nx,ny,lx,ly,bdf2_pt);
+        (nx,ny,lx,ly,ts_pt);
     }
   else if(mesh_type == "sphere")
     {
@@ -116,7 +140,7 @@ int main(int argc, char** argv)
         ("sphere."+to_string(refines)+".node",
          "sphere."+to_string(refines)+".ele",
          "sphere."+to_string(refines)+".poly",
-         bdf2_pt);
+         ts_pt);
     }
   else if(mesh_type == "unstructured_rect")
     {
@@ -125,16 +149,17 @@ int main(int argc, char** argv)
         ("square." + to_string(refines) + ".node",
          "square." + to_string(refines) + ".ele",
          "square." + to_string(refines) + ".poly",
-         bdf2_pt);
+         ts_pt);
     }
 
   mesh_pt->setup_boundary_element_info();
   problem.bulk_mesh_pt() = mesh_pt;
 
   // Set magnetic params, fiddle with exchange strength
-  problem.mag_parameters_pt()->set_mumag4();
-  // //problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/5;
-  // problem.mag_parameters_pt()->gilbert_damping() = 0.1;
+  // problem.mag_parameters_pt()->set_mumag4();
+  // problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/5;
+  // // problem.mag_parameters_pt()->gilbert_damping() = 0.1;
+  problem.mag_parameters_pt()->set_simple_llg_parameters();
 
   // Set applied field
   problem.applied_field_fct_pt() = &Inputs::applied_field;
@@ -190,8 +215,8 @@ int main(int argc, char** argv)
           // If we are using Euclid then we have even more settings to play with:
           if(amg_smoother_type == 9)
             {
-              amg_pt->AMGEuclidSmoother_level = 10;
-              amg_pt->AMGEuclidSmoother_print_level = 1;
+              amg_pt->AMGEuclidSmoother_level = 2;
+              //amg_pt->AMGEuclidSmoother_print_level = 1;
 
               // amg_pt->AMGEuclidSmoother_use_block_jacobi = false;
               // amg_pt->AMGEuclidSmoother_use_row_scaling = false;
@@ -251,9 +276,11 @@ int main(int argc, char** argv)
   // Set up outputs
   DocInfo doc_info;
   doc_info.set_directory(outdir);
+  problem.doc_solution(doc_info);
+
   ConvergenceData conv_data;
   problem.convergence_data_pt() = &conv_data;
-  problem.doc_solution(doc_info);
+  conv_data.write_headers(outdir+"/convergence_data");
 
   // Dump Jacobian
   DoubleVector dummy;
@@ -261,48 +288,87 @@ int main(int argc, char** argv)
   problem.get_jacobian(dummy, J);
   J.sparse_indexed_output(outdir+"/jacobian_t0");
 
-  // Dump blocked Jacobian
-  DummyBlockPreconditioner<CRDoubleMatrix> blocker;
-  blocker.add_mesh(problem.bulk_mesh_pt());
+  // // Dump blocked Jacobian
+  // DummyBlockPreconditioner<CRDoubleMatrix> blocker;
+  // blocker.add_mesh(problem.bulk_mesh_pt());
 
-  // put phi blocks at end so we can ignore them... ??ds hacky!
-  Vector<unsigned> block_ordering(5,3);
-  block_ordering[2] = 0;
-  block_ordering[3] = 1;
-  block_ordering[4] = 2;
-  blocker.set_dof_to_block_map(block_ordering);
+  // // put phi blocks at end so we can ignore them... ??ds hacky!
+  // Vector<unsigned> block_ordering(5,3);
+  // block_ordering[2] = 0;
+  // block_ordering[3] = 1;
+  // block_ordering[4] = 2;
+  // blocker.set_dof_to_block_map(block_ordering);
 
-  blocker.Preconditioner::setup(&problem, &J);
-  blocker.output_blocks_to_files(outdir+"/j_t0");
+  // blocker.Preconditioner::setup(&problem, &J);
+  // blocker.output_blocks_to_files(outdir+"/j_t0");
+
+
+  // Code for adjusting solver based on dt
+  double iterative_solver_threshold = 0;// 0.01;
+  // gmres with Euclid smoothed amg seems very efficient below dt~0.01
+  SuperLUSolver spare_LUSolver;
+  LinearSolver* spare_iterative_solver_pt = problem.linear_solver_pt();
 
 
   // Timestep
-  if(tmax == 0) return 0;
-  unsigned nstep = int(tmax/dt);
-  for(unsigned t=0; t < nstep; t++)
+  if(adaptive_flag)
     {
-      std::cout << "Timestep " << t << std::endl;
+      // Timestep to end
+      while(problem.time() < tmax)
+        {
+          std::cout << "step number = " << doc_info.number()
+                    << ", time = " << problem.time()
+                    << ", dt = " << dt << std::endl;
+          // Step
+          if(dt < iterative_solver_threshold)
+            {
+              problem.linear_solver_pt() = spare_iterative_solver_pt;
+            }
+          else
+            {
+              problem.linear_solver_pt() = &spare_LUSolver;
+            }
 
-      // Step
-      problem.unsteady_newton_solve(dt);
+          dt = problem.adaptive_unsteady_newton_solve(dt,eps);
 
-      // Output
-      problem.doc_solution(doc_info);
-      doc_info.number()++;
+          // Output
+          problem.doc_solution(doc_info);
+          conv_data.output_this_newton_step(outdir+"/convergence_data");
+        }
+    }
+  else
+    {
+      unsigned nstep = int(tmax/dt);
+      for(unsigned t=0; t < nstep; t++)
+        {
+          std::cout << "Timestep " << t << std::endl;
+
+          // Step
+          problem.unsteady_newton_solve(dt);
+
+          // Output
+          problem.doc_solution(doc_info);
+        }
     }
 
-  if(prec != "")
-    {
-      // Output iteration counts
-      std::ofstream trace;
-      trace.open("iteration_counts",std::ios::app);
-      trace << nx
-            << "," << dt
-            << "," << amg_smoother_type
-            << "," << amg_v_cycles
-            << "," << conv_data.average_newton_iterations()
-            << "," << conv_data.average_linear_solver_iterations() << std::endl;
-      trace.close();
-    }
-  // conv_data.output(std::cout);
+  // if(prec != "")
+  //   {
+  //     // Output iteration counts
+  //     std::ofstream trace;
+  //     trace.open("iteration_counts",std::ios::app);
+  //     trace << nx
+  //           << "," << dt
+  //           << "," << amg_smoother_type
+  //           << "," << amg_v_cycles
+  //           << "," << conv_data.average_newton_iterations()
+  //           << "," << conv_data.average_linear_solver_iterations() << std::endl;
+  //     trace.close();
+  //   }
+
+#ifdef OOMPH_HAS_MPI
+  // Shut down oomph-lib's MPI
+  MPI_Helpers::finalize();
+#endif
+
+  return 0;
 }

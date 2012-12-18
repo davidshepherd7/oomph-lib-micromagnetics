@@ -86,11 +86,9 @@ namespace oomph
     double normalised_hms() const
     {return hms() * field_normalisation_factor() * magnetostatic_debug_coeff();}
 
-    // Normalise by the maximum of the field "strengths" (??ds not accounted for
-    // v. large applied fields here, not sure how to do it...)
+    // Normalise by magnetostatic field strength
     double field_normalisation_factor() const
     {
-#warning ??ds messing with normalisations
       // return 1/hex_str;
       return 1/hms();
     }

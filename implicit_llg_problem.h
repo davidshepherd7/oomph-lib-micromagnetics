@@ -31,7 +31,9 @@ namespace oomph
 
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
-      Ele_pt(0), Applied_field_fct_pt(0), Renormalise_each_time_step(false) {}
+      Use_mid_point_method(false), Ele_pt(0), Applied_field_fct_pt(0),
+      Renormalise_each_time_step(false)
+    {}
 
     /// Make a problem with the default mesh and timestepper
     ImplicitLLGProblem(const unsigned &nx,
@@ -39,15 +41,25 @@ namespace oomph
                        const double &lx,
                        const double &ly,
                        AppliedFieldFctPt input_applied_field_pt,
-                       const bool adaptive_flag=false) :
-      Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt)
+                       const bool adaptive_flag=false,
+                       const bool use_mid_point_method=false) :
+      Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt),
+      Use_mid_point_method(use_mid_point_method)
     {
       // Create timestepper
-      BDF<2>* bdf2_pt = new BDF<2>(adaptive_flag);
-      add_time_stepper_pt(bdf2_pt);
+      TimeStepper* time_stepper_pt = 0;
+      if(Use_mid_point_method)
+        {
+          time_stepper_pt = new BDF<1>(adaptive_flag);
+        }
+      else
+        {
+          time_stepper_pt = new BDF<2>(adaptive_flag);
+        }
+      add_time_stepper_pt(time_stepper_pt);
 
       // Create mesh
-      bulk_mesh_pt() = new SimpleRectangularTriMesh<ELEMENT>(nx,ny,lx,ly,bdf2_pt);
+      bulk_mesh_pt() = new SimpleRectangularTriMesh<ELEMENT>(nx,ny,lx,ly,time_stepper_pt);
       bulk_mesh_pt()->setup_boundary_element_info();
 
       // Set up some simple parameters
@@ -168,6 +180,36 @@ namespace oomph
         }
     }
 
+    // If we are using midpoint then apply the required update (Malidi2005)
+    void midpoint_update()
+    {
+      // Get a pointer
+      ELEMENT* bulk_elem_pt =
+        checked_dynamic_cast<ELEMENT*>(Bulk_mesh_pt->element_pt(0));
+
+      // Get m indicies
+      Vector<unsigned> m_indices(3,0);
+      for(unsigned j=0; j<3; j++)
+        {
+          m_indices[j] = bulk_elem_pt->m_index_micromag(j);
+        }
+
+      // Apply the update
+      for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
+        {
+          Node* nd_pt = mesh_pt()->node_pt(i_nd);
+          for(unsigned j=0; j<3; j++)
+            {
+              // m[n] --> 2*m[n] - m[n-1]
+              // because we have finished this timestep and moved forward one
+              double new_m = 2*(nd_pt->value(m_indices[j]))
+                - (nd_pt->value(1, m_indices[j]));
+
+              nd_pt->set_value(m_indices[j], new_m);
+            }
+        }
+    }
+
 
     void actions_after_newton_solve()
     {
@@ -175,6 +217,13 @@ namespace oomph
       if(renormalise_each_time_step())
         {
           renormalise_magnetisation();
+        }
+
+      // If we're usign midpoint method then do the update needed to
+      // convert from BDF1 to a midpoint timestep.
+      if(Use_mid_point_method)
+        {
+          midpoint_update();
         }
     }
 
@@ -194,6 +243,20 @@ namespace oomph
       some_file.open(filename.c_str());
       bulk_mesh_pt()->output(some_file,npts);
       some_file.close();
+
+
+      // Get average (and standard deviation) of |m| - 1 and |m|.dm/dn
+      double m_error_avg(0), m_error_stddev(0);
+      norm_m_error(m_error_avg, m_error_stddev);
+
+      // Write them to file
+      std::ofstream errors((doc_info.directory()+"/errors").c_str(), std::ios::app);
+      errors << time()
+             << " " << m_error_avg
+             << " " << m_error_stddev
+             << std::endl;
+      errors.close();
+
 
       // Increment number used as output label
       doc_info.number()++;
@@ -417,7 +480,21 @@ namespace oomph
     Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
 
     /// \short Const access function for Surface_exchange_mesh_pt.
-    Mesh* surface_exchange_mesh_pt() const {return Surface_exchange_mesh_pt;}
+    Mesh* surface_exchange_mesh_pt() const
+    {
+#ifdef PARANOID
+      if(Surface_exchange_mesh_pt == 0)
+        {
+          std::ostringstream error_msg;
+          error_msg << "Surface exchange mesh pointer not set.";
+          throw OomphLibError(error_msg.str(),
+                              "",
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      return Surface_exchange_mesh_pt;
+    }
 
     /// \short Non-const access function for Bulk_mesh_pt.
     Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
@@ -425,6 +502,9 @@ namespace oomph
     /// \short Const access function for Bulk_mesh_pt.
     Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
 
+    /// Use mid-point method (rather than bdf2)? Public to avoid lots of
+    /// access function junk, see how it goes...
+    bool Use_mid_point_method;
 
   private:
 
