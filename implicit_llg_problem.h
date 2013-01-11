@@ -296,6 +296,57 @@ namespace oomph
       return sqrt(global_error);
     }
 
+    // Lots of magnetisation manipulation functions
+    // ============================================================ 
+
+    // Loop over all nodes in bulk mesh and get magnetisations
+    void get_nodal_magnetisations(Vector< Vector<double> > &m_list) const
+    {
+      unsigned nnode = bulk_mesh_pt()->nnode();
+      m_list.resize(nnode);
+      for(unsigned nd=0; nd<nnode; nd++)
+        {
+          m_list[nd].assign(3,0.0);
+          for(unsigned j=0; j<3; j++)
+            {m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(m_index(j));}
+        }
+    }
+
+    void get_nodal_two_norms(Vector<double> &output) const
+    {
+      Vector< Vector<double> > m; get_nodal_magnetisations(m);
+
+      output.assign(m.size(), 0.0);
+      transform(m.begin(), m.end(), output.begin(), VectorOps::two_norm);
+    }
+
+    double mean_nodal_magnetisation_length() const
+    {
+      Vector<double> ms; get_nodal_two_norms(ms);
+      return VectorOps::mean(ms);
+    }
+
+    double mean_mx() const
+    {
+      Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
+
+      Vector<double> mx(ms.size(),0.0);
+      for(unsigned i=0; i<ms.size(); i++)
+        {mx[i] = ms[i][0];}
+
+      return VectorOps::mean(mx);
+    }
+
+    double mean_mz() const
+    {
+      Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
+
+      Vector<double> mz(ms.size(),0.0);
+      for(unsigned i=0; i<ms.size(); i++)
+        {mz[i] = ms[i][2];}
+
+      return VectorOps::mean(mz);
+    }
 
     void mean_magnetisation(Vector<double> &m) const
     {

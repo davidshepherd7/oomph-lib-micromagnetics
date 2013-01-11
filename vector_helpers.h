@@ -3,6 +3,8 @@
 
 #include "generic.h"
 #include "./prettyprint98.hpp"
+#include <numeric>
+#include <functional>
 
 using namespace oomph;
 
@@ -277,6 +279,25 @@ namespace VectorOps
     return numerical_zero(two_norm_diff(x1,x2));
   }
 
+  template <typename T>
+  double mean(const Vector<T> &vec)
+  {
+    return std::accumulate(vec.begin(), vec.end(), 0.0) / double(vec.size());
+  }
+
+template <typename T>
+double stddev(const Vector<T> &vec)
+{
+  double vec_mean = mean(vec);
+  double sum_square_deviations = 0.0;
+  for(unsigned i=0; i<vec.size(); i++)
+    {
+      sum_square_deviations +=
+        std::pow(vec[i] - vec_mean,2);
+    }
+     
+  return std::sqrt(sum_square_deviations / double(vec.size()));
+}
 
 }
 
