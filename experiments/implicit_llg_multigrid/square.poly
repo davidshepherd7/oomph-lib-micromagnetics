@@ -1,0 +1,22 @@
+# First line: <# of vertices> <dimension (must be 2)> <# of attributes> <# of boundary markers (0 or 1)>
+# Following lines: <vertex #> <x> <y> [attributes] [boundary marker]
+4 2 0 0
+0 0 0 
+1 0 1
+2 1 1
+3 1 0
+
+# One line: <# of segments> <# of boundary markers (0 or 1)>
+# Following lines: <segment #> <endpoint> <endpoint> [boundary marker]
+4 0
+0 0 1
+1 1 2
+2 2 3
+3 3 0
+
+# One line: <# of holes>
+# Following lines: <hole #> <x> <y>
+0
+
+# Optional line: <# of regional attributes and/or area constraints>
+# Optional following lines: <region #> <x> <y> <attribute> <maximum area>

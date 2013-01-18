@@ -23,9 +23,9 @@ namespace Inputs
   {
     m.assign(3,0.0);
 
-    double l = 0.4;
-    m[0] = sin(x[0]*2*Pi*l) + sin(x[1]*2*Pi*l);
-    m[1] = cos(x[0]*2*Pi*l) + cos(x[1]*2*Pi*l);
+    double l = 5.0;
+    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
+    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
     m[2] = 1.0 - m[0] - m[1];
 
     // m[0] = x[0]/2 + x[1]/2;
@@ -79,10 +79,9 @@ int main(int argc, char** argv)
   double dt(1e-4), tmax(100);
   std::string outdir("results"), prec(""), mesh_type("");
 
-  double eps = 1e-3;
+  double eps = 0;
 
   // Default to adaptive BDF2
-  bool adaptive_flag = true;
   bool use_midpoint = false;
 
   // amg params
@@ -104,6 +103,8 @@ int main(int argc, char** argv)
 
   CommandLineArgs::parse_and_assign();
   CommandLineArgs::output();
+
+  bool adaptive_flag = (eps !=0 );
 
   // Enable some floating point error checkers
   //  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
@@ -282,12 +283,6 @@ int main(int argc, char** argv)
   problem.convergence_data_pt() = &conv_data;
   conv_data.write_headers(outdir+"/convergence_data");
 
-  // Dump Jacobian
-  DoubleVector dummy;
-  CRDoubleMatrix J;
-  problem.get_jacobian(dummy, J);
-  J.sparse_indexed_output(outdir+"/jacobian_t0");
-
   // // Dump blocked Jacobian
   // DummyBlockPreconditioner<CRDoubleMatrix> blocker;
   // blocker.add_mesh(problem.bulk_mesh_pt());
@@ -333,7 +328,7 @@ int main(int argc, char** argv)
 
           // Output
           problem.doc_solution(doc_info);
-          conv_data.output_this_newton_step(outdir+"/convergence_data");
+          // conv_data.output_this_newton_step(outdir+"/convergence_data");
         }
     }
   else
@@ -350,6 +345,15 @@ int main(int argc, char** argv)
           problem.doc_solution(doc_info);
         }
     }
+
+
+  // Dump Jacobian (we do this after newton solves so that we only get here
+  // if the newton method can converge).
+  DoubleVector dummy;
+  CRDoubleMatrix J;
+  problem.get_jacobian(dummy, J);
+  J.sparse_indexed_output(outdir+"/jacobian_tmax");
+
 
   // if(prec != "")
   //   {

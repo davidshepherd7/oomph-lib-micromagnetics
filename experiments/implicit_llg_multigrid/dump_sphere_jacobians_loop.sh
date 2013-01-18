@@ -8,6 +8,12 @@ BASE=`pwd`"/runs/sphere"
 refines="1 2 3"
 dts="0.1 0.01 0.001"
 
+# generate sphere.poly
+micromag_root=`pwd`"/../.."
+sphere_gen_dir=$micromag_root'/etc/sphere_mesh_generation/'
+make --directory=$sphere_gen_dir
+$sphere_gen_dir/generate_tetgen_sphere_input 1.0 0 > sphere.poly
+
 # generate tetgen meshes (do by hand since bash has no decimal maths)
 tetgen sphere.poly -qa0.005
 tetgen -qra0.001 sphere.1
@@ -25,7 +31,7 @@ for refine in $refines; do
         DIR="${BASE}/refine${refine}_dt${dt}"
         echo $DIR
         mkdir -p $DIR
-        ./multigrid_experiments '-dt' $dt '-tmax' 0 '-outdir' $DIR '-r' $refine '-mesh' 'sphere' > ${DIR}/trace
-        #mv "${DIR}/jacobian_t0" "${DIR}/jacobian_t0_refine${refine}_dt${dt}"
+        ./multigrid_experiments '-dt' $dt '-tmax' $dt '-outdir' $DIR '-r' $refine '-mesh' 'sphere' > ${DIR}/trace
+        mv "${DIR}/jacobian_tmax" "${DIR}/jacobian_tmax_refine${refine}_dt${dt}"
     done
 done
