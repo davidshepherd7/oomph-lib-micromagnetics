@@ -24,8 +24,6 @@ namespace oomph
   /// A class to store magnetic material parameters.
   // ============================================================
   // TODO: normalisation, multiple mesh normalisation - divide by static mean values?
-  //??ds time normalisation? - just remember that we are in units of 1/gamma?
-  //??ds space normalisation? - just use nm?
   class MagneticParameters
   {
 

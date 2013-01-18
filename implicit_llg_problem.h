@@ -173,9 +173,15 @@ namespace oomph
       for(unsigned nd=0; nd<bulk_mesh_pt()->nnode(); nd++)
         {
           Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+
+          // Get m vector
           Vector<double> m_values(3,0.0);
           for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
+
+          // Normalise
           VectorOps::normalise(m_values);
+
+          // Write m vector
           for(unsigned j=0; j<3; j++) nd_pt->set_value(m_index(j),m_values[j]);
         }
     }
@@ -208,6 +214,11 @@ namespace oomph
               nd_pt->set_value(m_indices[j], new_m);
             }
         }
+
+      // Finally push the time forwards another half step. Note that
+      // time_pt()->dt() is half a step because out previous step was
+      // real_dt/2.
+      time() += time_pt()->dt();
     }
 
 
@@ -297,7 +308,7 @@ namespace oomph
     }
 
     // Lots of magnetisation manipulation functions
-    // ============================================================ 
+    // ============================================================
 
     // Loop over all nodes in bulk mesh and get magnetisations
     void get_nodal_magnetisations(Vector< Vector<double> > &m_list) const

@@ -23,8 +23,8 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[2] = 1;
-    m[0] = 0.01; // start a little bit along +x direction (otherwise we
-                 // have undefined things...) 
+    m[0] = 0.1; // start a little bit along +x direction (otherwise we
+    // have undefined things...)
     VectorOps::normalise(m);
   }
 
@@ -34,7 +34,7 @@ namespace Inputs
     h_app.assign(3,0.0);
     h_app[2] = -2;
   }
-  
+
 }
 
 // Calculations for the switching time and phi value for switching between
@@ -57,10 +57,9 @@ namespace CompareSolutions
     Inputs::initial_m(0,x,m);
     return cart2theta(m);
   }
-  
-    double cart2phi(const Vector<double> &m)
+
+  double cart2phi(const Vector<double> &m)
   {
-    double r = VectorOps::two_norm(m);
     double result_in_mpi_pi = std::atan2(m[1],m[0]);
     if (result_in_mpi_pi > 0)
       return result_in_mpi_pi - 2*Pi;
@@ -75,16 +74,17 @@ namespace CompareSolutions
                         const double &theta_start,
                         const double &theta_now)
   {
-    return ( (pow(alpha,2) + 1) / (alpha * gamma) ) 
-      * ( 1 / ( pow(H,2) + pow(H_k,2)))
-      * (H * std::log((std::tan(theta_now/2))
-                      /(std::tan(theta_start/2)))
-         
-         + H_k * std::log((H - H_k * std::cos(theta_start))
-                          /(H - H_k * std::cos(theta_now)))
-         
-         + H_k * std::log( std::sin(theta_now)
-                           /std::sin(theta_start)));
+    using namespace std;
+    return ( (pow(alpha,2) + 1) / (alpha * gamma) )
+      * ( 1 / ( pow(H,2) - pow(H_k,2)))
+      * (H * log((tan(theta_now/2))
+                 / (tan(theta_start/2)))
+
+         + H_k * log((H - H_k * cos(theta_start))
+                     / (H - H_k * cos(theta_now)))
+
+         + H_k * log( sin(theta_now)
+                      / sin(theta_start)));
   }
 
   double switching_time_wrapper(const MagneticParameters* const parameters_pt,
@@ -97,14 +97,14 @@ namespace CompareSolutions
     double theta_start = cart2theta(m_start_cartesian);
     double theta_now = cart2theta(m);
 
-    double analytical_time = 
+    double analytical_time =
       switching_time(parameters_pt->normalised_gilbert_damping(),
                      parameters_pt->normalised_gamma(),
                      std::abs(H[2]),
                      parameters_pt->normalised_hk(),
                      theta_start,
                      theta_now);
-    
+
     return analytical_time;
   }
 
@@ -153,7 +153,7 @@ namespace CompareSolutions
 
 
 int main(int argc, char *argv[])
-{ 
+{
   // Start MPI
 #ifdef OOMPH_HAS_MPI
   MPI_Helpers::init(argc,argv);
@@ -166,6 +166,7 @@ int main(int argc, char *argv[])
   std::string outdir("results");
   double eps = 0;
   double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
+  unsigned mconstraintmethod = 0;
 
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
@@ -177,12 +178,12 @@ int main(int argc, char *argv[])
   CommandLineArgs::specify_command_line_flag("-dt", &dt);
   CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
   CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
-  
+
   CommandLineArgs::specify_command_line_flag("-eps", &eps);
-  CommandLineArgs::specify_command_line_flag("-renormalise", &renormalise); 
+  CommandLineArgs::specify_command_line_flag("-mconstraintmethod", &mconstraintmethod);
   CommandLineArgs::specify_command_line_flag("-damp", &gilbert_damping);
   CommandLineArgs::specify_command_line_flag("-hk", &hk);
-  
+
   CommandLineArgs::parse_and_assign();
   CommandLineArgs::output();
   CommandLineArgs::doc_specified_flags();
@@ -190,19 +191,36 @@ int main(int argc, char *argv[])
   // Adaptive if eps has been set
   bool adaptive_flag = (eps != 0);
 
+  // Use midpoint if mconstraintmethod input parameter is 2, renormalise if
+  // it's 1.
+  bool midpoint_flag = (mconstraintmethod == 2);
+  bool renormalise_flag = (mconstraintmethod == 1);
+
+  if( adaptive_flag && midpoint_flag )
+    {
+      throw OomphLibError("adaptive + midpoint probably not working",
+                          "",
+                          OOMPH_EXCEPTION_LOCATION);
+    }
+
   // Create problem
   const unsigned dim = 2;
   ImplicitLLGProblem<QMicromagElement<dim,2> > problem;
-  TimeStepper* ts_pt = new BDF<2>(adaptive_flag);
+  problem.renormalise_each_time_step() = renormalise_flag;
+  problem.Use_mid_point_method = midpoint_flag;
+
+  // Create timestepper
+  TimeStepper* ts_pt = 0;
+  if(midpoint_flag)
+    { ts_pt = new BDF<1>(adaptive_flag); }
+  else
+    { ts_pt = new BDF<2>(adaptive_flag); }
   problem.add_time_stepper_pt(ts_pt);
 
   // Create mesh
   problem.bulk_mesh_pt() = new SimpleRectangularQuadMesh<QMicromagElement<dim,2> >
     (nx, ny, lx, ly, ts_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
-
-  // Renormalise if flag has been set
-  problem.renormalise_each_time_step() = bool(renormalise);
 
   // Set magnetic parameters
   problem.mag_parameters_pt()->set_simple_llg_parameters();
@@ -216,16 +234,16 @@ int main(int argc, char *argv[])
 
   // Finished setup, now we can build the problem
   problem.build();
-    
+
   // Initialise problem
   problem.initialise_dt(dt);
-      problem.set_initial_condition(Inputs::initial_m);
+  problem.set_initial_condition(Inputs::initial_m);
 
   // Set up outputs
   DocInfo doc_info;
   doc_info.set_directory(outdir);
   problem.doc_solution(doc_info);
- 
+
   Vector<double> mean_m; problem.mean_magnetisation(mean_m);
   std::cout << CompareSolutions::cart2theta(mean_m) << " "
             << mean_m << std::endl;
@@ -240,52 +258,40 @@ int main(int argc, char *argv[])
   Vector<Vector<double> > mean_m_vec;
   Vector<double> time_vec;
 
-  // Timestep
-  if(adaptive_flag)
+  // Timestep to convergence, for 1000 steps or until tmax.
+  // while((std::abs(mz + 1) > 0.05) && (doc_info.number() < 5000)
+  //       && (problem.time() < tmax))
+  while(problem.time() < tmax)
     {
+      // Update average mz
+      mz = problem.mean_mz();
 
-      // Timestep to end or for 1000 steps
-      while((std::abs(mz + 1) > 0.05) && (doc_info.number() < 1000))
-        //while(problem.time() < tmax)
-        {
-          // Update average mz
-          mz = problem.mean_mz();
+      std::cout << "step number = " << doc_info.number()
+                << ", time = " << problem.time()
+                << ", dt = " << dt
+                << ", mz = " << mz << std::endl;
 
-          std::cout << "step number = " << doc_info.number()
-                    << ", time = " << problem.time()
-                    << ", dt = " << dt
-                    << ", mz = " << mz << std::endl;
+      // Step (half step if using mid-point, adaptive if requested)
+      if(midpoint_flag)
+        { problem.unsteady_newton_solve(dt/2.0); }
+      else if(adaptive_flag)
+        { dt = problem.adaptive_unsteady_newton_solve(dt,eps); }
+      else
+        { problem.unsteady_newton_solve(dt); }
 
-          // Step
-          dt = problem.adaptive_unsteady_newton_solve(dt,eps);
+      // Store all the data we need for error checks later
+      Vector<double> mean_m; problem.mean_magnetisation(mean_m);
+      mean_m_vec.push_back(mean_m);
+      time_vec.push_back(problem.time());
 
-          // Store all the data we need for error checks later
-          Vector<double> mean_m; problem.mean_magnetisation(mean_m);
-          mean_m_vec.push_back(mean_m);
-          time_vec.push_back(problem.time());
-                                                      
-          // Output
-          problem.doc_solution(doc_info);
-          //conv_data.output_this_newton_step(outdir+"/convergence_data");
-        }
+      // Output
+      problem.doc_solution(doc_info);
+      //conv_data.output_this_newton_step(outdir+"/convergence_data");
     }
-  else
-    {
-      unsigned nstep = int(tmax/dt);
-      for(unsigned t=0; t < nstep; t++)
-        {
-          std::cout << "Timestep " << t << std::endl;
 
-          // Step
-          problem.unsteady_newton_solve(dt);
-
-          // Output
-          problem.doc_solution(doc_info);
-        }
-    }
 
   // Post-processing on mean_m etc.
-  // ============================================================ 
+  // ============================================================
 
   unsigned N = mean_m_vec.size();
 
@@ -308,7 +314,7 @@ int main(int argc, char *argv[])
         CompareSolutions::switching_time_error(problem.mag_parameters_pt(),
                                                time_vec[i],
                                                mean_m_vec[i]);
-      phi_err_vec[i] = 
+      phi_err_vec[i] =
         CompareSolutions::phi_error(problem.mag_parameters_pt(),
                                     mean_m_vec[i]);
       analytical_phi_vec[i] =
@@ -317,7 +323,7 @@ int main(int argc, char *argv[])
 
       analytical_time_vec[i] =
         CompareSolutions::switching_time_wrapper(problem.mag_parameters_pt(),
-                                               mean_m_vec[i]);
+                                                 mean_m_vec[i]);
     }
 
   // Data dump!
@@ -326,7 +332,10 @@ int main(int argc, char *argv[])
           << std::endl;
   for(unsigned i=0; i<N; i++)
     {
-      outfile << time_vec[i] << " "
+      outfile << std::setprecision(5)
+              << time_vec[i] << " " // don't want high precision for time
+                                    // because we want to search for t=1
+              << std::setprecision(15)
               << mean_m_vec[i][0] << " "
               << mean_m_vec[i][1] << " "
               << mean_m_vec[i][2] << " "
@@ -339,8 +348,7 @@ int main(int argc, char *argv[])
               << phi_err_vec[i] << " "
               << std::endl;
     }
-        
-  
+
 
 #ifdef OOMPH_HAS_MPI
   // Shut down oomph-lib's MPI
