@@ -55,13 +55,35 @@ namespace Inputs
     VectorOps::normalise(m);
   }
 
-  //??ds applied field?
+  // Applied fields
   void applied_field(const double& t, const Vector<double> &x,
                      Vector<double> &h_app)
   {
     h_app.assign(3,0.0);
     h_app[2] = 1;
   }
+
+  void x_field(const double& t, const Vector<double> &x,
+                     Vector<double> &h_app)
+    {
+      h_app.assign(3, 0.0);
+      h_app[0] = 1;
+    }
+
+  void y_field(const double& t, const Vector<double> &x,
+                     Vector<double> &h_app)
+    {
+      h_app.assign(3, 0.0);
+      h_app[1] = 1;
+    }
+
+  void z_field(const double& t, const Vector<double> &x,
+                     Vector<double> &h_app)
+    {
+      h_app.assign(3, 0.0);
+      h_app[2] = 1;
+    }
+
 
 }
 
@@ -78,6 +100,7 @@ int main(int argc, char** argv)
   unsigned nx(20), ny(20), refines(1); //refinement for different grid types
   double dt(1e-4), tmax(100);
   std::string outdir("results"), prec(""), mesh_type("");
+  std::string field("default");
 
   double eps = 0;
 
@@ -100,6 +123,7 @@ int main(int argc, char** argv)
   CommandLineArgs::specify_command_line_flag("-amgsmth", &amg_smoother_type);
   CommandLineArgs::specify_command_line_flag("-amgvcyc", &amg_v_cycles);
   CommandLineArgs::specify_command_line_flag("-mesh", &mesh_type);
+  CommandLineArgs::specify_command_line_flag("-field", &field);
 
   CommandLineArgs::parse_and_assign();
   CommandLineArgs::output();
@@ -163,7 +187,14 @@ int main(int argc, char** argv)
   problem.mag_parameters_pt()->set_simple_llg_parameters();
 
   // Set applied field
-  problem.applied_field_fct_pt() = &Inputs::applied_field;
+  if(field == "x")
+    problem.applied_field_fct_pt() = &Inputs::x_field;
+  else if(field == "y")
+    problem.applied_field_fct_pt() = &Inputs::y_field;
+  else if(field == "z")
+    problem.applied_field_fct_pt() = &Inputs::z_field;
+  else if(field == "default")
+    problem.applied_field_fct_pt() = &Inputs::applied_field;
 
   // Finished setup, now we can build the problem
   problem.build();
