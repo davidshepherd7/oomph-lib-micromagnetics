@@ -509,7 +509,7 @@ namespace oomph
     virtual void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const =0;
 
-    /// Add dM/dt at local node n (using timestepper and history values) to the vector dmdt.
+    /// Put dM/dt at local node l (using timestepper and history values) in the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
     {
       // Get the data's timestepper
@@ -531,8 +531,8 @@ namespace oomph
               // the time derivative
               for(unsigned t=0;t<n_time_steps;t++)
                 {
-                  // ??ds The "1" in weights is the derrivative order (i.e. 1:
-                  // dM/dt, 2: d^2M/dt^2) I think...
+                  // The "1" in weights is the derivative order (i.e. 1:
+                  // dM/dt, 2: d^2M/dt^2)
                   dmdt[j] += time_stepper_pt->weight(1,t)
                     *nodal_value(t,l,m_index_micromag(j));
                 }
