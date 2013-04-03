@@ -613,7 +613,8 @@ namespace oomph
     // one, otherwise copy the distribution.
     if(dist_bm_pt == 0)
       {
-        dist.build(0, bem_matrix_pt()->nrow(), false);
+        dist.build(MPI_Helpers::communicator_pt(),
+                   bem_matrix_pt()->nrow(), false);
       }
     else
       {

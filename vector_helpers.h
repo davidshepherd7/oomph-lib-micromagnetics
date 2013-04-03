@@ -275,7 +275,7 @@ namespace VectorOps
 
   bool numerically_close(const Vector<double> &x1,
                          const Vector<double> &x2,
-                         const double& tol)
+                         const double& tol=1e-10)
   {
     return numerical_zero(two_norm_diff(x1,x2));
   }

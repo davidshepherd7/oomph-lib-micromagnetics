@@ -55,4 +55,8 @@ plotscript.gplot
 
 # computation scripts
 
+# testing junk file
+previous_run_passes_list
 
+# other
+experiments/implicit_llg_multigrid/runs/

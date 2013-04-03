@@ -54,7 +54,7 @@ namespace oomph
       // This is necessary to avoid having a free constant of integration
       // (which causes scaling problems). Just pin the first non boundary
       // node ??ds not sure this is ok...
-      Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_non_boundary_node();
+      Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_some_non_boundary_node();
       pinned_phi_1_node_pt->pin(0);
       pinned_phi_1_node_pt->set_value(0,0.0);
       Phi_1_problem.build();
@@ -77,7 +77,8 @@ namespace oomph
         {
           // Phi is determined by BEM
           LinearAlgebraDistribution* dist_pt =
-            new LinearAlgebraDistribution(0, phi_mesh_pt->nboundary_node(b), false);
+            new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
+                                          phi_mesh_pt->nboundary_node(b), false);
 
           Phi_boundary_values_pts[b] = new DoubleVector(dist_pt);
           Phi_problem.set_dirichlet_boundary_by_vector(b, Phi_boundary_values_pts[b]);
