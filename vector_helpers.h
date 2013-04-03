@@ -84,9 +84,9 @@ namespace VectorOps
   }
 
 
-  inline bool numerical_zero(const double &a)
+  inline bool numerical_zero(const double &a, const double& tol=1e-10)
   {
-    return std::abs(a) < 1e-10;
+    return std::abs(a) < tol;
   }
 
   inline void relative_abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
@@ -274,7 +274,8 @@ namespace VectorOps
 
 
   bool numerically_close(const Vector<double> &x1,
-                         const Vector<double> &x2)
+                         const Vector<double> &x2,
+                         const double& tol)
   {
     return numerical_zero(two_norm_diff(x1,x2));
   }
@@ -285,19 +286,28 @@ namespace VectorOps
     return std::accumulate(vec.begin(), vec.end(), 0.0) / double(vec.size());
   }
 
-template <typename T>
-double stddev(const Vector<T> &vec)
-{
-  double vec_mean = mean(vec);
-  double sum_square_deviations = 0.0;
-  for(unsigned i=0; i<vec.size(); i++)
-    {
-      sum_square_deviations +=
-        std::pow(vec[i] - vec_mean,2);
-    }
-     
-  return std::sqrt(sum_square_deviations / double(vec.size()));
-}
+  template <typename T>
+  double stddev(const Vector<T> &vec)
+  {
+    double vec_mean = mean(vec);
+    double sum_square_deviations = 0.0;
+    for(unsigned i=0; i<vec.size(); i++)
+      {
+        sum_square_deviations +=
+          std::pow(vec[i] - vec_mean,2);
+      }
+
+    return std::sqrt(sum_square_deviations / double(vec.size()));
+  }
+
+
+  /// Check if a vector contains any duplicate values
+  template <typename T> bool contains_duplicates(const std::vector<T> &v)
+  {
+    // Construct a set (which has no duplicates by definition) and compare
+    // sizes.
+    return std::set<T>(v.begin(), v.end()).size() != v.size();
+  }
 
 }
 
