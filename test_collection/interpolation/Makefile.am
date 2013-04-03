@@ -1,0 +1,12 @@
+# Name of executables
+noinst_PROGRAMS=polynomial_interpolation_test
+
+# Sources for first executable
+polynomial_interpolation_test_SOURCES=polynomial_interpolation_test.cc
+
+# Required libraries:
+# $(FLIBS) is included in case the solver involves fortran sources.
+polynomial_interpolation_test_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
+
+# using -isystem rather than -I suppresses (most) warnings from files in includedir
+INCLUDES = -isystem @includedir@
