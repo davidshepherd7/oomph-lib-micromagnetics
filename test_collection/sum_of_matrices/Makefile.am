@@ -1,3 +1,6 @@
+#Include commands common to every self test Makefile.am
+include $(top_srcdir)/config/makefile_templates/demo_drivers
+
 # Name of executables
 noinst_PROGRAMS=sum_of_matrices_test
 
@@ -9,4 +12,4 @@ sum_of_matrices_test_SOURCES=sum_of_matrices_test.cc
 sum_of_matrices_test_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 # using -isystem rather than -I suppresses (most) warnings from files in includedir
-INCLUDES = -isystem @includedir@ 
+INCLUDES = -isystem @includedir@

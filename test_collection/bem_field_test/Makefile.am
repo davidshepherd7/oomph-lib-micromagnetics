@@ -1,3 +1,6 @@
+#Include commands common to every Makefile.am
+include $(top_srcdir)/config/makefile_templates/demo_drivers
+
 # Names of executables
 noinst_PROGRAMS=bem_field_test generate_tetgen_sphere_input
 
