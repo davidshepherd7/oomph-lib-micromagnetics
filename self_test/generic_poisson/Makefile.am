@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Name of executables
-noinst_PROGRAMS=generic_poisson_test
+check_PROGRAMS=generic_poisson_test
 
 # Sources for first executable
 generic_poisson_test_SOURCES=generic_poisson_test.cc

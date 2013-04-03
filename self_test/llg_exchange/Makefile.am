@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Names of executables
-noinst_PROGRAMS=llg_exchange_test
+check_PROGRAMS=llg_exchange_test
 
 # Sources
 llg_exchange_test_SOURCES = llg_exchange_test.cc

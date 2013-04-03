@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Name of executables
-noinst_PROGRAMS=sum_of_matrices_test
+check_PROGRAMS=sum_of_matrices_test
 
 # Sources for first executable
 sum_of_matrices_test_SOURCES=sum_of_matrices_test.cc

@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Names of executables
-noinst_PROGRAMS=bem_field_test generate_tetgen_sphere_input
+check_PROGRAMS=bem_field_test generate_tetgen_sphere_input
 
 # Sources
 bem_field_test_SOURCES = bem_field_test.cc

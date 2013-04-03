@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Name of executables
-noinst_PROGRAMS=node_lookup_test
+check_PROGRAMS=node_lookup_test
 
 # Sources for first executable
 node_lookup_test_SOURCES=node_lookup_test.cc

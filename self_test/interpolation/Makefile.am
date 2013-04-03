@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Name of executables
-noinst_PROGRAMS=polynomial_interpolation_test
+check_PROGRAMS=polynomial_interpolation_test
 
 # Sources for first executable
 polynomial_interpolation_test_SOURCES=polynomial_interpolation_test.cc

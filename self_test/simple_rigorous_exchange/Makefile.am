@@ -2,7 +2,7 @@
 include $(top_srcdir)/config/makefile_templates/demo_drivers
 
 # Names of executables
-noinst_PROGRAMS=simple_rigorous_exchange_test
+check_PROGRAMS=simple_rigorous_exchange_test
 
 # Sources
 simple_rigorous_exchange_test_SOURCES = simple_rigorous_exchange_test.cc
