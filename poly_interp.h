@@ -16,34 +16,27 @@ namespace oomph
     return std::abs(a - b) < tol;
   }
 
-  void double_vector_add_ax(double a, const DoubleVector& x,
-                             DoubleVector& y)
+  void vector_add_ax(double a, const Vector<double>& x,
+                             Vector<double>& y)
   {
-    OOMPH_ASSERT(y.built());
-    OOMPH_ASSERT(x.built());
-    OOMPH_ASSERT(*x.distribution_pt() == *y.distribution_pt());
-
-    // cache (to make sure there's no function call overhead)
-   double* x_values_pt = x.values_pt();
-   double* y_values_pt = y.values_pt();
-
-   for (unsigned i = 0, ni=y.nrow_local(); i<ni; i++)
-    {
-      y_values_pt[i] += a * x_values_pt[i];
-    }
+    OOMPH_ASSERT(y.size() == x.size());
+    for (unsigned i = 0, ni=y.size(); i<ni; i++)
+      {
+        y[i] += a * x[i];
+      }
   }
 
-  bool almost_equal(const DoubleVector& x,
-                    const DoubleVector &y,
+  bool almost_equal(const Vector<double>& x,
+                    const Vector<double> &y,
                     const double &tol=1e-10)
   {
-    if(*x.distribution_pt() != *y.distribution_pt())
+    if(x.size() != y.size())
       {
         return false;
       }
     else
       {
-        for(unsigned i=0, ni=x.nrow_local(); i<ni; i++)
+        for(unsigned i=0, ni=x.size(); i<ni; i++)
           {
             if(!almost_equal(x[i], y[i], tol))
               {
@@ -62,11 +55,11 @@ namespace oomph
   {
   public:
     /// Get value at point
-    virtual void eval(const double& x, DoubleVector& result) const =0;
+    virtual void eval(const double& x, Vector<double>& result) const =0;
 
     /// Get nth derivative at point
     virtual void eval_derivative(const double& x, const unsigned &deriv_order,
-                                 DoubleVector& result) const =0;
+                                 Vector<double>& result) const =0;
 
   };
 
@@ -80,16 +73,16 @@ namespace oomph
 
     /// Construct from locations, values lists.
     BarycentricLagrangeInterpolator(const Vector<double>& locations,
-                                    const Vector<DoubleVector >& values)
+                                    const Vector<Vector<double> >& values)
       : Locations(locations), Values(values)
     { build(); }
 
     /// Get value at point
-    void eval(const double& x, DoubleVector& result) const;
+    void eval(const double& x, Vector<double>& result) const;
 
     /// Get nth derivative at point
     void eval_derivative(const double& x, const unsigned &deriv_order,
-                         DoubleVector& result) const;
+                         Vector<double>& result) const;
 
   private:
 
@@ -121,7 +114,7 @@ namespace oomph
 
     /// Data storage
     Vector<double> Locations;
-    Vector<DoubleVector> Values;
+    Vector<Vector<double> > Values;
     Vector<double> Weights;
 
   };
@@ -129,53 +122,54 @@ namespace oomph
 
   /// Get value at point
   void BarycentricLagrangeInterpolator::
-  eval(const double& x, DoubleVector& result) const
+  eval(const double& x, Vector<double>& result) const
   {
     eval_checks(x);
 
     // Calculate the polynomial according to (4.2) of Berrut2004.
-    DoubleVector numerator(Values[0]);
+    Vector<double> numerator(Values[0]);
     numerator.initialise(0.0);
     double denominator = 0;
     for(unsigned i=0, ni=Locations.size(); i<ni; i++)
       {
         double temp = Weights[i]  / (x - Locations[i]);
-        double_vector_add_ax(temp, Values[i], numerator);
+        vector_add_ax(temp, Values[i], numerator);
         denominator += temp;
       }
 
-    result = numerator;
-    result /= denominator;
+    result.reserve(numerator.size());
+    for(unsigned i=0, ni=numerator.size(); i<ni; i++)
+      {
+        result.push_back(numerator[i] / denominator);
+      }
   }
 
 
   void BarycentricLagrangeInterpolator::
   eval_derivative(const double& x, const unsigned &deriv_order,
-                  DoubleVector& result) const
+                  Vector<double>& result) const
   {
     eval_checks(x);
 
     // Only implemented for first derivatives...
     OOMPH_ASSERT(deriv_order == 1);
 
-    DoubleVector g, dg;
-    g.build(Values[0].distribution_pt(), 0.0);
-    dg.build(Values[0].distribution_pt(), 0.0);
+    Vector<double> g(Values[0].size(), 0.0), dg(Values[0].size(), 0.0);
     double h = 0, dh = 0;
 
     for(unsigned i=0, ni=Locations.size(); i<ni; i++)
       {
         double temp = Weights[i]  / (x - Locations[i]);
 
-        double_vector_add_ax(temp, Values[i], g);
-        double_vector_add_ax(-1* temp / (x - Locations[i]), Values[i], dg);
+        vector_add_ax(temp, Values[i], g);
+        vector_add_ax(-1* temp / (x - Locations[i]), Values[i], dg);
         h += temp;
         dh += -1 * temp / (x - Locations[i]);
       }
 
     OOMPH_ASSERT(h != 0);
-    result.build(g.distribution_pt(), 0.0);
-    for(unsigned i=0, ni=g.nrow_local(); i<ni; i++)
+    result.assign(Values[0].size(), 0.0);
+    for(unsigned i=0, ni=g.size(); i<ni; i++)
       {
         result[i] = (dg[i] * h - g[i]*dh) / (h*h);
       }

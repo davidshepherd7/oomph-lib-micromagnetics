@@ -14,21 +14,17 @@ using namespace oomph;
 
 namespace input
 {
-  void vec_function(const double &x, DoubleVector& ys)
+  void vec_function(const double &x, Vector<double>& ys)
   {
-    LinearAlgebraDistribution dist(MPI_Helpers::communicator_pt(), 2);
-    ys.clear();
-    ys.build(dist, 0.0);
+    ys.assign(2, 0.0);
 
     ys[0] = x*x;
     ys[1] = cos(x);
   }
 
-  void d_vec_function(const double &x, DoubleVector& ys)
+  void d_vec_function(const double &x, Vector<double>& ys)
   {
-    LinearAlgebraDistribution dist(MPI_Helpers::communicator_pt(), 2);
-    ys.clear();
-    ys.build(dist, 0.0);
+    ys.assign(2, 0.0);
 
     ys[0] = 2*x;
     ys[1] = -sin(x);
@@ -50,10 +46,10 @@ int main()
     {
       xs.push_back(a[i]);
     }
-  Vector<DoubleVector > ys;
+  Vector<Vector<double> > ys;
   for(unsigned i=0, ni=xs.size(); i<ni; i++)
     {
-      DoubleVector temp;
+      Vector<double> temp;
       input::vec_function(xs[i], temp);
       ys.push_back(temp);
     }
@@ -62,14 +58,14 @@ int main()
   BarycentricLagrangeInterpolator b(xs, ys);
   double eval_point = 1.74;
 
-  DoubleVector output, exact;
+  Vector<double> output, exact;
   b.eval(eval_point, output);
   input::vec_function(eval_point, exact);
 
   // Check that they are the same
   OOMPH_ASSERT(almost_equal(output, exact, 1e-10));
 
-  DoubleVector output_deriv, exact_deriv;
+  Vector<double> output_deriv, exact_deriv;
   b.eval_derivative(eval_point, 1, output_deriv);
   input::d_vec_function(eval_point, exact_deriv);
   OOMPH_ASSERT(almost_equal(output_deriv, exact_deriv, 1e-10));
