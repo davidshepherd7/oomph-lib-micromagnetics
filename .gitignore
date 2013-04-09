@@ -60,7 +60,10 @@ previous_run_passes_list
 # other
 experiments/implicit_llg_multigrid/runs/
 
-# binaries
+# experiment binaries
+experiments/midpoint_llg/midpoint_llg
+
+# self test binaries
 self_test/midpoint_method/midpoint_method_test
 self_test/bem_field_test/bem_field_test
 self_test/bem_field_test/generate_tetgen_sphere_input
