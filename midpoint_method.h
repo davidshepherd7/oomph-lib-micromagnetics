@@ -31,6 +31,7 @@ namespace oomph
     /// Constructor with initialisation
     MidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2) :
       TimeStepper(2,1), // initialise weights later
+      Fudge_factor(1.0),
       N_interp(n_interpolation_points),
       Predictor_storage_index(nprev_values()+1),
       Dy_tnph_storage_index(nprev_values()+2)
@@ -109,6 +110,7 @@ namespace oomph
     void calculate_predicted_values(Data* const &data_pt);
     double temporal_error_in_value(Data* const &data_pt, const unsigned &i);
 
+    double Fudge_factor;
 
   private:
 
@@ -264,7 +266,7 @@ namespace oomph
         double dt_n = time_pt()->dt(); //??ds is this right?
         double a_n = dt_n*dy_tnph + y_n - y_np1_MP;
 
-        return 4*(y_np1_MP - y_np1_pred) + 5*a_n;
+        return (4*(y_np1_MP - y_np1_pred) + 5*a_n) * Fudge_factor;
       }
     else return 0.0;
   }
