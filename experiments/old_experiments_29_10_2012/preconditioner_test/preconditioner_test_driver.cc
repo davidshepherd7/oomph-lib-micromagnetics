@@ -380,7 +380,7 @@ build_dof_to_block_map(const bool combine_m_directions,
      std::ostringstream error_msg;
      error_msg << "Dof number " << j << " was not assigned in the dof to block map.";
      throw OomphLibError(error_msg.str(),
-                         "ThreeDHybridProblem::build_dof_to_block_map",
+                         OOMPH_CURRENT_FUNCTION,
                          OOMPH_EXCEPTION_LOCATION);
     }
   }
@@ -773,7 +773,8 @@ int main(int argc, char* argv[])
 
  // /// Check problem
  // if(!(problem.self_test()==0))
- //   throw OomphLibError("Problem self_test failed","main",
+ //   throw OomphLibError("Problem self_test failed",
+ // OOMPH_CURRENT_FUNCTION,
  //                       OOMPH_EXCEPTION_LOCATION);
 
  std::cout << "constructor done, everything ready" << "\n" << std::endl;

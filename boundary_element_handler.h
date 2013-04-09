@@ -51,7 +51,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "No nodes in mesh.";
           throw OomphLibError(error_msg.str(),
-                              "CornerAngleList::set_up_rectangular_corners",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -80,7 +80,7 @@ namespace oomph
                         << "means something has gone wrong, maybe you passed "
                         << "in the bulk mesh?";
               throw OomphLibError(error_msg.str(),
-                                  "CornerAngleList::set_up_rectangular_corners",
+                                  OOMPH_CURRENT_FUNCTION,
                                   OOMPH_EXCEPTION_LOCATION);
             }
 #endif
@@ -125,7 +125,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Corner list has not been set up.";
           throw OomphLibError(error_msg.str(),
-                              "CornerAngleList::add_corner_contributions",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -135,7 +135,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Corners list is the wrong size for the matrix.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -193,7 +193,7 @@ namespace oomph
       std::ostringstream error_msg;
       error_msg << "Failed to find node at " << x;
       throw OomphLibError(error_msg.str(),
-                          "",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
       return 0;
     }
@@ -458,7 +458,7 @@ namespace oomph
         std::ostringstream error_msg;
         error_msg << "List of the sharp corners of the mesh has not been set up.";
         throw OomphLibError(error_msg.str(),
-                            "BoundaryElementHandler::build_bem_mesh",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -471,7 +471,7 @@ namespace oomph
             std::ostringstream error_msg;
             error_msg << "Wrong mesh pointers in elements.";
             throw OomphLibError(error_msg.str(),
-                                "BoundaryElementHandler::build_bem_mesh",
+                                OOMPH_CURRENT_FUNCTION,
                                 OOMPH_EXCEPTION_LOCATION);
           }
       }

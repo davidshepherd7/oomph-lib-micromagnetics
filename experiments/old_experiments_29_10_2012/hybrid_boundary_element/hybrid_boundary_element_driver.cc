@@ -29,7 +29,7 @@ namespace oomph
     /// one Lagrangian coordinate. Arguments: height at ends, x-coordinate of
     /// left end and length.
     NonOscillatingWall(const double& h, const double& x_left, const double& l,
-		       const double &a) :
+                       const double &a) :
       GeomObject(1,2), H(h), Length(l), X_left(x_left), A(a), B(0.0)
     {}
 
@@ -39,7 +39,7 @@ namespace oomph
     /// \short Position vector at Lagrangian coordinate zeta
     /// at time level t.
     void position(const unsigned& t, const Vector<double>&zeta,
-		  Vector<double>& r) const
+                  Vector<double>& r) const
     {
       using namespace MathematicalConstants;
       // Position vector
@@ -72,8 +72,8 @@ namespace oomph
   /// A problem class to test the hybrid BEM/FEM.
   //========================================================================
   template<class BULK_ELEMENT,
-	   template<class BULK_ELEMENT,unsigned DIM> class FACE_ELEMENT,
-	   unsigned DIM>
+           template<class BULK_ELEMENT,unsigned DIM> class FACE_ELEMENT,
+           unsigned DIM>
   class TwoDBEMTest : public Problem
   {
 
@@ -188,8 +188,8 @@ TwoDBEMTest(const unsigned& n_x, const unsigned& n_y)
     double lup = x_left, ldown = height/3, lcollapsible = length, ly = height;
     mesh_pt() = new
       CollapsibleChannelMesh<BULK_ELEMENT>(nup, ncollapsible, ndown, n_y,
-					   lup, lcollapsible, ldown, ly,
-					   Wall_pt, time_stepper_pt());
+                                           lup, lcollapsible, ldown, ly,
+                                           Wall_pt, time_stepper_pt());
   }
 
   // Create face elements on all boundaries and add to face mesh, create point
@@ -205,7 +205,7 @@ TwoDBEMTest(const unsigned& n_x, const unsigned& n_y)
     {
       // Upcast from GeneralisedElement to the face element
       FACE_ELEMENT<BULK_ELEMENT,DIM>* elem_pt =
-	dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
+        dynamic_cast<FACE_ELEMENT<BULK_ELEMENT,DIM> *>(face_mesh_pt()->element_pt(i));
 
       // Set boundary mesh pointer in element
       elem_pt->set_boundary_mesh_pt(face_mesh_pt());
@@ -235,7 +235,7 @@ doc_solution(DocInfo& doc_info)
 
   // Output solution
   sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-	  doc_info.number());
+          doc_info.number());
   some_file.open(filename);
   mesh_pt()->output(some_file,npts);
   some_file.close();
@@ -243,7 +243,7 @@ doc_solution(DocInfo& doc_info)
   // // Output exact solution
   // //----------------------
   // sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-  // 	    doc_info.number());
+  //        doc_info.number());
   // some_file.open(filename);
   // mesh_pt()->output_fct(some_file,npts,TanhSolnForPoisson::get_exact_u);
   // some_file.close();
@@ -268,10 +268,10 @@ convert_global_to_boundary_equation_number(const unsigned &global_num)
     {
       std::ostringstream error_stream;
       error_stream << "Global equation number " << global_num
-		   << " is not in the global to boundary map.";
+                   << " is not in the global to boundary map.";
       throw OomphLibError(error_stream.str(),
-			  "TwoDBEMTest::convert_global_to_boundary_equation_number",
-			  OOMPH_EXCEPTION_LOCATION);
+                          OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
     }
 #endif
   return ((*Global_boundary_equation_num_map.find(global_num)).second);
@@ -296,20 +296,20 @@ build_face_mesh(Mesh* face_mesh_pt, Mesh* corner_mesh_pt) const
       //Loop over the boundary nodes on boundary b making a set of nodes
       unsigned n_bound_node = mesh_pt()->nboundary_node(b);
       for(unsigned n=0;n<n_bound_node;n++)
-	node_set.insert(mesh_pt()->boundary_node_pt(b,n));
+        node_set.insert(mesh_pt()->boundary_node_pt(b,n));
 
       //Loop over the elements on boundary b creating face elements
       unsigned n_bound_element = mesh_pt()->nboundary_element(b);
       for(unsigned e=0;e<n_bound_element;e++)
-	{
-	  //Create the corresponding FaceElement
-	  FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
-	    (mesh_pt()->boundary_element_pt(b,e),
-	     mesh_pt()->face_index_at_boundary(b,e));
+        {
+          //Create the corresponding FaceElement
+          FACE_ELEMENT<BULK_ELEMENT,DIM>* face_element_pt = new FACE_ELEMENT<BULK_ELEMENT,DIM>
+            (mesh_pt()->boundary_element_pt(b,e),
+             mesh_pt()->face_index_at_boundary(b,e));
 
-	  //Add the face element to the face mesh
-	  face_mesh_pt->add_element_pt(face_element_pt);
-	}
+          //Add the face element to the face mesh
+          face_mesh_pt->add_element_pt(face_element_pt);
+        }
 
       // Add the first and last nodes on boundary b to the corner set
       corner_node_set.insert(mesh_pt()->boundary_node_pt(b,0));
@@ -345,7 +345,7 @@ create_global_boundary_equation_number_map()
     {
       // Get global equation number for phi
       unsigned global_eqn_number = this->face_mesh_pt()->
-	node_pt(i_node)->eqn_number(0);
+        node_pt(i_node)->eqn_number(0);
 
       // Set up the pair ready to input with key="global equation number" and
       // value ="boundary equation number"=k.
@@ -353,7 +353,7 @@ create_global_boundary_equation_number_map()
 
       // Add entry to map and store whether this was a new addition
       bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
-			   ).second;
+                           ).second;
 
       // Increment k if this was a new addition to the map
       if(new_addition) k++;
@@ -381,7 +381,7 @@ get_boundary_matrix()
     {
       // Get the pointer to the element (and cast to FiniteElement)
       FiniteElement* elem_pt =
-	dynamic_cast < FiniteElement* > (face_mesh_pt()->element_pt(e));
+        dynamic_cast < FiniteElement* > (face_mesh_pt()->element_pt(e));
 
       // Find number of nodes in the element
       unsigned long n_element_node = elem_pt->nnode();
@@ -392,29 +392,29 @@ get_boundary_matrix()
 
       // Fill the matrix
       assembly_handler_pt()
-	->get_jacobian(elem_pt,dummy,element_boundary_matrix);
+        ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
 
       // Loop over the nodes in this element
       for(unsigned l=0;l<n_element_node;l++)
-	{
-	  // Get the boundary equation (=node) number from the global one
-	  unsigned l_number =
-	    this->convert_global_to_boundary_equation_number
-	    (elem_pt->node_pt(l)->eqn_number(0));
+        {
+          // Get the boundary equation (=node) number from the global one
+          unsigned l_number =
+            this->convert_global_to_boundary_equation_number
+            (elem_pt->node_pt(l)->eqn_number(0));
 
-	  //std::cout << "target node = " << l << std::endl;
+          //std::cout << "target node = " << l << std::endl;
 
-	  // Loop over all nodes in the mesh and add contributions from this element
-	  for(unsigned long source_node=0; source_node<n_node; source_node++)
-	    {
-	      unsigned source_number =
-		this->convert_global_to_boundary_equation_number
-		(face_mesh_pt()->node_pt(source_node)->eqn_number(0));
+          // Loop over all nodes in the mesh and add contributions from this element
+          for(unsigned long source_node=0; source_node<n_node; source_node++)
+            {
+              unsigned source_number =
+                this->convert_global_to_boundary_equation_number
+                (face_mesh_pt()->node_pt(source_node)->eqn_number(0));
 
-	      Boundary_matrix(l_number,source_number)
-		+= element_boundary_matrix(l,source_node);
-	    }
-	}
+              Boundary_matrix(l_number,source_number)
+                += element_boundary_matrix(l,source_node);
+            }
+        }
     }
 
   // // Loop over all the corner elements and get contributions from the angles
@@ -455,27 +455,27 @@ update_boundary_phi()
 
       // Get boundary equation number for this target node
       unsigned target_number = convert_global_to_boundary_equation_number
-	(target_node_pt->eqn_number(0));
+        (target_node_pt->eqn_number(0));
 
       // Double to store the value of phi during computation
       double target_phi_value = 0;
 
       // Loop over all source nodes adding contribution from each
       for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
-	{
-	  // Get a pointer to the source node
-	  Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
+        {
+          // Get a pointer to the source node
+          Node* source_node_pt = face_mesh_pt()->node_pt(source_node);
 
-	  // Get boundary equation number for this source node
-	  unsigned source_number = convert_global_to_boundary_equation_number
-	    (source_node_pt->eqn_number(0));
+          // Get boundary equation number for this source node
+          unsigned source_number = convert_global_to_boundary_equation_number
+            (source_node_pt->eqn_number(0));
 
-	  // Add the contribution to phi at the target node due to
-	  // the source node (relationship is given by the boundary matrix).
-	  //??ds check consistency of boundary matrix numbering
-	  target_phi_value += Boundary_matrix(target_number,source_number)
-	    * source_node_pt->value(0); //??ds replace this with actual phi_1_index
-	}
+          // Add the contribution to phi at the target node due to
+          // the source node (relationship is given by the boundary matrix).
+          //??ds check consistency of boundary matrix numbering
+          target_phi_value += Boundary_matrix(target_number,source_number)
+            * source_node_pt->value(0); //??ds replace this with actual phi_1_index
+        }
       // Save the total into the target node
       target_node_pt->set_value(phi_index,target_phi_value);
     }
@@ -540,7 +540,7 @@ int main(int argc, char* argv[])
   for(unsigned i=0; i<n_element; i++)
     {
       FiniteElement* finite_element_pt =
-	dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
+        dynamic_cast<FiniteElement*>(problem.face_mesh_pt()->element_pt(i));
       finite_element_pt->set_integration_scheme(&quadrature_scheme);
     }
 
@@ -578,8 +578,8 @@ int main(int argc, char* argv[])
   for(unsigned nd=0; nd<n_nd; nd++)
     {
       mesh_plot << problem.face_mesh_pt()->node_pt(nd)->x(0) << " "
-		<< problem.face_mesh_pt()->node_pt(nd)->x(1) << " "
-		<< (*bm_pt)(int_nd,nd) << std::endl;
+                << problem.face_mesh_pt()->node_pt(nd)->x(1) << " "
+                << (*bm_pt)(int_nd,nd) << std::endl;
     }
   mesh_plot.close();
 
@@ -587,8 +587,8 @@ int main(int argc, char* argv[])
   std::ofstream int_nd_stream;
   int_nd_stream.open("results/interaction_node");
   int_nd_stream << problem.face_mesh_pt()->node_pt(int_nd)->x(0) << " "
-		<< problem.face_mesh_pt()->node_pt(int_nd)->x(1) << " "
-		<< (*bm_pt)(int_nd,int_nd) << std::endl;
+                << problem.face_mesh_pt()->node_pt(int_nd)->x(1) << " "
+                << (*bm_pt)(int_nd,int_nd) << std::endl;
   int_nd_stream.close();
 
   return 0;

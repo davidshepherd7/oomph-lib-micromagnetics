@@ -65,7 +65,7 @@ namespace oomph
 #ifdef PARANOID
       if(k>=3)
         throw OomphLibError("M only has 3 indices",
-                            "MicromagEquations::m_index_micromag",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
 #endif
       return 2 + k; // equations 2,3,4
@@ -835,7 +835,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Magnetics element pointer not set.";
           throw OomphLibError(error_msg.str(),
-                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -845,7 +845,7 @@ namespace oomph
           error_msg << "Elements must be the same geometry for this to "
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -855,7 +855,7 @@ namespace oomph
           error_msg << "Elements must be the same geometry for this to "
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -865,7 +865,7 @@ namespace oomph
           error_msg << "Elements must have the same integration scheme for this to"
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "MagnetostaticFieldEquations::get_source_poisson",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -880,7 +880,7 @@ namespace oomph
                   std::ostringstream error_msg;
                   error_msg << "Mismatch in positions.";
                   throw OomphLibError(error_msg.str(),
-                                      "",
+                                      OOMPH_CURRENT_FUNCTION,
                                       OOMPH_EXCEPTION_LOCATION);
                 }
             }
@@ -1061,7 +1061,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Magnetics element pointer not set.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -1071,7 +1071,7 @@ namespace oomph
           error_msg << "Elements must be the same geometry for this to "
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -1081,7 +1081,7 @@ namespace oomph
           error_msg << "Elements must be the same geometry for this to "
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -1091,7 +1091,7 @@ namespace oomph
           error_msg << "Elements must have the same integration scheme for this to"
                     << "work... sorry for the hackyness. Maybe you can fix it.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -1236,7 +1236,7 @@ namespace oomph
               std::ostringstream error_msg;
               error_msg << "Failed dynamic cast.";
               throw OomphLibError(error_msg.str(),
-                                  "fill_in_face_element_contribution_to_jacobian",
+                                  OOMPH_CURRENT_FUNCTION,
                                   OOMPH_EXCEPTION_LOCATION);
             }
 #endif

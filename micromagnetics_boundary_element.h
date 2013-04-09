@@ -40,7 +40,7 @@ namespace oomph
     MicromagFaceElement()
     {
       throw OomphLibError("Don't call empty constructor for MicromagFaceElement",
-                          "MicromagFaceElement::MicromagFaceElement()",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 
@@ -85,7 +85,7 @@ namespace oomph
     //   if (pt == 0)
     //     {
     //       throw OomphLibError("Failed to cast pointer",
-    //                           "",
+    OOMPH_CURRENT_FUNCTION,
     //                           OOMPH_EXCEPTION_LOCATION);
     //     }
     //   return pt;
@@ -389,14 +389,14 @@ namespace oomph
                         std::ostringstream error_msg;
                         error_msg << "Singular Jacobian!";
                         throw OomphLibError(error_msg.str(),
-                                            "", OOMPH_EXCEPTION_LOCATION);
+                                            OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
                       }
                     if(J < 0.0)
                       {
                         std::ostringstream error_msg;
                         error_msg << "Inverted Jacobian!";
                         throw OomphLibError(error_msg.str(),
-                                            "", OOMPH_EXCEPTION_LOCATION);
+                                            OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
                       }
 #endif
 
@@ -529,7 +529,7 @@ namespace oomph
     if(std::abs(two_norm(n) - 1.0) > 1e-10)
       {
         throw OomphLibError("n is not a unit vector",
-                            "MicromagFaceElement::green_normal_derivative",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 #endif
@@ -764,7 +764,7 @@ namespace oomph
         std::ostringstream err;
         err << "Analytic calculation of boundary matrix only works in 3D.";
         throw OomphLibError(err.str(),
-                            "MicromagFaceElement::fill_in_be_contribution_analytic",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -774,7 +774,7 @@ namespace oomph
         err << "Analytic calculation of boundary matrix only "
             << "works for linear (i.e. nnode_1d = 2) elements.";
         throw OomphLibError(err.str(),
-                            "MicromagFaceElement::fill_in_be_contribution_analytic",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 

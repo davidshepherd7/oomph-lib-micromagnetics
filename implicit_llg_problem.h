@@ -96,7 +96,7 @@ namespace oomph
                     << "field pointers must be set "
                     << "before calling build().";
           throw OomphLibError(error_msg.str(),
-                              "ImplicitLLGProblem::build()",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -550,7 +550,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Surface exchange mesh pointer not set.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif

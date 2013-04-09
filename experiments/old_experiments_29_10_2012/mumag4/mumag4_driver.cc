@@ -359,7 +359,8 @@ int main(int argc, char* argv[])
 
  /// Check problem
  if(!(problem.self_test()==0))
-  throw OomphLibError("Problem self_test failed","main",
+  throw OomphLibError("Problem self_test failed",
+                      OOMPH_CURRENT_FUNCTION,
                       OOMPH_EXCEPTION_LOCATION);
 
  std::cout << "constructor done, everything ready" << "\n" << std::endl;

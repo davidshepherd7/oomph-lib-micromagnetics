@@ -33,7 +33,7 @@ namespace Inputs
   }
 
   void cryst_anis_field(const double& t, const Vector<double>& x,
-			const Vector<double>& M, Vector<double>& h_ca)
+                        const Vector<double>& M, Vector<double>& h_ca)
   {
     h_ca.assign(3,0.0);
     // Vector<double> Easy_axis(3,0.0); Easy_axis[0] = 1.0;
@@ -43,7 +43,7 @@ namespace Inputs
   }
 
   void initial_m(const double& t, const Vector<double>& x,
-		 Vector<double>& m)
+                 Vector<double>& m)
   {
     m.assign(3,0.0);
     m[0] = -1;
@@ -60,8 +60,8 @@ namespace oomph
   /// magnetostatic fields and the LLG equations for micromagnetics.
   //======================================================================
   template<class BULK_ELEMENT,
-	   template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,
-	   unsigned DIM>
+           template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,
+           unsigned DIM>
   class ThreeDHybridProblem : public Problem
   {
 
@@ -117,9 +117,9 @@ namespace oomph
     {
       bool temp(1);
       for(unsigned i=0; i<DIM; i++)
-	{
-	  temp = temp && ( (x[i] == 0) || (x[i] == 1) );
-	}
+        {
+          temp = temp && ( (x[i] == 0) || (x[i] == 1) );
+        }
       return temp;
     }
 
@@ -186,31 +186,31 @@ namespace oomph
     // Loop over elements in bulk mesh to set function pointers
     for(unsigned i=0; i<n_bulk_element(); i++)
       {
-	// Upcast from GeneralisedElement to the present element
-	BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
+        // Upcast from GeneralisedElement to the present element
+        BULK_ELEMENT* elem_pt = dynamic_cast<BULK_ELEMENT*>(mesh_pt()->element_pt(i));
 
-	// Set pointer to continuous time
-	elem_pt->time_pt() = time_pt();
+        // Set pointer to continuous time
+        elem_pt->time_pt() = time_pt();
 
-	// Set the function pointers for parameters
-	//??ds fix this to use proper encapsulation asap
-	elem_pt->applied_field_pt() = &Inputs::applied_field;
-	elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
-	elem_pt->sat_mag_pt() = &Inputs::sat_mag;
-	elem_pt->llg_damp_pt() = &Inputs::llg_damping;
-	elem_pt->llg_precess_pt() = &Inputs::llg_precession;
-	elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
+        // Set the function pointers for parameters
+        //??ds fix this to use proper encapsulation asap
+        elem_pt->applied_field_pt() = &Inputs::applied_field;
+        elem_pt->cryst_anis_field_pt() = &Inputs::cryst_anis_field;
+        elem_pt->sat_mag_pt() = &Inputs::sat_mag;
+        elem_pt->llg_damp_pt() = &Inputs::llg_damping;
+        elem_pt->llg_precess_pt() = &Inputs::llg_precession;
+        elem_pt->exchange_coeff_pt() = &Inputs::exchange_coeff;
       }
 
     // Pin the values of phi on the boundary nodes (since it is a Dirichlet
     // boundary set from the balue of phi_1 and the boundary matrix).
     for(unsigned b=0; b<mesh_pt()->nboundary(); b++)
       {
-	for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
-	  {
-	    mesh_pt()->boundary_node_pt(b,nd)->
-	      pin(some_el_pt->phi_index_micromag());
-	  }
+        for(unsigned nd=0; nd < mesh_pt()->nboundary_node(b); nd++)
+          {
+            mesh_pt()->boundary_node_pt(b,nd)->
+              pin(some_el_pt->phi_index_micromag());
+          }
       }
 
 
@@ -221,7 +221,7 @@ namespace oomph
     // create the face elements needed.
     for(unsigned b=0; b < mesh_pt()->nboundary(); b++)
       {
-	create_flux_elements(b);
+        create_flux_elements(b);
       }
 
     // Setup equation numbering scheme for all the finite elements
@@ -242,15 +242,15 @@ namespace oomph
     unsigned n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned i=0;i<n_bem_element;i++)
       {
-	// Upcast from GeneralisedElement to the bem element
-	BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
-	  dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
+        // Upcast from GeneralisedElement to the bem element
+        BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_elem_pt =
+          dynamic_cast<BEM_ELEMENT<BULK_ELEMENT,DIM> *>(bem_mesh_pt()->element_pt(i));
 
-	// Set boundary mesh pointer in element
-	bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
+        // Set boundary mesh pointer in element
+        bem_elem_pt->set_boundary_mesh_pt(bem_mesh_pt());
 
-	// Set the integration scheme pointer in element
-	bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
+        // Set the integration scheme pointer in element
+        bem_elem_pt->set_integration_scheme(bem_quadrature_scheme_pt);
       }
 
     // Make the boundary matrix (including setting up the numbering scheme)
@@ -272,19 +272,19 @@ namespace oomph
     // Loop over the bulk elements adjacent to boundary b
     for(unsigned e=0;e<n_element;e++)
       {
-	// Get pointer to the bulk element that is adjacent to boundary b
-	BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>
-	  (mesh_pt()->boundary_element_pt(b,e));
+        // Get pointer to the bulk element that is adjacent to boundary b
+        BULK_ELEMENT* bulk_elem_pt = dynamic_cast<BULK_ELEMENT*>
+          (mesh_pt()->boundary_element_pt(b,e));
 
-	// What is the index of the face of the bulk element at the boundary
-	int face_index = mesh_pt()->face_index_at_boundary(b,e);
+        // What is the index of the face of the bulk element at the boundary
+        int face_index = mesh_pt()->face_index_at_boundary(b,e);
 
-	// Build the corresponding prescribed-flux element
-	MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
-	  new MicromagFluxElement<BULK_ELEMENT>(bulk_elem_pt,face_index);
+        // Build the corresponding prescribed-flux element
+        MicromagFluxElement<BULK_ELEMENT>* flux_element_pt =
+          new MicromagFluxElement<BULK_ELEMENT>(bulk_elem_pt,face_index);
 
-	// Add the prescribed-flux element to the mesh
-	mesh_pt()->add_element_pt(flux_element_pt);
+        // Add the prescribed-flux element to the mesh
+        mesh_pt()->add_element_pt(flux_element_pt);
 
       } // End of loop over bulk elements adjacent to boundary b
   }
@@ -303,7 +303,7 @@ namespace oomph
     std::ofstream some_file;
     char filename[100];
     sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-	    doc_info.number());
+            doc_info.number());
 
     // Output
     some_file.open(filename);
@@ -330,12 +330,12 @@ namespace oomph
     // not in the map, so return an error.
     if(it == Global_boundary_equation_num_map.end())
       {
-	std::ostringstream error_stream;
-	error_stream << "Global equation number " << global_num
-		     << " is not in the global to boundary map.";
-	throw OomphLibError(error_stream.str(),
-			    "ThreeDHybridProblem::convert_global_to_boundary_equation_number",
-			    OOMPH_EXCEPTION_LOCATION);
+        std::ostringstream error_stream;
+        error_stream << "Global equation number " << global_num
+                     << " is not in the global to boundary map.";
+        throw OomphLibError(error_stream.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
       }
 
     //??ds I should use something other than just "equation number 1" for my
@@ -343,9 +343,9 @@ namespace oomph
     //consistent and unique to each node. Problems could occur if equation number 1
     //ever has pinned values...
     if(global_num < 0)
-      throw OomphLibError("Pinned equation in equation no one, use a different eq num?",
-			  "ThreeDHybridProblem::convert_global_to_boundary_equation_number",
-			  OOMPH_EXCEPTION_LOCATION);
+      throw OomphLibError("Pinned equation in equation no one"
+                          OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
 #endif
     return ((*Global_boundary_equation_num_map.find(global_num)).second);
   }
@@ -367,23 +367,23 @@ namespace oomph
     unsigned n_boundary = mesh_pt()->nboundary();
     for(unsigned b=0; b<n_boundary; b++)
       {
-	// Loop over the boundary nodes on boundary b making a set of nodes
-	unsigned n_bound_node = mesh_pt()->nboundary_node(b);
-	for(unsigned n=0;n<n_bound_node;n++)
-	  node_set.insert(mesh_pt()->boundary_node_pt(b,n));
+        // Loop over the boundary nodes on boundary b making a set of nodes
+        unsigned n_bound_node = mesh_pt()->nboundary_node(b);
+        for(unsigned n=0;n<n_bound_node;n++)
+          node_set.insert(mesh_pt()->boundary_node_pt(b,n));
 
-	// Loop over the elements on boundary b creating bem elements
-	unsigned n_bound_element = mesh_pt()->nboundary_element(b);
-	for(unsigned e=0;e<n_bound_element;e++)
-	  {
-	    // Create the corresponding BEM Element
-	    BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_element_pt = new BEM_ELEMENT<BULK_ELEMENT,DIM>
-	      (mesh_pt()->boundary_element_pt(b,e),
-	       mesh_pt()->face_index_at_boundary(b,e));
+        // Loop over the elements on boundary b creating bem elements
+        unsigned n_bound_element = mesh_pt()->nboundary_element(b);
+        for(unsigned e=0;e<n_bound_element;e++)
+          {
+            // Create the corresponding BEM Element
+            BEM_ELEMENT<BULK_ELEMENT,DIM>* bem_element_pt = new BEM_ELEMENT<BULK_ELEMENT,DIM>
+              (mesh_pt()->boundary_element_pt(b,e),
+               mesh_pt()->face_index_at_boundary(b,e));
 
-	    // Add the BEM element to the BEM mesh
-	    bem_mesh_pt->add_element_pt(bem_element_pt);
-	  }
+            // Add the BEM element to the BEM mesh
+            bem_mesh_pt->add_element_pt(bem_element_pt);
+          }
       }
 
     // Iterate over all nodes in the set and add them to the BEM mesh
@@ -407,20 +407,20 @@ namespace oomph
     unsigned n_boundary_node = this->bem_mesh_pt()->nnode(), k=0;
     for(unsigned i_node=0; i_node<n_boundary_node; i_node++)
       {
-	// Get global equation number for phi
-	unsigned global_eqn_number = this->bem_mesh_pt()->
-	  node_pt(i_node)->eqn_number(1);
+        // Get global equation number for phi
+        unsigned global_eqn_number = this->bem_mesh_pt()->
+          node_pt(i_node)->eqn_number(1);
 
-	// Set up the pair ready to input with key="global equation number" and
-	// value ="boundary equation number"=k.
-	std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
+        // Set up the pair ready to input with key="global equation number" and
+        // value ="boundary equation number"=k.
+        std::pair<unsigned,unsigned> input_pair = std::make_pair(global_eqn_number,k);
 
-	// Add entry to map and store whether this was a new addition
-	bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
-			     ).second;
+        // Add entry to map and store whether this was a new addition
+        bool new_addition = (Global_boundary_equation_num_map.insert(input_pair)
+                             ).second;
 
-	// Increment k if this was a new addition to the map
-	if(new_addition) k++;
+        // Increment k if this was a new addition to the map
+        if(new_addition) k++;
       }
 
     // std::cout << Global_boundary_equation_num_map << std::endl;
@@ -447,70 +447,70 @@ namespace oomph
     unsigned long n_bem_element = bem_mesh_pt()->nelement();
     for(unsigned long e=0;e<n_bem_element;e++)
       {
-	// Get the pointer to the element (and cast to FiniteElement)
-	FiniteElement* elem_pt =
-	  dynamic_cast < FiniteElement* > (bem_mesh_pt()->element_pt(e));
+        // Get the pointer to the element (and cast to FiniteElement)
+        FiniteElement* elem_pt =
+          dynamic_cast < FiniteElement* > (bem_mesh_pt()->element_pt(e));
 
-	// Find number of nodes in the element
-	unsigned long n_element_node = elem_pt->nnode();
+        // Find number of nodes in the element
+        unsigned long n_element_node = elem_pt->nnode();
 
-	// Set up a matrix and dummy residual vector
-	DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
-	Vector<double> dummy;
+        // Set up a matrix and dummy residual vector
+        DenseMatrix<double> element_boundary_matrix(n_element_node,n_node);
+        Vector<double> dummy;
 
-	// Fill the matrix
-	assembly_handler_pt()
-	  ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
+        // Fill the matrix
+        assembly_handler_pt()
+          ->get_jacobian(elem_pt,dummy,element_boundary_matrix);
 
-	// Loop over the nodes in this element (to copy results into final matrix)
-	for(unsigned l=0;l<n_element_node;l++)
-	  {
-	    // Get the boundary equation (=node) number from the global one
-	    unsigned l_number =
-	      this->convert_global_to_boundary_equation_number
-	      (elem_pt->node_pt(l)->eqn_number(1));
+        // Loop over the nodes in this element (to copy results into final matrix)
+        for(unsigned l=0;l<n_element_node;l++)
+          {
+            // Get the boundary equation (=node) number from the global one
+            unsigned l_number =
+              this->convert_global_to_boundary_equation_number
+              (elem_pt->node_pt(l)->eqn_number(1));
 
-	    // Loop over all nodes in the mesh and add contributions from this element
-	    for(unsigned long source_node=0; source_node<n_node; source_node++)
-	      {
-		unsigned source_number =
-		  this->convert_global_to_boundary_equation_number
-		  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
+            // Loop over all nodes in the mesh and add contributions from this element
+            for(unsigned long source_node=0; source_node<n_node; source_node++)
+              {
+                unsigned source_number =
+                  this->convert_global_to_boundary_equation_number
+                  (bem_mesh_pt()->node_pt(source_node)->eqn_number(1));
 
-		// std::cout <<l_number << " " << source_number << std::endl;
+                // std::cout <<l_number << " " << source_number << std::endl;
 
-		Boundary_matrix(l_number,source_number)
-		  += element_boundary_matrix(l,source_node);
-	      }
-	  }
+                Boundary_matrix(l_number,source_number)
+                  += element_boundary_matrix(l,source_node);
+              }
+          }
       }
 
     // Loop over the matrix diagonals adding the angle factor.
     for(unsigned long nd = 0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-    	Boundary_matrix(nd,nd) += 0.5;
+        Boundary_matrix(nd,nd) += 0.5;
       }
 
     // Correct this on corner nodes - ??ds this is a horrible hack...
     std::cout << "Assumed that sharp corners are at:" << std::endl;
     for(unsigned nd=0; nd < bem_mesh_pt()->nnode(); nd++)
       {
-    	// Get location
-    	Vector<double> x(DIM,0.0);
-    	bem_mesh_pt()->node_pt(nd)->position(x);
+        // Get location
+        Vector<double> x(DIM,0.0);
+        bem_mesh_pt()->node_pt(nd)->position(x);
 
-    	if(corner(x))
-    	  {
-    	    // Get the equation number
-    	    unsigned l = convert_global_to_boundary_equation_number
-    	      (bem_mesh_pt()->node_pt(nd)->eqn_number(1));
+        if(corner(x))
+          {
+            // Get the equation number
+            unsigned l = convert_global_to_boundary_equation_number
+              (bem_mesh_pt()->node_pt(nd)->eqn_number(1));
 
-    	    // Output location
-    	    std::cout << x << std::endl;
+            // Output location
+            std::cout << x << std::endl;
 
-    	    // Square mesh: on corners fractional angle is 1/4 instead of 1/2
-    	    Boundary_matrix(l,l) += 0.25 - 0.5;
-    	  }
+            // Square mesh: on corners fractional angle is 1/4 instead of 1/2
+            Boundary_matrix(l,l) += 0.25 - 0.5;
+          }
       }
 
   }
@@ -532,34 +532,34 @@ namespace oomph
     unsigned n_boundary_node = bem_mesh_pt()->nnode();
     for(unsigned target_node=0; target_node<n_boundary_node; target_node++)
       {
-    	// Get a pointer to the target node
-    	Node* target_node_pt = bem_mesh_pt()->node_pt(target_node);
+        // Get a pointer to the target node
+        Node* target_node_pt = bem_mesh_pt()->node_pt(target_node);
 
-    	// Get boundary equation number for this target node
-    	unsigned target_number = convert_global_to_boundary_equation_number
-    	  (target_node_pt->eqn_number(1));
+        // Get boundary equation number for this target node
+        unsigned target_number = convert_global_to_boundary_equation_number
+          (target_node_pt->eqn_number(1));
 
-    	// Double to store the value of total phi during computation
-    	double target_phi_value = 0;
+        // Double to store the value of total phi during computation
+        double target_phi_value = 0;
 
-    	// Loop over all source nodes adding contribution from each
-    	for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
-    	  {
-    	    // Get a pointer to the source node
-    	    Node* source_node_pt = bem_mesh_pt()->node_pt(source_node);
+        // Loop over all source nodes adding contribution from each
+        for(unsigned source_node=0; source_node<n_boundary_node; source_node++)
+          {
+            // Get a pointer to the source node
+            Node* source_node_pt = bem_mesh_pt()->node_pt(source_node);
 
-    	    // Get boundary equation number for this source node
-    	    unsigned source_number = convert_global_to_boundary_equation_number
-    	      (source_node_pt->eqn_number(1));
+            // Get boundary equation number for this source node
+            unsigned source_number = convert_global_to_boundary_equation_number
+              (source_node_pt->eqn_number(1));
 
-    	    // Add the contribution to total phi at the target node due to
-    	    // the source node (relationship is given by the boundary matrix).
-    	    //??ds check consistency of boundary matrix numbering
-    	    target_phi_value += Boundary_matrix(target_number,source_number)
-    	      * source_node_pt->value(phi_1_index);
-    	  }
-    	// Save the total into the target node
-    	target_node_pt->set_value(phi_index,target_phi_value);
+            // Add the contribution to total phi at the target node due to
+            // the source node (relationship is given by the boundary matrix).
+            //??ds check consistency of boundary matrix numbering
+            target_phi_value += Boundary_matrix(target_number,source_number)
+              * source_node_pt->value(phi_1_index);
+          }
+        // Save the total into the target node
+        target_node_pt->set_value(phi_index,target_phi_value);
       }
   }
 
@@ -593,29 +593,29 @@ namespace oomph
     Vector<double> prev_time(nprev_steps+1);
     for (int t=nprev_steps;t>=0;t--)
       {
-	prev_time[t]=time_pt()->time(t);
+        prev_time[t]=time_pt()->time(t);
       }
 
     // Loop over current & previous timesteps
     for (int t=nprev_steps;t>=0;t--)
       {
-	// Continuous time
-	double time = prev_time[t];
-	std::cout << "setting IC at time =" << time << std::endl;
+        // Continuous time
+        double time = prev_time[t];
+        std::cout << "setting IC at time =" << time << std::endl;
 
-	// Loop over the nodes to set initial values everywhere
-	for (unsigned n=0;n<num_nod;n++)
-	  {
-	    // Get initial value of m from inputs
-	    //??ds encapsulate properly
-	    Vector<double> m(3,0.0), x(DIM,0.0);
-	    mesh_pt()->node_pt(n)->position(t,x);
-	    Inputs::initial_m(time,x,m);
+        // Loop over the nodes to set initial values everywhere
+        for (unsigned n=0;n<num_nod;n++)
+          {
+            // Get initial value of m from inputs
+            //??ds encapsulate properly
+            Vector<double> m(3,0.0), x(DIM,0.0);
+            mesh_pt()->node_pt(n)->position(t,x);
+            Inputs::initial_m(time,x,m);
 
-	    // Set initial condition on m
-	    for(unsigned i=0; i<3; i++)
-	      mesh_pt()->node_pt(n)->set_value(t,m_index_micromag[i],m[i]);
-	  }
+            // Set initial condition on m
+            for(unsigned i=0; i<3; i++)
+              mesh_pt()->node_pt(n)->set_value(t,m_index_micromag[i],m[i]);
+          }
       }
 
     // Reset backed up time for global timestepper
@@ -651,8 +651,9 @@ int main(int argc, char* argv[])
 
   /// Check problem
   if(!(problem.self_test()==0))
-    throw OomphLibError("Problem self_test failed","main",
-			OOMPH_EXCEPTION_LOCATION);
+    throw OomphLibError("Problem self_test failed",
+OOMPH_CURRENT_FUNCTION,
+                        OOMPH_EXCEPTION_LOCATION);
 
   std::cout << "constructor done, everything ready" << "\n" << std::endl;
 

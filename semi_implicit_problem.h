@@ -77,7 +77,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "Mesh nodes must be the same.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -95,7 +95,7 @@ namespace oomph
                   std::ostringstream error_msg;
                   error_msg << "Mesh nodes must be in the same places.";
                   throw OomphLibError(error_msg.str(),
-                                      "",
+                                      OOMPH_CURRENT_FUNCTION,
                                       OOMPH_EXCEPTION_LOCATION);
                 }
             }
@@ -154,14 +154,14 @@ namespace oomph
           else
             {
               throw OomphLibError("Cannot determine element type.",
-                                  "SemiImplicitHybridMicromagneticsProblem::constuctor",
+                                  OOMPH_CURRENT_FUNCTION,
                                   OOMPH_EXCEPTION_LOCATION);
             }
         }
       else
         {
           throw OomphLibError("Cannot determine element type.",
-                              "SemiImplicitHybridMicromagneticsProblem::constuctor",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 

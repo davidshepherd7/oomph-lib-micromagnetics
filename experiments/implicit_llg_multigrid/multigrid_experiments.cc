@@ -256,7 +256,8 @@ int main(int argc, char** argv)
               // amg_pt->AMGEuclidSmoother_drop_tol = 0;
             }
 #else // If no Hypre then give an error
-          throw OomphLibError("Don't have Hypre.","",OOMPH_EXCEPTION_LOCATION);
+          throw OomphLibError("Don't have Hypre.",
+                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
 #endif
         }
       else if(prec == "euclid")
@@ -266,7 +267,8 @@ int main(int argc, char** argv)
           it_solver_pt->preconditioner_pt() = euclid_pt;
           euclid_pt->hypre_method() = HyprePreconditioner::Euclid;
 #else // If no Hypre then give an error
-          throw OomphLibError("Don't have Hypre.","",OOMPH_EXCEPTION_LOCATION);
+          throw OomphLibError("Don't have Hypre.",
+                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
 #endif
         }
       else if(prec == "ilu0")

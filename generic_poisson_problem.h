@@ -169,7 +169,7 @@ namespace oomph
           error_msg << "Source function pointer for this problem "
                     << "has not been set yet.";
           throw OomphLibError(error_msg.str(),
-                              "",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
       return Source_fct_pt;
@@ -185,7 +185,7 @@ namespace oomph
           error_msg << "Already have a bulk mesh for this problem."
                     << "It's probably possible to change it but might be messy...";
           throw OomphLibError(error_msg.str(),
-                              "GenericPoissonProblem::set_bulk_mesh",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -201,7 +201,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "No bulk mesh set for this problem.";
           throw OomphLibError(error_msg.str(),
-                              "GenericPoissonProblem::bulk_mesh_pt",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -217,7 +217,7 @@ namespace oomph
           std::ostringstream error_msg;
           error_msg << "No flux mesh set for this problem.";
           throw OomphLibError(error_msg.str(),
-                              "GenericPoissonProblem::flux_mesh_pt",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -295,7 +295,7 @@ namespace oomph
             error_msg << "Dirichlet function pointer number "
                       << i << " is unassigned.";
             throw OomphLibError(error_msg.str(),
-                                "",
+                                OOMPH_CURRENT_FUNCTION,
                                 OOMPH_EXCEPTION_LOCATION);
           }
       }
@@ -308,7 +308,7 @@ namespace oomph
             error_msg << "Dirichlet vector pointer number "
                       << i << " is unassigned.";
             throw OomphLibError(error_msg.str(),
-                                "",
+                                OOMPH_CURRENT_FUNCTION,
                                 OOMPH_EXCEPTION_LOCATION);
           }
       }
@@ -467,7 +467,7 @@ namespace oomph
     else
       {
         throw OomphLibError("No exact solution set.",
-                            "GenericPoissonProblem::get_error_norm",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
     return sqrt(error);

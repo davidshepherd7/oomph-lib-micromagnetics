@@ -116,7 +116,7 @@ namespace oomph
       std::ostringstream error_msg;
       error_msg << "No non-boundary nodes in the mesh.";
       throw OomphLibError(error_msg.str(),
-                          "HybridMicromagneticsProblem::get_non_boundary_node",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
 
       // Never get here!
@@ -264,12 +264,12 @@ namespace oomph
           // Label with time and Newton step numbers
           std::string label("_" + to_string(debug_doc().timestep())
                             + "_" + to_string(debug_doc().newton_step()));
-          
+
           // Output
           dofs.output(debug_doc().directory() + "/dofs" + label);
-          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac" 
+          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac"
                                          + label);
-          sparse_jacobian.sparse_indexed_output(debug_doc().directory() 
+          sparse_jacobian.sparse_indexed_output(debug_doc().directory()
                                                 + "/dofs" + label);
           residuals.output (debug_doc().directory() + "/dofs" + label);
         }
@@ -432,7 +432,7 @@ finish_building_hybrid_problem()
       std::ostringstream error_msg;
       error_msg << "Magnetic parameters of bulk mesh not set up.";
       throw OomphLibError(error_msg.str(),
-                          "HybridMicromagneticsProblem::build()",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 
@@ -441,7 +441,7 @@ finish_building_hybrid_problem()
       std::ostringstream error_msg;
       error_msg << "Bulk mesh pointer not set up.";
       throw OomphLibError(error_msg.str(),
-                          "HybridMicromagneticsProblem::build()",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 #endif
@@ -581,7 +581,7 @@ overwrite_bem_sparse_block(CRDoubleMatrix* const sparse_jac_pt) const
               error_msg << "Trying to overwrite a value to which something"
                         << " else has (probably) been added.";
               throw OomphLibError(error_msg.str(),
-                                  "HybridMicromagneticsProblem::overwrite_bem_sparse_block",
+                                  OOMPH_CURRENT_FUNCTION,
                                   OOMPH_EXCEPTION_LOCATION);
             }
 #endif

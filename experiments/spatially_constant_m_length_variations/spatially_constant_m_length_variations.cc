@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   if( adaptive_flag && midpoint_flag )
     {
       throw OomphLibError("adaptive + midpoint probably not working",
-                          "",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 

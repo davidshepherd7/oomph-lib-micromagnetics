@@ -87,7 +87,7 @@
 
 
 double PointFromPlane( const std::vector<double>& x, const std::vector<double>& v1,
-		       const std::vector<double>& v2, const std::vector<double>& v3)
+                       const std::vector<double>& v2, const std::vector<double>& v3)
 {
   std::vector<double>  ab(ND,0.0), ac(ND,0.0);
   std::vector<double>  n(ND,0.0);
@@ -118,8 +118,8 @@ double PointFromPlane( const std::vector<double>& x, const std::vector<double>& 
   Sources", IEEE Trans. Magn. MAG-20 (1984) 2025-2032.
 */
 int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
-	 const std::vector<double>& facv2, const std::vector<double>& facv3,
-	 std::vector<double>& matele)
+         const std::vector<double>& facv2, const std::vector<double>& facv3,
+         std::vector<double>& matele)
 {
   std::vector<double> rr(ND,0.0), zeta(ND,0.0);
   std::vector<double> rho1(ND,0.0),rho2(ND,0.0),rho3(ND,0.0);
@@ -277,8 +277,9 @@ inline double dot(const std::vector<double>& a, const std::vector<double>& b)
 {
 #ifdef PARANOID
   if (a.size() != b.size())
-    throw OomphLibError("std::vectors must be the same length", "mod_diff",
-			OOMPH_EXCEPTION_LOCATION);
+    throw OomphLibError("std::vectors must be the same length",
+                        OOMPH_CURRENT_FUNCTION,
+                        OOMPH_EXCEPTION_LOCATION);
 #endif
   double temp = 0;
   for(unsigned i=0; i<a.size(); i++)
@@ -304,12 +305,13 @@ inline double mod(const std::vector<double>& a)
 }
 
 inline void vector_diff(const std::vector<double>& a, const std::vector<double>& b,
-			std::vector<double>& diff)
+                        std::vector<double>& diff)
 {
 #ifdef PARANOID
   if (a.size() != b.size())
-    throw OomphLibError("std::vectors must be the same length", "mod_diff",
-			OOMPH_EXCEPTION_LOCATION);
+    throw OomphLibError("std::vectors must be the same length",
+                        OOMPH_CURRENT_FUNCTION,
+                        OOMPH_EXCEPTION_LOCATION);
 #endif
   diff.assign(a.size(),0.0);
   for(unsigned i=0; i<a.size(); i++)
@@ -317,7 +319,7 @@ inline void vector_diff(const std::vector<double>& a, const std::vector<double>&
 }
 
 inline void abs_vector_diff(const std::vector<double>& a, const std::vector<double>& b,
-			    std::vector<double>& diff)
+                            std::vector<double>& diff)
 {
   vector_diff(a,b,diff);
   for(unsigned i=0; i<a.size(); i++)
@@ -345,8 +347,8 @@ inline void normalise(std::vector<double>& a)
 /// oomph-lib calculation of dgreendn:
 //======================================================================
 void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
-					 const std::vector<std::vector<double> >& x_nds,
-					 std::vector<double>& boundary_matrix)
+                                         const std::vector<std::vector<double> >& x_nds,
+                                         std::vector<double>& boundary_matrix)
 {
   // Only works in 3D and for triangles (3 nodes)
   const unsigned node_dim = 3;
@@ -386,12 +388,12 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
   // normalise(unit_normal3);
 
   // if ((mod_diff(unit_normal,unit_normal2) > 1e-8) ||
-  // 	(mod_diff(unit_normal,unit_normal3) > 1e-8))
+  //    (mod_diff(unit_normal,unit_normal3) > 1e-8))
   //   {
-  // 	std::cout << unit_normal << std::endl;
-  // 	std::cout << unit_normal2 << std::endl;
-  // 	std::cout << unit_normal3 << std::endl;
-  // 	std::cout << std::endl;
+  //    std::cout << unit_normal << std::endl;
+  //    std::cout << unit_normal2 << std::endl;
+  //    std::cout << unit_normal3 << std::endl;
+  //    std::cout << std::endl;
   //   }
 
   // Calculate area of triangle using the cross product of the (unnormalised)
@@ -413,7 +415,7 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
       gamma[i].assign(n_node,0.0); // Initialise gamma[i]
       unsigned next_node = (i+1)%n_node; // Get next triangle vertex
       for(unsigned j=0; j<n_node; j++)
-	gamma[i][j] = dot(side_direction[next_node],side_direction[j]);
+        gamma[i][j] = dot(side_direction[next_node],side_direction[j]);
     }
 
   // // ok
@@ -431,10 +433,10 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
       // and it's length.
       std::vector<std::vector<double> > rho(n_node); std::vector<double> rhol(n_node);
       for(unsigned i_nd=0; i_nd<n_node; i_nd++)
-	{
-	  vector_diff(x_nds[i_nd],x_sn,rho[i_nd]);
-	  rhol[i_nd] = mod(rho[i_nd]);
-	}
+        {
+          vector_diff(x_nds[i_nd],x_sn,rho[i_nd]);
+          rhol[i_nd] = mod(rho[i_nd]);
+        }
 
       // Calculate zeta: the distance between the element and the source node
       // in the normal direction to the element.
@@ -445,10 +447,10 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
       // source node.
       double tol = 1e-10;
       if( (std::abs(zeta) < tol) )
-	{
-	  // std::cout << zeta <<  " " << std::abs(zeta) <<  std::endl;
-	  return;
-	}
+        {
+          // std::cout << zeta <<  " " << std::abs(zeta) <<  std::endl;
+          return;
+        }
 
       // if( (rhol[0] < tol) || (rhol[1] < tol) || (rhol[2] < tol) )
       //   {
@@ -465,52 +467,52 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
       // Calculate "P" (see paper Lindholm1984) for each node in the triangle
       std::vector<double> P(n_node,0.0);
       for(unsigned i=0; i<n_node; i++)
-	{
-	  unsigned next_node = (i+1)%n_node;
-	  P[i] = std::log( (rhol[i] + rhol[next_node] + side_length[i])
-			   /(rhol[i] + rhol[next_node] - side_length[i]) );
-	}
+        {
+          unsigned next_node = (i+1)%n_node;
+          P[i] = std::log( (rhol[i] + rhol[next_node] + side_length[i])
+                           /(rhol[i] + rhol[next_node] - side_length[i]) );
+        }
 
       // ok!      std::cout << P << std::endl;
 
       // Calculate the solid angle (see Lindholm 1984)
       double ratio = (rhol[0]*rhol[1]*rhol[2]
-		      + rhol[0] * dot(rho[1],rho[2])
-		      + rhol[1] * dot(rho[2],rho[0])
-		      + rhol[2] * dot(rho[0],rho[1]))
-	/
-	std::sqrt(2.0
-		  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
-		  *(rhol[2]*rhol[0] + dot(rho[2],rho[0]) )
-		  *(rhol[0]*rhol[1] + dot(rho[0],rho[1]) )
-		  );
+                      + rhol[0] * dot(rho[1],rho[2])
+                      + rhol[1] * dot(rho[2],rho[0])
+                      + rhol[2] * dot(rho[0],rho[1]))
+        /
+        std::sqrt(2.0
+                  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
+                  *(rhol[2]*rhol[0] + dot(rho[2],rho[0]) )
+                  *(rhol[0]*rhol[1] + dot(rho[0],rho[1]) )
+                  );
       // ok
       // std::cout << "ratio: " << ratio << std::endl;
 
       // double t_nom = rhol[0]*rhol[1]*rhol[2]
-      // 	+ rhol[0] * dot(rho[1],rho[2])
-      // 	+ rhol[1] * dot(rho[2],rho[0])
-      // 	+ rhol[2] * dot(rho[0],rho[1]);
+      //        + rhol[0] * dot(rho[1],rho[2])
+      //        + rhol[1] * dot(rho[2],rho[0])
+      //        + rhol[2] * dot(rho[0],rho[1]);
 
-      // double t_denom = 	std::sqrt(2.0
-      // 		  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
-      // 		  *(rhol[2]*rhol[0] + dot(rho[2],rho[0]) )
-      // 		  *(rhol[0]*rhol[1] + dot(rho[0],rho[1]) )
-      // 		  );
+      // double t_denom =       std::sqrt(2.0
+      //                  *(rhol[1]*rhol[2] + dot(rho[1],rho[2]) )
+      //                  *(rhol[2]*rhol[0] + dot(rho[2],rho[0]) )
+      //                  *(rhol[0]*rhol[1] + dot(rho[0],rho[1]) )
+      //                  );
 
       // std::cout << "t/t: " << t_nom/t_denom << std::endl;
 
       // t_nom=
-      // 	rho1l*rho2l*rho3l+
-      // 	rho1l*my_ddot(ND,rho2,1,rho3,1)+
-      // 	rho2l*my_ddot(ND,rho3,1,rho1,1)+
-      // 	rho3l*my_ddot(ND,rho1,1,rho2,1);
+      //        rho1l*rho2l*rho3l+
+      //        rho1l*my_ddot(ND,rho2,1,rho3,1)+
+      //        rho2l*my_ddot(ND,rho3,1,rho1,1)+
+      //        rho3l*my_ddot(ND,rho1,1,rho2,1);
       // t_denom=
-      // 	std::sqrt(2.0*
-      // 		  (rho2l*rho3l+my_ddot(ND,rho2,1,rho3,1))*
-      // 		  (rho3l*rho1l+my_ddot(ND,rho3,1,rho1,1))*
-      // 		  (rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
-      // 		  );
+      //        std::sqrt(2.0*
+      //                  (rho2l*rho3l+my_ddot(ND,rho2,1,rho3,1))*
+      //                  (rho3l*rho1l+my_ddot(ND,rho3,1,rho1,1))*
+      //                  (rho1l*rho2l+my_ddot(ND,rho1,1,rho2,1))
+      //                  );
       int sign = (zeta > 0.0 ? +1.0 : -1.0);
 
       //ok
@@ -530,11 +532,11 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
       // node.
       std::vector<std::vector<double> > eta(3); std::vector<double> etal(3,0.0);
       for(unsigned i=0; i<n_node; i++)
-	{
-	  eta[i].assign(3,0.0);
-	  cross(unit_normal,side_direction[i],eta[i]);
-	  etal[i] = dot(eta[i],rho[i]);
-	}
+        {
+          eta[i].assign(3,0.0);
+          cross(unit_normal,side_direction[i],eta[i]);
+          etal[i] = dot(eta[i],rho[i]);
+        }
 
       // ok
       // std::cout << eta[0] << std::endl;
@@ -543,25 +545,25 @@ void analytic_integral_dgreendn_triangle(const std::vector<double>& x_sn,
 
 
       /* Now put it all together and add the contribution to the boundary
-	 element matrix */
+         element matrix */
       for(unsigned i_tn=0; i_tn < n_node; i_tn++)
-	{
-	  unsigned next_node = (i_tn+1)%n_node;
+        {
+          unsigned next_node = (i_tn+1)%n_node;
 
-	  // Add contribution to the appropriate value in the boundary matrix
-	  boundary_matrix[i_tn] = (side_length[next_node]/(8*PI*area))
-	    *( //??temp: not sure wether to add this here or in driver
-	      (etal[next_node] * omega)
-	      //??temp change to + because I think definition of green's fn is opposite sign
-	      - (zeta * dot(gamma[i_tn],P))
-	       );
+          // Add contribution to the appropriate value in the boundary matrix
+          boundary_matrix[i_tn] = (side_length[next_node]/(8*PI*area))
+            *( //??temp: not sure wether to add this here or in driver
+              (etal[next_node] * omega)
+              //??temp change to + because I think definition of green's fn is opposite sign
+              - (zeta * dot(gamma[i_tn],P))
+               );
 
 
-	  //std::cout << boundary_matrix(l[i_tn],i_sn) << std::endl;
+          //std::cout << boundary_matrix(l[i_tn],i_sn) << std::endl;
 
-	  //??ds do we HAVE to add solid angle contrib here? or can we add it in
-	  //driver code like now?
-	}
+          //??ds do we HAVE to add solid angle contrib here? or can we add it in
+          //driver code like now?
+        }
       //}
 }
 

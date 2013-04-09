@@ -67,7 +67,8 @@ namespace oomph
 
   if(n_p != 2)
    {
-    throw OomphLibError("nnode_1d > 2 is not yet implemented, sorry.",
+    throw OomphLibError("nnode_1d > 2 is not yet implemented,
+OOMPH_CURRENT_FUNCTION,
                         "SingleTetElementMesh::SingleTetElementMesh()",
                         OOMPH_EXCEPTION_LOCATION);
    }
@@ -114,7 +115,7 @@ namespace oomph
   // to test it on.
 
   // Finish boundary setup
-  setup_boundary_element_info(); 
+  setup_boundary_element_info();
  }
 
 

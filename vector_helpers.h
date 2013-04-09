@@ -17,7 +17,8 @@ namespace VectorOps
   {
 #ifdef PARANOID
     if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length", "VectorOps::dot",
+      throw OomphLibError("Vectors must be the same length",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
 #endif
 
@@ -38,7 +39,7 @@ namespace VectorOps
         std::ostringstream error_msg;
         error_msg << "Cross product only defined for vectors of length 3.";
         throw OomphLibError(error_msg.str(),
-                            "VectorOps::cross",
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 #endif
@@ -59,7 +60,8 @@ namespace VectorOps
   {
 #ifdef PARANOID
     if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length", "vector_diff",
+      throw OomphLibError("Vectors must be the same length",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
 #endif
 
@@ -94,7 +96,8 @@ namespace VectorOps
   {
 #ifdef PARANOID
     if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length", "vector_diff",
+      throw OomphLibError("Vectors must be the same length",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
 #endif
 

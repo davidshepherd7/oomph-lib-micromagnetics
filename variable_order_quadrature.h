@@ -139,21 +139,21 @@ namespace oomph
     virtual unsigned nweight() const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-                          "BaseVariableOrderQuadrature::nweight", OOMPH_EXCEPTION_LOCATION);
+                          OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
     }
 
     /// Dummy function to override the virtual one from Integral class
     virtual double weight(const unsigned &i) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-                          "BaseVariableOrderQuadrature::weight", OOMPH_EXCEPTION_LOCATION);
+                          OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
     }
 
     /// Dummy function to override the virtual one from Integral class
     virtual double knot(const unsigned &i,const unsigned &j) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
-                          "BaseVariableOrderQuadrature::weight", OOMPH_EXCEPTION_LOCATION);
+                          OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
     }
 
   };
@@ -262,7 +262,7 @@ namespace oomph
           error_stream << "Requested knot coordinate in dimension " << j
                        << " which does not exist in a scheme of dimension 2" << std::endl;
           throw OomphLibError(error_stream.str(),
-                              "QVariableOrderQuadrature<2>::knot",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
     }
@@ -330,7 +330,7 @@ namespace oomph
           error_stream << "Requested knot coordinate in dimension " << j
                        << " which does not exist in a scheme of dimension 3" << std::endl;
           throw OomphLibError(error_stream.str(),
-                              "QVariableOrderQuadrature<3>::knot",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
     }
@@ -462,7 +462,7 @@ namespace oomph
           error_stream << "Requested knot coordinate in dimension " << j
                        << " which does not exist in a scheme of dimension 2" << std::endl;
           throw OomphLibError(error_stream.str(),
-                              "QVariableOrderQuadrature<2>::knot",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 
@@ -512,7 +512,7 @@ namespace oomph
       std::ostringstream error_stream;
       error_stream << "Requested knot coordinate for 3D triangles, not yet implemented for variable order." << std::endl;
       throw OomphLibError(error_stream.str(),
-                          "TVariableOrderQuadrature<3>::knot",
+                          OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 
@@ -627,7 +627,7 @@ namespace oomph
                        << "and a is an integer. Here a = "
                        << a << ", which is non-integer.";
           throw OomphLibError(error_stream.str(),
-                              "VariableOrderClenshawCurtis::find_corresponding_knot",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -709,7 +709,7 @@ namespace oomph
                        << "and a is an integer. Here a = "
                        << a << ", which is non-integer.";
           throw OomphLibError(error_stream.str(),
-                              "VariableOrderFejerSecond::find_corresponding_knot",
+                              OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
@@ -860,7 +860,8 @@ namespace oomph
       {
         std::ostringstream error_stream;
         error_stream << "Invalid dimension " << dim();
-        throw OomphLibError(error_stream.str(),function_name,
+        throw OomphLibError(error_stream.str(),
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -869,7 +870,8 @@ namespace oomph
         std::ostringstream error_stream;
         error_stream << "Gaussian quadrature of order "
                      << order << " is not (yet) implemented.";
-        throw OomphLibError(error_stream.str(),function_name,
+        throw OomphLibError(error_stream.str(),
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -879,7 +881,8 @@ namespace oomph
         error_stream << dim() << " dimensional Gaussian quadrature of order "
                      << order << " does not have a weight number " << i
                      << ".";
-        throw OomphLibError(error_stream.str(),function_name,
+        throw OomphLibError(error_stream.str(),
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -888,7 +891,8 @@ namespace oomph
         std::ostringstream error_stream;
         error_stream << "Dimension of quadrature is " << dim()
                      << " so coordinate " << j << " does not exist";
-        throw OomphLibError(error_stream.str(),function_name,
+        throw OomphLibError(error_stream.str(),
+                            OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
   }
@@ -1290,7 +1294,7 @@ namespace oomph
 
       default :
         throw OomphLibError("The given quadrature scheme does not exist.",
-                            "weights_data_structure::weights_data_structure",
+                            OOMPH_CURRENT_FUNCTION,
                             "OOMPHEXCEPTIONLOCATION");
       }
   }

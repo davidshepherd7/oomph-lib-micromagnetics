@@ -182,7 +182,8 @@ namespace oomph
         else
           {
             error_message += "and the Directory_must_exist flag is true.\n";
-            throw OomphLibError(error_message,"set_directory()",
+            throw OomphLibError(error_message,
+                                OOMPH_CURRENT_FUNCTION,
                                 OOMPH_EXCEPTION_LOCATION);
           }
       }

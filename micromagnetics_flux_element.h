@@ -44,7 +44,7 @@ namespace oomph
     {
       throw OomphLibError
         ("Don't call empty constructor for MicromagFluxElement",
-         "MicromagFluxElement::MicromagFluxElement()",
+         OOMPH_CURRENT_FUNCTION,
          OOMPH_EXCEPTION_LOCATION);
     }
 
@@ -240,7 +240,7 @@ namespace oomph
     std::ostringstream error_msg;
     error_msg << "Surface anisotropy is not implemented";
     throw OomphLibError(error_msg.str(),
-                        "fill_in_contribution_to_jacobian",
+                        OOMPH_CURRENT_FUNCTION,
                         OOMPH_EXCEPTION_LOCATION);
 
     const unsigned n_node = nnode();
@@ -388,7 +388,7 @@ namespace oomph
     std::ostringstream error_msg;
     error_msg << "Surface anisotropy is not implemented";
     throw OomphLibError(error_msg.str(),
-                        "fill_in_contribution_to_jacobian",
+                        OOMPH_CURRENT_FUNCTION,
                         OOMPH_EXCEPTION_LOCATION);
 
 
