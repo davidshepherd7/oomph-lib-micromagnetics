@@ -18,19 +18,28 @@ from functools import partial as pt
 def main():
 
     # Remove old files
-    for f in glob.glob("results/*"):
+    for f in glob.glob("results*/*"):
         os.remove(f)
 
     # Build + run
     subp.check_call(['make', 'check', '-k'])
 
-    # Plot trace file
-    trace = sp.loadtxt("results/trace.dat", skiprows=1)
-    # VARIABLES="time","u<SUB>FE</SUB>","u<SUB>exact</SUB>","norm of error","norm of solution"
+    # Plot bdf2's trace file
+    trace = sp.loadtxt("results_bdf2/trace.dat", skiprows=1)
+    # plt.plot(trace[:,0], trace[:,2], '-', label="Exact")
+    # plt.plot(trace[:,0], trace[:,1], 'kx', label="Approx")
+    plt.plot(trace[:,0], trace[:,3], label="bdf2 Error norm")
+    plt.plot(trace[:,0], trace[:,4], 'x', label="bdf2 dt")
 
-    plt.plot(trace[:,0], trace[:,2], '-', label="Exact")
-    plt.plot(trace[:,0], trace[:,1], 'kx', label="Approx")
-    plt.plot(trace[:,0], trace[:,5], 'ro', label="dt")
+    # Plot midpoint's trace file
+    trace = sp.loadtxt("results_midpoint/trace.dat", skiprows=1)
+    # plt.plot(trace[:,0], trace[:,2], '-', label="Exact")
+    # plt.plot(trace[:,0], trace[:,1], 'kx', label="Approx")
+    plt.plot(trace[:,0], trace[:,3], label="midpoint Error norm")
+    plt.plot(trace[:,0], trace[:,4], '+', label="midpoint dt")
+
+    # Finish off plots
+    plt.plot(trace[:,0], [1e-3]*len(trace[:,0]))
     plt.legend()
     plt.show()
 

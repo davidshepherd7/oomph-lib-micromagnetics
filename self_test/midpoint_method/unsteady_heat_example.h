@@ -43,56 +43,11 @@ using namespace oomph;
 using namespace MathematicalConstants;
 
 
+#include "../../vector_helpers.h"
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-
-//======start_of_ExactSolnForUnsteadyHeat=====================
-/// Namespace for unforced exact solution for UnsteadyHeat equation
-//====================================================================
-namespace ExactSolnForUnsteadyHeat
-{
-
- /// Factor controlling the rate of change
- double Gamma=10.0;
-
- /// Wavenumber
- double K=3.0;
-
- /// Angle of bump
- double Phi=1.0;
-
- /// Exact solution as a Vector
- void get_exact_u(const double& time, const Vector<double>& x,
-                  Vector<double>& u)
- {
-  double zeta=cos(Phi)*x[0]+sin(Phi)*x[1];
-  u[0]=sin(K*zeta)*
-       0.5*(1.0+tanh(Gamma*cos(2.0*MathematicalConstants::Pi*time)));
- }
-
- /// Exact solution as a scalar
- void get_exact_u(const double& time, const Vector<double>& x, double& u)
- {
-  double zeta=cos(Phi)*x[0]+sin(Phi)*x[1];
-  u=sin(K*zeta)*
-       0.5*(1.0+tanh(Gamma*cos(2.0*MathematicalConstants::Pi*time)));
- }
-
- /// Source function to make it an exact solution
- void get_source(const double& time, const Vector<double>& x, double& source)
- {
-  source=
-   -0.5*sin(K*(cos(Phi)*x[0]+sin(Phi)*x[1]))*K*K*pow(cos(Phi),2.0)*(
-    0.1E1+tanh(Gamma*cos(0.2E1*0.3141592653589793E1*time)))-
-   0.5*sin(K*(cos(Phi)*x[0]+sin(Phi)*x[1]))*K*K*pow(sin(Phi),2.0)*
-   (0.1E1+tanh(Gamma*cos(0.2E1*0.3141592653589793E1*time)))+
-   0.1E1*sin(K*(cos(Phi)*x[0]+sin(Phi)*x[1]))*
-   (1.0-pow(tanh(Gamma*cos(0.2E1*0.3141592653589793E1*time)),2.0))*
-   Gamma*sin(0.2E1*0.3141592653589793E1*time)*0.3141592653589793E1;
- }
-
-} // end of ExactSolnForUnsteadyHeat
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -108,8 +63,9 @@ class UnsteadyHeatProblem : public Problem
 public:
 
   /// Constructor
-  UnsteadyHeatProblem(UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt
-                      source_fct_pt, TimeStepper* ts_pt);
+  UnsteadyHeatProblem(UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt source_fct_pt,
+                      FiniteElement::UnsteadyExactSolutionFctPt exact_solution_fct_pt,
+                      TimeStepper* ts_pt);
 
   /// Destructor (empty)
   ~UnsteadyHeatProblem(){}
@@ -139,38 +95,34 @@ public:
   /// comparison with explicit timestepper result).
   double global_temporal_error_norm()
   {
-    double global_error = 0.0;
-
     //Find out how many nodes there are in the problem
     unsigned n_node = mesh_pt()->nnode();
 
-    //Loop over the nodes and calculate the estimated error in the values
+    // Get the error
+    Vector<double> error(n_node, 0.0);
     for(unsigned i=0;i<n_node;i++)
       {
-        for(unsigned j=0; j<3; j++)
-          {
-            // Get error in solution.
-            double error = mesh_pt()->node_pt(i)->time_stepper_pt()->
-              temporal_error_in_value(mesh_pt()->node_pt(i),0);
-
-            //Add the square of the individual error to the global error
-            global_error += error*error;
-          }
+        // Get error in solution.
+        error[i] = mesh_pt()->node_pt(i)->time_stepper_pt()->
+          temporal_error_in_value(mesh_pt()->node_pt(i),0);
       }
 
-    // Divide by the number of nodes
-    global_error /= double(n_node);
+    // Compute a norm
+    double final_error = VectorOps::two_norm(error);
 
-    double final_error = sqrt(global_error);
-
-    std::cout << "Error estimate is: " << final_error << std::endl;
     return final_error;
   }
+
+
+  double get_error_norm(FiniteElement::UnsteadyExactSolutionFctPt
+                        Exact_solution_fct_pt) const;
 
 private:
 
   /// Pointer to source function
   UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt Source_fct_pt;
+
+  FiniteElement::UnsteadyExactSolutionFctPt Exact_solution_fct_pt;
 
   /// Pointer to control node at which the solution is documented
   Node* Control_node_pt;
@@ -183,9 +135,11 @@ private:
 //========================================================================
 template<class ELEMENT> UnsteadyHeatProblem<ELEMENT>::
  UnsteadyHeatProblem(UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt source_fct_pt,
+                     FiniteElement::UnsteadyExactSolutionFctPt exact_solution_fct_pt,
                      TimeStepper* ts_pt) :
-  Source_fct_pt(source_fct_pt)
+   Source_fct_pt(source_fct_pt), Exact_solution_fct_pt(exact_solution_fct_pt)
 {
+
 
   // Allocate the timestepper -- this constructs the Problem's
   // time object with a sufficient amount of storage to store the
@@ -194,9 +148,6 @@ template<class ELEMENT> UnsteadyHeatProblem<ELEMENT>::
 
   // Setup parameters for exact solution
   // -----------------------------------
-
-  // Decay parameter
-  ExactSolnForUnsteadyHeat::K=5.0;
 
   // Setup mesh
   //-----------
@@ -289,14 +240,14 @@ void UnsteadyHeatProblem<ELEMENT>::actions_before_implicit_timestep()
       for (unsigned inod=0;inod<num_nod;inod++)
         {
           Node* nod_pt=mesh_pt()->boundary_node_pt(ibound,inod);
-          double u;
+          Vector<double> u;
           Vector<double> x(2);
           x[0]=nod_pt->x(0);
           x[1]=nod_pt->x(1);
           // Get current values of the boundary conditions from the
           // exact solution
-          ExactSolnForUnsteadyHeat::get_exact_u(time,x,u);
-          nod_pt->set_value(0,u);
+          Exact_solution_fct_pt(time,x,u);
+          nod_pt->set_value(0,u[0]);
         }
     }
 } // end of actions_before_implicit_timestep
@@ -327,10 +278,11 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
   // Set continuous times at previous timesteps:
   // How many previous timesteps does the timestepper use?
   int nprev_steps=time_stepper_pt()->nprev_values();
+
   Vector<double> prev_time(nprev_steps+1);
   for (int t=nprev_steps;t>=0;t--)
     {
-      prev_time[t]=time_pt()->time(unsigned(t));
+      prev_time[t] = time_stepper_pt()->time_pt()->time(unsigned(t));
     }
 
   // Loop over current & previous timesteps
@@ -348,7 +300,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
           x[1]=mesh_pt()->node_pt(n)->x(1);
 
           // Get exact solution at previous time
-          ExactSolnForUnsteadyHeat::get_exact_u(time,x,soln);
+          Exact_solution_fct_pt(time,x,soln);
 
           // Assign solution
           mesh_pt()->node_pt(n)->set_value(t,0,soln[0]);
@@ -374,82 +326,109 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
 //========================================================================
 template<class ELEMENT>
 double UnsteadyHeatProblem<ELEMENT>::
-doc_solution(DocInfo& doc_info,ofstream& trace_file)
+doc_solution(DocInfo& doc_info, ofstream& trace_file)
 {
-  ofstream some_file;
-  char filename[100];
+  // ofstream some_file;
+  // char filename[100];
 
-  // Number of plot points
-  unsigned npts;
-  npts=5;
-
-
-  cout << std::endl;
-  cout << "=================================================" << std::endl;
-  cout << "Docing solution for t=" << time_pt()->time() << std::endl;
-  cout << "=================================================" << std::endl;
+  // // Number of plot points
+  // unsigned npts;
+  // npts=5;
 
 
-  // Output solution
-  //-----------------
-  sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
-          doc_info.number());
-  some_file.open(filename);
-  mesh_pt()->output(some_file,npts);
-
-  // Write file as a tecplot text object
-  some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = "
-            << time_pt()->time() << "\"";
-  // ...and draw a horizontal line whose length is proportional
-  // to the elapsed time
-  some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
-  some_file << "1" << std::endl;
-  some_file << "2" << std::endl;
-  some_file << " 0 0" << std::endl;
-  some_file << time_pt()->time()*20.0 << " 0" << std::endl;
-  some_file.close();
+  // cout << std::endl;
+  // cout << "=================================================" << std::endl;
+  // cout << "Docing solution for t=" << time_pt()->time() << std::endl;
+  // cout << "=================================================" << std::endl;
 
 
-  // Output exact solution
-  //----------------------
-  sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
-          doc_info.number());
-  some_file.open(filename);
-  mesh_pt()->output_fct(some_file,npts,time_pt()->time(),
-                        ExactSolnForUnsteadyHeat::get_exact_u);
-  some_file.close();
+  // // Output solution
+  // //-----------------
+  // sprintf(filename,"%s/soln%i.dat",doc_info.directory().c_str(),
+  //         doc_info.number());
+  // some_file.open(filename);
+  // mesh_pt()->output(some_file,npts);
 
-  // Doc error
-  //----------
-  double error,norm;
-  sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
-          doc_info.number());
-  some_file.open(filename);
-  mesh_pt()->compute_error(some_file,
-                           ExactSolnForUnsteadyHeat::get_exact_u,
-                           time_pt()->time(),
-                           error,norm);
-  some_file.close();
+  // // Write file as a tecplot text object
+  // some_file << "TEXT X=2.5,Y=93.6,F=HELV,HU=POINT,C=BLUE,H=26,T=\"time = "
+  //           << time_pt()->time() << "\"";
+  // // ...and draw a horizontal line whose length is proportional
+  // // to the elapsed time
+  // some_file << "GEOMETRY X=2.5,Y=98,T=LINE,C=BLUE,LT=0.4" << std::endl;
+  // some_file << "1" << std::endl;
+  // some_file << "2" << std::endl;
+  // some_file << " 0 0" << std::endl;
+  // some_file << time_pt()->time()*20.0 << " 0" << std::endl;
+  // some_file.close();
 
-  // Doc solution and error
-  //-----------------------
-  cout << "error: " << error << std::endl;
-  cout << "norm : " << norm << std::endl << std::endl;
+
+  // // Output exact solution
+  // //----------------------
+  // sprintf(filename,"%s/exact_soln%i.dat",doc_info.directory().c_str(),
+  //         doc_info.number());
+  // some_file.open(filename);
+  // mesh_pt()->output_fct(some_file,npts,time_pt()->time(),
+  //                       Exact_solution_fct_pt);
+  // some_file.close();
+
+  // // Doc error
+  // //----------
+  // double error,norm;
+  // sprintf(filename,"%s/error%i.dat",doc_info.directory().c_str(),
+  //         doc_info.number());
+  // some_file.open(filename);
+  // mesh_pt()->compute_error(some_file,
+  //                          Exact_solution_fct_pt,
+  //                          time_pt()->time(),
+  //                          error,norm);
+  // some_file.close();
+
+  // // Doc solution and error
+  // //-----------------------
+  // cout << "error: " << error << std::endl;
+  // cout << "norm : " << norm << std::endl << std::endl;
 
   // Get exact solution at control node
   Vector<double> x_ctrl(2);
   x_ctrl[0]=Control_node_pt->x(0);
   x_ctrl[1]=Control_node_pt->x(1);
-  double u_exact;
-  ExactSolnForUnsteadyHeat::get_exact_u(time_pt()->time(),x_ctrl,u_exact);
+
+  Vector<double> u_exact;
+  Exact_solution_fct_pt(time_pt()->time(),x_ctrl,u_exact);
+
+  double error_norm = get_error_norm(Exact_solution_fct_pt);
+
   trace_file << time_pt()->time() << " "
              << Control_node_pt->value(0) << " "
-             << u_exact << " "
-             << error   << " "
-             << norm    << " "
-             << time_pt()->dt()
+             << u_exact[0] << " "
+             << error_norm << " " // 3
+             << time_pt()->dt() // 4
              << std::endl;
 
-  return error;
+  // return error norm
+  return 0.0;
 
 } // end of doc_solution
+
+template<class ELEMENT>
+double UnsteadyHeatProblem<ELEMENT>::
+get_error_norm(FiniteElement::UnsteadyExactSolutionFctPt
+               Exact_solution_fct_pt) const
+{
+  double time = time_stepper_pt()->time_pt()->time();
+
+  Vector<double> error; error.reserve(mesh_pt()->nnode());
+  for(unsigned ind=0, nnd=mesh_pt()->nnode(); ind<nnd; ind++)
+    {
+      Node* nd_pt = mesh_pt()->node_pt(ind);
+
+      Vector<double> approx_values(1,0.0), exact_values, x(2,0.0);
+      nd_pt->position(x);
+      nd_pt->value(approx_values);
+      Exact_solution_fct_pt(time, x, exact_values);
+
+      error.push_back(std::abs(approx_values[0] - exact_values[0]));
+    }
+
+  return VectorOps::two_norm(error);
+}
