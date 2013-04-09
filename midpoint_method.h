@@ -73,7 +73,7 @@ namespace oomph
     unsigned order() {return 2;}
 
     /// Number of timestep increments that are required by the scheme
-    unsigned ndt() {return 1;}
+    unsigned ndt() {return nprev_values();}
 
     /// Number of previous values that we need to store. Two slots for
     /// predictor and y'(tnph) plus as many as are needed for
