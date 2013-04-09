@@ -59,3 +59,14 @@ previous_run_passes_list
 
 # other
 experiments/implicit_llg_multigrid/runs/
+
+# binaries
+self_test/midpoint_method/midpoint_method_test
+self_test/bem_field_test/bem_field_test
+self_test/bem_field_test/generate_tetgen_sphere_input
+self_test/generic_poisson/generic_poisson_test
+self_test/interpolation/polynomial_interpolation_test
+self_test/llg_exchange/llg_exchange_test
+self_test/node_global_lookups/node_lookup_test
+self_test/simple_rigorous_exchange/simple_rigorous_exchange_test
+self_test/sum_of_matrices/sum_of_matrices_test
