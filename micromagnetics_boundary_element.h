@@ -85,7 +85,7 @@ namespace oomph
     //   if (pt == 0)
     //     {
     //       throw OomphLibError("Failed to cast pointer",
-    OOMPH_CURRENT_FUNCTION,
+    //                           OOMPH_CURRENT_FUNCTION,
     //                           OOMPH_EXCEPTION_LOCATION);
     //     }
     //   return pt;
