@@ -4,6 +4,7 @@
 
 #include "generic.h"
 #include "./vector_helpers.h"
+#include "./my_assert.h"
 
 using namespace oomph;
 
@@ -19,7 +20,7 @@ namespace oomph
   void vector_add_ax(double a, const Vector<double>& x,
                              Vector<double>& y)
   {
-    OOMPH_ASSERT(y.size() == x.size());
+    my_assert(y.size() == x.size());
     for (unsigned i = 0, ni=y.size(); i<ni; i++)
       {
         y[i] += a * x[i];
@@ -152,7 +153,7 @@ namespace oomph
     eval_checks(x);
 
     // Only implemented for first derivatives...
-    OOMPH_ASSERT(deriv_order == 1);
+    my_assert(deriv_order == 1);
 
     Vector<double> g(Values[0].size(), 0.0), dg(Values[0].size(), 0.0);
     double h = 0, dh = 0;
@@ -167,7 +168,7 @@ namespace oomph
         dh += -1 * temp / (x - Locations[i]);
       }
 
-    OOMPH_ASSERT(h != 0);
+    my_assert(h != 0);
     result.assign(Values[0].size(), 0.0);
     for(unsigned i=0, ni=g.size(); i<ni; i++)
       {
@@ -180,14 +181,14 @@ namespace oomph
   eval_checks(const double &x) const
   {
     // Check the everything has been set up right
-    OOMPH_ASSERT(Locations.size() != 0);
-    OOMPH_ASSERT(Locations.size() == Values.size());
-    OOMPH_ASSERT(Weights.size() == Locations.size());
+    my_assert(Locations.size() != 0);
+    my_assert(Locations.size() == Values.size());
+    my_assert(Weights.size() == Locations.size());
 
     // Check that x is not a given location (trivial calculation gives
     // undefined value here, should be possible to output the appropriate
     // value if this functionality is needed...).
-    OOMPH_ASSERT(std::find(Locations.begin(), Locations.end(), x) == Locations.end());
+    my_assert(std::find(Locations.begin(), Locations.end(), x) == Locations.end());
   }
 
 } // End of oomph namespace

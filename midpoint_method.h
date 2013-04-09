@@ -11,6 +11,7 @@
 // #include "matrices.h"
 // #include "timesteppers.h"
 #include "generic.h"
+#include "./assert.h"
 
 #include "./poly_interp.h"
 
@@ -96,15 +97,15 @@ namespace oomph
     void set_predictor_weights() {}
 
     /// not implemented
-    void assign_initial_values_impulsive(Data* const &data_pt) {OOMPH_ASSERT(0);}
-    void assign_initial_positions_impulsive(Node* const &node_pt) {OOMPH_ASSERT(0);}
+    void assign_initial_values_impulsive(Data* const &data_pt) {abort();}
+    void assign_initial_positions_impulsive(Node* const &node_pt) {abort();}
     void calculate_predicted_positions(Node* const &node_pt) {}
 
     double temporal_error_in_position(Node* const &node_pt, const unsigned &i)
     {return 0.0;}
 
     // TODO
-    void undo_make_steady(){OOMPH_ASSERT(0);}
+    void undo_make_steady(){abort();}
     void calculate_predicted_values(Data* const &data_pt);
     double temporal_error_in_value(Data* const &data_pt, const unsigned &i);
 

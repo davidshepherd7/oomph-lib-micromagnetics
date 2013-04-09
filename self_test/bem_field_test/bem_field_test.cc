@@ -5,6 +5,7 @@
 #include "generic.h"
 #include "meshes/tetgen_mesh.h"
 
+#include "../../my_assert.h"
 #include "../../boundary_element_handler.h"
 #include "../../generic_poisson_problem.h"
 #include "../../micromagnetics_boundary_element.h"

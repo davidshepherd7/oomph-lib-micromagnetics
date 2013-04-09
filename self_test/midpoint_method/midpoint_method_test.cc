@@ -6,6 +6,7 @@
 #include "../../midpoint_method.h"
 #include "generic.h"
 #include "./unsteady_heat_example.h"
+#include "../../my_assert.h"
 
 
 

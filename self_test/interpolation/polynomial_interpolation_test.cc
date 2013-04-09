@@ -6,6 +6,7 @@
 #include <fenv.h>
 
 #include "../../poly_interp.h"
+#include "../../assert.h"
 
 
 
@@ -63,12 +64,12 @@ int main()
   input::vec_function(eval_point, exact);
 
   // Check that they are the same
-  OOMPH_ASSERT(almost_equal(output, exact, 1e-10));
+  my_assert(almost_equal(output, exact, 1e-10));
 
   Vector<double> output_deriv, exact_deriv;
   b.eval_derivative(eval_point, 1, output_deriv);
   input::d_vec_function(eval_point, exact_deriv);
-  OOMPH_ASSERT(almost_equal(output_deriv, exact_deriv, 1e-10));
+  my_assert(almost_equal(output_deriv, exact_deriv, 1e-10));
 
   std::cout << output << exact << std::endl;
 
