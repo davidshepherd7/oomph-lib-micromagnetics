@@ -5,7 +5,7 @@
 
 #include<iomanip>
 
-#include "../../midpoint_method.h"
+#include "../../old_midpoint_method.h"
 #include "generic.h"
 #include "./unsteady_heat_example.h"
 #include "../../my_assert.h"
@@ -117,7 +117,7 @@ void main_bdf(double tmax, double tol, double dt,
  void main_midpoint(double tmax, double tol, double dt,
                     const std::string& label)
  {
-   MidpointMethod adaptive_midpoint(true, 2);
+   OldMidpointMethod adaptive_midpoint(true, 2);
    adaptive_midpoint.Fudge_factor = 0.1;
 
    // Build problem
@@ -185,11 +185,11 @@ int main(int argc, char *argv[])
 
   CommandLineArgs::setup(argc,argv);
 
-  double tmax = 1.0;
+  double tmax = 0.5;
   double tol = 1e-3;
   double dt = 1e-6;
 
-  main_bdf(tmax, tol, dt, "_bdf2");
+  // main_bdf(tmax, tol, dt, "_bdf2");
   main_midpoint(tmax, tol, dt, "_midpoint");
 
   return 0;

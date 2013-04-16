@@ -24,12 +24,12 @@ namespace oomph
   /// Implicit midpoint method, implemented via a BDF1 step followed by an
   /// update.
   //========================================================================
-  class MidpointMethod : public TimeStepper
+  class OldMidpointMethod : public TimeStepper
   {
   public:
 
     /// Constructor with initialisation
-    MidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2) :
+    OldMidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2) :
       TimeStepper(2,1), // initialise weights later
       Fudge_factor(1.0),
       N_interp(n_interpolation_points),
@@ -60,7 +60,7 @@ namespace oomph
     }
 
     /// Destructor
-    virtual ~MidpointMethod() {}
+    virtual ~OldMidpointMethod() {}
 
     /// Setup weights for time derivative calculations. Copied from BDF1.
     void set_weights()
@@ -127,16 +127,16 @@ namespace oomph
     unsigned Dy_tnph_storage_index;
 
     /// Inaccessible copy constructor.
-    MidpointMethod(const MidpointMethod &dummy) {}
+    OldMidpointMethod(const OldMidpointMethod &dummy) {}
 
     /// Inaccessible assignment operator.
-    void operator=(const MidpointMethod &dummy) {}
+    void operator=(const OldMidpointMethod &dummy) {}
   };
 
 
   /// \short This function advances the Data's time history so that
   /// we can move on to the next timestep
-  void MidpointMethod::shift_time_values(Data* const &data_pt)
+  void OldMidpointMethod::shift_time_values(Data* const &data_pt)
   {
     //Loop over the values, set previous values to the previous value, if
     //not a copy.
@@ -154,7 +154,7 @@ namespace oomph
 
   ///\short This function advances the time history of the positions
   ///at a node. ??ds I have no idea what I'm doing here!
-  void MidpointMethod::shift_time_positions(Node* const &node_pt)
+  void OldMidpointMethod::shift_time_positions(Node* const &node_pt)
   {
    //Find the number of coordinates
    unsigned n_dim = node_pt->ndim();
@@ -212,7 +212,7 @@ namespace oomph
   }
 
   ///
-  void MidpointMethod::calculate_predicted_values(Data* const &data_pt)
+  void OldMidpointMethod::calculate_predicted_values(Data* const &data_pt)
   {
     if(adaptive_flag())
       {
@@ -256,7 +256,7 @@ namespace oomph
   }
 
   /// \short
-  double MidpointMethod::temporal_error_in_value(Data* const &data_pt,
+  double OldMidpointMethod::temporal_error_in_value(Data* const &data_pt,
                                                  const unsigned &i)
   {
     if(adaptive_flag())
