@@ -63,9 +63,10 @@ class UnsteadyHeatProblem : public Problem
 public:
 
   /// Constructor
-  UnsteadyHeatProblem(UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt source_fct_pt,
-                      FiniteElement::UnsteadyExactSolutionFctPt exact_solution_fct_pt,
-                      TimeStepper* ts_pt);
+  UnsteadyHeatProblem(
+      UnsteadyHeatEquations<2>::UnsteadyHeatSourceFctPt source_fct_pt,
+      FiniteElement::UnsteadyExactSolutionFctPt exact_solution_fct_pt,
+      TimeStepper* ts_pt);
 
   /// Destructor (empty)
   ~UnsteadyHeatProblem(){}

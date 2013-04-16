@@ -39,29 +39,15 @@
 namespace oomph
 {
 
-  // standard outputters for doublevector etc Should be "safe" but wrong for
-  // distributed version - no idea what order it will output in but shouldn't
-  // segfault.
-  std::ostream& operator<<(std::ostream& output, const DoubleVector& dv)
-  {
-#ifdef MPI
-    throw OomphLibWarning("I didn't write this with distributed vectors in mind, it might work but I have no idea.",
-                          "operator<<(ostream& output, const DoubleVector& dv)",
-                          OOMPH_EXCEPTION_LOCATION);
-#endif
-    output << "[";
-    for(unsigned i=0; i<dv.nrow_local()-1; i++)
-      output << dv[i] << ", ";
-    // Output last entry seperately to get the commas right
-    output << dv[dv.nrow_local()-1] << "]";
-    return output;
-  }
-
 
   bool small(const double& test_double)
   {
     return std::abs(test_double) < 1e-5;
   }
+
+
+
+
 
   struct RowColVal
   {
@@ -195,6 +181,44 @@ namespace oomph
     Directory=directory_;
   }
 
+
+  struct MyCliArgs
+  {
+    public:
+
+    MyCliArgs(int argc, char *argv[])
+      : nx(10), ny(10), dt(1e-6), tmax(1.0), tol(0.0),
+        outdir("results")
+      {
+        // Store command line args
+        CommandLineArgs::setup(argc,argv);
+        CommandLineArgs::specify_command_line_flag("-nx", &nx);
+        CommandLineArgs::specify_command_line_flag("-ny", &ny);
+
+        CommandLineArgs::specify_command_line_flag("-dt", &dt);
+        CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
+        CommandLineArgs::specify_command_line_flag("-tol", &tol);
+
+        CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
+
+        CommandLineArgs::parse_and_assign();
+        CommandLineArgs::output();
+        CommandLineArgs::doc_specified_flags();
+      }
+
+    // Variables
+    unsigned nx;
+    unsigned ny;
+
+    double dt;
+    double tmax;
+    double tol;
+
+    std::string outdir;
+
+    // Adaptive if eps has been set
+    bool adaptive_flag() {return tol != 0.0;}
+  };
 
 }
 

@@ -31,7 +31,7 @@ namespace oomph
 
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
-      Use_mid_point_method(false), Ele_pt(0), Applied_field_fct_pt(0),
+      Ele_pt(0), Applied_field_fct_pt(0),
       Renormalise_each_time_step(false)
     {}
 
@@ -41,21 +41,11 @@ namespace oomph
                        const double &lx,
                        const double &ly,
                        AppliedFieldFctPt input_applied_field_pt,
-                       const bool adaptive_flag=false,
-                       const bool use_mid_point_method=false) :
-      Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt),
-      Use_mid_point_method(use_mid_point_method)
+                       const bool adaptive_flag=false) :
+      Ele_pt(0), Applied_field_fct_pt(input_applied_field_pt)
     {
       // Create timestepper
-      TimeStepper* time_stepper_pt = 0;
-      if(Use_mid_point_method)
-        {
-          time_stepper_pt = new BDF<1>(adaptive_flag);
-        }
-      else
-        {
-          time_stepper_pt = new BDF<2>(adaptive_flag);
-        }
+      TimeStepper* time_stepper_pt = new BDF<2>(adaptive_flag);
       add_time_stepper_pt(time_stepper_pt);
 
       // Create mesh
@@ -186,88 +176,83 @@ namespace oomph
         }
     }
 
-    // If we are using midpoint then apply the required update (Malidi2005)
-    void midpoint_update()
-    {
-      // Get a pointer
-      ELEMENT* bulk_elem_pt =
-        checked_dynamic_cast<ELEMENT*>(Bulk_mesh_pt->element_pt(0));
+    // // If we are using midpoint then apply the required update (Malidi2005)
+    // void midpoint_update()
+    // {
+    //   // Get a pointer
+    //   ELEMENT* bulk_elem_pt =
+    //     checked_dynamic_cast<ELEMENT*>(Bulk_mesh_pt->element_pt(0));
 
-      // Get m indicies
-      Vector<unsigned> m_indices(3,0);
-      for(unsigned j=0; j<3; j++)
-        {
-          m_indices[j] = bulk_elem_pt->m_index_micromag(j);
-        }
+    //   // Get m indicies
+    //   Vector<unsigned> m_indices(3,0);
+    //   for(unsigned j=0; j<3; j++)
+    //     {
+    //       m_indices[j] = bulk_elem_pt->m_index_micromag(j);
+    //     }
 
-      // Apply the update
-      for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
-        {
-          Node* nd_pt = mesh_pt()->node_pt(i_nd);
-          for(unsigned j=0; j<3; j++)
-            {
-              // m[n] --> 2*m[n] - m[n-1]
-              // because we have finished this timestep and moved forward one
-              double new_m = 2*(nd_pt->value(m_indices[j]))
-                - (nd_pt->value(1, m_indices[j]));
+    //   // Apply the update
+    //   for(unsigned i_nd=0; i_nd<mesh_pt()->nnode(); i_nd++)
+    //     {
+    //       Node* nd_pt = mesh_pt()->node_pt(i_nd);
+    //       for(unsigned j=0; j<3; j++)
+    //         {
+    //           // m[n] --> 2*m[n] - m[n-1]
+    //           // because we have finished this timestep and moved forward one
+    //           double new_m = 2*(nd_pt->value(m_indices[j]))
+    //             - (nd_pt->value(1, m_indices[j]));
 
-              nd_pt->set_value(m_indices[j], new_m);
-            }
-        }
+    //           nd_pt->set_value(m_indices[j], new_m);
+    //         }
+    //     }
 
-      // Finally push the time forwards another half step. Note that
-      // time_pt()->dt() is half a step because out previous step was
-      // real_dt/2.
-      time() += time_pt()->dt();
-    }
+    //   // Finally push the time forwards another half step. Note that
+    //   // time_pt()->dt() is half a step because out previous step was
+    //   // real_dt/2.
+    //   time() += time_pt()->dt();
+    // }
 
 
-    void actions_after_newton_solve()
-    {
-      // If we're using BDF we need to keep M normalised.
-      if(renormalise_each_time_step())
-        {
-          renormalise_magnetisation();
-        }
+    // void actions_after_newton_solve()
+    // {
+    //   // If we're using BDF we need to keep M normalised.
+    //   if(renormalise_each_time_step())
+    //     {
+    //       renormalise_magnetisation();
+    //     }
 
-      // If we're usign midpoint method then do the update needed to
-      // convert from BDF1 to a midpoint timestep.
-      if(Use_mid_point_method)
-        {
-          midpoint_update();
-        }
-    }
+    //   // If we're usign midpoint method then do the update needed to
+    //   // convert from BDF1 to a midpoint timestep.
+    //   if(Use_mid_point_method)
+    //     {
+    //       midpoint_update();
+    //     }
+    // }
 
 
     /// Output solution
     void doc_solution(DocInfo &doc_info) const
     {
-      std::ofstream some_file;
-
-
       // Number of plot points
       unsigned npts = 2;
 
       // Output solution with specified number of plot points per element
-      std::string filename(doc_info.directory() + "/soln" +
-                           doc_info.number_as_string() + ".dat");
-      some_file.open(filename.c_str());
+      std::ofstream some_file((doc_info.directory() + "/soln" +
+                               doc_info.number_as_string() + ".dat").c_str());
       bulk_mesh_pt()->output(some_file,npts);
       some_file.close();
-
 
       // Get average (and standard deviation) of |m| - 1 and |m|.dm/dn
       double m_error_avg(0), m_error_stddev(0);
       norm_m_error(m_error_avg, m_error_stddev);
 
       // Write them to file
-      std::ofstream errors((doc_info.directory()+"/errors").c_str(), std::ios::app);
-      errors << time()
-             << " " << m_error_avg
-             << " " << m_error_stddev
-             << std::endl;
-      errors.close();
-
+      std::ofstream trace_file((doc_info.directory()+"/trace").c_str(), std::ios::app);
+      trace_file << time() << " "
+                 << time_stepper_pt()->time_pt()->dt() << " "
+                 << m_error_avg << " "
+                 << m_error_stddev << " "
+                 << std::endl;
+      trace_file.close();
 
       // Increment number used as output label
       doc_info.number()++;
@@ -429,7 +414,8 @@ namespace oomph
           for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
 
           double m_2norm = VectorOps::two_norm(m_values);
-          temp_error += m_2norm - 1;
+          temp_error += std::abs(m_2norm - 1);
+          // std::cout << std::abs(m_2norm - 1) << std::endl;
         }
 
       return temp_error/double(nnode);
@@ -450,7 +436,7 @@ namespace oomph
           for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
 
           double m_2norm = VectorOps::two_norm(m_values);
-          temp_stddev += std::pow( m_2norm - 1 - m_error_avg ,2);
+          temp_stddev += std::pow( m_2norm - 1 - m_error_avg, 2);
         }
 
       temp_stddev /= nnode;

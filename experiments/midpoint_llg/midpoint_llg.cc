@@ -95,42 +95,15 @@ int main(int argc, char** argv)
   MPI_Helpers::init(argc,argv);
 #endif
 
-  // Default values
-  unsigned nx(20), ny(20), refines(1); //refinement for different grid types
-  double dt(1e-6), tmax(100);
-  std::string outdir("results"), prec(""), mesh_type("");
-  std::string field("default");
-
-  double eps = 1e-3;
-
-  // Default to adaptive midpoint
-  bool use_midpoint = true;
-
-  // amg params
-  unsigned amg_smoother_type(9);
-  unsigned amg_v_cycles(1);
-
-  // Set up and read command line arguments
-  CommandLineArgs::setup(argc,argv);
-  CommandLineArgs::specify_command_line_flag("-nx", &nx);
-  CommandLineArgs::specify_command_line_flag("-ny", &ny);
-  CommandLineArgs::specify_command_line_flag("-r", &refines);
-  CommandLineArgs::specify_command_line_flag("-dt", &dt);
-  CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
-  CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
-  CommandLineArgs::specify_command_line_flag("-prec", &prec);
-  CommandLineArgs::specify_command_line_flag("-amgsmth", &amg_smoother_type);
-  CommandLineArgs::specify_command_line_flag("-amgvcyc", &amg_v_cycles);
-  CommandLineArgs::specify_command_line_flag("-mesh", &mesh_type);
-  CommandLineArgs::specify_command_line_flag("-field", &field);
-
-  CommandLineArgs::parse_and_assign();
-  CommandLineArgs::output();
-
-  bool adaptive_flag = (eps != 0);
-
   // Enable some floating point error checkers
-  //  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+
+  // Parameter defaults
+  double lx(1.0), ly(1.0);
+  double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
+
+  // Read args
+  MyCliArgs args(argc, argv);
 
   // Create problem
   const unsigned dim = 2;

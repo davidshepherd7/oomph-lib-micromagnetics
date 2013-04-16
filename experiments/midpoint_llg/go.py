@@ -16,24 +16,36 @@ import matplotlib.pyplot as plt
 from functools import partial as pt
 
 def main():
+    """
 
-    # Remove old files
-    for f in glob.glob("results*/*"):
-        os.remove(f)
+    """
 
-    # Build + run
-    subp.check_call(['make', '-k'])
-    subp.check_call(['./midpoint_llg', '-tmax', '1.0',
-                     '-outdir', 'result_midpoint'])
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('--no-rerun', action='store_false', dest='rerun',
+                        help="Don't delete and regenerate results")
+    args = parser.parse_args()
+
+    print args
+
+    if args.rerun:
+        # Remove old files
+        for f in glob.glob("result_midpoint/*"):
+            os.remove(f)
+
+        # Build + run
+        subp.check_call(['make', '-k'])
+        subp.check_call(['./midpoint_llg', '-tmax', '1.0',
+                         '-outdir', 'result_midpoint'])
 
     # Plot midpoint's trace file
-    trace = sp.loadtxt("results_midpoint/trace.dat", skiprows=1)
+    trace = sp.loadtxt("result_midpoint/trace", skiprows=1)
     # plt.plot(trace[:,0], trace[:,2], '-', label="Exact")
     # plt.plot(trace[:,0], trace[:,1], 'kx', label="Approx")
-    plt.plot(trace[:,0], trace[:,3], label="midpoint Error norm")
-    plt.plot(trace[:,0], trace[:,4], '+', label="midpoint dt")
+    plt.plot(trace[:,0], trace[:,2], label="midpoint Error mean")
+    plt.plot(trace[:,0], trace[:,1], '+', label="midpoint dt")
 
     # Finish off plots
+    plt.semilogy()
     plt.plot(trace[:,0], [1e-3]*len(trace[:,0]))
     plt.legend()
     plt.show()

@@ -6,6 +6,7 @@
 
 #include "../../my_general_header.h"
 #include "../../implicit_llg_problem.h"
+#include "../../midpoint_method.h"
 
 // Floating point error checks
 #include <fenv.h>
@@ -23,8 +24,28 @@ namespace Inputs
   {
     m.assign(3,0.0);
     m[2] = 1;
-    m[0] = 0.1; // start a little bit along +x direction (otherwise we
+    m[0] = 0.3; // start a little bit along +x direction (otherwise we
     // have undefined things...)
+    VectorOps::normalise(m);
+  }
+
+  void varying_initial_m(const double& t, const Vector<double> &x, Vector<double> &m)
+  {
+    m.assign(3,0.0);
+
+    double l = 5.0;
+    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
+    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
+    m[2] = 1.0 - m[0] - m[1];
+
+    // m[0] = x[0]/2 + x[1]/2;
+    // m[1] = (1 - m[0]);
+    // m[2] = 0.0;
+
+    // m[0] = x[0];
+    // m[1] = 0;
+    // m[2] = 1 - x[0];
+
     VectorOps::normalise(m);
   }
 
@@ -32,7 +53,7 @@ namespace Inputs
                      Vector<double> &h_app)
   {
     h_app.assign(3,0.0);
-    h_app[2] = -2;
+    h_app[2] = -3;
   }
 
 }
@@ -159,67 +180,27 @@ int main(int argc, char *argv[])
   MPI_Helpers::init(argc,argv);
 #endif
 
-  // Parameter defaults
-  double lx(1.0), ly(1.0);
-  unsigned nx(5), ny(5);
-  double dt(1e-4), tmax(100);
-  std::string outdir("results");
-  double eps = 0;
-  double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
-  unsigned mconstraintmethod = 0;
-
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  // Store command line args
-  CommandLineArgs::setup(argc,argv);
-  CommandLineArgs::specify_command_line_flag("-nx", &nx);
-  CommandLineArgs::specify_command_line_flag("-ny", &ny);
-  CommandLineArgs::specify_command_line_flag("-dt", &dt);
-  CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
-  CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
+  // Parameter defaults
+  double lx(1.0), ly(1.0);
+  double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
 
-  CommandLineArgs::specify_command_line_flag("-eps", &eps);
-  CommandLineArgs::specify_command_line_flag("-mconstraintmethod", &mconstraintmethod);
-  CommandLineArgs::specify_command_line_flag("-damp", &gilbert_damping);
-  CommandLineArgs::specify_command_line_flag("-hk", &hk);
-
-  CommandLineArgs::parse_and_assign();
-  CommandLineArgs::output();
-  CommandLineArgs::doc_specified_flags();
-
-  // Adaptive if eps has been set
-  bool adaptive_flag = (eps != 0);
-
-  // Use midpoint if mconstraintmethod input parameter is 2, renormalise if
-  // it's 1.
-  bool midpoint_flag = (mconstraintmethod == 2);
-  bool renormalise_flag = (mconstraintmethod == 1);
-
-  if( adaptive_flag && midpoint_flag )
-    {
-      throw OomphLibError("adaptive + midpoint probably not working",
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
-    }
+  // Read args
+  MyCliArgs args(argc, argv);
 
   // Create problem
   const unsigned dim = 2;
   ImplicitLLGProblem<QMicromagElement<dim,2> > problem;
-  problem.renormalise_each_time_step() = renormalise_flag;
-  problem.Use_mid_point_method = midpoint_flag;
 
   // Create timestepper
-  TimeStepper* ts_pt = 0;
-  if(midpoint_flag)
-    { ts_pt = new BDF<1>(adaptive_flag); }
-  else
-    { ts_pt = new BDF<2>(adaptive_flag); }
-  problem.add_time_stepper_pt(ts_pt);
+  problem.add_time_stepper_pt(new MidpointMethod(args.adaptive_flag(), 2));
+  // problem.add_time_stepper_pt(new BDF<2>(args.adaptive_flag()));
 
   // Create mesh
   problem.bulk_mesh_pt() = new SimpleRectangularQuadMesh<QMicromagElement<dim,2> >
-    (nx, ny, lx, ly, ts_pt);
+    (args.nx, args.ny, lx, ly, problem.time_stepper_pt());
   problem.bulk_mesh_pt()->setup_boundary_element_info();
 
   // Set magnetic parameters
@@ -236,12 +217,14 @@ int main(int argc, char *argv[])
   problem.build();
 
   // Initialise problem
-  problem.initialise_dt(dt);
-  problem.set_initial_condition(Inputs::initial_m);
+  problem.initialise_dt(args.dt);
+  // problem.set_initial_condition(Inputs::initial_m);
+
+  problem.set_initial_condition(Inputs::varying_initial_m); //??ds
+#warning "Not actually spatiall const..."
 
   // Set up outputs
-  DocInfo doc_info;
-  doc_info.set_directory(outdir);
+  DocInfo doc_info(args.outdir);
   problem.doc_solution(doc_info);
 
   Vector<double> mean_m; problem.mean_magnetisation(mean_m);
@@ -261,7 +244,8 @@ int main(int argc, char *argv[])
   // Timestep to convergence, for 1000 steps or until tmax.
   // while((std::abs(mz + 1) > 0.05) && (doc_info.number() < 5000)
   //       && (problem.time() < tmax))
-  while(problem.time() < tmax)
+  double dt = args.dt;
+  while(problem.time() < args.tmax)
     {
       // Update average mz
       mz = problem.mean_mz();
@@ -269,13 +253,13 @@ int main(int argc, char *argv[])
       std::cout << "step number = " << doc_info.number()
                 << ", time = " << problem.time()
                 << ", dt = " << dt
-                << ", mz = " << mz << std::endl;
+                << ", mz = " << mz
+                << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
+                << std::endl;
 
-      // Step (half step if using mid-point, adaptive if requested)
-      if(midpoint_flag)
-        { problem.unsteady_newton_solve(dt/2.0); }
-      else if(adaptive_flag)
-        { dt = problem.adaptive_unsteady_newton_solve(dt,eps); }
+      // Step, adaptive if requested
+      if(args.adaptive_flag())
+        { dt = problem.adaptive_unsteady_newton_solve(dt, args.tol); }
       else
         { problem.unsteady_newton_solve(dt); }
 
@@ -327,7 +311,7 @@ int main(int argc, char *argv[])
     }
 
   // Data dump!
-  std::ofstream outfile((outdir + "/comparison_data").c_str());
+  std::ofstream outfile((args.outdir + "/comparison_data").c_str());
   outfile << "t mx my mz r theta phi exact_t exact_phi error_t error_phi"
           << std::endl;
   for(unsigned i=0; i<N; i++)

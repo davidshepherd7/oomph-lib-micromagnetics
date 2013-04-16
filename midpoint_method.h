@@ -81,6 +81,9 @@ namespace oomph
     /// interpolation (minimum 1).
     unsigned nprev_values() {return std::max(N_interp, unsigned(1)) + 2;}
 
+    /// \short ??ds
+    unsigned nprev_values_for_evaluation_time() {return 2;}
+
     /// \short This function advances the Data's time history so that
     /// we can move on to the next timestep
     void shift_time_values(Data* const &data_pt);
