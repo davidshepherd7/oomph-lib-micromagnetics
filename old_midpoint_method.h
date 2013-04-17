@@ -38,7 +38,7 @@ namespace oomph
     {
       Adaptive_Flag = adaptive;
       Is_steady = false;
-      Type = "Midpoint method";
+      Type = "BDF1 Midpoint method";
 
       // Storage for weights needs to be 2x(n_interp +1) (or at least
       // 2x2). This means we provide ways to calculate the zeroth and first
