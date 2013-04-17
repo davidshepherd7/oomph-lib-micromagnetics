@@ -11,6 +11,7 @@
 #include "../../implicit_llg_problem.h"
 #include "../../midpoint_method.h"
 
+#include "../../my_general_header.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;

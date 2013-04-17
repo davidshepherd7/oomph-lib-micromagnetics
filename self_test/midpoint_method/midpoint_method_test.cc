@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 
   CommandLineArgs::setup(argc,argv);
 
-  double tmax = 0.5;
+  double tmax = 1.0;
   double tol = 1e-3;
   double dt = 1e-6;
 

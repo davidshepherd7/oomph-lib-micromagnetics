@@ -188,7 +188,7 @@ namespace oomph
 
     MyCliArgs(int argc, char *argv[])
       : nx(10), ny(10), dt(1e-6), tmax(1.0), tol(0.0),
-        outdir("results")
+        timestepper("bdf2"), outdir("results")
       {
         // Store command line args
         CommandLineArgs::setup(argc,argv);
@@ -200,6 +200,8 @@ namespace oomph
         CommandLineArgs::specify_command_line_flag("-tol", &tol);
 
         CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
+
+        CommandLineArgs::specify_command_line_flag("-timestepper", &timestepper);
 
         CommandLineArgs::parse_and_assign();
         CommandLineArgs::output();
@@ -213,6 +215,8 @@ namespace oomph
     double dt;
     double tmax;
     double tol;
+
+    std::string timestepper;
 
     std::string outdir;
 

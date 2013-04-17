@@ -175,6 +175,8 @@ namespace CompareSolutions
 
 int main(int argc, char *argv[])
 {
+  double t_start = TimingHelpers::timer();
+
   // Start MPI
 #ifdef OOMPH_HAS_MPI
   MPI_Helpers::init(argc,argv);
@@ -195,8 +197,17 @@ int main(int argc, char *argv[])
   ImplicitLLGProblem<QMicromagElement<dim,2> > problem;
 
   // Create timestepper
-  problem.add_time_stepper_pt(new MidpointMethod(args.adaptive_flag(), 2));
-  // problem.add_time_stepper_pt(new BDF<2>(args.adaptive_flag()));
+  if(to_lower(args.timestepper) == "midpoint") {
+    MidpointMethod* ts_pt = new MidpointMethod(args.adaptive_flag(), 2);
+    problem.add_time_stepper_pt(ts_pt);
+    ts_pt->Fudge_factor = 0.1;
+    }
+  else if(to_lower(args.timestepper) == "bdf2") {
+    problem.add_time_stepper_pt(new BDF<2>(args.adaptive_flag()));
+    }
+  else
+    throw OomphLibError("Unrecognised time stepper",
+                        OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
 
   // Create mesh
   problem.bulk_mesh_pt() = new SimpleRectangularQuadMesh<QMicromagElement<dim,2> >
@@ -338,6 +349,8 @@ int main(int argc, char *argv[])
   // Shut down oomph-lib's MPI
   MPI_Helpers::finalize();
 #endif
+
+  std::cout << TimingHelpers::timer() - t_start << std::endl;
 
   return 0;
 }
