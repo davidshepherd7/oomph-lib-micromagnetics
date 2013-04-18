@@ -1249,6 +1249,65 @@ namespace oomph
   };
 
 
+  template<unsigned DIM>
+  class MMInterpolator : public GeneralInterpolator<DIM>
+  {
+  private:
+
+    // Extra storage for magnetisation values, so we can have nice vector
+    // access to them.
+    Vector<double> Dmdt;
+    Vector<double> M;
+    Vector<Vector<double> > Dmdx;
+
+    const MicromagEquations<DIM>* This_element;
+
+  public:
+
+    /// Default constructor
+    MMInterpolator(const FiniteElement* const this_element,
+                   const Vector<double> &s)
+      : GeneralInterpolator<DIM>(this_element, s) {}
+
+    double phi() {return value(This_element->phi_index_micromag());}
+    const Vector<double> & dphidx()
+    {return this->dvaluedx(This_element->phi_index_micromag());}
+
+    double phi1() {return value(This_element->phi_1_index_micromag());}
+    const Vector<double> & dphi1dx()
+    {return this->dvaluedx(This_element->phi_1_index_micromag());}
+
+    const Vector<double> &m()
+    {
+      if(this->uninitialised(M))
+        {
+          M = this->interpolate_values(This_element->m_index_micromag(0),
+                                       This_element->m_index_micromag(2));
+        }
+      return M;
+    }
+
+    const Vector<double>& dmdt()
+    {
+      if(this->uninitialised(Dmdt))
+        {
+          Dmdt = this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
+                                             This_element->m_index_micromag(2));
+        }
+      return Dmdt;
+    }
+
+    const Vector<Vector<double> >& dmdx()
+    {
+      if(this->uninitialised(Dmdx))
+        {
+          Dmdx = this->interpolate_dvaluesdx(This_element->m_index_micromag(0),
+                                             This_element->m_index_micromag(2));
+        }
+      return Dmdx;
+    }
+  };
+
 
   // =================================================================
   /// Face geometry elements for the elements defined above.
