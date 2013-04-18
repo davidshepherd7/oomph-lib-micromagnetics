@@ -26,6 +26,8 @@ namespace oomph
   // Forward declaration of flux element
   template <class ELEMENT> class MicromagFluxElement;
 
+  template <unsigned DIM> class MMInterpolator;
+
   //==============================================================================
   /// A class for the maths used in solving the Landau-Lifshitz-Gilbert equations.
   //==============================================================================
@@ -175,26 +177,27 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
 
     /// Get the applied field at Eulerian position x.
-    virtual void get_applied_field(const double& t, const Vector<double> &x,
-                                   const Vector<double> &s,
-                                   Vector<double>& H_app) const
+    virtual Vector<double> get_applied_field(const double& t, const Vector<double> &x,
+                                             const Vector<double> &s) const
     {
-      H_app.assign(3,0.0);
+      Vector<double> H_app(3,0.0);
       if(Applied_field_pt!=0) (*Applied_field_pt)(t,x,H_app);
       for(unsigned j=0; j<3; j++)
         {
           H_app[j] *= magnetic_parameters_pt()->field_normalisation_factor();
         }
+      return H_app;
     }
 
     /// Get the crystalline anisotropy field at Eulerian position x.
-    inline void get_H_cryst_anis_field(const double& t,
-                                       const Vector<double> &x,
-                                       const Vector<double>& m,
-                                       Vector<double>& h_ca) const
+    inline Vector<double> get_H_cryst_anis_field(const double& t,
+                                                 const Vector<double> &x,
+                                                 const Vector<double>& m) const
     {
+      Vector<double> h_ca(3, 0.0);
       magnetic_parameters_pt()->
         crystalline_ansiotropy_field(t, x, m, h_ca);
+      return h_ca;
     }
 
     void get_hca_derivative(const double& t, const Vector<double>&x,
@@ -352,24 +355,8 @@ namespace oomph
     inline void interpolated_dmdx_micromag(const Vector<double> &s,
                                            DenseDoubleMatrix& itp_dmdx) const
     {
-      // Get number of nodes
-      const unsigned n_node = nnode();
-
-      // Set up memory for the shape and test functions
-      Shape psi(n_node), test(n_node);
-      DShape dpsidx(n_node,DIM), dtestdx(n_node,DIM);
-
-      // Get shape and test functions
-      dshape_dtest(s,psi,dpsidx,test,dtestdx);
-
-      // Interpolate values at knot by looping over nodes adding contributions
-      for(unsigned l=0;l<n_node;l++)
-        for(unsigned j=0; j<DIM; j++)
-          for(unsigned k=0; k<3; k++)
-            {
-              itp_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*dpsidx(l,j);
-            }
-
+      MMInterpolator<DIM> intp(this, s);
+      itp_dmdx = intp.dmdx();
     }
 
     inline void interpolated_dphidx_micromag(const Vector<double>& s,
@@ -555,9 +542,9 @@ namespace oomph
                                                         DenseMatrix<double> &jacobian,
                                                         const unsigned& flag) const;
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
-                                Shape &test, DShape &dtestdx) const=0;
+    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    // virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
+    //                             Shape &test, DShape &dtestdx) const=0;
 
     // /// Get the field at current time (pass in x,m, dphidx for
     // /// efficiency).
@@ -932,411 +919,425 @@ namespace oomph
     // Copied from the Poisson versions of these functions:
     // ============================================================
 
-    double dshape_and_dtest_eulerian_poisson
-    (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
-     DShape &dtestdx) const
+    // double dshape_and_dtest_eulerian_poisson
+    // (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
+    //  DShape &dtestdx) const
+    // {
+    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
+    //   test = psi;
+    //   dtestdx= dpsidx;
+    //   return J;
+    // }
+
+    // double dshape_and_dtest_eulerian_at_knot_poisson
+    // (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
+    //  DShape &dtestdx) const
+    // {
+    //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
+    //   test = psi;
+    //   dtestdx = dpsidx;
+    //   return J;
+    // }
+
+    //   double dshape_and_dtest_eulerian_at_knot_poisson
+    //   (const unsigned &ipt, Shape &psi, DShape &dpsidx,
+    //    RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
+    //    RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
+    //   {
+    //     const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
+    //                                                    djacobian_dX,d_dpsidx_dX);
+    //     test = psi;
+    //     dtestdx = dpsidx;
+    //     d_dtestdx_dX = d_dpsidx_dX;
+    //     return J;
+    //   }
+
+    };
+
+    // =================================================================
+    ///
+    // =================================================================
+    template < unsigned DIM, unsigned NNODE_1D>
+    class QMagnetostaticFieldElement : public QElement<DIM,NNODE_1D>,
+                                       public MagnetostaticFieldEquations<DIM>
     {
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
-      test = psi;
-      dtestdx= dpsidx;
-      return J;
-    }
+    public:
 
-    double dshape_and_dtest_eulerian_at_knot_poisson
-    (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
-     DShape &dtestdx) const
+      /// Return howm any data entries are needed at each node. For this case
+      /// it is always 1.
+      unsigned required_nvalue(const unsigned &n) const {return 1;}
+
+      // Overload output functions (diamond inheritance...)
+      // ============================================================
+
+      /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(std::ostream &outfile, const unsigned &n_plot = 5)
+      {PoissonEquations<DIM>::output(outfile,n_plot);}
+
+      /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(std::ostream &outfile)
+      {PoissonEquations<DIM>::output(outfile,5);}
+
+      /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(FILE* outfile_pt, const unsigned &n_plot = 5)
+      {PoissonEquations<DIM>::output(outfile_pt, n_plot);}
+
+      /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(FILE* outfile_pt)
+      {PoissonEquations<DIM>::output(outfile_pt, 5);}
+
+      // Copied from the Poisson versions of these functions:
+      // ============================================================
+
+      // double dshape_and_dtest_eulerian_poisson
+      // (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
+      //  DShape &dtestdx) const
+      // {
+      //   const double J = this->dshape_eulerian(s,psi,dpsidx);
+      //   test = psi;
+      //   dtestdx= dpsidx;
+      //   return J;
+      // }
+
+      // double dshape_and_dtest_eulerian_at_knot_poisson
+      // (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
+      //  DShape &dtestdx) const
+      // {
+      //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
+      //   test = psi;
+      //   dtestdx = dpsidx;
+      //   return J;
+      // }
+
+      // double dshape_and_dtest_eulerian_at_knot_poisson
+      // (const unsigned &ipt, Shape &psi, DShape &dpsidx,
+      //  RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
+      //  RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
+      // {
+      //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
+      //                                                  djacobian_dX,d_dpsidx_dX);
+      //   test = psi;
+      //   dtestdx = dpsidx;
+      //   d_dtestdx_dX = d_dpsidx_dX;
+      //   return J;
+      // }
+
+    };
+
+
+
+    // =================================================================
+    /// Micromagnetics elements with additional coupling from magnetostatic
+    /// field elements via a pointer (for use in semi-implicit methods).
+    // =================================================================
+    template<unsigned DIM>
+    class SemiImplicitMicromagEquations : public MicromagEquations<DIM>
     {
-      const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
-      test = psi;
-      dtestdx = dpsidx;
-      return J;
-    }
+    public:
 
-    double dshape_and_dtest_eulerian_at_knot_poisson
-    (const unsigned &ipt, Shape &psi, DShape &dpsidx,
-     RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
-     RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
-    {
-      const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
-                                                     djacobian_dX,d_dpsidx_dX);
-      test = psi;
-      dtestdx = dpsidx;
-      d_dtestdx_dX = d_dpsidx_dX;
-      return J;
-    }
-  };
-
-  // =================================================================
-  ///
-  // =================================================================
-  template < unsigned DIM, unsigned NNODE_1D>
-  class QMagnetostaticFieldElement : public QElement<DIM,NNODE_1D>,
-                                     public MagnetostaticFieldEquations<DIM>
-  {
-  public:
-
-    /// Return howm any data entries are needed at each node. For this case
-    /// it is always 1.
-    unsigned required_nvalue(const unsigned &n) const {return 1;}
-
-    // Overload output functions (diamond inheritance...)
-    // ============================================================
-
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot = 5)
-    {PoissonEquations<DIM>::output(outfile,n_plot);}
-
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile)
-    {PoissonEquations<DIM>::output(outfile,5);}
-
-    /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(FILE* outfile_pt, const unsigned &n_plot = 5)
-    {PoissonEquations<DIM>::output(outfile_pt, n_plot);}
-
-    /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(FILE* outfile_pt)
-    {PoissonEquations<DIM>::output(outfile_pt, 5);}
-
-    // Copied from the Poisson versions of these functions:
-    // ============================================================
-
-    double dshape_and_dtest_eulerian_poisson
-    (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
-     DShape &dtestdx) const
-    {
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
-      test = psi;
-      dtestdx= dpsidx;
-      return J;
-    }
-
-    double dshape_and_dtest_eulerian_at_knot_poisson
-    (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
-     DShape &dtestdx) const
-    {
-      const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
-      test = psi;
-      dtestdx = dpsidx;
-      return J;
-    }
-
-    double dshape_and_dtest_eulerian_at_knot_poisson
-    (const unsigned &ipt, Shape &psi, DShape &dpsidx,
-     RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
-     RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
-    {
-      const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
-                                                     djacobian_dX,d_dpsidx_dX);
-      test = psi;
-      dtestdx = dpsidx;
-      d_dtestdx_dX = d_dpsidx_dX;
-      return J;
-    }
-
-  };
-
-
-
-  // =================================================================
-  /// Micromagnetics elements with additional coupling from magnetostatic
-  /// field elements via a pointer (for use in semi-implicit methods).
-  // =================================================================
-  template<unsigned DIM>
-  class SemiImplicitMicromagEquations : public MicromagEquations<DIM>
-  {
-  public:
-
-    /// For micromagnetics the source function is the divergence of the
-    /// magnetisation.
-    void get_applied_field(const double& t,
-                           const Vector<double> &x,
-                           const Vector<double> &s,
-                           Vector<double>& h_app) const
-    {
-      // Lots of checks because this is stupid really...
+      /// For micromagnetics the source function is the divergence of the
+      /// magnetisation.
+      void get_applied_field(const double& t,
+                             const Vector<double> &x,
+                             const Vector<double> &s,
+                             Vector<double>& h_app) const
+      {
+        // Lots of checks because this is stupid really...
 #ifdef PARANOID
-      if(Magnetostatic_field_element_pt == 0)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Magnetics element pointer not set.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+        if(Magnetostatic_field_element_pt == 0)
+          {
+            std::ostringstream error_msg;
+            error_msg << "Magnetics element pointer not set.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 
-      if(this->nnode() != Magnetostatic_field_element_pt->nnode())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+        if(this->nnode() != Magnetostatic_field_element_pt->nnode())
+          {
+            std::ostringstream error_msg;
+            error_msg << "Elements must be the same geometry for this to "
+                      << "work... sorry for the hackyness. Maybe you can fix it.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 
-      if(this->dim() != Magnetostatic_field_element_pt->dim())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+        if(this->dim() != Magnetostatic_field_element_pt->dim())
+          {
+            std::ostringstream error_msg;
+            error_msg << "Elements must be the same geometry for this to "
+                      << "work... sorry for the hackyness. Maybe you can fix it.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 
-      if(this->integral_pt() != Magnetostatic_field_element_pt->integral_pt())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must have the same integration scheme for this to"
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+        if(this->integral_pt() != Magnetostatic_field_element_pt->integral_pt())
+          {
+            std::ostringstream error_msg;
+            error_msg << "Elements must have the same integration scheme for this to"
+                      << "work... sorry for the hackyness. Maybe you can fix it.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 #endif
 
-      // Get contribution from field element
-      Vector<double> h_ms;
-      Magnetostatic_field_element_pt->magnetostatic_field(s, h_ms);
+        // Get contribution from field element
+        Vector<double> h_ms;
+        Magnetostatic_field_element_pt->magnetostatic_field(s, h_ms);
 
-      // Get contribution from any real applied field functions.
-      MicromagEquations<DIM>::get_applied_field(t, x, s, h_app);
+        // Get contribution from any real applied field functions.
+        MicromagEquations<DIM>::get_applied_field(t, x, s, h_app);
 
-      //Add them up
-      for(unsigned j=0; j<3; j++) h_app[j] += h_ms[j];
+        //Add them up
+        for(unsigned j=0; j<3; j++) h_app[j] += h_ms[j];
 
-      // std::cout << "happ = " << h_app << std::endl;
-    }
+        // std::cout << "happ = " << h_app << std::endl;
+      }
 
-    // Access functions:
-    // ============================================================
+      // Access functions:
+      // ============================================================
 
-    /// \short Non-const access function for Magnetostatic_field_element_pt.
-    MagnetostaticFieldEquations<DIM>*& magnetostatic_field_element_pt()
-    {return Magnetostatic_field_element_pt;}
+      /// \short Non-const access function for Magnetostatic_field_element_pt.
+      MagnetostaticFieldEquations<DIM>*& magnetostatic_field_element_pt()
+      {return Magnetostatic_field_element_pt;}
 
-    /// \short Const access function for Magnetostatic_field_element_pt.
-    MagnetostaticFieldEquations<DIM>* magnetostatic_field_element_pt() const
-    {return Magnetostatic_field_element_pt;}
+      /// \short Const access function for Magnetostatic_field_element_pt.
+      MagnetostaticFieldEquations<DIM>* magnetostatic_field_element_pt() const
+      {return Magnetostatic_field_element_pt;}
 
-  private:
+    private:
 
-    MagnetostaticFieldEquations<DIM>* Magnetostatic_field_element_pt;
-  };
+      MagnetostaticFieldEquations<DIM>* Magnetostatic_field_element_pt;
+    };
 
 
-  //====================================================================
-  /// A class combining the micromag equations with a QElement geometry
-  //====================================================================
-  template < unsigned DIM, unsigned NNODE_1D>
-  class QSemiImplicitMicromagElement : public QElement<DIM,NNODE_1D>,
-                                       public SemiImplicitMicromagEquations<DIM>
-  {
-  public:
-
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return 5;}
-
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {SemiImplicitMicromagEquations<DIM>::output(outfile,n_plot);}
-
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {SemiImplicitMicromagEquations<DIM>::output(file_pt,n_plot);}
-
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
+    //====================================================================
+    /// A class combining the micromag equations with a QElement geometry
+    //====================================================================
+    template < unsigned DIM, unsigned NNODE_1D>
+    class QSemiImplicitMicromagElement : public QElement<DIM,NNODE_1D>,
+                                         public SemiImplicitMicromagEquations<DIM>
     {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
+    public:
 
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
+      /// Required  # of `values' (pinned or dofs) at node n.
+      inline unsigned required_nvalue(const unsigned &n) const
+      {return 5;}
 
-      // Return the jacobian
-      return J;
-    }
+      /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(std::ostream &outfile, const unsigned &n_plot=5)
+      {SemiImplicitMicromagEquations<DIM>::output(outfile,n_plot);}
 
-    //??ds
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
+      // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      // void output(FILE* file_pt, const unsigned &n_plot = 5)
+      // {SemiImplicitMicromagEquations<DIM>::output(file_pt,n_plot);}
+
+      /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+      inline double dshape_dtest(const Vector<double> &s,
+                                 Shape &psi, DShape &dpsidx,
+                                 Shape &test, DShape &dtestdx) const
+      {
+        // Call the geometrical shape functions and derivatives
+        const double J = this->dshape_eulerian(s,psi,dpsidx);
+
+        // Set the test functions equal to the shape functions
+        test = psi;
+        dtestdx= dpsidx;
+
+        // Return the jacobian
+        return J;
+      }
+
+      //??ds
+      void fill_in_face_element_contribution_to_jacobian
+      (DenseMatrix<double> &jacobian) const
+      {
+        std::set<FiniteElement*>::iterator it;
+        for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+          {
+            MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+              dynamic_cast<MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
+              (*it);
+            flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+          }
+      }
+
+
+    }; // end of QSemiImplicitMicromagElement class declaration
+
+
+
+    //====================================================================
+    /// A class combining the micromag equations with a TElement geometry
+    //====================================================================
+    template < unsigned DIM, unsigned NNODE_1D>
+    class TSemiImplicitMicromagElement : public TElement<DIM,NNODE_1D>,
+                                         public SemiImplicitMicromagEquations<DIM>
     {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
-            (*it);
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
+    public:
 
+      /// Required  # of `values' (pinned or dofs) at node n.
+      inline unsigned required_nvalue(const unsigned &n) const
+      {return 5;}
 
-  }; // end of QSemiImplicitMicromagElement class declaration
+      /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      void output(std::ostream &outfile, const unsigned &n_plot=5)
+      {SemiImplicitMicromagEquations<DIM>::output(outfile,n_plot);}
 
+      // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+      // void output(FILE* file_pt, const unsigned &n_plot = 5)
+      // {SemiImplicitMicromagEquations<DIM>::output(file_pt,n_plot);}
 
+      /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+      inline double dshape_dtest(const Vector<double> &s,
+                                 Shape &psi, DShape &dpsidx,
+                                 Shape &test, DShape &dtestdx) const
+      {
+        // Call the geometrical shape functions and derivatives
+        const double J = this->dshape_eulerian(s,psi,dpsidx);
 
-  //====================================================================
-  /// A class combining the micromag equations with a TElement geometry
-  //====================================================================
-  template < unsigned DIM, unsigned NNODE_1D>
-  class TSemiImplicitMicromagElement : public TElement<DIM,NNODE_1D>,
-                                       public SemiImplicitMicromagEquations<DIM>
-  {
-  public:
+        // Set the test functions equal to the shape functions
+        test = psi;
+        dtestdx= dpsidx;
 
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return 5;}
+        // Return the jacobian
+        return J;
+      }
 
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {SemiImplicitMicromagEquations<DIM>::output(outfile,n_plot);}
-
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {SemiImplicitMicromagEquations<DIM>::output(file_pt,n_plot);}
-
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
-
-      // Return the jacobian
-      return J;
-    }
-
-    //??ds
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
-    {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<TSemiImplicitMicromagElement<DIM, NNODE_1D> >* >
-            (*it);
+      //??ds
+      void fill_in_face_element_contribution_to_jacobian
+      (DenseMatrix<double> &jacobian) const
+      {
+        std::set<FiniteElement*>::iterator it;
+        for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+          {
+            MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+              dynamic_cast<MicromagFluxElement<TSemiImplicitMicromagElement<DIM, NNODE_1D> >* >
+              (*it);
 
 #ifdef PARANOID
-          if(flux_ele_pt == 0)
-            {
-              std::ostringstream error_msg;
-              error_msg << "Failed dynamic cast.";
-              throw OomphLibError(error_msg.str(),
-                                  OOMPH_CURRENT_FUNCTION,
-                                  OOMPH_EXCEPTION_LOCATION);
-            }
+            if(flux_ele_pt == 0)
+              {
+                std::ostringstream error_msg;
+                error_msg << "Failed dynamic cast.";
+                throw OomphLibError(error_msg.str(),
+                                    OOMPH_CURRENT_FUNCTION,
+                                    OOMPH_EXCEPTION_LOCATION);
+              }
 #endif
 
 
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
+            flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+          }
+      }
 
-  };
+    };
 
 
-  template<unsigned DIM>
-  class MMInterpolator : public GeneralInterpolator<DIM>
-  {
-  private:
-
-    // Extra storage for magnetisation values, so we can have nice vector
-    // access to them.
-    Vector<double> Dmdt;
-    Vector<double> M;
-    Vector<Vector<double> > Dmdx;
-
-    const MicromagEquations<DIM>* This_element;
-
-  public:
-
-    /// Default constructor
-    MMInterpolator(const FiniteElement* const this_element,
-                   const Vector<double> &s)
-      : GeneralInterpolator<DIM>(this_element, s) {}
-
-    double phi() {return value(This_element->phi_index_micromag());}
-    const Vector<double> & dphidx()
-    {return this->dvaluedx(This_element->phi_index_micromag());}
-
-    double phi1() {return value(This_element->phi_1_index_micromag());}
-    const Vector<double> & dphi1dx()
-    {return this->dvaluedx(This_element->phi_1_index_micromag());}
-
-    const Vector<double> &m()
+    template<unsigned DIM>
+    class MMInterpolator : public GeneralInterpolator<DIM>
     {
-      if(this->uninitialised(M))
-        {
-          M = this->interpolate_values(This_element->m_index_micromag(0),
-                                       This_element->m_index_micromag(2));
-        }
-      return M;
-    }
+    private:
 
-    const Vector<double>& dmdt()
-    {
-      if(this->uninitialised(Dmdt))
-        {
-          Dmdt = this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
-                                             This_element->m_index_micromag(2));
-        }
-      return Dmdt;
-    }
+      // Extra storage for magnetisation values, so we can have nice vector
+      // access to them.
+      Vector<double> Dmdt;
+      Vector<double> M;
+      Vector<Vector<double> > Dmdx;
+      double Div_m;
 
-    const Vector<Vector<double> >& dmdx()
-    {
-      if(this->uninitialised(Dmdx))
-        {
-          Dmdx = this->interpolate_dvaluesdx(This_element->m_index_micromag(0),
-                                             This_element->m_index_micromag(2));
-        }
-      return Dmdx;
-    }
-  };
+      const MicromagEquations<DIM>* This_element;
+
+    public:
+
+      /// Default constructor
+      MMInterpolator(const FiniteElement* const this_element,
+                     const Vector<double> &s)
+        : GeneralInterpolator<DIM>(this_element, s),
+          Div_m(this->TimeNotYetSetValue)
+      {}
+
+      double phi() {return this->value(This_element->phi_index_micromag());}
+      const Vector<double> & dphidx()
+      {return this->dvaluedx(This_element->phi_index_micromag());}
+
+      double phi1() {return this->value(This_element->phi_1_index_micromag());}
+      const Vector<double> & dphi1dx()
+      {return this->dvaluedx(This_element->phi_1_index_micromag());}
+
+      const Vector<double> &m()
+      {
+        if(this->uninitialised(M))
+          {
+            M = this->interpolate_values(This_element->m_index_micromag(0),
+                                         This_element->m_index_micromag(2) + 1);
+          }
+        return M;
+      }
+
+      const Vector<double>& dmdt()
+      {
+        if(this->uninitialised(Dmdt))
+          {
+            Dmdt = this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
+                                               This_element->m_index_micromag(2) + 1);
+          }
+        return Dmdt;
+      }
+
+      const Vector<Vector<double> >& dmdx()
+      {
+        if(this->uninitialised(Dmdx))
+          {
+            Dmdx = this->interpolate_dvaluesdx(This_element->m_index_micromag(0),
+                                               This_element->m_index_micromag(2) + 1);
+          }
+        return Dmdx;
+      }
+
+      double div_m()
+      {
+        if(this->uninitialised(Div_m))
+          {
+            Div_m = 0;
+            for(unsigned j=0; j<DIM; j++) Div_m += dmdx()[j][j];
+          }
+        return Div_m;
+      }
+    };
 
 
-  // =================================================================
-  /// Face geometry elements for the elements defined above.
-  // =================================================================
+    // =================================================================
+    /// Face geometry elements for the elements defined above.
+    // =================================================================
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<TMagnetostaticFieldElement<DIM,NNODE_1D> >:
-    public virtual TElement<DIM-1,NNODE_1D> {};
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<TMagnetostaticFieldElement<DIM,NNODE_1D> >:
+      public virtual TElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<QMagnetostaticFieldElement<DIM,NNODE_1D> >:
-    public virtual QElement<DIM-1,NNODE_1D> {};
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<QMagnetostaticFieldElement<DIM,NNODE_1D> >:
+      public virtual QElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<TMicromagElement<DIM,NNODE_1D> >:
-    public virtual TElement<DIM-1,NNODE_1D> {};
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<TMicromagElement<DIM,NNODE_1D> >:
+      public virtual TElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<QMicromagElement<DIM,NNODE_1D> >:
-    public virtual QElement<DIM-1,NNODE_1D> {};
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<QMicromagElement<DIM,NNODE_1D> >:
+      public virtual QElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<TSemiImplicitMicromagElement<DIM,NNODE_1D> >:
-    public virtual TElement<DIM-1,NNODE_1D> {};
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<TSemiImplicitMicromagElement<DIM,NNODE_1D> >:
+      public virtual TElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<QSemiImplicitMicromagElement<DIM,NNODE_1D> >:
-    public virtual QElement<DIM-1,NNODE_1D> {};
-}
+    template<unsigned DIM, unsigned NNODE_1D>
+    class FaceGeometry<QSemiImplicitMicromagElement<DIM,NNODE_1D> >:
+      public virtual QElement<DIM-1,NNODE_1D> {};
+  }
 
 
 
