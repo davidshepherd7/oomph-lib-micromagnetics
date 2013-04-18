@@ -7,46 +7,33 @@
 #include <functional>
 
 using namespace oomph;
+using namespace StringConversion;
 
 namespace VectorOps
 {
+
+  void check_lengths_match(const Vector<double> &a, const Vector<double> &b)
+  {
+#ifdef PARANOID
+    if (a.size() != b.size())
+      {
+        std::string err = "Vectors must be the same length. ";
+        err += "len(a) = " + to_string(a.size()) + ", len(b) = " + to_string(b.size());
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+  }
 
   // Probably not always best/fastest because not optimised for dimension but
   // useful...
   inline double dot(const Vector<double>& a, const Vector<double>& b)
   {
-#ifdef PARANOID
-    if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length",
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
-#endif
-
+    check_lengths_match(a,b);
     double temp = 0;
     for(unsigned i=0; i<a.size(); i++)
       temp += a[i] * b[i];
     return temp;
-  }
-
-  /// Calculate the cross product of vectors A and B, store the result in
-  /// vector output. NOTE: the cross product is only valid for 3-dimensional
-  /// vectors
-  void cross(const Vector<double>& A, const Vector<double>& B, Vector<double>& output)
-  {
-#ifdef PARANOID
-    if((A.size() != 3) || (B.size() != 3))
-      {
-        std::ostringstream error_msg;
-        error_msg << "Cross product only defined for vectors of length 3.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-    output.assign(3,0.0);
-    output[0] = A[1]*B[2] - A[2]*B[1];
-    output[1] = A[2]*B[0] - A[0]*B[2];
-    output[2] = A[0]*B[1] - A[1]*B[0];
   }
 
   /// Cross product using "proper" output (move semantics means this is ok
@@ -56,10 +43,9 @@ namespace VectorOps
 #ifdef PARANOID
     if((A.size() != 3) || (B.size() != 3))
       {
-        std::ostringstream error_msg;
-        error_msg << "Cross product only defined for vectors of length 3.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
+        std::string err = "Cross product only defined for vectors of length 3.";
+        err += "len(a) = " + to_string(A.size()) + ", len(b) = " + to_string(B.size());
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
 #endif
@@ -70,6 +56,11 @@ namespace VectorOps
     return output;
   }
 
+  /// Calculate the cross product of vectors A and B, store the result in
+  /// vector output. NOTE: the cross product is only valid for 3-dimensional
+  /// vectors
+  void cross(const Vector<double>& A, const Vector<double>& B, Vector<double>& output)
+  {output = cross(A, B);}
 
   inline double two_norm(const Vector<double>& a)
   {
@@ -79,13 +70,7 @@ namespace VectorOps
 
   inline Vector<double> vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
-#ifdef PARANOID
-    if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length",
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
-#endif
-
+    check_lengths_match(a,b);
     Vector<double> diff(a.size(), 0.0);
     for(unsigned i=0; i<a.size(); i++) {diff[i] = a[i] - b[i];}
     return diff;
@@ -97,13 +82,7 @@ namespace VectorOps
 
   inline Vector<double> abs_vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
-    #ifdef PARANOID
-    if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length",
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
-#endif
-
+    check_lengths_match(a,b);
     Vector<double> diff(a.size(), 0.0);
     for(unsigned i=0; i<a.size(); i++) {diff[i] = std::abs(a[i] - b[i]);}
     return diff;
@@ -121,13 +100,7 @@ namespace VectorOps
   inline Vector<double> relative_abs_vector_diff(const Vector<double>& a,
                                                  const Vector<double>& b)
   {
-#ifdef PARANOID
-    if (a.size() != b.size())
-      throw OomphLibError("Vectors must be the same length",
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
-#endif
-
+    check_lengths_match(a,b);
     Vector<double> diff(a.size(), 0.0);
     for(unsigned i=0; i<a.size(); i++)
       {
