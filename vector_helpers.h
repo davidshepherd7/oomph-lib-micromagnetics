@@ -31,7 +31,7 @@ namespace VectorOps
   /// Calculate the cross product of vectors A and B, store the result in
   /// vector output. NOTE: the cross product is only valid for 3-dimensional
   /// vectors
-  void cross(Vector<double>& A, Vector<double>& B, Vector<double>& output)
+  void cross(const Vector<double>& A, const Vector<double>& B, Vector<double>& output)
   {
 #ifdef PARANOID
     if((A.size() != 3) || (B.size() != 3))
@@ -49,14 +49,35 @@ namespace VectorOps
     output[2] = A[0]*B[1] - A[1]*B[0];
   }
 
+  /// Cross product using "proper" output (move semantics means this is ok
+  /// nowadays).
+  Vector<double> cross(const Vector<double>& A, const Vector<double>& B)
+  {
+#ifdef PARANOID
+    if((A.size() != 3) || (B.size() != 3))
+      {
+        std::ostringstream error_msg;
+        error_msg << "Cross product only defined for vectors of length 3.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+    Vector<double> output(3,0.0);
+    output[0] = A[1]*B[2] - A[2]*B[1];
+    output[1] = A[2]*B[0] - A[0]*B[2];
+    output[2] = A[0]*B[1] - A[1]*B[0];
+    return output;
+  }
+
 
   inline double two_norm(const Vector<double>& a)
   {
     return std::sqrt(dot(a,a));
   }
 
-  inline void vector_diff(const Vector<double>& a, const Vector<double>& b,
-                          Vector<double>& diff)
+
+  inline Vector<double> vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
 #ifdef PARANOID
     if (a.size() != b.size())
@@ -65,25 +86,31 @@ namespace VectorOps
                           OOMPH_EXCEPTION_LOCATION);
 #endif
 
-    diff.assign(a.size(),0.0);
-    for(unsigned i=0; i<a.size(); i++)
-      {
-        diff[i] = a[i] - b[i];
-      }
+    Vector<double> diff(a.size(), 0.0);
+    for(unsigned i=0; i<a.size(); i++) {diff[i] = a[i] - b[i];}
+    return diff;
   }
+  inline void vector_diff(const Vector<double>& a, const Vector<double>& b,
+                          Vector<double>& diff)
+  {diff = vector_diff(a, b);}
 
-  inline void abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
-                              Vector<double>& diff)
+
+  inline Vector<double> abs_vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
-    // Get differences
-    vector_diff(a,b,diff);
+    #ifdef PARANOID
+    if (a.size() != b.size())
+      throw OomphLibError("Vectors must be the same length",
+                          OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+#endif
 
-    // Convert to absolute values
-    for(unsigned i=0; i<a.size(); i++)
-      {
-        diff[i] = std::abs(diff[i]);
-      }
+    Vector<double> diff(a.size(), 0.0);
+    for(unsigned i=0; i<a.size(); i++) {diff[i] = std::abs(a[i] - b[i]);}
+    return diff;
   }
+  inline void abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
+                                 Vector<double>& diff)
+  {diff = abs_vector_diff(a, b);}
 
 
   inline bool numerical_zero(const double &a, const double& tol=1e-10)
@@ -91,8 +118,8 @@ namespace VectorOps
     return std::abs(a) < tol;
   }
 
-  inline void relative_abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
-                                       Vector<double>& diff)
+  inline Vector<double> relative_abs_vector_diff(const Vector<double>& a,
+                                                 const Vector<double>& b)
   {
 #ifdef PARANOID
     if (a.size() != b.size())
@@ -101,7 +128,7 @@ namespace VectorOps
                           OOMPH_EXCEPTION_LOCATION);
 #endif
 
-    diff.assign(a.size(), 0.0);
+    Vector<double> diff(a.size(), 0.0);
     for(unsigned i=0; i<a.size(); i++)
       {
         // if a[i] is not zero then just do it normally
@@ -117,7 +144,13 @@ namespace VectorOps
         else diff[i] = 0.0;
       }
 
+    return diff;
   }
+
+  inline void relative_abs_vector_diff(const Vector<double>& a,
+                                       const Vector<double>& b,
+                                       Vector<double>& diff)
+    {diff = relative_abs_vector_diff(a,b);}
 
   inline double two_norm_diff(const Vector<double>& a, const Vector<double>& b)
   {
