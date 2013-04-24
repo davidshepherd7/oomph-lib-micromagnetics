@@ -7,4 +7,4 @@ make
 
 ./llg_exchange_test
 
-fpdiff.py "./validation/precomputed_solution_at_t0.03.dat" "./validation/generated_solution_at_t0.03.dat"
+exit fpdiff.py "./validation/precomputed_solution_at_t0.03.dat" "./validation/generated_solution_at_t0.03.dat"

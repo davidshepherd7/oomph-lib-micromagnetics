@@ -16,3 +16,5 @@ tetgen -q1.0a0.1pY ./mesh.poly
 ./bem_field_test
 
 # Returns failure status if anything fails
+
+exit 0

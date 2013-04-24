@@ -4,3 +4,5 @@ set -o errexit
 set -o nounset
 
 ./midpoint_method_test
+
+exit 0

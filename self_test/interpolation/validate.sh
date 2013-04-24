@@ -4,3 +4,5 @@ set -o errexit
 set -o nounset
 
 ./polynomial_interpolation_test
+
+exit 0
