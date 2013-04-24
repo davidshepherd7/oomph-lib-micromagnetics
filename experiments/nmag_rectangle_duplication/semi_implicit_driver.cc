@@ -13,7 +13,6 @@
 #include <fenv.h>
 
 
-
 /*
 
   Idea: calculate magnetostatic field then run implicit llg with the
@@ -57,20 +56,24 @@ namespace Inputs
   }
 
 
-  // void domain_wall_applied_field(const double& t, const Vector<double> &x,
-  //                       Vector<double> &h_app)
-  // {
-  //   h_app.assign(3,0.0);
-  //   h_app[0] = std::tanh(x[2] - 50) * 60000;
-  // }
+  void domain_wall_applied_field(const double& t, const Vector<double> &x,
+                        Vector<double> &h_app)
+  {
+    h_app.assign(3,0.0);
+    h_app[0] = std::tanh(x[2] - 50) * 60000;
+  }
 
 }
 
 
 int main(int argc, char** argv)
 {
+  // Start MPI (if it's enabled)
+  MPI_Helpers::init(argc,argv);
+
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+
 
 
   // Default values
@@ -135,7 +138,7 @@ int main(int argc, char** argv)
   SemiImplicitHybridMicromagneticsProblem
     <TMagnetostaticFieldElement<dim,nnode1d>,
     TSemiImplicitMicromagElement<dim,nnode1d> > problem
-    (phi1_mesh_pt, phi_mesh_pt, llg_mesh_pt, &Inputs::no_applied_field);
+    (phi1_mesh_pt, phi_mesh_pt, llg_mesh_pt, &Inputs::domain_wall_applied_field);
 
 
   // Set up the magnetic parameters
@@ -179,4 +182,6 @@ int main(int argc, char** argv)
 
   // conv_dat.output(std::cout);
 
+  // Shut down MPI (if it's enabled)
+  MPI_Helpers::finalize();
 }
