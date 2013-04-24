@@ -18,8 +18,6 @@ using namespace StringConversion;
 namespace oomph
 {
 
-  class MyDocInfo;
-
   template<class BULK_ELEMENT,
            template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,
            unsigned DIM>
@@ -44,7 +42,7 @@ namespace oomph
     virtual void set_initial_condition() = 0;
 
     void actions_after_newton_step()
-    { debug_doc().next_newton_step(); }
+    { debug_doc().label()++; }
 
     //??ds If we are using mid-point then update, if we are using bdf then
     // re-normalise
@@ -251,29 +249,29 @@ namespace oomph
       unsigned ncol = cols.size();
       jacobian.build(sparse_jacobian.distribution_pt(),ncol, vals, cols, row_starts);
 
-      // This is probably very slow...
-      if(debug_doc().is_doc_enabled())
-        {
-          // Parallelisation: distribute using the problems communcator,
-          // split rows evenly over all processors. ??dsparallel
-          LinearAlgebraDistribution dist(communicator_pt(), residuals.nrow(),
-                                         true);
-          DoubleVector dofs(dist);
-          get_dofs(dofs);
+    //   // This is probably very slow...
+    //   if(debug_doc().is_doc_enabled())
+    //     {
+    //       // Parallelisation: distribute using the problems communcator,
+    //       // split rows evenly over all processors. ??dsparallel
+    //       LinearAlgebraDistribution dist(communicator_pt(), residuals.nrow(),
+    //                                      true);
+    //       DoubleVector dofs(dist);
+    //       get_dofs(dofs);
 
-          // Label with time and Newton step numbers
-          std::string label("_" + to_string(debug_doc().timestep())
-                            + "_" + to_string(debug_doc().newton_step()));
+    //       // Label with time and Newton step numbers
+    //       std::string label("_" + to_string(debug_doc().timestep())
+    //                         + "_" + to_string(debug_doc().newton_step()));
 
-          // Output
-          dofs.output(debug_doc().directory() + "/dofs" + label);
-          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac"
-                                         + label);
-          sparse_jacobian.sparse_indexed_output(debug_doc().directory()
-                                                + "/dofs" + label);
-          residuals.output (debug_doc().directory() + "/dofs" + label);
-        }
-    }
+    //       // Output
+    //       dofs.output(debug_doc().directory() + "/dofs" + label);
+    //       jacobian.sparse_indexed_output(debug_doc().directory() + "/jac"
+    //                                      + label);
+    //       sparse_jacobian.sparse_indexed_output(debug_doc().directory()
+    //                                             + "/dofs" + label);
+    //       residuals.output (debug_doc().directory() + "/dofs" + label);
+    //     }
+    // }
 
 
     /// Overload get_jacobian to include the boundary matrix in sumofmatrices
@@ -314,25 +312,25 @@ namespace oomph
 
       // jacobian.sparse_indexed_output("test");
 
-      // Output for debugging purposes. This is probably very slow...
-      if(debug_doc().is_doc_enabled())
-        {
-          // Parallelisation: distribute using the problems communcator, split
-          // rows evenly over all processors. ??dsparallel
-          LinearAlgebraDistribution
-            dist(communicator_pt(), residuals.nrow(), true);
-          DoubleVector dofs(dist);
-          get_dofs(dofs);
+      // // Output for debugging purposes. This is probably very slow...
+      // if(debug_doc().is_doc_enabled())
+      //   {
+      //     // Parallelisation: distribute using the problems communcator, split
+      //     // rows evenly over all processors. ??dsparallel
+      //     LinearAlgebraDistribution
+      //       dist(communicator_pt(), residuals.nrow(), true);
+      //     DoubleVector dofs(dist);
+      //     get_dofs(dofs);
 
-          std::string label("_" + to_string(debug_doc().timestep())
-                            + "_" + to_string(debug_doc().newton_step()));
+      //     std::string label("_" + to_string(debug_doc().timestep())
+      //                       + "_" + to_string(debug_doc().newton_step()));
 
-          // Output:
-          dofs.output(debug_doc().directory() + "/dofs" + label);
-          jacobian.sparse_indexed_output(debug_doc().directory() + "/jac" + label);
-          sparse_jacobian_pt->sparse_indexed_output(debug_doc().directory() + "/res" + label);
-          residuals.output(debug_doc().directory() + "/spjac" + label);
-        }
+      //     // Output:
+      //     dofs.output(debug_doc().directory() + "/dofs" + label);
+      //     jacobian.sparse_indexed_output(debug_doc().directory() + "/jac" + label);
+      //     sparse_jacobian_pt->sparse_indexed_output(debug_doc().directory() + "/res" + label);
+      //     residuals.output(debug_doc().directory() + "/spjac" + label);
+      //   }
 
     }
 
@@ -349,10 +347,10 @@ namespace oomph
     Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
 
     /// ??ds
-    MyDocInfo& debug_doc() const {return Debug_doc;}
+    DocInfo& debug_doc() const {return Debug_doc;}
 
     /// ??ds
-    MyDocInfo& debug_doc() {return Debug_doc;}
+    DocInfo& debug_doc() {return Debug_doc;}
 
     /// ??ds
     MagneticParameters* magnetic_parameters_pt() const
@@ -415,7 +413,7 @@ namespace oomph
     Vector<unsigned> M_index;
 
     /// ??ds
-    MyDocInfo Debug_doc;
+    DocInfo Debug_doc;
 
   };
 
