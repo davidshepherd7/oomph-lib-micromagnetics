@@ -56,27 +56,31 @@ namespace UnsteadyHeatStepSolution
 } // end of UnsteadyHeatStepSolution
 
 
-void main_bdf(double tmax, double tol, double dt,
-              const std::string& label)
+int main_midpoint(double tmax, double tol, double dt,
+                  const std::string& label, double max_global_error)
 {
-  BDF<1> my_bdf1(true);
-  BDF<2> my_bdf2(true);
+  OldMidpointMethod adaptive_midpoint(true, 2);
+  adaptive_midpoint.Fudge_factor = 0.1;
 
   // Build problem
   UnsteadyHeatProblem<QUnsteadyHeatElement<2,3> >
     problem(&UnsteadyHeatStepSolution::get_source,
             &UnsteadyHeatStepSolution::get_exact_u,
-            &my_bdf2);
+            &adaptive_midpoint);
 
-  // Fiddle with scaling parameters so midpoint works nicely ??ds
-  problem.DTSF_max_increase = 4.0;
-  problem.DTSF_min_decrease = 0.75;
+  // Nice output parameters
+  // oomph_info << std::scientific << std::setprecision(2);
+  // oomph_info.precision(8);
+
+  // // Fiddle with scaling parameters so midpoint works nicely ??ds
+  // problem.DTSF_max_increase = 4.0;
+  // problem.DTSF_min_decrease = 0.75;
 
   // Setup labels for output
-  DocInfo doc_info("results"+label);
+  DocInfo doc_info("results");
 
   // Open a trace file
-  ofstream trace_file((doc_info.directory() + "/trace.dat").c_str());
+  std::ofstream trace_file((doc_info.directory() + "/trace.dat").c_str());
   trace_file << "\"time\", \"u FE\", \"u exact\", \"norm of error\", \"norm of solution\", \"dt\""
              << std::endl;
 
@@ -94,12 +98,20 @@ void main_bdf(double tmax, double tol, double dt,
   // Timestepping loop
   while(problem.time() < tmax)
     {
-      cout << "Timestep " << doc_info.number() << std::endl;
+      std::cout << "Timestep " << doc_info.number() << std::endl;
       std::cout << "dt = " << dt << std::endl;
 
       // Take timestep
       double dt_next = problem.adaptive_unsteady_newton_solve(dt, tol);
       dt = dt_next;
+
+      std::cout << "Global error norm is: "
+                << problem.get_error_norm() << std::endl;
+      if(problem.get_error_norm() > max_global_error)
+        {
+          std::cerr << "Global error is too large! Test failed" << std::endl;
+          return 10;
+        }
 
       //Output solution
       problem.doc_solution(doc_info,trace_file);
@@ -111,71 +123,9 @@ void main_bdf(double tmax, double tol, double dt,
   // Close trace file
   trace_file.close();
 
-} // end of main_bdf
+  return 0;
 
-
- void main_midpoint(double tmax, double tol, double dt,
-                    const std::string& label)
- {
-   OldMidpointMethod adaptive_midpoint(true, 2);
-   adaptive_midpoint.Fudge_factor = 0.1;
-
-   // Build problem
-   UnsteadyHeatProblem<QUnsteadyHeatElement<2,3> >
-     problem(&UnsteadyHeatStepSolution::get_source,
-             &UnsteadyHeatStepSolution::get_exact_u,
-             &adaptive_midpoint);
-
-   // Nice output parameters
-   // oomph_info << std::scientific << std::setprecision(2);
-   // oomph_info.precision(8);
-
-   // Fiddle with scaling parameters so midpoint works nicely ??ds
-   problem.DTSF_max_increase = 4.0;
-   problem.DTSF_min_decrease = 0.75;
-
-   // Setup labels for output
-   DocInfo doc_info("results" + label);
-
-   // Open a trace file
-   ofstream trace_file((doc_info.directory() + "/trace.dat").c_str());
-   trace_file << "\"time\", \"u FE\", \"u exact\", \"norm of error\", \"norm of solution\", \"dt\""
-              << std::endl;
-
-   // Initialise timestep -- also sets the weights for all timesteppers
-   // in the problem.
-   problem.initialise_dt(dt);
-   problem.set_initial_condition();
-
-   //Output initial condition
-   problem.doc_solution(doc_info, trace_file);
-
-   //Increment counter for solutions
-   doc_info.number()++;
-
-   // Timestepping loop
-   while(problem.time() < tmax)
-     {
-       cout << "Timestep " << doc_info.number() << std::endl;
-       std::cout << "dt = " << dt << std::endl;
-
-       // Take timestep
-       double dt_next = problem.adaptive_unsteady_newton_solve(dt, tol);
-       dt = dt_next;
-
-       //Output solution
-       problem.doc_solution(doc_info,trace_file);
-
-       //Increment counter for solutions
-       doc_info.number()++;
-     }
-
-   // Close trace file
-   trace_file.close();
-
- } // end of main_midpoint
-
-
+} // end of main_midpoint
 
 
 int main(int argc, char *argv[])
@@ -189,8 +139,7 @@ int main(int argc, char *argv[])
   double tol = 1e-3;
   double dt = 1e-6;
 
-  // main_bdf(tmax, tol, dt, "_bdf2");
-  main_midpoint(tmax, tol, dt, "_midpoint");
+  double max_global_error_norm = 0.02;
 
-  return 0;
+  return main_midpoint(tmax, tol, dt, "_midpoint", max_global_error_norm);
 }

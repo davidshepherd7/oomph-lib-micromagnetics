@@ -36,10 +36,8 @@
 // Mesh
 #include "meshes/rectangular_quadmesh.h"
 
-using namespace std;
 
 using namespace oomph;
-
 using namespace MathematicalConstants;
 
 
@@ -89,7 +87,7 @@ public:
   void set_initial_condition();
 
   /// Doc the solution
-  double doc_solution(DocInfo& doc_info, ofstream& trace_file);
+  double doc_solution(DocInfo& doc_info, std::ofstream& trace_file);
 
 
   /// Error for adaptive timestepper (rms of nodal error determined by
@@ -115,8 +113,7 @@ public:
   }
 
 
-  double get_error_norm(FiniteElement::UnsteadyExactSolutionFctPt
-                        Exact_solution_fct_pt) const;
+  double get_error_norm() const;
 
 private:
 
@@ -175,9 +172,9 @@ template<class ELEMENT> UnsteadyHeatProblem<ELEMENT>::
   // Choose its first node as the control node
   Control_node_pt=mesh_pt()->finite_element_pt(control_el)->node_pt(0);
 
-  cout << "Recording trace of the solution at: "
-       << Control_node_pt->x(0) << " "
-       << Control_node_pt->x(1) << std::endl;
+  std::cout << "Recording trace of the solution at: "
+            << Control_node_pt->x(0) << " "
+            << Control_node_pt->x(1) << std::endl;
 
 
   // Set the boundary conditions for this problem:
@@ -210,13 +207,10 @@ template<class ELEMENT> UnsteadyHeatProblem<ELEMENT>::
 
       //Set the source function pointer
       el_pt->source_fct_pt() = Source_fct_pt;
-
-      // Set pointer to continous time
-      el_pt->time_pt()=time_pt();
     }
 
   // Do equation numbering
-  cout <<"Number of equations: " << assign_eqn_numbers() << std::endl;
+  std::cout <<"Number of equations: " << assign_eqn_numbers() << std::endl;
 
 } // end of constructor
 
@@ -291,7 +285,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
     {
       // Continuous time
       double time=prev_time[t];
-      cout << "setting IC at time =" << time << std::endl;
+      std::cout << "setting IC at time =" << time << std::endl;
 
       // Loop over the nodes to set initial guess everywhere
       for (unsigned n=0;n<num_nod;n++)
@@ -327,7 +321,7 @@ void UnsteadyHeatProblem<ELEMENT>::set_initial_condition()
 //========================================================================
 template<class ELEMENT>
 double UnsteadyHeatProblem<ELEMENT>::
-doc_solution(DocInfo& doc_info, ofstream& trace_file)
+doc_solution(DocInfo& doc_info, std::ofstream& trace_file)
 {
   // ofstream some_file;
   // char filename[100];
@@ -397,12 +391,10 @@ doc_solution(DocInfo& doc_info, ofstream& trace_file)
   Vector<double> u_exact;
   Exact_solution_fct_pt(time_pt()->time(),x_ctrl,u_exact);
 
-  double error_norm = get_error_norm(Exact_solution_fct_pt);
-
   trace_file << time_pt()->time() << " "
              << Control_node_pt->value(0) << " "
              << u_exact[0] << " "
-             << error_norm << " " // 3
+             << get_error_norm() << " " // 3
              << time_pt()->dt() // 4
              << std::endl;
 
@@ -413,10 +405,9 @@ doc_solution(DocInfo& doc_info, ofstream& trace_file)
 
 template<class ELEMENT>
 double UnsteadyHeatProblem<ELEMENT>::
-get_error_norm(FiniteElement::UnsteadyExactSolutionFctPt
-               Exact_solution_fct_pt) const
+get_error_norm() const
 {
-  double time = time_stepper_pt()->time_pt()->time();
+  double time = time_pt()->time();
 
   Vector<double> error; error.reserve(mesh_pt()->nnode());
   for(unsigned ind=0, nnd=mesh_pt()->nnode(); ind<nnd; ind++)
