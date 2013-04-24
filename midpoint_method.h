@@ -23,6 +23,15 @@ namespace oomph
   // =======================================================================
   /// Implicit midpoint method, implemented via a BDF1 step followed by an
   /// update.
+
+  /// Common mistakes when using midpoint:
+
+  /// * Didn't include the d_u_evaltime_by_du_np1 term in the Jacobian.
+
+  /// * Didn't properly interpolate time/values/x/derivatives in
+  /// jacobian/residual (all of these MUST be evaluated at the midpoint).
+
+
   //========================================================================
   class MidpointMethod : public TimeStepper
   {
@@ -52,7 +61,9 @@ namespace oomph
       // adaptive timestepping.
       Weight.resize(2, nprev_values() + 1 + 2, 0.0);
 
-      // Set the weights for zero-th derivative.
+      // Set the weights for zero-th derivative (i.e. the value to use in
+      // newton solver calculations, implicit midpoint method uses the
+      // average of previous and current values).
       Weight(0, 0) = 0.5;
       Weight(0, 1) = 0.5;
     }
@@ -74,10 +85,9 @@ namespace oomph
     /// Number of timestep increments that are required by the scheme
     unsigned ndt() {return nprev_values();}
 
-    /// Number of previous values that we need to store. Two slots for
-    /// predictor and y'(tnph) plus as many as are needed for
-    /// interpolation (minimum 1).
-    unsigned nprev_values() {return std::max(N_interp, unsigned(1)) + 2;}
+    /// Number of previous values that actually hold previous values
+    unsigned nprev_values() {return 2;}
+    // unsigned nprev_values() {return 2;}
 
     /// \short ??ds
     unsigned nprev_values_for_evaluation_time() {return 2;}
@@ -86,8 +96,8 @@ namespace oomph
     /// we can move on to the next timestep
     void shift_time_values(Data* const &data_pt);
 
-    ///\short This function advances the time history of the positions
-    ///at a node.
+    /// \short This function advances the time history of the positions
+    /// at a node.
     void shift_time_positions(Node* const &node_pt);
 
     /// \short Set the weights for the error computation. This is not used
@@ -98,16 +108,15 @@ namespace oomph
     /// used by the midpoint method since interpolation is needed.
     void set_predictor_weights() {}
 
-    /// not implemented
+    /// not implemented (TODO)
     void assign_initial_values_impulsive(Data* const &data_pt) {abort();}
     void assign_initial_positions_impulsive(Node* const &node_pt) {abort();}
     void calculate_predicted_positions(Node* const &node_pt) {}
-
     double temporal_error_in_position(Node* const &node_pt, const unsigned &i)
-    {return 0.0;}
-
-    // TODO
+    { abort(); return 0.0;}
     void undo_make_steady(){abort();}
+
+    // Adaptivity
     void calculate_predicted_values(Data* const &data_pt);
     double temporal_error_in_value(Data* const &data_pt, const unsigned &i);
 
@@ -238,7 +247,7 @@ namespace oomph
         Vector<double> y_tnph, dy_tnph, dy_tn;
         interpolator.eval(tnph, y_tnph);
         interpolator.eval_derivative(tnph, 1, dy_tnph);
-        interpolator.eval_derivative(time_pt()->time(1)+0.00001, 1, dy_tn);
+        interpolator.eval_derivative(time_pt()->time(1)+0.00001, 1, dy_tn); //??ds nasty hack!
 
         // Use the interpolated values to calculate an estimate to
         // y_np1. Basically just using AB2.
@@ -269,7 +278,12 @@ namespace oomph
 
         return (4*(y_np1_MP - y_np1_pred) + 5*a_n) * Fudge_factor;
       }
-    else return 0.0;
+    else
+      {
+        std::string err("Tried to get the temporal error from a non-adaptive");
+        err += " time stepper.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
+      }
   }
 
 } // End of oomph namespace
