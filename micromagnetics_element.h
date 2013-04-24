@@ -111,8 +111,8 @@ namespace oomph
 
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
-    typedef void (*TimeSpaceToDoubleVectFctPt)
-    (const double& t, const Vector<double>&x,Vector<double>& out);
+    typedef Vector<double> (*TimeSpaceToDoubleVectFctPt)
+    (const double& t, const Vector<double>&x);
 
     // typedef void (*TimeSpaceMagToDoubleVectFctPt)
     // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
@@ -181,7 +181,11 @@ namespace oomph
                                              const Vector<double> &s) const
     {
       Vector<double> H_app(3,0.0);
-      if(Applied_field_pt!=0) (*Applied_field_pt)(t,x,H_app);
+      if(Applied_field_pt != 0)
+        {
+          H_app = (*Applied_field_pt)(t, x);
+        }
+
       for(unsigned j=0; j<3; j++)
         {
           H_app[j] *= magnetic_parameters_pt()->field_normalisation_factor();

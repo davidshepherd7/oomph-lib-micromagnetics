@@ -23,11 +23,10 @@ namespace oomph
   public:
 
     // Function pointer for initial magnetisation.
-    typedef void (*InitialMFctPt)(const double& t, const Vector<double> &x,
-                                  Vector<double> &m);
+    typedef Vector<double> (*InitialMFctPt)(const double& t, const Vector<double> &x);
 
     // Function pointer for applied field.
-    typedef typename ELEMENT::TimeSpaceToDoubleVectFctPt AppliedFieldFctPt;
+    typedef HApp::HAppFctPt AppliedFieldFctPt;
 
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
@@ -385,10 +384,10 @@ namespace oomph
           Vector<double> numerical_m(3,0.0);
           ele_pt->interpolated_m_micromag(s,numerical_m);
 
-          Vector<double> x(dim(),0.0), exact_m(3,0.0);
+          Vector<double> x(dim(),0.0);
           ele_pt->interpolated_x(s,x);
           double t = this->time();
-          fct_pt(t, x, exact_m);
+          Vector<double> exact_m = fct_pt(t, x);
 
           for(unsigned j=0; j<3; j++)
             {
@@ -638,9 +637,9 @@ namespace oomph
             unsigned dim = mesh_pt()->node_pt(n)->ndim();
 
             // Get initial value of m from inputs
-            Vector<double> m(3,0.0), x(dim,0.0);
+            Vector<double> x(dim,0.0);
             this->mesh_pt()->node_pt(n)->position(t,x);
-            initial_m_pt(time,x,m);
+            Vector<double> m = initial_m_pt(time,x);
 
             // Set initial condition on m
             for(unsigned i=0; i<3; i++)

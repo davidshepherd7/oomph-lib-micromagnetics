@@ -54,7 +54,7 @@ namespace oomph
           // Pin a node which isn't involved in the boundary element method (we
           // have to pin something to avoid a singular Jacobian, can't be a
           // boundary node or things will go wrong with BEM).
-          Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_non_boundary_node();
+          Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_some_non_boundary_node();
           pinned_phi_1_node_pt->pin(0);
           pinned_phi_1_node_pt->set_value(0,0.0);
         }
@@ -68,7 +68,7 @@ namespace oomph
       // Finish off the problem
       Phi_1_problem.build();
 
-      // Things will go wrong if the nodse of all meshes are not in
+      // Things will go wrong if the nodes of all meshes are not in
       // the same place:
 #ifdef PARANOID
       if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
@@ -487,8 +487,8 @@ namespace oomph
     double m_error_avg(0), m_error_stddev(0), orthogonality_error_avg(0),
       orthogonality_error_stddev(0);
     llg_sub_problem_pt()->norm_m_error(m_error_avg, m_error_stddev);
-    llg_sub_problem_pt()->orthogonality_m_error
-      (orthogonality_error_avg, orthogonality_error_stddev);
+    // llg_sub_problem_pt()->orthogonality_m_error
+      // (orthogonality_error_avg, orthogonality_error_stddev);
 
     // Write them to file
     std::ofstream errors((doc_info.directory()+"/errors").c_str(),std::ios::app);
