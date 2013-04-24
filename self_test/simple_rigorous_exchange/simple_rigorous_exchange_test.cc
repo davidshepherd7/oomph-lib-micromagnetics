@@ -47,54 +47,48 @@ namespace Inputs
 
   double a = 1.0;
 
-  void steady_state_initial_m_x_variations
-  (const double& t, const Vector<double> &x, Vector<double> &m)
+  Vector<double> steady_state_initial_m_x_variations
+  (const double& t, const Vector<double> &x)
   {
-    m.assign(3,0.0);
+    Vector<double> m(3,0.0);
 
     m[0] = std::sin(a*x[0]);
     m[1] = std::cos(a*x[0]);
     m[2] = 0.0;
 
     // should be normalised already
+    return m;
   }
 
 
-  void steady_state_initial_m_y_variations
-  (const double& t, const Vector<double> &x, Vector<double> &m)
+  Vector<double> steady_state_initial_m_y_variations
+  (const double& t, const Vector<double> &x)
   {
-    m.assign(3,0.0);
+    Vector<double> m(3,0.0);
 
     m[0] = std::sin(a*x[1]);
     m[1] = std::cos(a*x[1]);
     m[2] = 0.0;
 
     // should be normalised already
+    return m;
   }
 
-  void steady_state_initial_m_z_variations
-  (const double& t, const Vector<double> &x, Vector<double> &m)
+  Vector<double> steady_state_initial_m_z_variations
+  (const double& t, const Vector<double> &x)
   {
-    m.assign(3,0.0);
+    Vector<double> m(3,0.0);
 
     m[0] = std::sin(a*x[2]);
     m[1] = std::cos(a*x[2]);
     m[2] = 0.0;
 
     // should be normalised already
-  }
-
-
-  // Turn off field
-  void no_applied_field(const double& t, const Vector<double> &x,
-                        Vector<double> &h_app)
-  {
-    h_app.assign(3,0.0);
+    return m;
   }
 
   // Function pointer for initial magnetisation.
-  typedef void (*InitialMFctPt)(const double& t, const Vector<double> &x,
-                                Vector<double> &m);
+  typedef Vector<double> (*InitialMFctPt)(const double& t, const Vector<double> &x);
 
 }
 
@@ -150,7 +144,7 @@ int main(int argc, char *argv[])
     {
       // Build problem
       ImplicitLLGProblem<TMicromagElement<2,2> >
-        problem(30, 30, 1.0, 1.0, Inputs::no_applied_field, true);
+        problem(30, 30, 1.0, 1.0, HApp::zero, true);
 
       problem.mag_parameters_pt()->set_simple_llg_parameters();
       problem.renormalise_each_time_step() = true;
@@ -245,7 +239,7 @@ int main(int argc, char *argv[])
       ImplicitLLGProblem<TMicromagElement<3,2> > threedproblem;
       threedproblem.bulk_mesh_pt() = &threedmesh;
       threedproblem.add_time_stepper_pt(&bdf2);
-      threedproblem.applied_field_fct_pt() = &Inputs::no_applied_field;
+      threedproblem.applied_field_fct_pt() = &HApp::zero;
       threedproblem.mag_parameters_pt()->set_simple_llg_parameters();
       threedproblem.renormalise_each_time_step() = true;
 

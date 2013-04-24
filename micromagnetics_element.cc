@@ -146,7 +146,10 @@ namespace oomph
 
         // Cross product for magnetostatic contribution
         Vector<double> h_magnetostatic(3,0.0);
-        for(unsigned j=0; j<3; j++) {h_magnetostatic[j] = -1 * magstatic_c * intp.dphidx()[j];}
+        for(unsigned j=0; j<intp.dphidx().size(); j++)
+          {
+            h_magnetostatic[j] = -1 * magstatic_c * intp.dphidx()[j];
+          }
 
         const Vector<double> itp_mxdmdt = cross(intp.m(), intp.dmdt());
         const Vector<double> itp_mxhapp = cross(intp.m(), h_applied);

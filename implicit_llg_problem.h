@@ -6,6 +6,7 @@
 #include "./micromagnetics_element.h"
 #include "./micromagnetics_element.cc" //??ds shouldn't need...
 #include "./vector_helpers.h"
+#include "./magnetics_helpers.h"
 
 // Default mesh
 #include "meshes/simple_rectangular_tri_mesh.h"
