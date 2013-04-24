@@ -54,19 +54,21 @@ namespace oomph
     // Find out how many nodes there are
     const unsigned n_node = nnode();
 
-    // Set the value of n_intpt
-    const unsigned n_intpt = integral_pt()->nweight();
-
     // Get coefficients
     const double llg_precess_c = llg_precession_coeff();
     const double llg_damp_c = llg_damping_coeff();
     const double exch_c = exchange_coeff();
     const double magstatic_c = magnetostatic_coeff();
 
+    // Cache time stepper weights needed in Jacobian (??ds write some
+    // documentation on this? needs proper maths really...)
+    double d_value_evaltime_by_dvalue_np1 = node_pt(0)->time_stepper_pt()->weight(0,0);
+    double d_valuederivative_evaltime_by_dvalue_np1 = node_pt(0)->time_stepper_pt()->weight(1,0);
+
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
-    for(unsigned ipt=0;ipt<n_intpt;ipt++)
+    for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
       {
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
@@ -246,8 +248,10 @@ namespace oomph
 
           for(unsigned l2=0;l2<n_node;l2++){
 
-            // timestepper weight for m at this node, at this time
-            double mt0weight = this->node_pt(l2)->time_stepper_pt()->weight(1,0);
+            // Timestepper weight for m at this node, at this
+            // time. Assuming all nodes have same timestepper, seems pretty
+            // safe bet.
+            double mt0weight = d_valuederivative_evaltime_by_dvalue_np1;
 
             // Pre-calculations
             Vector<double> gradpsil2(3,0.0), gradtestl(3,0.0);
@@ -348,6 +352,8 @@ namespace oomph
             }
 
             // nothing w.r.t. phi1
+
+
             // w.r.t. m
             for(unsigned j=0; j<3; j++) // loop over the m we differentiate by
               {
@@ -387,7 +393,8 @@ namespace oomph
 
                     // dmidmj x (....)
                     jacobian(m_eqn[i],m_unknown[j]) +=
-                      W * intp.test(l) * intp.psi(l2) * jhatxnondiffterms[i];
+                      W * intp.test(l) * intp.psi(l2) * jhatxnondiffterms[i]
+                      * d_value_evaltime_by_dvalue_np1;
 
                     // m x d/dmj(.....)
                     jacobian(m_eqn[i],m_unknown[j]) +=
@@ -397,7 +404,8 @@ namespace oomph
                     jacobian(m_eqn[i],m_unknown[j])
                       -= llg_precess_c * exch_c * W *
                       ( intp.psi(l2) * jhatxgradtestdotgradmi[i]
-                        + mxjhat[i] * gradtestldotgradpsil2);
+                        + mxjhat[i] * gradtestldotgradpsil2)
+                      * d_value_evaltime_by_dvalue_np1;
 
                   }
 
