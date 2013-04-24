@@ -923,38 +923,38 @@ namespace oomph
     // Copied from the Poisson versions of these functions:
     // ============================================================
 
-    // double dshape_and_dtest_eulerian_poisson
-    // (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
-    //  DShape &dtestdx) const
-    // {
-    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
-    //   test = psi;
-    //   dtestdx= dpsidx;
-    //   return J;
-    // }
+    double dshape_and_dtest_eulerian_poisson
+    (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
+     DShape &dtestdx) const
+    {
+      const double J = this->dshape_eulerian(s,psi,dpsidx);
+      test = psi;
+      dtestdx= dpsidx;
+      return J;
+    }
 
-    // double dshape_and_dtest_eulerian_at_knot_poisson
-    // (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
-    //  DShape &dtestdx) const
-    // {
-    //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
-    //   test = psi;
-    //   dtestdx = dpsidx;
-    //   return J;
-    // }
+    double dshape_and_dtest_eulerian_at_knot_poisson
+    (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
+     DShape &dtestdx) const
+    {
+      const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
+      test = psi;
+      dtestdx = dpsidx;
+      return J;
+    }
 
-    //   double dshape_and_dtest_eulerian_at_knot_poisson
-    //   (const unsigned &ipt, Shape &psi, DShape &dpsidx,
-    //    RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
-    //    RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
-    //   {
-    //     const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
-    //                                                    djacobian_dX,d_dpsidx_dX);
-    //     test = psi;
-    //     dtestdx = dpsidx;
-    //     d_dtestdx_dX = d_dpsidx_dX;
-    //     return J;
-    //   }
+      double dshape_and_dtest_eulerian_at_knot_poisson
+      (const unsigned &ipt, Shape &psi, DShape &dpsidx,
+       RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
+       RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
+      {
+        const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
+                                                       djacobian_dX,d_dpsidx_dX);
+        test = psi;
+        dtestdx = dpsidx;
+        d_dtestdx_dX = d_dpsidx_dX;
+        return J;
+      }
 
     };
 
@@ -993,38 +993,38 @@ namespace oomph
       // Copied from the Poisson versions of these functions:
       // ============================================================
 
-      // double dshape_and_dtest_eulerian_poisson
-      // (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
-      //  DShape &dtestdx) const
-      // {
-      //   const double J = this->dshape_eulerian(s,psi,dpsidx);
-      //   test = psi;
-      //   dtestdx= dpsidx;
-      //   return J;
-      // }
+      double dshape_and_dtest_eulerian_poisson
+      (const Vector<double> &s, Shape &psi, DShape &dpsidx, Shape &test,
+       DShape &dtestdx) const
+      {
+        const double J = this->dshape_eulerian(s,psi,dpsidx);
+        test = psi;
+        dtestdx= dpsidx;
+        return J;
+      }
 
-      // double dshape_and_dtest_eulerian_at_knot_poisson
-      // (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
-      //  DShape &dtestdx) const
-      // {
-      //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
-      //   test = psi;
-      //   dtestdx = dpsidx;
-      //   return J;
-      // }
+      double dshape_and_dtest_eulerian_at_knot_poisson
+      (const unsigned &ipt, Shape &psi, DShape &dpsidx, Shape &test,
+       DShape &dtestdx) const
+      {
+        const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx);
+        test = psi;
+        dtestdx = dpsidx;
+        return J;
+      }
 
-      // double dshape_and_dtest_eulerian_at_knot_poisson
-      // (const unsigned &ipt, Shape &psi, DShape &dpsidx,
-      //  RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
-      //  RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
-      // {
-      //   const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
-      //                                                  djacobian_dX,d_dpsidx_dX);
-      //   test = psi;
-      //   dtestdx = dpsidx;
-      //   d_dtestdx_dX = d_dpsidx_dX;
-      //   return J;
-      // }
+      double dshape_and_dtest_eulerian_at_knot_poisson
+      (const unsigned &ipt, Shape &psi, DShape &dpsidx,
+       RankFourTensor<double> &d_dpsidx_dX, Shape &test, DShape &dtestdx,
+       RankFourTensor<double> &d_dtestdx_dX, DenseMatrix<double> &djacobian_dX) const
+      {
+        const double J = this->dshape_eulerian_at_knot(ipt,psi,dpsidx,
+                                                       djacobian_dX,d_dpsidx_dX);
+        test = psi;
+        dtestdx = dpsidx;
+        d_dtestdx_dX = d_dpsidx_dX;
+        return J;
+      }
 
     };
 
@@ -1261,7 +1261,7 @@ namespace oomph
       MMInterpolator(const FiniteElement* const this_element,
                      const Vector<double> &s)
         : GeneralInterpolator<DIM>(this_element, s),
-          Div_m(this->TimeNotYetSetValue)
+          Div_m(this->NotYetCalculatedValue)
       {}
 
       double phi() {return this->value(This_element->phi_index_micromag());}

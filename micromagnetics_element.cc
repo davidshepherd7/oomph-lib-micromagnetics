@@ -445,13 +445,14 @@ namespace oomph
         MMInterpolator<DIM> intp(this, s);
 
         // output eulerian coordinates of plot point
-        for(unsigned i=0; i<DIM; i++) outfile << intp.x() << " ";
+        for(unsigned i=0; i<DIM; i++) outfile << intp.x(i) << " ";
+
+        // std::cout << intp.x() << std::endl;
+        // std::cout << intp.x(0) << " " << intp.x(1) << std::endl;
 
         // Output the magnetostatic field (= - dphidx) at this point
-        Vector<double> itp_dphidx(3,0.0);
-        interpolated_dphidx_micromag(s,itp_dphidx);
-        for(unsigned i=0; i<3; i++)
-          outfile << -itp_dphidx[i] << " ";
+        Vector<double> intp_dphidx = intp.dphidx();
+        for(unsigned i=0; i<3; i++) outfile << -intp_dphidx[i] << " ";
 
         // Phi 1 at this point
         outfile << intp.phi() << " ";

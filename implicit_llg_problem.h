@@ -119,9 +119,6 @@ namespace oomph
         {
           ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
 
-          // Set pointer to continuous time
-          elem_pt->time_pt() = time_pt();
-
           // Set values for magnetic parameters
           elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
 
@@ -247,7 +244,7 @@ namespace oomph
       // Write them to file
       std::ofstream trace_file((doc_info.directory()+"/trace").c_str(), std::ios::app);
       trace_file << time() << " "
-                 << time_stepper_pt()->time_pt()->dt() << " "
+                 << time_pt()->dt() << " "
                  << m_error_avg << " "
                  << m_error_stddev << " "
                  << std::endl;
@@ -447,21 +444,28 @@ namespace oomph
     /// orthogonality of m and dmdn.
     double mean_orthogonality_m_error() const
     {
-      unsigned nele = surface_exchange_mesh_pt()->nelement();
-      double temp_sum = 0.0;
+      // unsigned nele = surface_exchange_mesh_pt()->nelement();
+      // double temp_sum = 0.0;
 
-      // Calculate m . dm/dn for each element
-      for(unsigned e=0; e < nele; e++)
-        {
-          MicromagFluxElement<ELEMENT>* ele_pt
-            = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
-            (surface_exchange_mesh_pt()->element_pt(e));
-          Vector<double> s(ele_pt->dim(), 0.5); // middle of element
-          temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
-        }
+      // // Calculate m . dm/dn for each element
+      // for(unsigned e=0; e < nele; e++)
+      //   {
+      //     MicromagFluxElement<ELEMENT>* ele_pt
+      //       = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
+      //       (surface_exchange_mesh_pt()->element_pt(e));
+      //     Vector<double> s(ele_pt->dim(), 0.5); // middle of element
+      //     temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
+      //   }
 
-      // Take average
-      return temp_sum / double(nele);
+      // // Take average
+      // return temp_sum / double(nele);
+
+      std::ostringstream error_msg;
+      error_msg << "Not implemented.";
+      throw OomphLibError(error_msg.str(),
+                          OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+
     }
 
     void orthogonality_m_error(double &orthogonality_error_avg,
