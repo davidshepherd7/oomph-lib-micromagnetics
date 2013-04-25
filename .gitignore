@@ -46,6 +46,7 @@ callgrind*
 *.corner
 *.neigh
 *.bak
+*.edge
 
 # plot scripts
 plotscript.gplot

@@ -1,0 +1,407 @@
+200 2 0 0 # of pts, 2D, no attributes or boundary markers for points
+1 1.70333 6.945 #  [located on boundary 0]
+2 1.8 7.0125 #  [located on boundary 0]
+3 1.89917 7.07667 #  [located on boundary 0]
+4 1.99917 7.13833 #  [located on boundary 0]
+5 2.1025 7.19667 #  [located on boundary 0]
+6 2.20667 7.25083 #  [located on boundary 0]
+7 2.3125 7.3025 #  [located on boundary 0]
+8 2.42083 7.35083 #  [located on boundary 0]
+9 2.52917 7.39583 #  [located on boundary 0]
+10 2.64 7.43667 #  [located on boundary 0]
+11 2.75167 7.475 #  [located on boundary 0]
+12 2.865 7.50917 #  [located on boundary 0]
+13 2.97833 7.54 #  [located on boundary 0]
+14 3.09333 7.56667 #  [located on boundary 0]
+15 3.20917 7.59083 #  [located on boundary 0]
+16 3.325 7.61 #  [located on boundary 0]
+17 3.44167 7.62667 #  [located on boundary 0]
+18 3.55917 7.63917 #  [located on boundary 0]
+19 3.67667 7.64833 #  [located on boundary 0]
+20 3.795 7.65333 #  [located on boundary 0]
+21 3.9125 7.655 #  [located on boundary 0]
+22 4.03083 7.6525 #  [located on boundary 0]
+23 4.14833 7.64667 #  [located on boundary 0]
+24 4.26583 7.63667 #  [located on boundary 0]
+25 4.38333 7.62333 #  [located on boundary 0]
+26 4.5 7.60667 #  [located on boundary 0]
+27 4.61583 7.58583 #  [located on boundary 0]
+28 4.73167 7.56167 #  [located on boundary 0]
+29 4.84583 7.53333 #  [located on boundary 0]
+30 4.96 7.50167 #  [located on boundary 0]
+31 5.0725 7.46667 #  [located on boundary 0]
+32 5.18333 7.42833 #  [located on boundary 0]
+33 5.29417 7.38667 #  [located on boundary 0]
+34 5.4025 7.34083 #  [located on boundary 0]
+35 5.51 7.29167 #  [located on boundary 0]
+36 5.61583 7.24 #  [located on boundary 0]
+37 5.72 7.18417 #  [located on boundary 0]
+38 5.8225 7.125 #  [located on boundary 0]
+39 5.9225 7.06333 #  [located on boundary 0]
+40 6.02083 6.99833 #  [located on boundary 0]
+41 6.1175 6.93 #  [located on boundary 0]
+42 6.21083 6.85917 #  [located on boundary 0]
+43 6.30333 6.785 #  [located on boundary 0]
+44 6.3925 6.70833 #  [located on boundary 0]
+45 6.47917 6.62833 #  [located on boundary 0]
+46 6.56417 6.54583 #  [located on boundary 0]
+47 6.64583 6.46083 #  [located on boundary 0]
+48 6.725 6.37333 #  [located on boundary 0]
+49 6.80083 6.28333 #  [located on boundary 0]
+50 6.87417 6.19167 #  [located on boundary 0]
+51 6.945 6.09667 #  [located on boundary 0]
+52 7.0125 6 #  [located on boundary 0]
+53 7.07667 5.90083 #  [located on boundary 0]
+54 7.13833 5.80083 #  [located on boundary 0]
+55 7.19667 5.6975 #  [located on boundary 0]
+56 7.25083 5.59333 #  [located on boundary 0]
+57 7.3025 5.4875 #  [located on boundary 0]
+58 7.35083 5.37917 #  [located on boundary 0]
+59 7.39583 5.27083 #  [located on boundary 0]
+60 7.43667 5.16 #  [located on boundary 0]
+61 7.475 5.04833 #  [located on boundary 0]
+62 7.50917 4.935 #  [located on boundary 0]
+63 7.54 4.82167 #  [located on boundary 0]
+64 7.56667 4.70667 #  [located on boundary 0]
+65 7.59083 4.59083 #  [located on boundary 0]
+66 7.61 4.475 #  [located on boundary 0]
+67 7.62667 4.35833 #  [located on boundary 0]
+68 7.63917 4.24083 #  [located on boundary 0]
+69 7.64833 4.12333 #  [located on boundary 0]
+70 7.65333 4.005 #  [located on boundary 0]
+71 7.655 3.8875 #  [located on boundary 0]
+72 7.6525 3.76917 #  [located on boundary 0]
+73 7.64667 3.65167 #  [located on boundary 0]
+74 7.63667 3.53417 #  [located on boundary 0]
+75 7.62333 3.41667 #  [located on boundary 0]
+76 7.60667 3.3 #  [located on boundary 0]
+77 7.58583 3.18417 #  [located on boundary 0]
+78 7.56167 3.06833 #  [located on boundary 0]
+79 7.53333 2.95417 #  [located on boundary 0]
+80 7.50167 2.84 #  [located on boundary 0]
+81 7.46667 2.7275 #  [located on boundary 0]
+82 7.42833 2.61667 #  [located on boundary 0]
+83 7.38667 2.50583 #  [located on boundary 0]
+84 7.34083 2.3975 #  [located on boundary 0]
+85 7.29167 2.29 #  [located on boundary 0]
+86 7.24 2.18417 #  [located on boundary 0]
+87 7.18417 2.08 #  [located on boundary 0]
+88 7.125 1.9775 #  [located on boundary 0]
+89 7.06333 1.8775 #  [located on boundary 0]
+90 6.99833 1.77917 #  [located on boundary 0]
+91 6.93 1.6825 #  [located on boundary 0]
+92 6.85917 1.58917 #  [located on boundary 0]
+93 6.785 1.49667 #  [located on boundary 0]
+94 6.70833 1.4075 #  [located on boundary 0]
+95 6.62833 1.32083 #  [located on boundary 0]
+96 6.54583 1.23583 #  [located on boundary 0]
+97 6.46083 1.15417 #  [located on boundary 0]
+98 6.37333 1.075 #  [located on boundary 0]
+99 6.28333 0.999167 #  [located on boundary 0]
+100 6.19167 0.925833 #  [located on boundary 0]
+101 6.09667 0.855 #  [located on boundary 0]
+102 6 0.7875 #  [located on boundary 0]
+103 5.90083 0.723333 #  [located on boundary 0]
+104 5.80083 0.661667 #  [located on boundary 0]
+105 5.6975 0.603333 #  [located on boundary 0]
+106 5.59333 0.549167 #  [located on boundary 0]
+107 5.4875 0.4975 #  [located on boundary 0]
+108 5.37917 0.449167 #  [located on boundary 0]
+109 5.27083 0.404167 #  [located on boundary 0]
+110 5.16 0.363333 #  [located on boundary 0]
+111 5.04833 0.325 #  [located on boundary 0]
+112 4.935 0.290833 #  [located on boundary 0]
+113 4.82167 0.26 #  [located on boundary 0]
+114 4.70667 0.233333 #  [located on boundary 0]
+115 4.59083 0.209167 #  [located on boundary 0]
+116 4.475 0.19 #  [located on boundary 0]
+117 4.35833 0.173333 #  [located on boundary 0]
+118 4.24083 0.160833 #  [located on boundary 0]
+119 4.12333 0.151667 #  [located on boundary 0]
+120 4.005 0.146667 #  [located on boundary 0]
+121 3.8875 0.145 #  [located on boundary 0]
+122 3.76917 0.1475 #  [located on boundary 0]
+123 3.65167 0.153333 #  [located on boundary 0]
+124 3.53417 0.163333 #  [located on boundary 0]
+125 3.41667 0.176667 #  [located on boundary 0]
+126 3.3 0.193333 #  [located on boundary 0]
+127 3.18417 0.214167 #  [located on boundary 0]
+128 3.06833 0.238333 #  [located on boundary 0]
+129 2.95417 0.266667 #  [located on boundary 0]
+130 2.84 0.298333 #  [located on boundary 0]
+131 2.7275 0.333333 #  [located on boundary 0]
+132 2.61667 0.371667 #  [located on boundary 0]
+133 2.50583 0.413333 #  [located on boundary 0]
+134 2.3975 0.459167 #  [located on boundary 0]
+135 2.29 0.508333 #  [located on boundary 0]
+136 2.18417 0.56 #  [located on boundary 0]
+137 2.08 0.615833 #  [located on boundary 0]
+138 1.9775 0.675 #  [located on boundary 0]
+139 1.8775 0.736667 #  [located on boundary 0]
+140 1.77917 0.801667 #  [located on boundary 0]
+141 1.6825 0.87 #  [located on boundary 0]
+142 1.58917 0.940833 #  [located on boundary 0]
+143 1.49667 1.015 #  [located on boundary 0]
+144 1.4075 1.09167 #  [located on boundary 0]
+145 1.32083 1.17167 #  [located on boundary 0]
+146 1.23583 1.25417 #  [located on boundary 0]
+147 1.15417 1.33917 #  [located on boundary 0]
+148 1.075 1.42667 #  [located on boundary 0]
+149 0.999167 1.51667 #  [located on boundary 0]
+150 0.925833 1.60833 #  [located on boundary 0]
+151 0.855 1.70333 #  [located on boundary 0]
+152 0.7875 1.8 #  [located on boundary 0]
+153 0.723333 1.89917 #  [located on boundary 0]
+154 0.661667 1.99917 #  [located on boundary 0]
+155 0.603333 2.1025 #  [located on boundary 0]
+156 0.549167 2.20667 #  [located on boundary 0]
+157 0.4975 2.3125 #  [located on boundary 0]
+158 0.449167 2.42083 #  [located on boundary 0]
+159 0.404167 2.52917 #  [located on boundary 0]
+160 0.363333 2.64 #  [located on boundary 0]
+161 0.325 2.75167 #  [located on boundary 0]
+162 0.290833 2.865 #  [located on boundary 0]
+163 0.26 2.97833 #  [located on boundary 0]
+164 0.233333 3.09333 #  [located on boundary 0]
+165 0.209167 3.20917 #  [located on boundary 0]
+166 0.19 3.325 #  [located on boundary 0]
+167 0.173333 3.44167 #  [located on boundary 0]
+168 0.160833 3.55917 #  [located on boundary 0]
+169 0.151667 3.67667 #  [located on boundary 0]
+170 0.146667 3.795 #  [located on boundary 0]
+171 0.145 3.9125 #  [located on boundary 0]
+172 0.1475 4.03083 #  [located on boundary 0]
+173 0.153333 4.14833 #  [located on boundary 0]
+174 0.163333 4.26583 #  [located on boundary 0]
+175 0.176667 4.38333 #  [located on boundary 0]
+176 0.193333 4.5 #  [located on boundary 0]
+177 0.214167 4.61583 #  [located on boundary 0]
+178 0.238333 4.73167 #  [located on boundary 0]
+179 0.266667 4.84583 #  [located on boundary 0]
+180 0.298333 4.96 #  [located on boundary 0]
+181 0.333333 5.0725 #  [located on boundary 0]
+182 0.371667 5.18333 #  [located on boundary 0]
+183 0.413333 5.29417 #  [located on boundary 0]
+184 0.459167 5.4025 #  [located on boundary 0]
+185 0.508333 5.51 #  [located on boundary 0]
+186 0.56 5.61583 #  [located on boundary 0]
+187 0.615833 5.72 #  [located on boundary 0]
+188 0.675 5.8225 #  [located on boundary 0]
+189 0.736667 5.9225 #  [located on boundary 0]
+190 0.801667 6.02083 #  [located on boundary 0]
+191 0.87 6.1175 #  [located on boundary 0]
+192 0.940833 6.21083 #  [located on boundary 0]
+193 1.015 6.30333 #  [located on boundary 0]
+194 1.09167 6.3925 #  [located on boundary 0]
+195 1.17167 6.47917 #  [located on boundary 0]
+196 1.25417 6.56417 #  [located on boundary 0]
+197 1.33917 6.64583 #  [located on boundary 0]
+198 1.42667 6.725 #  [located on boundary 0]
+199 1.51667 6.80083 #  [located on boundary 0]
+200 1.60833 6.87417 #  [located on boundary 0]
+# END_OF_NODE_BLOCK
+200 1  #   [number of segments (i.e. boundary edges), flag for using boundary markers here]
+1 1 2  1
+2 2 3  1
+3 3 4  1
+4 4 5  1
+5 5 6  1
+6 6 7  1
+7 7 8  1
+8 8 9  1
+9 9 10  1
+10 10 11  1
+11 11 12  1
+12 12 13  1
+13 13 14  1
+14 14 15  1
+15 15 16  1
+16 16 17  1
+17 17 18  1
+18 18 19  1
+19 19 20  1
+20 20 21  1
+21 21 22  1
+22 22 23  1
+23 23 24  1
+24 24 25  1
+25 25 26  1
+26 26 27  1
+27 27 28  1
+28 28 29  1
+29 29 30  1
+30 30 31  1
+31 31 32  1
+32 32 33  1
+33 33 34  1
+34 34 35  1
+35 35 36  1
+36 36 37  1
+37 37 38  1
+38 38 39  1
+39 39 40  1
+40 40 41  1
+41 41 42  1
+42 42 43  1
+43 43 44  1
+44 44 45  1
+45 45 46  1
+46 46 47  1
+47 47 48  1
+48 48 49  1
+49 49 50  1
+50 50 51  1
+51 51 52  1
+52 52 53  1
+53 53 54  1
+54 54 55  1
+55 55 56  1
+56 56 57  1
+57 57 58  1
+58 58 59  1
+59 59 60  1
+60 60 61  1
+61 61 62  1
+62 62 63  1
+63 63 64  1
+64 64 65  1
+65 65 66  1
+66 66 67  1
+67 67 68  1
+68 68 69  1
+69 69 70  1
+70 70 71  1
+71 71 72  1
+72 72 73  1
+73 73 74  1
+74 74 75  1
+75 75 76  1
+76 76 77  1
+77 77 78  1
+78 78 79  1
+79 79 80  1
+80 80 81  1
+81 81 82  1
+82 82 83  1
+83 83 84  1
+84 84 85  1
+85 85 86  1
+86 86 87  1
+87 87 88  1
+88 88 89  1
+89 89 90  1
+90 90 91  1
+91 91 92  1
+92 92 93  1
+93 93 94  1
+94 94 95  1
+95 95 96  1
+96 96 97  1
+97 97 98  1
+98 98 99  1
+99 99 100  1
+100 100 101  1
+101 101 102  1
+102 102 103  1
+103 103 104  1
+104 104 105  1
+105 105 106  1
+106 106 107  1
+107 107 108  1
+108 108 109  1
+109 109 110  1
+110 110 111  1
+111 111 112  1
+112 112 113  1
+113 113 114  1
+114 114 115  1
+115 115 116  1
+116 116 117  1
+117 117 118  1
+118 118 119  1
+119 119 120  1
+120 120 121  1
+121 121 122  1
+122 122 123  1
+123 123 124  1
+124 124 125  1
+125 125 126  1
+126 126 127  1
+127 127 128  1
+128 128 129  1
+129 129 130  1
+130 130 131  1
+131 131 132  1
+132 132 133  1
+133 133 134  1
+134 134 135  1
+135 135 136  1
+136 136 137  1
+137 137 138  1
+138 138 139  1
+139 139 140  1
+140 140 141  1
+141 141 142  1
+142 142 143  1
+143 143 144  1
+144 144 145  1
+145 145 146  1
+146 146 147  1
+147 147 148  1
+148 148 149  1
+149 149 150  1
+150 150 151  1
+151 151 152  1
+152 152 153  1
+153 153 154  1
+154 154 155  1
+155 155 156  1
+156 156 157  1
+157 157 158  1
+158 158 159  1
+159 159 160  1
+160 160 161  1
+161 161 162  1
+162 162 163  1
+163 163 164  1
+164 164 165  1
+165 165 166  1
+166 166 167  1
+167 167 168  1
+168 168 169  1
+169 169 170  1
+170 170 171  1
+171 171 172  1
+172 172 173  1
+173 173 174  1
+174 174 175  1
+175 175 176  1
+176 176 177  1
+177 177 178  1
+178 178 179  1
+179 179 180  1
+180 180 181  1
+181 181 182  1
+182 182 183  1
+183 183 184  1
+184 184 185  1
+185 185 186  1
+186 186 187  1
+187 187 188  1
+188 188 189  1
+189 189 190  1
+190 190 191  1
+191 191 192  1
+192 192 193  1
+193 193 194  1
+194 194 195  1
+195 195 196  1
+196 196 197  1
+197 197 198  1
+198 198 199  1
+199 199 200  1
+200 200 1  1
+# END_OF_SEGMENT_BLOCK
+1 #  [number of holes] 
+1 0.45 0.4875
+# END_OF_HOLE_BLOCK
