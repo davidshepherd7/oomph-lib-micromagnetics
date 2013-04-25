@@ -58,24 +58,38 @@ namespace HApp
   }
 
   HAppFctPt h_app_factory(const std::string& field_name)
-    {
-      if(field_name == "zero")
+  {
+    if(field_name == "zero")
+      {
         return &HApp::zero;
-     if(field_name == "x")
+      }
+    else if(field_name == "x")
+      {
         return &HApp::x;
-     if(field_name == "y")
+      }
+    else if(field_name == "y")
+      {
         return &HApp::y;
-     if(field_name == "z")
+      }
+    else if(field_name == "z")
+      {
         return &HApp::z;
-     if(field_name == "minus_z")
-       return &HApp::minus_z;
-     if(field_name == "all_directions")
-       return &HApp::all_directions;
-      else
+      }
+    else if(field_name == "minus_z")
+      {
+        return &HApp::minus_z;
+      }
+    else if(field_name == "all_directions")
+      {
+        return &HApp::all_directions;
+      }
+    else
+      {
         throw OomphLibError("Unrecognised field name " + field_name,
                             OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
-    }
+      }
+  }
 }
 
 namespace InitialM
@@ -123,20 +137,30 @@ namespace InitialM
   }
 
   InitialMFctPt initial_m_factory(const std::string& m_name)
-    {
-      if(m_name == "x")
+  {
+    if(m_name == "x")
+      {
         return &InitialM::x;
-      if(m_name == "y")
+      }
+    else if(m_name == "y")
+      {
         return &InitialM::y;
-      if(m_name == "z")
+      }
+    else if(m_name == "z")
+      {
         return &InitialM::z;
-      if(m_name == "smoothly_varying")
+      }
+    else if(m_name == "smoothly_varying")
+      {
         return &InitialM::smoothly_varying;
-      else
+      }
+    else
+      {
         throw OomphLibError("Unrecognised initial m name " + m_name,
                             OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
-    }
+      }
+  }
 }
 
 
