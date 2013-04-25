@@ -1,5 +1,5 @@
-#ifndef OOMPH_MIDPOINT_METHOD_H
-#define OOMPH_MIDPOINT_METHOD_H
+#ifndef OOMPH_OLD_MIDPOINT_METHOD_H
+#define OOMPH_OLD_MIDPOINT_METHOD_H
 
 /*
   description of file goes here
@@ -11,8 +11,6 @@
 // #include "matrices.h"
 // #include "timesteppers.h"
 #include "generic.h"
-#include "./assert.h"
-
 #include "./poly_interp.h"
 
 using namespace oomph;
@@ -24,14 +22,15 @@ namespace oomph
   /// Implicit midpoint method, implemented via a BDF1 step followed by an
   /// update.
   //========================================================================
-  class OldMidpointMethod : public TimeStepper
+  class BDFMidpointMethod : public TimeStepper
   {
   public:
 
     /// Constructor with initialisation
-    OldMidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2) :
+    BDFMidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2,
+                      double fudge_factor=1.0) :
       TimeStepper(2,1), // initialise weights later
-      Fudge_factor(1.0),
+      Fudge_factor(fudge_factor),
       N_interp(n_interpolation_points),
       Predictor_storage_index(nprev_values()+1),
       Dy_tnph_storage_index(nprev_values()+2)
@@ -60,7 +59,7 @@ namespace oomph
     }
 
     /// Destructor
-    virtual ~OldMidpointMethod() {}
+    virtual ~BDFMidpointMethod() {}
 
     /// Setup weights for time derivative calculations. Copied from BDF1.
     void set_weights()
@@ -79,7 +78,7 @@ namespace oomph
     /// Number of previous values that we need to store. Two slots for
     /// predictor and y'(tnph) plus as many as are needed for
     /// interpolation (minimum 1).
-    unsigned nprev_values() {return std::max(N_interp, unsigned(1)) + 2;}
+    unsigned nprev_values() {return N_interp + 2;}
 
     /// \short ??ds
     unsigned nprev_values_for_evaluation_time() {return 2;}
@@ -127,16 +126,16 @@ namespace oomph
     unsigned Dy_tnph_storage_index;
 
     /// Inaccessible copy constructor.
-    OldMidpointMethod(const OldMidpointMethod &dummy) {}
+    BDFMidpointMethod(const BDFMidpointMethod &dummy) {}
 
     /// Inaccessible assignment operator.
-    void operator=(const OldMidpointMethod &dummy) {}
+    void operator=(const BDFMidpointMethod &dummy) {}
   };
 
 
   /// \short This function advances the Data's time history so that
   /// we can move on to the next timestep
-  void OldMidpointMethod::shift_time_values(Data* const &data_pt)
+  void BDFMidpointMethod::shift_time_values(Data* const &data_pt)
   {
     //Loop over the values, set previous values to the previous value, if
     //not a copy.
@@ -154,7 +153,7 @@ namespace oomph
 
   ///\short This function advances the time history of the positions
   ///at a node. ??ds I have no idea what I'm doing here!
-  void OldMidpointMethod::shift_time_positions(Node* const &node_pt)
+  void BDFMidpointMethod::shift_time_positions(Node* const &node_pt)
   {
    //Find the number of coordinates
    unsigned n_dim = node_pt->ndim();
@@ -212,7 +211,7 @@ namespace oomph
   }
 
   ///
-  void OldMidpointMethod::calculate_predicted_values(Data* const &data_pt)
+  void BDFMidpointMethod::calculate_predicted_values(Data* const &data_pt)
   {
     if(adaptive_flag())
       {
@@ -256,7 +255,7 @@ namespace oomph
   }
 
   /// \short
-  double OldMidpointMethod::temporal_error_in_value(Data* const &data_pt,
+  double BDFMidpointMethod::temporal_error_in_value(Data* const &data_pt,
                                                  const unsigned &i)
   {
     if(adaptive_flag())

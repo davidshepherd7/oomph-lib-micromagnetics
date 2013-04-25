@@ -38,9 +38,10 @@ namespace oomph
   public:
 
     /// Constructor with initialisation
-    MidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2) :
+    MidpointMethod(bool adaptive=false, unsigned n_interpolation_points=2,
+                   double fudge_factor=1.0) :
       TimeStepper(2,1), // initialise weights later
-      Fudge_factor(1.0),
+      Fudge_factor(fudge_factor),
       N_interp(n_interpolation_points),
       Predictor_storage_index(nprev_values()+1),
       Dy_tnph_storage_index(nprev_values()+2)
@@ -86,7 +87,7 @@ namespace oomph
     unsigned ndt() {return nprev_values();}
 
     /// Number of previous values that actually hold previous values
-    unsigned nprev_values() {return 2;}
+    unsigned nprev_values() {return 1 + N_interp;}
     // unsigned nprev_values() {return 2;}
 
     /// \short ??ds
@@ -247,7 +248,7 @@ namespace oomph
         Vector<double> y_tnph, dy_tnph, dy_tn;
         interpolator.eval(tnph, y_tnph);
         interpolator.eval_derivative(tnph, 1, dy_tnph);
-        interpolator.eval_derivative(time_pt()->time(1)+0.00001, 1, dy_tn); //??ds nasty hack!
+        interpolator.eval_derivative(time_pt()->time(1)-0.0001, 1, dy_tn); //??ds nasty hack!
 
         // Use the interpolated values to calculate an estimate to
         // y_np1. Basically just using AB2.
