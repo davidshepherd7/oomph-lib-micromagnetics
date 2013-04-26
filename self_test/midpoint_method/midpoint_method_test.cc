@@ -6,6 +6,7 @@
 #include<iomanip>
 
 #include "../../old_midpoint_method.h"
+#include "../../midpoint_method.h"
 #include "generic.h"
 #include "./unsteady_heat_example.h"
 #include "../../my_assert.h"
@@ -56,17 +57,15 @@ namespace UnsteadyHeatStepSolution
 } // end of UnsteadyHeatStepSolution
 
 
-int main_midpoint(double tmax, double tol, double dt,
+int test_timestepper(TimeStepper* ts_pt,
+                  double tmax, double tol, double dt,
                   const std::string& label, double max_global_error)
 {
-  OldMidpointMethod adaptive_midpoint(true, 2);
-  adaptive_midpoint.Fudge_factor = 0.1;
-
   // Build problem
   UnsteadyHeatProblem<QUnsteadyHeatElement<2,3> >
     problem(&UnsteadyHeatStepSolution::get_source,
             &UnsteadyHeatStepSolution::get_exact_u,
-            &adaptive_midpoint);
+            ts_pt);
 
   // Nice output parameters
   // oomph_info << std::scientific << std::setprecision(2);
@@ -109,8 +108,9 @@ int main_midpoint(double tmax, double tol, double dt,
                 << problem.get_error_norm() << std::endl;
       if(problem.get_error_norm() > max_global_error)
         {
-          std::cerr << "Global error is too large! Test failed" << std::endl;
-          return 10;
+          std::string error_msg = "Global error is too large! Test failed";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
         }
 
       //Output solution
@@ -125,7 +125,7 @@ int main_midpoint(double tmax, double tol, double dt,
 
   return 0;
 
-} // end of main_midpoint
+} // end of test_timestepper
 
 
 int main(int argc, char *argv[])
@@ -141,5 +141,12 @@ int main(int argc, char *argv[])
 
   double max_global_error_norm = 0.02;
 
-  return main_midpoint(tmax, tol, dt, "_midpoint", max_global_error_norm);
+  test_timestepper(new MidpointMethod(true, 2, 0.1),
+                   tmax, tol, dt, "_midpoint", max_global_error_norm);
+  test_timestepper(new BDFMidpointMethod(true, 2, 0.1),
+                   tmax, tol, dt, "_bdf1midpoint", max_global_error_norm);
+  // test_timestepper(new BDF2(true), tmax, tol, dt, "_bdf2", max_global_error_norm);
+
+
+  return 0;
 }
