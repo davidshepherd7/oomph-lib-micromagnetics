@@ -103,6 +103,12 @@ namespace oomph
       std::ofstream trace_file((Doc_info.directory() + Trace_filename).c_str(),
                                std::ios::app);
 
+      Vector<double> solver_iters(1, -1);
+      Vector<double> solver_times(1, -1);
+      Vector<double> jacobian_setup_times(1, -1);
+
+      double dummy = -1;
+
       // Write out data that can be done for every problem
       trace_file
         << Doc_info.number() << " " // 0
@@ -110,16 +116,27 @@ namespace oomph
         << time_pt()->dt() << " " // 2
         << get_error_norm() << " " // 3
 
-        << Nnewton_iter_taken << " "; // 4
+        << Nnewton_iter_taken << " " // 4
 
-        // << VectorOps::mean(solver_iters) << " " // 5
-        // << VectorOps::stddev(solver_iters) << " " // 6
+        << VectorOps::mean(solver_iters) << " " // 5
+        << VectorOps::stddev(solver_iters) << " " // 6
 
-        // << VectorOps::mean(solver_times) << " " // 7
-        // << VectorOps::std_dev(solver_times) << " " // 8
-        // << VectorOps::mean(jacobian_setup_times) << " " // 9
-        // << VectorOps::stddev(jacobian_setup_times) << " "; // 10
+        << VectorOps::mean(solver_times) << " " // 7
+        << VectorOps::stddev(solver_times) << " " // 8
+        << VectorOps::mean(jacobian_setup_times) << " " // 9
+        << VectorOps::stddev(jacobian_setup_times) << " " // 10
 
+        // Reserved slots in case I think of more things to add later
+        << dummy << " " // 11
+        << dummy << " " // 12
+        << dummy << " " // 13
+        << dummy << " " // 14
+        << dummy << " " // 15
+        << dummy << " " // 16
+        << dummy << " " // 17
+        << dummy << " " // 18
+        << dummy << " " // 19
+        << dummy << " "; // 20
 
       // Add problem specific data
       write_additional_trace_data(trace_file);

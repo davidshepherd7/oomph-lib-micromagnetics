@@ -66,7 +66,7 @@ namespace oomph
       // residual addition of m x dm/dn along the boundary (due to need to
       // reduce the order of the laplacian on m in exchange field).
 
-      // // Create mesh of MicromagFluxElement<ELEMENT> to add boundary
+      // // Create mesh of MicromagFluxElement<MicromagEquations> to add boundary
       // // contribution (if any).
       // surface_exchange_mesh_pt() = new Mesh;
       // for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
@@ -153,9 +153,18 @@ namespace oomph
       bulk_mesh_pt()->output(some_file,npts);
       some_file.close();
 
-      // // Get average (and standard deviation) of |m| - 1
-      // double m_error_avg(0), m_error_stddev(0);
-      // norm_m_error(m_error_avg, m_error_stddev);
+    }
+
+    void write_additional_trace_data(std::ofstream& trace_file) const
+    {
+
+      // Get average (and standard deviation) of |m| - 1
+      double m_error_avg(0), m_error_stddev(0);
+      norm_m_error(m_error_avg, m_error_stddev);
+
+      trace_file
+        << m_error_avg << " "
+        << m_error_stddev << " ";
     }
 
     /// Set up an initial M
@@ -354,8 +363,8 @@ namespace oomph
       // // Calculate m . dm/dn for each element
       // for(unsigned e=0; e < nele; e++)
       //   {
-      //     MicromagFluxElement<ELEMENT>* ele_pt
-      //       = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
+      //     MicromagFluxElement<MicromagEquations>* ele_pt
+      //       = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
       //       (surface_exchange_mesh_pt()->element_pt(e));
       //     Vector<double> s(ele_pt->dim(), 0.5); // middle of element
       //     temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
