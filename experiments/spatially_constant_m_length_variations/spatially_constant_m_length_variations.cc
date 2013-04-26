@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
   double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
   problem.mag_parameters_pt()->set_simple_llg_parameters();
   problem.mag_parameters_pt()->gilbert_damping() = gilbert_damping;
-  problem.mag_parameters_pt()->exchange_constant() = 0.0;
+  // problem.mag_parameters_pt()->exchange_constant() = 0.0;
   problem.mag_parameters_pt()->magnetostatic_debug_coeff() = 0.0;
   problem.mag_parameters_pt()->k1() = hk * mag_parameters::mu0/2;
 
@@ -165,19 +165,17 @@ int main(int argc, char *argv[])
   // Finished setup, now we can build the problem
   problem.build();
 
-  // Initialise problem
+  // Initialise problem and output
   problem.initialise_dt(args.dt);
   problem.set_initial_condition(args.initial_m_fct_pt);
-
-  // Set up outputs
-  DocInfo doc_info(args.outdir);
-  problem.doc_solution(doc_info);
+  problem.Doc_info.directory() = args.outdir;
+  problem.doc_solution();
 
   // All ready: step until completion
   double dt = args.dt;
   while(problem.time() < args.tmax)
     {
-      std::cout << "step number = " << doc_info.number()
+      std::cout << "step number = " << problem.Doc_info.number()
                 << ", time = " << problem.time()
                 << ", dt = " << dt
                 << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
@@ -194,7 +192,7 @@ int main(int argc, char *argv[])
         }
 
       // Output
-      problem.doc_solution(doc_info);
+      problem.doc_solution();
     }
 
 

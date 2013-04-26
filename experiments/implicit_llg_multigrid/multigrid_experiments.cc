@@ -360,7 +360,6 @@ int main(int argc, char** argv)
           dt = problem.adaptive_unsteady_newton_solve(dt,eps);
 
           // Output
-          problem.doc_solution(doc_info);
           // conv_data.output_this_newton_step(outdir+"/convergence_data");
         }
     }

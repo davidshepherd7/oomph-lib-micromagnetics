@@ -290,9 +290,15 @@ namespace VectorOps
   }
 
   template <typename T>
-  double mean(const Vector<T> &vec)
+  T mean(const Vector<T> &vec)
   {
     return std::accumulate(vec.begin(), vec.end(), 0.0) / double(vec.size());
+  }
+
+  template <typename T>
+  T max(const Vector<T> &vec)
+  {
+    return *std::max_element(vec.begin(), vec.end());
   }
 
   template <typename T>

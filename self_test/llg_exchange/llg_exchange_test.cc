@@ -37,13 +37,6 @@ namespace Inputs
     VectorOps::normalise(m);
   }
 
-  //??ds applied field?
-  void applied_field(const double& t, const Vector<double> &x,
-                     Vector<double> &h_app)
-  {
-    h_app.assign(3,0.0);
-    h_app[0] = 2.0;
-  }
 
 }
 
@@ -55,7 +48,7 @@ int main()
 
   // Build problem
   ImplicitLLGProblem<TMicromagElement<2,2> >
-    problem(10, 10, 1.0, 1.0, Inputs::applied_field, true);
+    problem(10, 10, 1.0, 1.0, HApp::x, true);
 
   // Fiddle with exchange strength.
   problem.mag_parameters_pt()->exchange_constant() = mag_parameters::mu0/2;
