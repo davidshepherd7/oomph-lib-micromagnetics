@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Future proofing
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 # Imports from main libraries
 import subprocess as subp
 from multiprocessing import Pool
@@ -18,6 +23,11 @@ import matplotlib.pyplot as plt
 from functools import partial as par
 from os.path import join as pjoin
 from glob import glob
+
+
+# TODO:
+
+# On error put stdout file somewhere useful.
 
 def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          outdir, timestepper, initial_m, applied_field, mesh,
@@ -46,28 +56,32 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
 
     # Run with specified args, put output (stdout and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
-        subp.check_call(['mpirun', '-np', str(mpi_ncores),
-                         driver,
-                         '-dt', str(dt),
-                         "-tmax", str(tmax),
-                         "-tol", str(tol),
-                         "-ref", str(refinement),
-                         "-outdir", final_outdir,
-                         "-ts", timestepper,
-                         "-initm", initial_m,
-                         "-happ", applied_field,
-                         "-mesh", mesh]
-                         + processed_kwargs,
-                         stdout = stdout_file,
-                         stderr = subp.STDOUT)
-    return
+        arglist = ['mpirun', '-np', str(mpi_ncores),
+                   driver,
+                   '-dt', str(dt),
+                   "-tmax", str(tmax),
+                   "-tol", str(tol),
+                   "-ref", str(refinement),
+                   "-outdir", final_outdir,
+                   "-ts", timestepper,
+                   "-initm", initial_m,
+                   "-happ", applied_field,
+                   "-mesh", mesh] + processed_kwargs
+
+        err_code = subp.call(arglist, stdout = stdout_file,
+                             stderr = subp.STDOUT)
+
+    if err_code != 0:
+        print(final_outdir, "FAILED with exit code", err_code)
+
+    return 0
 
 
 def _apply_to_list_and_print_args(function, list_of_args):
     """Does what it says. Should really be a lambda function but
     multiprocessing requires named functions
     """
-    print list_of_args
+    print(list_of_args)
     return function(*list_of_args)
 
 
@@ -109,6 +123,62 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
     return results
 
 
+def milan_jacobians(parameter_set, serial_mode=False):
+
+    # Construct lists of args
+    if parameter_set == "initial":
+        dts = [0.1, 0.05, 0.01, 0.001]
+        tmaxs = [0.001]
+        tols = [0.0]
+        refines = [1, 2, 3, 4, 5]
+        outdirs = [None]
+        timesteppers = ["bdf2"]
+        initial_ms = ['smoothly_varying']
+        fields = ['x', 'y', 'z']
+        meshes = ['sq_square', 'ut_square']
+
+        # more parameter sets go here
+    else:
+        raise NotImplementedError
+
+    arg_list = [dts, tmaxs, tols, refines, outdirs, timesteppers,
+                initial_ms, fields, meshes]
+
+    # Fill in some function args that should always be the same.
+    fun = par(execute_oomph_driver, 1, "./driver/driver",
+              output_root='../experiments/jacobian_sweeps',
+              output_jac='at_end')
+
+    # Run the parameter sweep!
+    parallel_parameter_sweep(fun, arg_list, serial_mode)
+
+    return 0
+
+def midpoint_comparisons(parameter_set, serial_mode=False):
+
+    # Construct lists of args
+    dts = [0.1, 0.05, 0.01, 0.001]
+    tmaxs = [6.0]
+    tols = [0.0]
+    refines = [1, 2, 3, 4, 5]
+    outdirs = [None]
+    timesteppers = ["bdf2", 'midpoint']
+    initial_ms = ['z', 'smoothly_varying']
+    fields = ['minus_z']
+    meshes = ['sq_square', 'ut_square']
+
+    arg_list = [dts, tmaxs, tols, refines, outdirs, timesteppers,
+                initial_ms, fields, meshes]
+
+    # Fill in some function args that should always be the same.
+    fun = par(execute_oomph_driver, 1, "./driver/driver",
+          output_root='../experiments/midpoint_sweeps')
+
+        # Run the parameter sweep!
+    parallel_parameter_sweep(fun, arg_list, serial_mode)
+
+    return 0
+
 def main():
     """
     """
@@ -122,8 +192,14 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    args = parser.parse_args()
+    parser.add_argument('--debug-mode', action='store_true',
+                        help = 'Enable debugging mode (run in serial).')
+    parser.add_argument('--jacobians', dest='j_parameter_set',
+                        help = 'Do a parameter sweep just dumping jacobians.')
+    parser.add_argument('--midpoint', dest='midpoint_parameter_set',
+                        help = 'Do a parameter sweep comparing midpoint and BDF2')
 
+    args = parser.parse_args()
 
     # Main function
     # ============================================================
@@ -133,29 +209,12 @@ def main():
     subp.check_call(['make', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd = "./driver")
 
-    # Construct lists of args
-    dts = [0.1, 0.05# , 0.01, 0.001
-           ]
-    tmaxs = [0.001]
-    tols = [0.0]
-    refines = [1, 2,]
-    outdirs = [None]
-    timesteppers = ["bdf2"]
-    initial_ms = ['smoothly_varying']
-    fields = ['x', 'y', 'z']
-    meshes = ['sq_square'] #, 'ut_square'
-    dump_jacobians = ['tmax']
-    arg_list = [dts, tmaxs, tols, refines, outdirs, timesteppers,
-                initial_ms, fields, meshes]
 
-    # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver, 1, "./driver/driver",
-              output_root='../experiments/jacobian_sweeps',
-              output_jac='at_end')
+    if args.j_parameter_set is not None:
+        milan_jacobians(args.j_parameter_set, args.debug_mode)
 
-    # Run the parameter sweep!
-    parallel_parameter_sweep(fun, arg_list, False)
-
+    if args.midpoint_parameter_set is not None:
+        midpoint_comparisons(args.midpoint_parameter_set, args.debug_mode)
 
     return 0
 
