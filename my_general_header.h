@@ -254,22 +254,6 @@ namespace oomph
     std::string mesh_name;
     // std::string problem_name;
 
-    // MyProblem* problem_factory(const std::string &problem_name,
-    //                          const std::string& mesh_name,
-    //                          unsigned nnode1d = 2)
-    // {
-    //   if(problem_name == "implicit_llg")
-    //     {
-    //       return new ImplicitLLGProblem;
-    //     }
-    //   else
-    //     {
-    //       throw OomphLibError("Unrecognised mesh name " + mesh_name,
-    //                           OOMPH_CURRENT_FUNCTION,
-    //                           OOMPH_EXCEPTION_LOCATION);
-    //     }
-    // }
-
   };
 
 
