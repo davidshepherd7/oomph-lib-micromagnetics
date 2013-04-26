@@ -36,8 +36,8 @@
 
 #include "generic.h"
 #include "../../implicit_llg_problem.h"
+#include "../../my_general_header.h"
 
-#include "meshes/simple_cubic_tet_mesh.h"
 
 using namespace oomph;
 
@@ -143,8 +143,10 @@ int main(int argc, char *argv[])
   if(CommandLineArgs::command_line_flag_has_been_set("-do2d"))
     {
       // Build problem
-      ImplicitLLGProblem<TMicromagElement<2,2> >
-        problem(30, 30, 1.0, 1.0, HApp::zero, true);
+      ImplicitLLGProblem problem;
+      problem.add_time_stepper_pt(Factories::time_stepper_factory("bdf2"));
+      problem.mesh_pt() = Factories::mesh_factory("sq_square", 3, problem.time_stepper_pt());
+      problem.applied_field_fct_pt() = HApp::zero;
 
       problem.mag_parameters_pt()->set_simple_llg_parameters();
       problem.renormalise_each_time_step() = true;
@@ -175,7 +177,7 @@ int main(int argc, char *argv[])
 
               // Reset problem
               problem.set_initial_condition(initial_conds[i_ic]);
-              problem.doc_solution(doc_info);
+              problem.doc_solution();
               problem.time() = 0.0;
               dt = 0.03;
 
@@ -200,7 +202,7 @@ int main(int argc, char *argv[])
                   std::cout << " dt = " << dt << std::endl;
 
                   // Output
-                  problem.doc_solution(doc_info);
+                  problem.doc_solution();
 
                   std::cout << "error = " << problem.compare_m_with_function(initial_conds[i_ic])
                             << std::endl;
@@ -236,7 +238,7 @@ int main(int argc, char *argv[])
 
 
       // Build problem
-      ImplicitLLGProblem<TMicromagElement<3,2> > threedproblem;
+      ImplicitLLGProblem threedproblem;
       threedproblem.bulk_mesh_pt() = &threedmesh;
       threedproblem.add_time_stepper_pt(&bdf2);
       threedproblem.applied_field_fct_pt() = &HApp::zero;
@@ -263,7 +265,7 @@ int main(int argc, char *argv[])
 
               // Reset threedproblem
               threedproblem.set_initial_condition(initial_conds[i_ic]);
-              threedproblem.doc_solution(doc_info);
+              threedproblem.doc_solution();
               threedproblem.time() = 0.0;
               dt = 0.03;
 
@@ -289,7 +291,7 @@ int main(int argc, char *argv[])
                   std::cout << " dt = " << dt << std::endl;
 
                   // Output
-                  threedproblem.doc_solution(doc_info);
+                  threedproblem.doc_solution();
 
                   std::cout << "error = "
                             << threedproblem.compare_m_with_function(initial_conds[i_ic])

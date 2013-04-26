@@ -35,13 +35,26 @@ namespace oomph
     return std::string(buffer);
   }
 
-  template<class ELEMENT>
+
+  class MyDocInfo : public DocInfo
+  {
+  public:
+    /// Default constructor
+    MyDocInfo() : DocInfo(), output_jacobian("never") {}
+    MyDocInfo(const std::string& directory,
+              const std::string& output_jacobian="never")
+      : DocInfo(directory), output_jacobian(output_jacobian)
+    {}
+
+    std::string output_jacobian;
+  };
+
   class MyProblem : public Problem
   {
   public:
     /// Default constructor
     MyProblem() :
-      Problem(), Dim(0), Ele_pt(0),
+      Problem(), Dim(0),
       Doc_info("results/"),
       Trace_filename("trace"),
       Info_filename("info")
@@ -169,7 +182,6 @@ namespace oomph
     }
 
     unsigned Dim;
-    ELEMENT* Ele_pt;
     MyDocInfo Doc_info;
     std::string Trace_filename;
     std::string Info_filename;

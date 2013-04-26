@@ -20,15 +20,13 @@ namespace oomph
   template<unsigned DIM, unsigned NNODE_1D>
   const unsigned TMicromagElement<DIM,NNODE_1D>::Initial_Nvalue = 5;
 
-  template<unsigned DIM>
-  const double MicromagEquations<DIM>::DummyBEMControlledEntry = 10;
+  const double MicromagEquations::DummyBEMControlledEntry = 10;
 
 
   //======================================================================
   ///
   //======================================================================
-  template<unsigned DIM>
-  unsigned MicromagEquations<DIM>::self_test()
+  unsigned MicromagEquations::self_test()
   {
     return 0;
   }
@@ -41,8 +39,7 @@ namespace oomph
   ///
   /// Pure version without hanging nodes
   //======================================================================
-  template<unsigned DIM>
-  void MicromagEquations<DIM>::fill_in_generic_residual_contribution_micromag
+  void MicromagEquations::fill_in_generic_residual_contribution_micromag
   (Vector<double> &residuals, DenseMatrix<double> &jacobian,
    const unsigned& flag) const
   {
@@ -73,11 +70,11 @@ namespace oomph
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
-        Vector<double> s(DIM);
-        for(unsigned j=0; j<DIM; j++) {s[j] = integral_pt()->knot(ipt,j);}
+        Vector<double> s(nodal_dimension());
+        for(unsigned j=0; j<nodal_dimension(); j++) {s[j] = integral_pt()->knot(ipt,j);}
 
         // Create interpolator
-        MMInterpolator<DIM> intp(this, s);
+        MMInterpolator intp(this, s);
 
         double W = integral_pt()->weight(ipt) * intp.j();
 
@@ -85,7 +82,7 @@ namespace oomph
         // // Allocate memory for local quantities and initialise to zero. dphidx
         // // is also H_demag so we need all 3 components.
         // double itp_phi(0.0), itp_phi_1(0.0);
-        // Vector<double> itp_x(DIM,0.0), itp_dphidx(3,0.0),
+        // Vector<double> itp_x(nodal_dimension(),0.0), itp_dphidx(3,0.0),
         //   itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0);
         // DenseDoubleMatrix itp_dmdx(3,3,0.0);
 
@@ -105,7 +102,7 @@ namespace oomph
         //       }
 
         //     // Interpolate spatial values/derivatives
-        //     for(unsigned j=0; j<DIM; j++)
+        //     for(unsigned j=0; j<nodal_dimension(); j++)
         //       {
         //         itp_x[j] += nodal_position(l,j)*intp.psi(l);
         //         itp_dphidx[j] += nodal_value(l,phi_index_micromag())*intp.dpsidx(l,j);
@@ -178,7 +175,7 @@ namespace oomph
                 std::cout <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
-                for(unsigned k=0;k<DIM;k++)                       // Poisson
+                for(unsigned k=0;k<nodal_dimension();k++)                       // Poisson
                   residuals[phi_eqn] -= intp.dphidx()[k]*intp.dtestdx(l,k)*W;
               }
 
@@ -189,7 +186,7 @@ namespace oomph
                 std::cout <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
-                for(unsigned k=0;k<DIM;k++)
+                for(unsigned k=0;k<nodal_dimension();k++)
                   residuals[phi_1_eqn] -= intp.dphi1dx()[k]*intp.dtestdx(l,k)*W;
               }
 
@@ -200,7 +197,7 @@ namespace oomph
             //??ds possibly could optimise - this is calculated twice
             Vector<double> gradtestdotgradmi(3,0.0);
             for(unsigned i=0; i<3; i++)
-              for(unsigned j=0; j<DIM; j++)
+              for(unsigned j=0; j<nodal_dimension(); j++)
                 gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx()[i][j];
 
             // Cross product for exchange contribution
@@ -258,7 +255,7 @@ namespace oomph
 
             // Pre-calculations
             Vector<double> gradpsil2(3,0.0), gradtestl(3,0.0);
-            for(unsigned j=0; j<DIM; j++){
+            for(unsigned j=0; j<nodal_dimension(); j++){
               gradpsil2[j] = intp.dpsidx(l2,j);
               gradtestl[j] = intp.dtestdx(l,j);
             }
@@ -267,7 +264,7 @@ namespace oomph
 
             Vector<double> gradtestdotgradmi(3,0.0);
             for(unsigned i=0; i<3; i++)
-              for(unsigned j=0; j<DIM; j++) //??ds repeated calculation..
+              for(unsigned j=0; j<nodal_dimension(); j++) //??ds repeated calculation..
                 gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx()[i][j];
 
             DenseMatrix<double> dhcadm(3,3,0.0);
@@ -301,7 +298,7 @@ namespace oomph
                       jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
 
                     // w.r.t. m
-                    for(unsigned j=0; j<DIM; j++){
+                    for(unsigned j=0; j<nodal_dimension(); j++){
                       const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
                       if(m_unknown >= 0)
                         jacobian(phi_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
@@ -323,7 +320,7 @@ namespace oomph
                 jacobian(phi_1_eqn,phi_1_unknown) += - gradtestldotgradpsil2 * W;
 
               // w.r.t. m
-              for(unsigned j=0; j<DIM; j++){
+              for(unsigned j=0; j<nodal_dimension(); j++){
                 const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
                 if(m_unknown >= 0)
                   jacobian(phi_1_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
@@ -429,12 +426,11 @@ namespace oomph
   ///
   ///
   //======================================================================
-  template <unsigned DIM>
-  void MicromagEquations<DIM>::output(std::ostream &outfile,
-                                      const unsigned &n_plot)
+  void MicromagEquations::output(std::ostream &outfile,
+                                 const unsigned &n_plot)
   {
     //Vector of local coordinates
-    Vector<double> s(DIM);
+    Vector<double> s(nodal_dimension());
 
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
@@ -445,10 +441,10 @@ namespace oomph
       {
         get_s_plot(iplot,n_plot,s);
 
-        MMInterpolator<DIM> intp(this, s);
+        MMInterpolator intp(this, s);
 
         // output eulerian coordinates of plot point
-        for(unsigned i=0; i<DIM; i++) outfile << intp.x(i) << " ";
+        for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x(i) << " ";
 
         // std::cout << intp.x() << std::endl;
         // std::cout << intp.x(0) << " " << intp.x(1) << std::endl;
@@ -476,14 +472,14 @@ namespace oomph
   }
 
   /// Output a time-dependent exact solution over the element.
-  template <unsigned DIM> void MicromagEquations<DIM>::
+  void MicromagEquations::
   output_fct(std::ostream &outfile, const unsigned &n_plot,
              const double& time,
              const FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt)
   {
 
     //Vector of local coordinates
-    Vector<double> s(DIM);
+    Vector<double> s(nodal_dimension());
 
     // Get number of values in solution at node 0
     const unsigned nvalue = required_nvalue(0);
@@ -500,8 +496,8 @@ namespace oomph
         get_s_plot(iplot,n_plot,s);
 
         // Get and output eulerian coordinates of plot point and output
-        Vector<double> x(DIM,0.0);
-        for(unsigned i=0; i<DIM; i++)
+        Vector<double> x(nodal_dimension(),0.0);
+        for(unsigned i=0; i<nodal_dimension(); i++)
           {
             x[i] = interpolated_x(s,i);
             outfile << x[i] << " ";
@@ -531,8 +527,7 @@ namespace oomph
   /// Plot error at integration points.
   ///
   //======================================================================
-  template <unsigned DIM>
-  void MicromagEquations<DIM>::
+  void MicromagEquations::
   compute_error(std::ostream &outfile,
                 FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,
                 const double& time, double& error_norm, double& exact_norm)
@@ -557,20 +552,20 @@ namespace oomph
     // Tecplot header info
     outfile << tecplot_zone_string(2);
     //??ds can't just use 2 here but seeing if it works
-    //??ds use n_intpt/DIM? - only good for simple shaped elements?
+    //??ds use n_intpt/nodal_dimension()? - only good for simple shaped elements?
     //??ds causes small issuse with output - points for soln/exact are at the corners of elements but for errors they are at the int pts
 
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
         // Get s (local coordinate)
-        Vector<double> s(DIM,0.0);
-        for(unsigned i=0; i<DIM; i++) {s[i] = integral_pt()->knot(ipt,i);}
+        Vector<double> s(nodal_dimension(),0.0);
+        for(unsigned i=0; i<nodal_dimension(); i++) {s[i] = integral_pt()->knot(ipt,i);}
 
         // Get x (global coordinate) and output
-        Vector<double> x(DIM,0.0);
+        Vector<double> x(nodal_dimension(),0.0);
         interpolated_x(s,x);
-        for(unsigned i=0; i<DIM; i++){outfile << x[i] << " ";}
+        for(unsigned i=0; i<nodal_dimension(); i++){outfile << x[i] << " ";}
 
         //Get the integral weight
         double w = integral_pt()->weight(ipt);
@@ -614,12 +609,11 @@ namespace oomph
   // ///
   // /// nplot points in each coordinate direction
   // //======================================================================
-  // template <unsigned DIM>
-  // void  MicromagEquations<DIM>::output(FILE* file_pt,
+  // void  MicromagEquations::output(FILE* file_pt,
   //                                  const unsigned &nplot)
   // {
   //   //Vector of local coordinates
-  //   Vector<double> s(DIM);
+  //   Vector<double> s(nodal_dimension());
 
   //   // Tecplot header info
   //   fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
@@ -631,7 +625,7 @@ namespace oomph
   //       // Get local coordinates of plot point
   //       get_s_plot(iplot,nplot,s);
 
-  //       for(unsigned i=0;i<DIM;i++)
+  //       for(unsigned i=0;i<nodal_dimension();i++)
   //     {
   //       fprintf(file_pt,"%g ",interpolated_x(s,i));
   //     }
