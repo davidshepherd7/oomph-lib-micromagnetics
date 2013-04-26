@@ -39,6 +39,10 @@
 #include "./micromagnetics_preconditioners.h"
 #include "./magnetics_helpers.h"
 
+// Problems
+#include "./my_generic_problem.h"
+#include "./implicit_llg_problem.h"
+
 // Timesteppers
 #include "./midpoint_method.h"
 #include "./old_midpoint_method.h"
@@ -82,22 +86,31 @@ namespace oomph
   };
 
 
-  class MyDocInfo : public DocInfo
-  {
-  public:
-    /// Default constructor
-    MyDocInfo() : DocInfo(), output_jacobian("never") {}
-    MyDocInfo(const std::string& directory,
-              const std::string& output_jacobian="never")
-    : DocInfo(directory), output_jacobian(output_jacobian)
-      {}
-
-    std::string output_jacobian;
-  };
+  // MyCliArgs* cli_args_factory(const std::string &element_name,
+  //                             unsigned dim,
+  //                             unsigned nnode1d = 2)
+  // {
+  //   if((element_name == "q_micromag") && (dim == 2) && (nnode1d == 2))
+  //     {
+  //       return new MyCliArgs<QMicromagElement<2, 2> >;
+  //     }
+  //   else if((element_name == "q_micromag") && (dim == 3) && (nnode1d == 2))
+  //     {
+  //       return new MyCliArgs<QMicromagElement<3, 2> >;
+  //     }
+  //   else if((element_name == "q_micromag") && (dim == 2) && (nnode1d == 2))
+  //     {
+  //       return new MyCliArgs<QMicromagElement<2, 2> >;
+  //     }
+  //   else if((element_name == "q_micromag") && (dim == 2) && (nnode1d == 2))
+  //     {
+  //       return new MyCliArgs<QMicromagElement<2, 2> >;
+  //     }
+  // }
 
 
   // Need to template so that we can construct the right mesh
-  template<class ELEMENT> class MyCliArgs
+  class MyCliArgs
   {
     public:
 
@@ -111,11 +124,13 @@ namespace oomph
         h_app_fct_pt(0),
         time_stepper_pt(0),
         mesh_pt(0),
+        // problem_pt(0),
 
         time_stepper_name("bdf2"),
         initial_m_name("z"),
         h_app_name("minus_z"),
         mesh_name("sq_square")
+        // problem_name("implicit_llg")
       {
         // Store command line args
         CommandLineArgs::setup(argc,argv);
@@ -133,8 +148,6 @@ namespace oomph
         CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
         CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
 
-
-
         CommandLineArgs::parse_and_assign();
         CommandLineArgs::output();
         CommandLineArgs::doc_specified_flags();
@@ -145,10 +158,12 @@ namespace oomph
         h_app_name = to_lower(h_app_name);
         mesh_name = to_lower(mesh_name);
 
+        // Build all the pointers to stuff
         time_stepper_pt = time_stepper_factory(time_stepper_name, tol);
         initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
         h_app_fct_pt = HApp::h_app_factory(h_app_name);
         mesh_pt = mesh_factory(mesh_name, refinement);
+        // problem_pt = problem_factory(problem_name, mesh_name);
 
         // etc. for precond?
       }
@@ -169,7 +184,7 @@ namespace oomph
     HApp::HAppFctPt h_app_fct_pt;
     TimeStepper* time_stepper_pt;
     Mesh* mesh_pt;
-
+    // MyProblem* problem_pt;
 
   private:
 
@@ -178,6 +193,7 @@ namespace oomph
     std::string initial_m_name;
     std::string h_app_name;
     std::string mesh_name;
+    // std::string problem_name;
 
 
     /// \short Make a timestepper from an input argument. Assumption: this will be
@@ -213,35 +229,36 @@ namespace oomph
     }
 
 
-    /// \short Make a mesh as specified by an input argument. Refined according to
-    /// the given refinement leve (in some way appropriate for that mesh
-    /// type). Assumption: this will be passed into a problem, which will
-    /// delete the pointer when it's done.
+    /// \short Make a mesh as specified by an input argument. Refined
+    /// according to the given refinement level (in some way appropriate
+    /// for that mesh type). Assumption: this will be passed into a
+    /// problem, which will delete the pointer when it's done.
     Mesh* mesh_factory(const std::string& mesh_name,
-                       int refinement_level)
+                       int refinement_level,
+                       unsigned nnode1d = 2)
     {
       // Lower case mesh names!
 
-      if(mesh_name == "sq_square")
+      if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
           unsigned nx = 5 * std::pow(2, refinement_level);
-          return new SimpleRectangularQuadMesh<ELEMENT>
+          return new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
-      else if(mesh_name == "ut_square")
+      else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          return new TriangleMesh<ELEMENT>
+          return new TriangleMesh<TMicromagElement<2, 2> >
             ("../meshes/square." + to_string(refinement_level) + ".node",
              "../meshes/square." + to_string(refinement_level) + ".ele",
              "../meshes/square." + to_string(refinement_level) + ".poly",
              time_stepper_pt);
         }
-      else if(mesh_name == "st_cubeoid")
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          return new SimpleCubicTetMesh<ELEMENT>
+          return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else
@@ -251,6 +268,22 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
     }
+
+    // MyProblem* problem_factory(const std::string &problem_name,
+    //                          const std::string& mesh_name,
+    //                          unsigned nnode1d = 2)
+    // {
+    //   if(problem_name == "implicit_llg")
+    //     {
+    //       return new ImplicitLLGProblem;
+    //     }
+    //   else
+    //     {
+    //       throw OomphLibError("Unrecognised mesh name " + mesh_name,
+    //                           OOMPH_CURRENT_FUNCTION,
+    //                           OOMPH_EXCEPTION_LOCATION);
+    //     }
+    // }
 
   };
 

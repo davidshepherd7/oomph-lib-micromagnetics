@@ -142,11 +142,12 @@ int main(int argc, char *argv[])
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
   // Read and process arguments
-  const unsigned dim = 2, nnode1d = 2;
-  MyCliArgs<QMicromagElement<dim, nnode1d> > args(argc, argv);
+  MyCliArgs args(argc, argv);
 
-  // Create problem, get timestepper and mesh from input arguments.
-  ImplicitLLGProblem<QMicromagElement<dim, nnode1d> > problem;
+  // Create problem
+  ImplicitLLGProblem problem;
+
+  // Assign timestepper and mesh from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.bulk_mesh_pt() = args.mesh_pt;
   problem.bulk_mesh_pt()->setup_boundary_element_info();

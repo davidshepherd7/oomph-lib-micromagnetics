@@ -19,8 +19,7 @@ namespace oomph
   // ============================================================
   ///
   // ============================================================
-  template<class ELEMENT>
-  class ImplicitLLGProblem : public MyProblem<ELEMENT>
+  class ImplicitLLGProblem : public MyProblem
   {
   public:
 
@@ -33,31 +32,9 @@ namespace oomph
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
       Applied_field_fct_pt(0),
-      Renormalise_each_time_step(false) {}
-
-    /// Make a problem with the default mesh and timestepper
-    ImplicitLLGProblem(const unsigned &nx,
-                       const unsigned &ny,
-                       const double &lx,
-                       const double &ly,
-                       AppliedFieldFctPt input_applied_field_pt,
-                       const bool adaptive_flag=false) :
-       Applied_field_fct_pt(input_applied_field_pt)
-    {
-      // Create timestepper
-      TimeStepper* time_stepper_pt = new BDF<2>(adaptive_flag);
-      this->add_time_stepper_pt(time_stepper_pt);
-
-      // Create mesh
-      bulk_mesh_pt() = new SimpleRectangularTriMesh<ELEMENT>(nx,ny,lx,ly,time_stepper_pt);
-      bulk_mesh_pt()->setup_boundary_element_info();
-
-      // Set up some simple parameters
-      mag_parameters_pt()->set_simple_llg_parameters();
-
-      // Build the problem
-      build();
-    }
+      Renormalise_each_time_step(false),
+      Ele_pt(0)
+    {}
 
     /// Function that does the real work of the constructors.
     void build()
@@ -80,7 +57,7 @@ namespace oomph
       Magnetic_parameters.output(std::cout);
 
       // Get a pointer to an element for use later
-      this->Ele_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(0));
+      this->Ele_pt = dynamic_cast<MicromagEquations*>(bulk_mesh_pt()->element_pt(0));
 
       // Find out the problem dimensions
       this->Dim = this->Ele_pt->nodal_dimension();
@@ -100,7 +77,7 @@ namespace oomph
       // Finish off elements
       for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
         {
-          ELEMENT* elem_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
+          MicromagEquations* elem_pt = dynamic_cast<MicromagEquations*>(bulk_mesh_pt()->element_pt(i));
 
           // Set values for magnetic parameters
           elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
@@ -302,7 +279,7 @@ namespace oomph
       // Sum the difference over all elements
       for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
         {
-          ELEMENT* ele_pt = dynamic_cast<ELEMENT* >
+          MicromagEquations* ele_pt = dynamic_cast<MicromagEquations* >
             (bulk_mesh_pt()->element_pt(e));
 
           Vector<double> numerical_m(3,0.0);
@@ -406,8 +383,8 @@ namespace oomph
       // Calculate m . dm/dn for each element
       for(unsigned e=0; e < nele; e++)
         {
-          MicromagFluxElement<ELEMENT>* ele_pt
-            = checked_dynamic_cast<MicromagFluxElement<ELEMENT>*>
+          MicromagFluxElement<MicromagEquations>* ele_pt
+            = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
             (surface_exchange_mesh_pt()->element_pt(e));
           Vector<double> s(ele_pt->dim(), 0.5); // middle of element
           temp_sum += pow( ele_pt->interpolated_mdotdmdn_micromag(s)
@@ -503,6 +480,8 @@ namespace oomph
     /// term.
     Mesh* Surface_exchange_mesh_pt;
 
+    MicromagEquations* Ele_pt;
+
     /// Create
     void create_surface_exchange_elements(const unsigned& b);
 
@@ -519,8 +498,7 @@ namespace oomph
   //======================================================================
   /// Set up the initial conditions
   //======================================================================
-  template<class ELEMENT>
-  void ImplicitLLGProblem<ELEMENT>::
+  void ImplicitLLGProblem::
   set_initial_condition(const InitialMFctPt initial_m_pt)
   {
     // Backup time in global Time object
@@ -532,7 +510,7 @@ namespace oomph
 
     // Get M indicies
     Vector<unsigned> m_index_micromag(3,0);
-    ELEMENT* elem_pt = dynamic_cast<ELEMENT* >(this->mesh_pt()->element_pt(0));
+    MicromagEquations* elem_pt = dynamic_cast<MicromagEquations* >(this->mesh_pt()->element_pt(0));
     for(unsigned i=0; i<3; i++)
       {
         m_index_micromag[i] = elem_pt->m_index_micromag(i);
@@ -577,35 +555,34 @@ namespace oomph
   }
 
 
-  //======================================================================
-  /// Create
-  //======================================================================
-  template<class ELEMENT>
-  void ImplicitLLGProblem<ELEMENT>::
-  create_surface_exchange_elements(const unsigned& b)
-  {
-    // Loop over the bulk elements adjacent to boundary b
-    for(unsigned e=0, ne=bulk_mesh_pt()->nboundary_element(b);e<ne;e++)
-      {
-        // Get pointer to the bulk element that is adjacent to boundary b
-        ELEMENT* bulk_elem_pt = dynamic_cast<ELEMENT*>
-          (bulk_mesh_pt()->boundary_element_pt(b,e));
+  // //======================================================================
+  // /// Create
+  // //======================================================================
+  // void ImplicitLLGProblem::
+  // create_surface_exchange_elements(const unsigned& b)
+  // {
+  //   // Loop over the bulk elements adjacent to boundary b
+  //   for(unsigned e=0, ne=bulk_mesh_pt()->nboundary_element(b);e<ne;e++)
+  //     {
+  //       // Get pointer to the bulk element that is adjacent to boundary b
+  //       MicromagEquations* bulk_elem_pt = dynamic_cast<MicromagEquations*>
+  //         (bulk_mesh_pt()->boundary_element_pt(b,e));
 
-        // What is the index of the face of the bulk element at the boundary
-        int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
+  //       // What is the index of the face of the bulk element at the boundary
+  //       int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
 
-        // Build the corresponding prescribed-flux element
-        MicromagFluxElement<ELEMENT>* flux_element_pt =
-          new MicromagFluxElement<ELEMENT>(bulk_elem_pt,face_index);
+  //       // Build the corresponding prescribed-flux element
+  //       MicromagFluxElement<MicromagEquations>* flux_element_pt =
+  //         new MicromagFluxElement<MicromagEquations>(bulk_elem_pt,face_index);
 
-        // Pass a pointer to the flux element to the bulk element
-        bulk_elem_pt->add_face_element_pt(flux_element_pt);
+  //       // Pass a pointer to the flux element to the bulk element
+  //       bulk_elem_pt->add_face_element_pt(flux_element_pt);
 
-        // Add the prescribed-flux element to the mesh
-        surface_exchange_mesh_pt()->add_element_pt(flux_element_pt);
+  //       // Add the prescribed-flux element to the mesh
+  //       surface_exchange_mesh_pt()->add_element_pt(flux_element_pt);
 
-      } // End of loop over bulk elements adjacent to boundary b
-  }
+  //     } // End of loop over bulk elements adjacent to boundary b
+  // }
 
 
 }
