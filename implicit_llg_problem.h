@@ -142,17 +142,13 @@ namespace oomph
     }
 
     /// Output solution
-    void doc_solution_additional() const
+    void doc_solution_additional(std::ofstream &some_file) const
     {
       // Number of plot points
       unsigned npts = 2;
 
       // Output solution with specified number of plot points per element
-      std::string filename("soln" + to_string(this->Doc_info.number()) + ".dat");
-      std::ofstream some_file((this->Doc_info.directory() + filename).c_str());
-      bulk_mesh_pt()->output(some_file,npts);
-      some_file.close();
-
+      bulk_mesh_pt()->output(some_file, npts);
     }
 
     void write_additional_trace_data(std::ofstream& trace_file) const

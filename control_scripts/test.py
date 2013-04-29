@@ -43,7 +43,8 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
     # Construct an output directory name based on inputs if not specified.
     if outdir is None:
         outdir = ("results_" + str(dt) + "_" + str(tol) + "_" + str(refinement)
-                  + "_" + timestepper + "_" + applied_field + "_" + mesh)
+                  + "_" + timestepper + "_" + applied_field + "_" + mesh
+                  + "_" + initial_m)
     final_outdir = os.path.join(output_root, outdir, "")
 
 
@@ -194,6 +195,7 @@ def main():
 
     parser.add_argument('--debug-mode', action='store_true',
                         help = 'Enable debugging mode (run in serial).')
+
     parser.add_argument('--jacobians', dest='j_parameter_set',
                         help = 'Do a parameter sweep just dumping jacobians.')
     parser.add_argument('--midpoint', dest='midpoint_parameter_set',

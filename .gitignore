@@ -47,6 +47,7 @@ callgrind*
 *.neigh
 *.bak
 *.edge
+sphere.0
 
 # plot scripts
 plotscript.gplot

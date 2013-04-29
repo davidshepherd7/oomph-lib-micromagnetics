@@ -93,9 +93,9 @@ namespace oomph
     /// passed into a problem, which will delete the pointer when it's
     /// done.
     TimeStepper* time_stepper_factory(const std::string& ts_name,
-                                      double tol=0)
+                                      double tol)
     {
-      bool adaptive_flag = tol == 0;
+      bool adaptive_flag = (tol != 0.0);
 
       if(ts_name == "bdf1")
         {
@@ -157,6 +157,14 @@ namespace oomph
           return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          return new TetgenMesh<TMicromagElement<3, 2> >
+            ("../meshes/sphere." + to_string(refinement_level) + ".node",
+             "../meshes/sphere." + to_string(refinement_level) + ".ele",
+             "../meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
       else
         {
           throw OomphLibError("Unrecognised mesh name " + mesh_name,
@@ -173,24 +181,37 @@ namespace oomph
   {
   public:
 
-    MyCliArgs(int argc, char *argv[])
-      : dt(1e-6), tmax(1.0), tol(0.0), refinement(1),
+    // Initialise pointers to null
+    MyCliArgs()
+      : initial_m_fct_pt(0), h_app_fct_pt(0), time_stepper_pt(0), mesh_pt(0) {}
 
-        outdir("results"),
-        output_jacobian("never"),
-
-        initial_m_fct_pt(0),
-        h_app_fct_pt(0),
-        time_stepper_pt(0),
-        mesh_pt(0),
-        // problem_pt(0),
-
-        time_stepper_name("bdf2"),
-        initial_m_name("z"),
-        h_app_name("minus_z"),
-        mesh_name("sq_square")
-        // problem_name("implicit_llg")
+    /// \short Fill in defaults
+    void assign_defualt_values()
     {
+      dt = 1e-6;
+      tmax = 1.0;
+      tol = 0.0;
+      refinement = 1;
+
+      outdir = "results";
+      output_jacobian = "never";
+
+      initial_m_fct_pt = 0;
+      h_app_fct_pt = 0;
+      time_stepper_pt = 0;
+      mesh_pt = 0;
+
+      time_stepper_name = "bdf2";
+      initial_m_name = "z";
+      h_app_name = "minus_z";
+      mesh_name = "sq_square";
+    }
+
+    void parse(int argc, char *argv[])
+    {
+      // Fill in the default values
+      assign_defualt_values();
+
       // Store command line args
       CommandLineArgs::setup(argc,argv);
       CommandLineArgs::specify_command_line_flag("-dt", &dt);
@@ -222,7 +243,6 @@ namespace oomph
       initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
-      // problem_pt = problem_factory(problem_name, mesh_name);
 
       // etc. for precond?
     }
@@ -243,7 +263,6 @@ namespace oomph
     HApp::HAppFctPt h_app_fct_pt;
     TimeStepper* time_stepper_pt;
     Mesh* mesh_pt;
-    // MyProblem* problem_pt;
 
   private:
 
@@ -252,7 +271,6 @@ namespace oomph
     std::string initial_m_name;
     std::string h_app_name;
     std::string mesh_name;
-    // std::string problem_name;
 
   };
 

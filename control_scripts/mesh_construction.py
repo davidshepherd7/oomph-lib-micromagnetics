@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Future proofing
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 # Imports from main libraries
 import subprocess as subp
 from multiprocessing import Pool
@@ -8,6 +13,8 @@ import sys
 import argparse
 import os
 import os.path
+
+from os.path import join as pjoin
 
 
 
@@ -21,7 +28,7 @@ def generate_triangle_meshes(initial_poly_file):
     basename, ext = os.path.splitext(fname)
 
     # Initial mesh generation
-    initial_area = 0.1
+    initial_area = 0.05
     subp.check_call(['triangle', '-q30', '-a' + str(initial_area),
                      initial_poly_file])
 
@@ -40,6 +47,54 @@ def generate_triangle_meshes(initial_poly_file):
 
     return
 
+def generate_sphere_mesh(mesh_dir, radius, refinement):
+
+    # Generate the input file (a polyhedron)
+    command = pjoin(mesh_dir, "generate_tetgen_sphere_input",
+                    "generate_tetgen_sphere_input")
+
+    # Name the file with "refinement-1" because tetgen will increment the
+    # label (I guess it assumes we are refining something in the normal
+    # way).
+    mesh_input_filename = pjoin(mesh_dir, "sphere." + str(refinement) + ".poly")
+
+    with open(mesh_input_filename, 'w') as mesh_input_file:
+        subp.check_call([command, str(radius), str(refinement)],
+                        stdout = mesh_input_file)
+
+    vol = 0.1
+
+    # Now use the input file to create a mesh using tetgen
+    subp.check_call(['tetgen',
+                     '-q', # "Good quality" mesh
+                     # '-a' + str(vol), # don't specify an area...
+                     '-Y', # Don't split boundary faces (so that refinement
+                           # is effectively controlled by the input file).
+                     '-p', mesh_input_filename],
+                    cwd = mesh_dir)
+
+    return
+
+
+def generate_sphere_meshes(mesh_dir, radius):
+    """
+    Note: poly files for a refine may or may not correspond to the other
+    files...
+
+    Get ~ 4x number of nodes with each refine.
+    """
+
+    # Make sure the input generation code is built
+    subp.check_call(['make', '-k', '-s'],
+                    cwd = pjoin(mesh_dir, "generate_tetgen_sphere_input"))
+
+    # Make some meshes with different refinement levels
+    for refine in [1, 2, 3, 4, 5]:
+         generate_sphere_mesh(mesh_dir, radius, refine)
+
+    return
+
+
 def generate_tetgen_meshes(initial_poly_file):
     """Generate a set of mesh refinements using tegen.
     """
@@ -49,6 +104,10 @@ def generate_tetgen_meshes(initial_poly_file):
 
 def main():
     """Build unstructured meshes using the poly files in "../meshes".
+
+
+    ??ds -- circle input mesh is too big
+    ??ds -- 2d meshes, last two refines are the same...
     """
 
 
@@ -77,6 +136,9 @@ def main():
 
     for poly_file in tetgen_poly_files:
         generate_tetgen_meshes(os.path.join(args.mesh_dir, poly_file))
+
+    # Sphere meshes are special
+    generate_sphere_meshes(args.mesh_dir, 1.0)
 
     return 0
 

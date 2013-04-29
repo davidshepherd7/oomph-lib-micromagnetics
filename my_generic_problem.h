@@ -55,7 +55,7 @@ namespace oomph
     /// Default constructor
     MyProblem() :
       Problem(), Dim(0),
-      Doc_info("results/"),
+      Doc_info("results"),
       Trace_filename("trace"),
       Info_filename("info")
     {}
@@ -67,7 +67,7 @@ namespace oomph
     void write_initial_data() const
     {
       // Clear the trace file (just in case) and write headers
-      std::ofstream trace_file((Doc_info.directory() + Trace_filename).c_str());
+      std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
       trace_file
         << "Doc_info.number()" << " " // 0
         << "time()" << " " // 1
@@ -84,7 +84,7 @@ namespace oomph
         << "stddev_jacobian_setup_time" << " "; // 10
 
 
-      std::ofstream info_file((Doc_info.directory() + Info_filename).c_str());
+      std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
 
       info_file
         << "real time: " << real_date_time() << std::endl
@@ -100,7 +100,7 @@ namespace oomph
     /// \short Write a trace file
     void write_trace() const
     {
-      std::ofstream trace_file((Doc_info.directory() + Trace_filename).c_str(),
+      std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
 
       Vector<double> solver_iters(1, -1);
@@ -147,12 +147,22 @@ namespace oomph
     }
 
     /// ??ds
-    virtual void doc_solution_additional() const = 0;
+    virtual void doc_solution_additional(std::ofstream& soln_file) const = 0;
     virtual void final_doc_additional() const {};
     virtual void initial_doc_additional() const {};
 
     void initial_doc()
       {
+#ifdef PARANOID
+        if(*(Doc_info.directory().end()-1) == '/')
+          {
+            std::string error_msg = "Don't put a / on the end of results dir";
+            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+#endif
+
+
         write_initial_data();
         this->doc_solution();
         initial_doc_additional();
@@ -166,7 +176,7 @@ namespace oomph
             CRDoubleMatrix J;
             DoubleVector dummy;
             this->get_jacobian(dummy, J);
-            J.sparse_indexed_output(Doc_info.directory() + "jacobian_at_end");
+            J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian_at_end");
           }
 
         final_doc_additional();
@@ -183,11 +193,15 @@ namespace oomph
             CRDoubleMatrix J;
             DoubleVector dummy;
             this->get_jacobian(dummy, J);
-            J.sparse_indexed_output(Doc_info.directory() + "jacobian" +
+            J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian" +
                                     to_string(Doc_info.number()));
           }
 
-        doc_solution_additional();
+        std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
+                                 to_string(Doc_info.number()) + ".dat").c_str(),
+                                std::ios::out);
+        doc_solution_additional(soln_file);
+        soln_file.close();
 
         Doc_info.number()++;
       }
