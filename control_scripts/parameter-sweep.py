@@ -25,9 +25,9 @@ from os.path import join as pjoin
 from glob import glob
 
 
-# TODO:
+# possible improvements:
 
-# On error put stdout file somewhere useful.
+# On error put stdout file somewhere useful?
 
 def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          outdir, timestepper, initial_m, applied_field, mesh,
@@ -126,6 +126,9 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
 
 def milan_jacobians(parameter_set, serial_mode=False):
 
+    # Presumably we will always be using the implicit driver...
+    rel_driver_path = "./implicit_llg_driver/implicit_llg_driver"
+
     # Construct lists of args
     if parameter_set == "initial":
         dts = [0.1, 0.05, 0.01, 0.001]
@@ -146,7 +149,8 @@ def milan_jacobians(parameter_set, serial_mode=False):
                 initial_ms, fields, meshes]
 
     # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver, 1, "./driver/driver",
+    fun = par(execute_oomph_driver, 1,
+              rel_driver_path,
               output_root='../experiments/jacobian_sweeps',
               output_jac='at_end')
 
@@ -158,6 +162,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
 def midpoint_comparisons(parameter_set, serial_mode=False):
 
     # Construct lists of args
+    rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
     dts = [0.1, 0.05, 0.01, 0.001]
     tmaxs = [6.0]
     tols = [0.0]
@@ -168,12 +173,12 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
     fields = ['minus_z']
     meshes = ['sq_square', 'ut_square']
 
-    arg_list = [dts, tmaxs, tols, refines, outdirs, timesteppers,
-                initial_ms, fields, meshes]
+    arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
+                timesteppers, initial_ms, fields, meshes]
 
     # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver, 1, "./driver/driver",
-          output_root='../experiments/midpoint_sweeps')
+    fun = par(execute_oomph_driver, 1,
+              output_root='../experiments/midpoint_sweeps')
 
         # Run the parameter sweep!
     parallel_parameter_sweep(fun, arg_list, serial_mode)
@@ -207,9 +212,9 @@ def main():
     # ============================================================
 
     # Make sure the driver binary is up to date
-    print("Building in ./driver folder.")
+    print("Building in ./implicit_llg_driver folder.")
     subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./driver")
+                     'LIBTOOLFLAGS=--silent'], cwd = "./implicit_llg_driver")
 
 
     if args.j_parameter_set is not None:
