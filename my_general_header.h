@@ -15,33 +15,26 @@
 #endif
 
 
-// Basic oomph-lib headers
-#include "generic.h"
+// // Basic oomph-lib headers
+// #include "generic.h"
 
 #include <ostream>
-#include <utility>
+// #include <utility>
 
 
-// Floating point debugging
-#include <fenv.h>
+// // Floating point debugging
+// #include <fenv.h>
 
-// Quicker to use vector functions
-#include "./vector_helpers.h"
+// // Quicker to use vector functions
+// #include "./vector_helpers.h"
 
 
-// All my micromag headers and .cc
 #include "./micromagnetics_element.h"
-#include "./micromagnetics_element.cc"
-#include "./micromagnetics_boundary_element.h"
-#include "./micromagnetics_boundary_element.cc"
-#include "./micromagnetics_flux_element.h"
-#include "./magnetic_materials.h"
-#include "./micromagnetics_preconditioners.h"
 #include "./magnetics_helpers.h"
 
 // Problems
-#include "./my_generic_problem.h"
-#include "./implicit_llg_problem.h"
+// #include "./my_generic_problem.h"
+// #include "./implicit_llg_problem.h"
 
 // Timesteppers
 #include "./midpoint_method.h"
@@ -176,7 +169,9 @@ namespace oomph
   }
 
 
-  // Need to template so that we can construct the right mesh
+  /// \short Parse inputs and store in a struct-like format. The objects
+  /// specified are created using factory functions.
+  // ??ds Should be two classes: CliArgs and MMCliArgs...
   class MyCliArgs
   {
   public:
@@ -186,7 +181,7 @@ namespace oomph
       : initial_m_fct_pt(0), h_app_fct_pt(0), time_stepper_pt(0), mesh_pt(0) {}
 
     /// \short Fill in defaults
-    void assign_defualt_values()
+    void assign_default_values()
     {
       dt = 1e-6;
       tmax = 1.0;
@@ -210,7 +205,7 @@ namespace oomph
     void parse(int argc, char *argv[])
     {
       // Fill in the default values
-      assign_defualt_values();
+      assign_default_values();
 
       // Store command line args
       CommandLineArgs::setup(argc,argv);
@@ -247,6 +242,24 @@ namespace oomph
       // etc. for precond?
     }
 
+    /// Write out all args (in a parseable format) to a stream.
+    void dump_args(std::ostream& out_stream) const
+    {
+      out_stream
+        << "dt " << dt << std::endl
+        << "tmax " << tmax << std::endl
+        << "tol " << tol << std::endl
+        << "refinement " << refinement << std::endl
+
+        << "outdir " << outdir << std::endl
+        << "output_jacobian " << output_jacobian << std::endl
+
+        << "time_stepper " << time_stepper_name << std::endl
+        << "initial_m " << initial_m_name << std::endl
+        << "h_app " << h_app_name << std::endl
+        << "mesh " << mesh_name << std::endl;
+    }
+
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
@@ -263,8 +276,6 @@ namespace oomph
     HApp::HAppFctPt h_app_fct_pt;
     TimeStepper* time_stepper_pt;
     Mesh* mesh_pt;
-
-  private:
 
     // Strings for input to factory functions
     std::string time_stepper_name;

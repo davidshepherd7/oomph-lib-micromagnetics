@@ -29,6 +29,50 @@ from glob import glob
 
 # On error put stdout file somewhere useful?
 
+def parse_info_file(filename):
+    """Read data from the info file into a dictionary.
+
+    Assuming info file is in the format
+
+        thing_name thing_value
+    """
+
+    info_dict = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            (key, value) = line.split()
+            info_dict[key] = value
+
+    print(info_dict)
+
+    return info_dict
+
+def parse_trace_file(filename):
+    """Read data from a trace file into a named numpy array.
+
+    Assuming the file is in the format
+
+        col_Title1 col_title2 ...
+        col1_value col2_value ...
+        another_col1_value another_col2_value ...
+        .                .
+        .                .
+        .                .
+
+    """
+
+    # Load from the file. don't read first line (titles), only load some
+    # columns (the ones I want..) and transpose the array for easy
+    # extraction into seperate vectors.
+    trace = sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,21,22),
+                       unpack=True, ndmin=2)
+
+    # Unpack into separate vectors
+    times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev = trace
+
+    return times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev
+
+
 def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          outdir, timestepper, initial_m, applied_field, mesh,
                          output_root = "./",
@@ -217,8 +261,20 @@ def main():
                      'LIBTOOLFLAGS=--silent'], cwd = "./implicit_llg_driver")
 
 
+    parse_info_file("./implicit_llg_driver/results/info")
+
+
+    times, dts, err_norms, newton_iters, mle_mean, mle_stddev = parse_trace_file("./results/trace")
+
+    print(times)
+    print(dts)
+    print(err_norms)
+    print(newton_iters)
+    print(mle_mean)
+    print(mle_stddev)
+
     if args.j_parameter_set is not None:
-        milan_jacobians(args.j_parameter_set, args.debug_mode)
+        milan_jacobians(args.j_parameter_set,args.debug_mode)
 
     if args.midpoint_parameter_set is not None:
         midpoint_comparisons(args.midpoint_parameter_set, args.debug_mode)

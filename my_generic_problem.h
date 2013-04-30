@@ -9,8 +9,10 @@
 #include "../../src/generic/problem.h"
 #include "../../src/generic/oomph_utilities.h"
 
+#include "./my_general_header.h"
+
 #include <ctime>
-#include <iostream>
+#include <ostream>
 #include <string>
 
 using namespace oomph;
@@ -40,14 +42,18 @@ namespace oomph
   {
   public:
     /// Default constructor
-    MyDocInfo() : DocInfo(), output_jacobian("never") {}
+    MyDocInfo() : DocInfo(), output_jacobian("never"), Args_pt(0) {}
+
     MyDocInfo(const std::string& directory,
+              const MyCliArgs* const args_pt,
               const std::string& output_jacobian="never")
-      : DocInfo(directory), output_jacobian(output_jacobian)
+      : DocInfo(directory), output_jacobian(output_jacobian), Args_pt(args_pt)
     {}
 
     std::string output_jacobian;
+    const MyCliArgs* Args_pt;
   };
+
 
   class MyProblem : public Problem
   {
@@ -55,7 +61,7 @@ namespace oomph
     /// Default constructor
     MyProblem() :
       Problem(), Dim(0),
-      Doc_info("results"),
+      Doc_info("results", 0),
       Trace_filename("trace"),
       Info_filename("info")
     {}
@@ -66,8 +72,9 @@ namespace oomph
     /// \short write out a general data file and initialise trace file
     void write_initial_data() const
     {
-      // Clear the trace file (just in case) and write headers
+      // Clear the trace file (by overwriting) and write headers
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
+
       trace_file
         << "Doc_info.number()" << " " // 0
         << "time()" << " " // 1
@@ -83,14 +90,18 @@ namespace oomph
         << "mean_jacobian_setup_time" << " " // 9
         << "stddev_jacobian_setup_time" << " "; // 10
 
+      trace_file.close();
 
+      // Output other useful info
       std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
 
       info_file
-        << "real time: " << real_date_time() << std::endl
-        << "unix time: " << time() << std::endl
-        << "mesh name: " << std::endl
-        << "input arguments: " << std::endl;
+        << "real_time " << real_date_time() << std::endl
+        << "unix_time " << time() << std::endl;
+
+      Doc_info.Args_pt->dump_args(info_file);
+
+      info_file.close();
     }
 
     /// \short Overload to write problem specific data into trace
@@ -162,7 +173,6 @@ namespace oomph
           }
 #endif
 
-
         write_initial_data();
         this->doc_solution();
         initial_doc_additional();
@@ -214,6 +224,7 @@ namespace oomph
 
     unsigned Dim;
     MyDocInfo Doc_info;
+
     std::string Trace_filename;
     std::string Info_filename;
 
