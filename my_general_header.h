@@ -99,7 +99,7 @@ namespace oomph
         }
       else if(ts_name == "midpoint")
         {
-          return new MidpointMethod(adaptive_flag);
+          return new MidpointMethod(adaptive_flag, 2, 0.1);
           //??ds add access to interp points, fudge factor?
         }
       else
