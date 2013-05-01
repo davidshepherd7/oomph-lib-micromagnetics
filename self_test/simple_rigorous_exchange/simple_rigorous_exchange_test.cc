@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     {
       // Build problem
       ImplicitLLGProblem problem;
-      problem.add_time_stepper_pt(Factories::time_stepper_factory("bdf2"));
+      problem.add_time_stepper_pt(Factories::time_stepper_factory("bdf2", 0.0));
       problem.mesh_pt() = Factories::mesh_factory("sq_square", 3, problem.time_stepper_pt());
       problem.applied_field_fct_pt() = HApp::zero;
 

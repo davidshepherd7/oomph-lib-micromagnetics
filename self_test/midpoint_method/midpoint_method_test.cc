@@ -5,7 +5,6 @@
 
 #include<iomanip>
 
-#include "../../old_midpoint_method.h"
 #include "../../midpoint_method.h"
 #include "generic.h"
 #include "./unsteady_heat_example.h"
@@ -143,8 +142,6 @@ int main(int argc, char *argv[])
 
   test_timestepper(new MidpointMethod(true, 2, 0.1),
                    tmax, tol, dt, "_midpoint", max_global_error_norm);
-  test_timestepper(new BDFMidpointMethod(true, 2, 0.1),
-                   tmax, tol, dt, "_bdf1midpoint", max_global_error_norm);
   // test_timestepper(new BDF2(true), tmax, tol, dt, "_bdf2", max_global_error_norm);
 
 

@@ -38,7 +38,6 @@
 
 // Timesteppers
 #include "./midpoint_method.h"
-#include "./old_midpoint_method.h"
 
 // Meshes
 #include "meshes/simple_rectangular_quadmesh.h"
@@ -101,11 +100,6 @@ namespace oomph
       else if(ts_name == "midpoint")
         {
           return new MidpointMethod(adaptive_flag);
-          //??ds add access to interp points, fudge factor?
-        }
-      else if(ts_name == "bdf1_midpoint")
-        {
-          return new BDFMidpointMethod(adaptive_flag);
           //??ds add access to interp points, fudge factor?
         }
       else
@@ -246,7 +240,7 @@ namespace oomph
     void dump_args(std::ostream& out_stream) const
     {
       out_stream
-        << "dt " << dt << std::endl
+        << "initial_dt " << dt << std::endl
         << "tmax " << tmax << std::endl
         << "tol " << tol << std::endl
         << "refinement " << refinement << std::endl

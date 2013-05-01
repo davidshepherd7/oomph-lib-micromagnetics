@@ -17,6 +17,8 @@
 // Magnetostatic elements are based on Poisson
 #include "poisson.h"
 
+#include "./interpolator.h"
+
 
 using namespace oomph;
 

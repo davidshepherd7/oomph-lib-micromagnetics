@@ -88,7 +88,9 @@ namespace oomph
         << "mean_solver_time" << " " // 7
         << "std_dev_solver_time" << " " // 8
         << "mean_jacobian_setup_time" << " " // 9
-        << "stddev_jacobian_setup_time" << " "; // 10
+        << "stddev_jacobian_setup_time" << " " // 10
+
+        << std::endl;
 
       trace_file.close();
 
