@@ -29,54 +29,18 @@ from glob import glob
 
 # On error put stdout file somewhere useful?
 
-def parse_info_file(filename):
-    """Read data from the info file into a dictionary.
 
-    Assuming info file is in the format
-
-        thing_name thing_value
-    """
-
-    info_dict = {}
-    with open(filename, 'r') as f:
-        for line in f:
-            (key, value) = line.split()
-            info_dict[key] = value
-
-    print(info_dict)
-
-    return info_dict
-
-def parse_trace_file(filename):
-    """Read data from a trace file into a named numpy array.
-
-    Assuming the file is in the format
-
-        col_Title1 col_title2 ...
-        col1_value col2_value ...
-        another_col1_value another_col2_value ...
-        .                .
-        .                .
-        .                .
-
-    """
-
-    # Load from the file. don't read first line (titles), only load some
-    # columns (the ones I want..) and transpose the array for easy
-    # extraction into seperate vectors.
-    trace = sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,21,22),
-                       unpack=True, ndmin=2)
-
-    # Unpack into separate vectors
-    times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev = trace
-
-    return times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev
-
+greenColour = '\033[01;32m'
+redColour = '\033[01;31m'
+endColour = '\033[0m'
 
 def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          outdir, timestepper, initial_m, applied_field, mesh,
                          output_root = "./",
                          **kwargs):
+
+    args = [os.path.basename(driver), dt, tmax, tol, refinement,
+            timestepper, initial_m, applied_field, mesh]
 
     # Convert keyword args into correct format for command line input.
     processed_kwargs = []
@@ -89,7 +53,7 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
         outdir = ("results_" + str(dt) + "_" + str(tol) + "_" + str(refinement)
                   + "_" + timestepper + "_" + applied_field + "_" + mesh
                   + "_" + initial_m)
-    final_outdir = os.path.join(output_root, outdir, "")
+    final_outdir = os.path.join(output_root, outdir)
 
 
     # Make sure the directory is empty and exists
@@ -116,17 +80,19 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
         err_code = subp.call(arglist, stdout = stdout_file,
                              stderr = subp.STDOUT)
 
-    if err_code != 0:
-        print(final_outdir, "FAILED with exit code", err_code)
-
+    if err_code == 0:
+        print(greenColour, args, endColour)
+    else:
+        print(redColour, "FAILED with exit code", err_code, "see",
+              pjoin(final_outdir, "stdout"), endColour)
+        print('This run failed!', file=open(pjoin(final_outdir, "FAILED"), 'w'))
     return 0
 
 
-def _apply_to_list_and_print_args(function, list_of_args):
+def _apply_to_list(function, list_of_args):
     """Does what it says. Should really be a lambda function but
     multiprocessing requires named functions
     """
-    print(list_of_args)
     return function(*list_of_args)
 
 
@@ -145,25 +111,18 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
     # multiprocessing doesn't include a "starmap", requires all functions
     # to take a single argument. Use a function wrapper to fix this. Also
     # print the list of args while we're in there.
-    wrapped_function = par(_apply_to_list_and_print_args, function)
+    wrapped_function = par(_apply_to_list, function)
 
     # For debugging we often need to run in serial (to get useful stack
     # traces).
     if serial_mode:
-        results_iterator = it.imap(wrapped_function, parameter_sets)
+        results = map(wrapped_function, parameter_sets)
 
     else:
         # Run in all parameter sets in parallel
         pool = multiprocessing.Pool()
-        results_iterator = pool.imap_unordered(wrapped_function, parameter_sets)
+        results = pool.map(wrapped_function, parameter_sets, 1)
         pool.close()
-
-        # wait for everything to finish
-        pool.join()
-
-    # Force immediate evaluation of the functions (imap is lazily
-    # evaluated)
-    results = list(results_iterator)
 
     return results
 
@@ -206,25 +165,53 @@ def milan_jacobians(parameter_set, serial_mode=False):
 def midpoint_comparisons(parameter_set, serial_mode=False):
 
     # Construct lists of args
-    rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
-    dts = [0.1, 0.05, 0.01, 0.001]
-    tmaxs = [6.0]
-    tols = [0.0]
-    refines = [1, 2, 3, 4, 5]
-    outdirs = [None]
-    timesteppers = ["bdf2", 'midpoint']
-    initial_ms = ['z', 'smoothly_varying']
-    fields = ['minus_z']
-    meshes = ['sq_square', 'ut_square']
+    if parameter_set == '0':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [0.1, 0.05, 0.01, 0.001]
+        tmaxs = [6.0]
+        tols = [0.0]
+        refines = [1, 2, 3, 4, 5]
+        outdirs = [None]
+        timesteppers = ["bdf2", 'midpoint']
+        initial_ms = ['z', 'smoothly_varying']
+        fields = ['minus_z']
+        meshes = ['sq_square', 'ut_square']
+
+    elif parameter_set == '1':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [0.1, 0.01]
+        tmaxs = [2.0]
+        tols = [0.0]
+        refines = [1, 5]
+        outdirs = [None]
+        timesteppers = ['midpoint']
+        initial_ms = ['z', 'smoothly_varying']
+        fields = ['minus_z']
+        meshes = ['ut_square']
+
+    elif parameter_set == '2':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [1e-6]
+        tmaxs = [2.0]
+        tols = [1e-3, 1e-4, 1e-5]
+        refines = [1, 2, 3]
+        outdirs = [None]
+        timesteppers = ['bdf2', 'midpoint']
+        initial_ms = ['z', 'smoothly_varying']
+        fields = ['minus_z']
+        meshes = ['ut_square', 'sq_square']
+
+    else:
+        raise NotImplementedError("no parameter set " + str(parameter_set))
 
     arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
                 timesteppers, initial_ms, fields, meshes]
 
     # Fill in some function args that should always be the same.
     fun = par(execute_oomph_driver, 1,
-              output_root='../experiments/midpoint_sweeps')
+              output_root='../experiments/midpoint_sweeps_' + str(parameter_set))
 
-        # Run the parameter sweep!
+    # Run the parameter sweep!
     parallel_parameter_sweep(fun, arg_list, serial_mode)
 
     return 0
@@ -260,23 +247,14 @@ def main():
     subp.check_call(['make', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd = "./implicit_llg_driver")
 
-
-    parse_info_file("./implicit_llg_driver/results/info")
-
-
-    times, dts, err_norms, newton_iters, mle_mean, mle_stddev = parse_trace_file("./results/trace")
-
-    print(times)
-    print(dts)
-    print(err_norms)
-    print(newton_iters)
-    print(mle_mean)
-    print(mle_stddev)
-
     if args.j_parameter_set is not None:
+        print("Running Jacobian generation parameter sweep",
+              "with parameter set", args.j_parameter_set)
         milan_jacobians(args.j_parameter_set,args.debug_mode)
 
     if args.midpoint_parameter_set is not None:
+        print("Running midpoint parameter sweep",
+              "with parameter set", args.midpoint_parameter_set)
         midpoint_comparisons(args.midpoint_parameter_set, args.debug_mode)
 
     return 0
