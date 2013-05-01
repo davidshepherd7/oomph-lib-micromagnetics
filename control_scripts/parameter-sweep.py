@@ -204,14 +204,16 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
-    arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
-                timesteppers, initial_ms, fields, meshes]
+    output_root='../experiments/midpoint_sweeps_' + str(parameter_set)
 
-    # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver, 1,
-              output_root='../experiments/midpoint_sweeps_' + str(parameter_set))
+    print("Running midpoint parameter sweep",
+          "with parameter set", args.midpoint_parameter_set)
+    print("Output is going into", output_root)
 
     # Run the parameter sweep!
+    fun = par(execute_oomph_driver, 1, output_root=output_root)
+    arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
+                timesteppers, initial_ms, fields, meshes]
     parallel_parameter_sweep(fun, arg_list, serial_mode)
 
     return 0
@@ -253,8 +255,6 @@ def main():
         milan_jacobians(args.j_parameter_set,args.debug_mode)
 
     if args.midpoint_parameter_set is not None:
-        print("Running midpoint parameter sweep",
-              "with parameter set", args.midpoint_parameter_set)
         midpoint_comparisons(args.midpoint_parameter_set, args.debug_mode)
 
     return 0

@@ -80,28 +80,33 @@ def parse_run(results_folder):
     try:
         d = parse_info_file(pjoin(results_folder, "info"))
     except IOError:
-        return {}
+        return None
 
     times, dts, err_norms, newton_iters, mle_mean, mle_stddev \
       = parse_trace_file(pjoin(results_folder, "trace"))
 
-    d['nsteps'] = len(times)
+    # If there's only one time point then this run failed immediately and
+    # we can't calculate anything interesting.
+    if len(times) == 1:
+        return None
 
-    d['mean_dt'] = sp.mean(dts)
-    d['min_dt'] = min(dts)
-    d['max_dt'] = max(dts)
+    d['nsteps'] = len(times[1:])
+
+    d['mean_dt'] = sp.mean(dts[1:])
+    d['min_dt'] = min(dts[1:])
+    d['max_dt'] = max(dts[1:])
     d['final_dt'] = float(dts[-1])
 
-    d['mean_err_norm'] = sp.mean(err_norms)
-    d['max_err_norm'] = max(err_norms)
+    d['mean_err_norm'] = sp.mean(err_norms[1:])
+    d['max_err_norm'] = max(err_norms[1:])
     d['final_err_norm'] = err_norms[-1]
 
-    d['mean_ml_error'] = sp.mean(mle_mean)
-    d['max_ml_error'] = max(mle_mean)
+    d['mean_ml_error'] = sp.mean(mle_mean[1:])
+    d['max_ml_error'] = max(mle_mean[1:])
     d['final_ml_error'] = mle_mean[-1]
 
-    d['mean_newton_iters'] = sp.mean(newton_iters)
-    d['max_newton_iters'] = max(newton_iters)
+    d['mean_newton_iters'] = sp.mean(newton_iters[1:])
+    d['max_newton_iters'] = max(newton_iters[1:])
 
     # If there is a "FAILED" file then something didn't work
     d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
@@ -154,32 +159,22 @@ def split_up_stuff(big_dict_list):
 
 
 def next_square_number(start):
-
-    print("**", start)
-
     k = int(sp.sqrt(start))
     while k**2 < start:
         k += 1
-        print(k)
-
     return k
 
 
-def plot(data, quantity_name, use_tol=True):
+def plot(data, quantity_name, y_axis_data='tol'):
     """P
 
     """
-    if use_tol:
-        y_axis_data = 'tol'
-    else:
-        y_axis_data = 'initial_dt'
 
+    # Chop the data into a list of lists (of dicts). Each list contains
+    # data for the same parameters with different tol/refines.
     p = split_up_stuff(data)
 
-    # Find out the range of the 'refinement' values
-    refines = [d['refinement'] for sublist in p for d in sublist]
-
-    # Decide if we should plot logs or normal by comparing the max and min
+    # Decide if we should plot logs or not by comparing the max and min
     # values.
     values = [d[quantity_name] for sublist in p for d in sublist]
     if max(values) > 100 * min(values):
@@ -187,40 +182,48 @@ def plot(data, quantity_name, use_tol=True):
         normaliser.label = "$\log_{10}$ of "
     else:
         # identity function
-        normaliser.label = ""
         normaliser = lambda x:x
+        normaliser.label = ""
 
     # Make an array of subplots to put our data into
-    N = len(p)
-    subplt_size = next_square_number(N)
+    subplt_size = next_square_number(len(p))
+    refines = [d['refinement'] for sublist in p for d in sublist]
     fig, axarr = plt.subplots\
       (subplt_size, subplt_size,
        sharey=True, sharex=True, # share labels
-       subplot_kw={'xlim' : (min(refines)+0.5, max(refines)+0.5),
+       subplot_kw={'xlim' : (min(refines)-0.5, max(refines)+0.5),
                    'yscale' : 'log'})
-    axarr = axarr.flatten()
 
     # Plot the data
-    for ax, data_set in zip(axarr, p):
-        refs = [d['refinement'] for d in data_set]
-        dts = [d[y_axis_data] for d in data_set]
-        vals = [normaliser(d[quantity_name]) for d in data_set]
+    for ax, data_set in zip(axarr.flatten(), p):
 
-        im = ax.scatter(refs, dts, c=vals, s=80,
+        # First plot ones that worked
+        refs = [d['refinement'] for d in data_set if not d['failed']]
+        dts = [d[y_axis_data] for d in data_set if not d['failed']]
+        vals = [normaliser(d[quantity_name]) for d in data_set if not d['failed']]
+        im = ax.scatter(refs, dts, c=vals, s=80, marker = 'o',
                         vmin=normaliser(min(values)),
                         vmax=normaliser(max(values)))
 
-        # Only put ticks at integer points
+        # Now plot ones that failed
+        refs = [d['refinement'] for d in data_set if d['failed']]
+        dts = [d[y_axis_data] for d in data_set if d['failed']]
+        vals = [normaliser(d[quantity_name]) for d in data_set if d['failed']]
+        ax.scatter(refs, dts, c=vals, s=80, marker = 'x',
+                   vmin=normaliser(min(values)),
+                   vmax=normaliser(max(values)))
+
+        # Only put ticks at integer points on x axis
         ax.get_xaxis().set_major_locator(plt.MaxNLocator(integer=True))
 
-        # Try to fit all the (other) parameters in the title
+        # Write the (other) parameters in the title
         d = data_set[0]
         ax.set_title(str(d['initial_m']) + " " + str(d['mesh']) + "\n"
                      + str(d['h_app']) + " " + str(d['time_stepper']),
                      fontsize=10)
 
     # Blank out any spare spaces we have left over
-    for ax in axarr[N:]:
+    for ax in axarr.flatten()[len(p):]:
         ax.axis('off')
 
     fig.suptitle(quantity_name + ' for each data set')
@@ -234,6 +237,7 @@ def plot(data, quantity_name, use_tol=True):
     fig.colorbar(im, cax=cbar_ax) #??ds only accurate for last subplot atm
 
     return fig
+
 
 def main():
     """
@@ -249,44 +253,32 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
+    parser.add_argument('-C', dest='rootdir',
+                        help='Set the directory to look for data in.')
+
+    parser.add_argument('--print-data', '-d', action='store_true',
+                        help='Pretty print data to stdout')
+
     args = parser.parse_args()
 
 
     # Main function
     # ============================================================
 
+    all_results = [d for d in parse_parameter_sweep(args.rootdir) if d is not None]
+    print(len(all_results), "data sets")
 
-    r_all = parse_parameter_sweep("../experiments/midpoint_sweeps_2/")
+    if args.print_data:
+        pprint(all_results)
 
-    # pprint(r_all)
+    y_axis_data = 'mean_dt'
 
-    r = filter(lambda d: (not d['failed']) and d['initial_m'] == 'smoothly_varying', r_all)
+    # Plot and save pdfs of interesting quantities
+    for q in ['mean_ml_error', 'nsteps', 'mean_newton_iters']:
+        fig = plot(all_results, q, y_axis_data=y_axis_data)
+        fig.savefig(pjoin(args.rootdir, q + "_plot.pdf"),
+                    transparent=True, bbox_inches='tight')
 
-    pprint(len(r_all))
-
-    dt, refine, err, mle, nsteps = ([d['mean_dt'] for d in r],
-                                    [int(d['refinement']) for d in r],
-                                    [d['mean_err_norm'] for d in r],
-                                    [d['mean_ml_error'] for d in r],
-                                    [d['nsteps'] for d in r])
-
-    # print(dt)
-    # print(refine)
-    print(mle)
-
-    # Partition data on timestepper, initial m, mesh, field
-
-    # plot scatter of "label" vs refines with [quantity] as size (or log of
-    # quantity). Color as well?
-
-    # Replace failed runs by crosses instead of circles
-
-    # plt.scatter(dt, refine, c=mle, s=[sp.log(m*1e6) * 50 for m in mle])
-    # plt.colorbar()
-
-    # plot(r_all, 'mean_ml_error')
-    plot(r_all, 'nsteps')
-    # plot(r_all, 'mean_newton_iters')
     plt.show()
 
     return 0
