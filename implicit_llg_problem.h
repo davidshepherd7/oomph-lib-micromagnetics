@@ -9,6 +9,8 @@
 #include "./magnetics_helpers.h"
 #include "./my_generic_problem.h"
 
+#include "./mallinson_solution.h"
+
 // Default mesh
 #include "meshes/simple_rectangular_tri_mesh.h"
 
@@ -31,6 +33,7 @@ namespace oomph
 
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
+      Compare_with_mallinson(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false),
       Ele_pt(0)
@@ -201,22 +204,25 @@ namespace oomph
     // ============================================================
 
     // Loop over all nodes in bulk mesh and get magnetisations
-    void get_nodal_magnetisations(Vector< Vector<double> > &m_list) const
+    Vector<Vector<double> > get_nodal_magnetisations() const
     {
       unsigned nnode = bulk_mesh_pt()->nnode();
-      m_list.resize(nnode);
+      Vector< Vector<double> > m_list(nnode, Vector<double>(3, 0.0));
+
       for(unsigned nd=0; nd<nnode; nd++)
         {
-          m_list[nd].assign(3,0.0);
           for(unsigned j=0; j<3; j++)
-            {m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(m_index(j));}
+            {
+              m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(m_index(j));
+            }
         }
+
+      return m_list;
     }
 
     void get_nodal_two_norms(Vector<double> &output) const
     {
-      Vector< Vector<double> > m; get_nodal_magnetisations(m);
-
+      Vector< Vector<double> > m = get_nodal_magnetisations();
       output.assign(m.size(), 0.0);
       transform(m.begin(), m.end(), output.begin(), VectorOps::two_norm);
     }
@@ -227,48 +233,46 @@ namespace oomph
       return VectorOps::mean(ms);
     }
 
-    double mean_mx() const
+    // double mean_mx() const
+    // {
+    //   Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
+
+    //   Vector<double> mx(ms.size(),0.0);
+    //   for(unsigned i=0; i<ms.size(); i++)
+    //     {mx[i] = ms[i][0];}
+
+    //   return VectorOps::mean(mx);
+    // }
+
+    // double mean_mz() const
+    // {
+    //   Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
+
+    //   Vector<double> mz(ms.size(),0.0);
+    //   for(unsigned i=0; i<ms.size(); i++)
+    //     {mz[i] = ms[i][2];}
+
+    //   return VectorOps::mean(mz);
+    // }
+
+    Vector<double> mean_magnetisation() const
     {
-      Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
+      Vector<Vector<double> > ms = get_nodal_magnetisations();
+      Vector<double> mean_m(3, 0.0);
 
-      Vector<double> mx(ms.size(),0.0);
-      for(unsigned i=0; i<ms.size(); i++)
-        {mx[i] = ms[i][0];}
+      unsigned n_ms = ms.size();
+        for(unsigned i=0; i<n_ms; i++)
+          {
+            mean_m[0] += ms[i][0];
+            mean_m[1] += ms[i][1];
+            mean_m[2] += ms[i][2];
+          }
 
-      return VectorOps::mean(mx);
-    }
+      mean_m[0] /= n_ms;
+      mean_m[1] /= n_ms;
+      mean_m[2] /= n_ms;
 
-    double mean_mz() const
-    {
-      Vector< Vector<double> > ms; get_nodal_magnetisations(ms);
-
-      Vector<double> mz(ms.size(),0.0);
-      for(unsigned i=0; i<ms.size(); i++)
-        {mz[i] = ms[i][2];}
-
-      return VectorOps::mean(mz);
-    }
-
-    void mean_magnetisation(Vector<double> &m) const
-    {
-      // Reset m
-      m.assign(3,0.0);
-
-      // Sum over all nodes in mesh
-      unsigned nnode = bulk_mesh_pt()->nnode();
-      for(unsigned nd=0; nd<nnode; nd++)
-        {
-          for(unsigned j=0; j<3; j++)
-            {
-              m[j] += bulk_mesh_pt()->node_pt(nd)->value(m_index(j));
-            }
-        }
-
-      // Divide by number of nodes in mesh
-      for(unsigned j=0; j<3; j++)
-        {
-          m[j] /= nnode;
-        }
+      return mean_m;
     }
 
     /// \short Abs of mean difference of actual m and m given by a function
@@ -400,6 +404,25 @@ namespace oomph
       orthogonality_error_stddev = std::sqrt(temp_sum / double(nele));
     }
 
+
+    double get_error_norm() const
+    {
+      if(Compare_with_mallinson)
+        {
+          using namespace CompareSolutions;
+
+          double time = Ele_pt->node_pt(0)->time_stepper_pt()->time();
+          Vector<double> m_now = mean_magnetisation();
+          double exact_time = switching_time_wrapper(mag_parameters_pt(), m_now);
+
+          return std::abs(exact_time - time);
+        }
+      else
+        {
+          return -1;
+        }
+    }
+
     // Access functions
     // ============================================================
 
@@ -462,9 +485,13 @@ namespace oomph
     /// \short Const access function for Bulk_mesh_pt.
     Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
 
-    /// Use mid-point method (rather than bdf2)? Public to avoid lots of
-    /// access function junk, see how it goes...
-    bool Use_mid_point_method;
+    // /// Use mid-point method (rather than bdf2)? Public to avoid lots of
+    // /// access function junk, see how it goes...
+    // bool Use_mid_point_method;
+
+    /// Can we check the solution using Mallinson's exact time + phi
+    /// solutions?
+    bool Compare_with_mallinson;
 
   private:
 

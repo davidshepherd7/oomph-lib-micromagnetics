@@ -9,7 +9,6 @@ Makefile.in
 .deps/
 *.[oa]
 *.out
-*_driver
 
 # Other:
 compiler_options
@@ -65,7 +64,7 @@ experiments/implicit_llg_multigrid/runs/
 # experiment binaries
 experiments/midpoint_llg/midpoint_llg
 experiments/spatially_constant_m_length_variations/spatially_constant_m_length_variations
-control_scripts/driver/driver
+control_scripts/*driver/*driver
 
 # self test binaries
 self_test/midpoint_method/midpoint_method_test
