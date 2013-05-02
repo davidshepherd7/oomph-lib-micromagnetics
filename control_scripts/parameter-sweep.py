@@ -225,6 +225,18 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         fields = ['minus_z']
         meshes = ['ut_sphere']
 
+    elif parameter_set == 'cubeoid':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [1e-6]
+        tmaxs = [2.0]
+        tols = [1e-3, 1e-4, 1e-5]
+        refines = [1, 2, 3]
+        outdirs = [None]
+        timesteppers = ['bdf2', 'midpoint']
+        initial_ms = ['z']
+        fields = ['minus_z']
+        meshes = ['ut_cubeoid', 'st_cubeoid']
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 

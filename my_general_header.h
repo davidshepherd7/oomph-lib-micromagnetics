@@ -139,6 +139,23 @@ namespace oomph
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
+          // nmag cubeoid
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = 2 * std::pow(2, refinement_level);
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          return new TetgenMesh<TMicromagElement<3, 2> >
+            ("../meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
           return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
