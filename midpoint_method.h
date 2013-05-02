@@ -248,7 +248,7 @@ namespace oomph
         Vector<double> y_tnph, dy_tnph, dy_tn;
         interpolator.eval(tnph, y_tnph);
         interpolator.eval_derivative(tnph, 1, dy_tnph);
-        interpolator.eval_derivative(time_pt()->time(1)-0.0001, 1, dy_tn); //??ds nasty hack!
+        interpolator.eval_derivative(time_pt()->time(1), 1, dy_tn);
 
         // Use the interpolated values to calculate an estimate to
         // y_np1. Basically just using AB2.
