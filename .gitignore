@@ -10,10 +10,6 @@ Makefile.in
 *.[oa]
 *.out
 
-# Other:
-compiler_options
-*/old_experiments*/*
-
 # backups/emacs files
 .emacs.*
 *~
@@ -48,23 +44,13 @@ callgrind*
 *.edge
 sphere.0
 
-# plot scripts
-plotscript.gplot
-*.gplot
-*.gp
+# Just ignore entire experiments folder, should be ok...
+experiments/*
+*/old_experiments*/*
 
-# computation scripts
-
-# testing junk file
-previous_run_passes_list
-
-# other
-experiments/implicit_llg_multigrid/runs/
-
-# experiment binaries
-experiments/midpoint_llg/midpoint_llg
-experiments/spatially_constant_m_length_variations/spatially_constant_m_length_variations
-control_scripts/*driver/*driver
+# general purpose binaries
+control_scripts/*/*driver
+meshes/generate_tetgen_sphere_input/generate_tetgen_sphere_input
 
 # self test binaries
 self_test/midpoint_method/midpoint_method_test
