@@ -199,7 +199,31 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         timesteppers = ['bdf2', 'midpoint']
         initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
+        meshes = ['ut_square']
+
+    elif parameter_set == '3':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [1e-6]
+        tmaxs = [2.0]
+        tols = [1e-3, 1e-4, 1e-5]
+        refines = [1, 2, 3]
+        outdirs = [None]
+        timesteppers = ['bdf2', 'midpoint']
+        initial_ms = ['z']
+        fields = ['minus_z']
         meshes = ['ut_square', 'sq_square']
+
+    elif parameter_set == '4':
+        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        dts = [1e-6]
+        tmaxs = [2.0]
+        tols = [1e-3, 1e-4, 1e-5]
+        refines = [1, 2, 3]
+        outdirs = [None]
+        timesteppers = ['bdf2', 'midpoint']
+        initial_ms = ['z']
+        fields = ['minus_z']
+        meshes = ['ut_sphere']
 
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
@@ -207,7 +231,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
     output_root='../experiments/midpoint_sweeps_' + str(parameter_set)
 
     print("Running midpoint parameter sweep",
-          "with parameter set", args.midpoint_parameter_set)
+          "with parameter set", parameter_set)
     print("Output is going into", output_root)
 
     # Run the parameter sweep!
