@@ -141,6 +141,27 @@ namespace VectorOps
       }
   }
 
+
+  // Equivalent to std::find but for floating point values. Return -1 if
+  // not found.
+  int fp_find(double search_value, const Vector<double> &vec, double tol=1e-12)
+    {
+
+      int found_location = -1;
+      for(unsigned j=0, nj=vec.size(); j<nj; j++)
+        {
+          if(std::abs(vec[j] - search_value) < tol)
+            {
+              found_location = j;
+              break;
+            }
+        }
+
+      return found_location;
+    }
+
+
+
   void rowstart2rowindex(const Vector<int>& row_start, Vector<int>& row_index)
   {
     // Initialise
