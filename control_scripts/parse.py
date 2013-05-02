@@ -197,6 +197,10 @@ def plot(data, quantity_name, y_axis_data='tol'):
 
     """
 
+    if 'err_norm' in quantity_name:
+        # Exclude cases with no error norm given
+        data = [d for d in data if d['max_err_norm'] != -1]
+
     # Chop the data into a list of lists (of dicts). Each list contains
     # data for the same parameters with different tol/refines.
     p = split_up_stuff(data)
