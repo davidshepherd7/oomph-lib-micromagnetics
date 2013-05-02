@@ -130,7 +130,7 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
 def milan_jacobians(parameter_set, serial_mode=False):
 
     # Presumably we will always be using the implicit driver...
-    rel_driver_path = "./implicit_llg_driver/implicit_llg_driver"
+    rel_driver_path = "./llg_driver/llg_driver"
 
     # Construct lists of args
     if parameter_set == "initial":
@@ -166,7 +166,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
 
     # Construct lists of args
     if parameter_set == '0':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [0.1, 0.05, 0.01, 0.001]
         tmaxs = [6.0]
         tols = [0.0]
@@ -178,7 +178,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         meshes = ['sq_square', 'ut_square']
 
     elif parameter_set == '1':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [0.1, 0.01]
         tmaxs = [2.0]
         tols = [0.0]
@@ -190,7 +190,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         meshes = ['ut_square']
 
     elif parameter_set == '2':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3, 1e-4, 1e-5]
@@ -202,7 +202,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         meshes = ['ut_square']
 
     elif parameter_set == '3':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3, 1e-4, 1e-5]
@@ -214,7 +214,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         meshes = ['ut_square', 'sq_square']
 
     elif parameter_set == '4':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3, 1e-4, 1e-5]
@@ -226,7 +226,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         meshes = ['ut_sphere']
 
     elif parameter_set == 'cubeoid':
-        rel_driver_paths = ["./implicit_llg_driver/implicit_llg_driver"]
+        rel_driver_paths = ["./llg_driver/llg_driver"]
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3, 1e-4, 1e-5]
@@ -281,9 +281,9 @@ def main():
     # ============================================================
 
     # Make sure the driver binary is up to date
-    print("Building in ./implicit_llg_driver folder.")
+    print("Building in ./llg_driver folder.")
     subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./implicit_llg_driver")
+                     'LIBTOOLFLAGS=--silent'], cwd = "./llg_driver")
 
     if args.j_parameter_set is not None:
         print("Running Jacobian generation parameter sweep",
