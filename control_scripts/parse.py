@@ -90,6 +90,10 @@ def parse_run(results_folder):
     if len(times) == 1:
         return None
 
+    d['times'] = times
+    d['dts'] = dts
+    d['error_norms'] = err_norms
+
     d['nsteps'] = len(times[1:])
 
     d['mean_dt'] = sp.mean(dts[1:])
@@ -163,6 +167,29 @@ def next_square_number(start):
     while k**2 < start:
         k += 1
     return k
+
+
+def plot_time_error(data):
+
+    p = split_up_stuff(data)
+
+    for data_set in p:
+        fig, axarr = plt.subplots(2, 1, sharex = True)
+
+        fig.suptitle(data_set[0]['initial_m']+ ' ' +data_set[0]['mesh'] + ' ' +
+                     data_set[0]['h_app']+ ' ' +data_set[0]['time_stepper'])
+
+        for d in data_set:
+            axarr[0].plot(d['times'], d['error_norms'],
+                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+            axarr[0].set_ylabel('error norm')
+            axarr[0].legend(loc=0)
+
+            axarr[1].plot(d['times'], d['dts'],
+                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+            axarr[1].set_ylabel('dt')
+            axarr[1].set_xlabel('time')
+            axarr[1].legend(loc=0)
 
 
 def plot(data, quantity_name, y_axis_data='tol'):
@@ -274,10 +301,15 @@ def main():
     y_axis_data = 'mean_dt'
 
     # Plot and save pdfs of interesting quantities
-    for q in ['mean_ml_error', 'nsteps', 'mean_newton_iters']:
+    # interesting_quantities = ['mean_ml_error', 'nsteps', 'mean_newton_iters']
+    interesting_quantities = ['mean_ml_error', 'max_err_norm', 'mean_err_norm']
+
+    for q in interesting_quantities:
         fig = plot(all_results, q, y_axis_data=y_axis_data)
         fig.savefig(pjoin(args.rootdir, q + "_plot.pdf"),
                     transparent=True, bbox_inches='tight')
+
+    plot_time_error(all_results)
 
     plt.show()
 
