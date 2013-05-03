@@ -46,6 +46,9 @@
 #include "meshes/tetgen_mesh.h"
 #include "meshes/triangle_mesh.h"
 
+// Variable order integrators
+#include "./variable_order_quadrature.h"
+
 using namespace oomph;
 
 namespace oomph
@@ -122,16 +125,18 @@ namespace oomph
     {
       // Lower case mesh names!
 
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt = 0;
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
           unsigned nx = 5 * std::pow(2, refinement_level);
-          return new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          return new TriangleMesh<TMicromagElement<2, 2> >
+          mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
             ("../meshes/square." + to_string(refinement_level) + ".node",
              "../meshes/square." + to_string(refinement_level) + ".ele",
              "../meshes/square." + to_string(refinement_level) + ".poly",
@@ -143,12 +148,12 @@ namespace oomph
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = 2 * std::pow(2, refinement_level);
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
-          return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          return new TetgenMesh<TMicromagElement<3, 2> >
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("../meshes/cubeoid." + to_string(refinement_level) + ".node",
              "../meshes/cubeoid." + to_string(refinement_level) + ".ele",
              "../meshes/cubeoid." + to_string(refinement_level) + ".face",
@@ -158,12 +163,12 @@ namespace oomph
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          return new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
-          return new TetgenMesh<TMicromagElement<3, 2> >
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("../meshes/sphere." + to_string(refinement_level) + ".node",
              "../meshes/sphere." + to_string(refinement_level) + ".ele",
              "../meshes/sphere." + to_string(refinement_level) + ".face",
@@ -173,6 +178,42 @@ namespace oomph
         {
           throw OomphLibError("Unrecognised mesh name " + mesh_name,
                               OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // For some reason we have to call this manually...
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+    /// \short Create a variable order quadrature object based on the
+    /// dimension and shape of the element. Only works for
+    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
+    {
+      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
+        {
+          return new TVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
+        {
+          return new QVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
+        {
+          return new TVariableOrderGaussLegendre<2>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
+        {
+          return new QVariableOrderGaussLegendre<2>;
+        }
+      else
+        {
+          std::string err("Cannot determine element type.\n");
+          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
+          err += "Variable order quadratures are not supported for this case.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
     }
