@@ -242,7 +242,8 @@ namespace oomph
       // destructor is never called.
 
       // The proper way to do this would probably be to create a new
-      // MeshDontDeleteNodes class which changes the destructor.
+      // MeshDontDeleteNodes class which changes the destructor. Or maybe
+      // add a flag to mesh?
 
       Bem_mesh_pt = new Mesh;
     }
@@ -256,6 +257,10 @@ namespace oomph
           delete Bem_mesh_pt->element_pt(e);
         }
       Bem_mesh_pt = 0;
+
+      // Delete the integrator
+      delete Integration_scheme_pt;
+      Integration_scheme_pt = 0;
     }
 
     /// Put the (output) values of the bem into a vector.
@@ -598,7 +603,7 @@ namespace oomph
   // =================================================================
   /// If the boundary matrix is distributed then get its
   /// distribution. Otherwise return a "non-distributed distribution" with
-  /// the correct number of rows and a null comm pointer.
+  /// the correct number of rows.
   // =================================================================
   template<class BEM_ELEMENT>
   void BoundaryElementHandler<BEM_ELEMENT>::

@@ -6,6 +6,7 @@
 */
 
 #include "generic.h"
+#include "./template_free_poisson_flux.h"
 
 using namespace oomph;
 
@@ -18,20 +19,19 @@ namespace oomph
   /// actually invert the sign of the residuals (and Jacobian) as compared to
   /// my derivation but this shouldn't matter.
   // ============================================================
-  template <class ELEMENT>
-  class MagnetostaticFieldFluxElement :
-    public virtual PoissonFluxElement<ELEMENT>
+  class MagnetostaticFieldFluxEquations :
+    public TFPoissonFluxEquations
   {
   public:
 
     /// Real constructor
-    MagnetostaticFieldFluxElement(FiniteElement* const &bulk_el_pt,
-                                  const int &face_index)
-      : PoissonFluxElement<ELEMENT>::PoissonFluxElement(bulk_el_pt, face_index)
+    MagnetostaticFieldFluxEquations(FiniteElement* const &bulk_el_pt,
+                                    const int &face_index)
+      : TFPoissonFluxEquations(bulk_el_pt, face_index)
     {}
 
     /// Destructor
-    ~MagnetostaticFieldFluxElement() {}
+    ~MagnetostaticFieldFluxEquations() {}
 
     /// Get flux from both mdotn and supplied flux function.
     void get_elemental_flux(const Vector<double> &face_s, double &flux) const
@@ -47,7 +47,8 @@ namespace oomph
       this->outer_unit_normal(face_s,normal);
 
       // Cast bulk element to MagnetostaticFieldEquations
-      ELEMENT* field_ele_pt = dynamic_cast<ELEMENT*>(this->bulk_element_pt());
+      MagnetostaticFieldEquations* field_ele_pt =
+        dynamic_cast<MagnetostaticFieldEquations*>(this->bulk_element_pt());
 
       // Get magnetisation from bulk magnetics element.
       unsigned dim = this->nodal_dimension();
@@ -75,15 +76,48 @@ namespace oomph
   private:
 
     /// Inacessible default constructor
-    MagnetostaticFieldFluxElement() {}
+    MagnetostaticFieldFluxEquations() {}
 
     /// Inaccessible copy constructor
-    MagnetostaticFieldFluxElement(const MagnetostaticFieldFluxElement &dummy)
-    {BrokenCopy::broken_copy("MagnetostaticFieldFluxElement");}
+    MagnetostaticFieldFluxEquations(const MagnetostaticFieldFluxEquations &dummy)
+    {BrokenCopy::broken_copy("MagnetostaticFieldFluxEquations");}
 
     /// Inaccessible assignment operator
-    void operator=(const MagnetostaticFieldFluxElement &dummy)
-    {BrokenCopy::broken_assign("MagnetostaticFieldFluxElement");}
+    void operator=(const MagnetostaticFieldFluxEquations &dummy)
+    {BrokenCopy::broken_assign("MagnetostaticFieldFluxEquations");}
+  };
+
+
+  /// \short Class to pull in the geometrical element code. Bit strange to
+  /// use the weird templated FaceGeometry class but it seems to work.
+  template<unsigned DIM, unsigned NNODE_1D>
+  class QMagnetostaticFieldFluxElement :
+    public virtual FaceGeometry<class QElement<DIM, NNODE_1D> >,
+    public virtual MagnetostaticFieldFluxEquations
+  {
+    public:
+    /// Real constructor
+    QMagnetostaticFieldFluxElement(FiniteElement* const &bulk_el_pt,
+                                   const int &face_index)
+      : FaceGeometry<class QElement<DIM, NNODE_1D> >(),
+        MagnetostaticFieldFluxEquations(bulk_el_pt, face_index)
+    {}
+  };
+
+  /// \short Class to pull in the geometrical element code. Bit strange to
+  /// use the weird templated FaceGeometry class but it seems to work.
+  template<unsigned DIM, unsigned NNODE_1D>
+  class TMagnetostaticFieldFluxElement :
+    public virtual FaceGeometry<class TElement<DIM, NNODE_1D> >,
+    public virtual MagnetostaticFieldFluxEquations
+  {
+    public:
+    /// Real constructor
+    TMagnetostaticFieldFluxElement(FiniteElement* const &bulk_el_pt,
+                                   const int &face_index)
+      : FaceGeometry<class TElement<DIM, NNODE_1D> >(),
+        MagnetostaticFieldFluxEquations(bulk_el_pt, face_index)
+    {}
   };
 
 

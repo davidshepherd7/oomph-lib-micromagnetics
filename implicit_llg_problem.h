@@ -25,12 +25,6 @@ namespace oomph
   {
   public:
 
-    // Function pointer for initial magnetisation.
-    typedef Vector<double> (*InitialMFctPt)(const double& t, const Vector<double> &x);
-
-    // Function pointer for applied field.
-    typedef HApp::HAppFctPt AppliedFieldFctPt;
-
     /// Default constructor - do nothing except nulling pointers.
     ImplicitLLGProblem() :
       Compare_with_mallinson(false),
@@ -167,7 +161,7 @@ namespace oomph
     }
 
     /// Set up an initial M
-    void set_initial_condition(const InitialMFctPt initial_m_pt);
+    void set_initial_condition(const InitialM::InitialMFctPt initial_m_pt);
 
     /// Error for adaptive timestepper (rms of nodal error determined by
     /// comparison with explicit timestepper result).
@@ -277,7 +271,7 @@ namespace oomph
 
     /// \short Abs of mean difference of actual m and m given by a function
     /// at the middle of each element.
-    double compare_m_with_function(const InitialMFctPt fct_pt) const
+    double compare_m_with_function(const InitialM::InitialMFctPt fct_pt) const
     {
       double diff = 0.0;
 
@@ -440,10 +434,10 @@ namespace oomph
     {return this->Dim;}
 
     /// \short Non-const access function for Applied_field_fct_pt.
-    AppliedFieldFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
+    HApp::HAppFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
 
     /// \short Const access function for Applied_field_fct_pt.
-    AppliedFieldFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
+    HApp::HAppFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
 
     /// \short Non-const access function for Magnetic_parameters_pt.
     MagneticParameters* mag_parameters_pt()
@@ -496,7 +490,7 @@ namespace oomph
   private:
 
     /// Pointer to the applied field.
-    AppliedFieldFctPt Applied_field_fct_pt;
+    HApp::HAppFctPt Applied_field_fct_pt;
 
     /// Magnetic parameters storage. ??ds should maybe go in meshes?
     MagneticParameters Magnetic_parameters;
@@ -531,7 +525,7 @@ namespace oomph
   /// Set up the initial conditions
   //======================================================================
   void ImplicitLLGProblem::
-  set_initial_condition(const InitialMFctPt initial_m_pt)
+  set_initial_condition(const InitialM::InitialMFctPt initial_m_pt)
   {
     // Backup time in global Time object
     double backed_up_time=this->time_pt()->time();
