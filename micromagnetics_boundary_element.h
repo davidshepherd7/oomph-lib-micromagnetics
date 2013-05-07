@@ -24,35 +24,33 @@ namespace oomph
   //===========================================================================
   ///
   //===========================================================================
-  template<class ELEMENT>
-  class MicromagFaceElement : public virtual FaceGeometry<ELEMENT>,
-                              public virtual FaceElement
+  class MicromagBEMElementEquations : public FaceElement
   {
   public:
 
     /// \short Constructor, takes the pointer to the bulk element and the
     /// index of the face to which the element is attached.
-    MicromagFaceElement(FiniteElement* const bulk_el_pt,
+    MicromagBEMElementEquations(FiniteElement* const bulk_el_pt,
                         const int& face_index);
 
     ///\short  Broken empty constructor
-    MicromagFaceElement()
+    MicromagBEMElementEquations()
     {
-      throw OomphLibError("Don't call empty constructor for MicromagFaceElement",
+      throw OomphLibError("Don't call empty constructor for MicromagBEMElementEquations",
                           OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 
     /// Broken copy constructor
-    MicromagFaceElement(const MicromagFaceElement& dummy)
+    MicromagBEMElementEquations(const MicromagBEMElementEquations& dummy)
     {
-      BrokenCopy::broken_copy("MicromagFaceElement");
+      BrokenCopy::broken_copy("MicromagBEMElementEquations");
     }
 
     /// Broken assignment operator
-    void operator=(const MicromagFaceElement&)
+    void operator=(const MicromagBEMElementEquations&)
     {
-      BrokenCopy::broken_assign("MicromagFaceElement");
+      BrokenCopy::broken_assign("MicromagBEMElementEquations");
     }
 
     unsigned self_test()
@@ -221,36 +219,6 @@ namespace oomph
 
   protected:
 
-    /// \short Function to compute the shape and test functions and to return
-    /// the Jacobian of mapping between local and global (Eulerian)
-    /// coordinates
-    inline double shape_and_test(const Vector<double> &s,
-                                 ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
-    {
-      // Get the shape function and set test = shape
-      shape(s,psi);
-      for(unsigned i=0;i<nnode();i++) {test[i] = psi[i];}
-
-      //Return the value of the jacobian
-      return J_eulerian(s);
-    }
-
-
-    /// \short Function to compute the shape and test functions and to return
-    /// the Jacobian of mapping between local and global (Eulerian)
-    /// coordinates
-    inline double shape_and_test_at_knot(const unsigned &ipt,
-                                         ShapeWithDeepCopy &psi, ShapeWithDeepCopy &test) const
-    {
-      // Get the shape function and set test = shape
-      shape_at_knot(ipt,psi);
-
-      for(unsigned i=0;i<nnode();i++) {test[i] = psi[i];}
-
-      //Return the value of the jacobian
-      return J_eulerian_at_knot(ipt);
-    }
-
     /// The number of values to be stored at each boundary element node
     inline unsigned required_nvalue(const unsigned &n) const
     {return 0;}
@@ -284,10 +252,9 @@ namespace oomph
   /// at the max. or min. value of the "fixed" local coordinate
   /// in the bulk element.
   //===========================================================================
-  template<class ELEMENT>
-  MicromagFaceElement<ELEMENT>::
-  MicromagFaceElement(FiniteElement* const bulk_el_pt, const int &face_index)
-    : FaceGeometry<ELEMENT>(), FaceElement()
+  MicromagBEMElementEquations::
+  MicromagBEMElementEquations(FiniteElement* const bulk_el_pt, const int &face_index)
+    : FaceElement()
   {
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
@@ -297,8 +264,7 @@ namespace oomph
 
   /// Get boundary element matrix contributions for this element using
   /// an adaptive scheme.
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
+  void MicromagBEMElementEquations::
   fill_in_be_contribution_adaptive(DenseMatrix<double> &boundary_matrix)
     const
   {
@@ -454,7 +420,7 @@ namespace oomph
                 error_msg << "Quadrature order not high enough, returning with relative error "
                           << reldiff << " (reltol is set to " << reltol << ")." << std::endl;
                 throw OomphLibWarning(error_msg.str(),
-                                      "MicromagFaceElement::fill_in_be_contribution_adaptive",
+                                      "MicromagBEMElementEquations::fill_in_be_contribution_adaptive",
                                       OOMPH_EXCEPTION_LOCATION);
               }
           }
@@ -472,8 +438,7 @@ namespace oomph
   } // End of function
 
   // Given all the values for a certain order, dump them out
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
+  void MicromagBEMElementEquations::
   dump_values(const Vector< Vector<double> > &x_kn,
               const Vector<double> &source_node_x,
               const Vector<Vector<double> > &normal) const
@@ -499,8 +464,7 @@ namespace oomph
   /// Get the maximum elementwise difference between two vectors relative to the
   /// appropriate element of v1.
   //============================================================
-  template<class ELEMENT>
-  double MicromagFaceElement<ELEMENT>::
+  double MicromagBEMElementEquations::
   max_rel_error(const Vector<double> &v1, const Vector<double> &v2) const
   {
     // Get the element-wise relative difference between the two vectors
@@ -514,8 +478,7 @@ namespace oomph
   //======================================================================
   ///
   //======================================================================
-  template<class ELEMENT>
-  double MicromagFaceElement<ELEMENT>::
+  double MicromagBEMElementEquations::
   green_normal_derivative(const Vector<double>& x,
                           const Vector<double>& y,
                           const Vector<double>& n) const
@@ -700,8 +663,7 @@ namespace oomph
   }
 
 
-  template<class ELEMENT>
-  bool MicromagFaceElement<ELEMENT>::
+  bool MicromagBEMElementEquations::
   normals_match(const Vector<unsigned> &node_list) const
   {
 
@@ -752,8 +714,7 @@ namespace oomph
   //======================================================================
   ///
   //======================================================================
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
+  void MicromagBEMElementEquations::
   fill_in_be_contribution_analytic(DenseMatrix<double> &boundary_matrix) const
   {
 #ifdef PARANOID
@@ -813,8 +774,7 @@ namespace oomph
   ///
   //??ds could pass in unit normal since same for all triangle sub-elements
   //======================================================================
-  template<class ELEMENT>
-  void MicromagFaceElement<ELEMENT>::
+  void MicromagBEMElementEquations::
   analytic_integral_dgreendn_triangle(const Vector<Vector<double> >& x_tn,
                                       const Vector<unsigned>& l,
                                       DenseMatrix<double>& boundary_matrix) const
@@ -971,99 +931,34 @@ namespace oomph
   }
 
 
-  //  //======================================================================
-  //   /// Point element to sit at sharp corners and add the angle/solid angle of the
-  //   /// corner to the boundary element matrix. DIM is the dimension of the entire
-  //   /// problem not the dimension of the point element (which is always 0).
-  //   //======================================================================
-  //   template<class ELEMENT, unsigned DIM>
-  //   class MicromagCornerAngleElement :
-  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-  //     public virtual PointElement
-  //   {};
+  template<unsigned DIM, unsigned NNODE_1D>
+  class QMicromagBEMElement : public virtual FaceGeometry<QElement<DIM, NNODE_1D> >,
+                                     public virtual MicromagBEMElementEquations
+  {
+
+  public:
+    QMicromagBEMElement(FiniteElement* const &bulk_el_pt,
+                               const int& face_index)
+      : FaceGeometry<QElement<DIM, NNODE_1D> >(),
+        MicromagBEMElementEquations(bulk_el_pt, face_index)
+    {}
+
+  };
 
 
-  //   //======================================================================
-  //   /// In 1D there are no sharp corners so no 1D version is needed.
-  //   //======================================================================
+  template<unsigned DIM, unsigned NNODE_1D>
+  class TMicromagBEMElement : public virtual FaceGeometry<TElement<DIM, NNODE_1D> >,
+                                     public virtual MicromagBEMElementEquations
+  {
 
-  //   //======================================================================
-  //   /// 2D specialisation: calculate angles.
-  //   //======================================================================
-  //   template< class ELEMENT>
-  //   class MicromagCornerAngleElement<ELEMENT,2> :
-  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-  //     public virtual PointElement
-  //   {
-  //   private:
+  public:
+    TMicromagBEMElement(FiniteElement* const &bulk_el_pt,
+                               const int& face_index)
+      : FaceGeometry<TElement<DIM, NNODE_1D> >(),
+        MicromagBEMElementEquations(bulk_el_pt, face_index)
+    {}
 
-  //     /// Pointer to the face elements to which this point element is
-  //     /// attached.
-  //     Vector<FaceGeometry<ELEMENT>* > Face_element_pt;
-
-  //     /// The index of the node in face elements to which this point element is
-  //     /// attached.
-  //     Vector<unsigned> Node_number;
-
-  //   public:
-
-  //     MicromagCornerAngleElement() : Face_element_pt(2)
-  //     {
-  //       // Face_element_pt[0] = e1;
-  //       // Face_element_pt[1] = e2;
-
-  //       // Node_number[0] = n1;
-  //       // Node_number[1] = n2;
-  //     }
-
-  //     /// Calculate the angle between the two attached face elements
-  //     double calculate_corner_fractional_angle() const
-  //     {
-  //       Vector<Vector<double> > t;
-
-  //       // For each attached face element (two of them) get the tangent vector
-  //       for(unsigned fe=0; fe<2; fe++)
-  //     {
-  //       // Find out the number of nodes in the face element
-  //       unsigned n_node_face = Face_element_pt[fe]->nnode();
-
-  //       // Get the value of the shape function derivatives at the node
-  //       Shape psi(n_node_face); // We have to calculate shape functions as well...
-  //       DShape dpsids(n_node_face,1);
-  //       Face_element_pt[fe]->dshape_local(s_face,psi,dpsids);
-
-  //       // Calculate all derivatives of the spatial coordinates wrt local
-  //       // coordinates
-  //       Vector<double> interpolated_dxds(2,0.0);
-  //       // for(unsigned j=0;j<2;j++)
-  //       //   {
-  //       //     interpolated_dxds[j] +=
-  //       //    Face_element_pt[fe]->nodal_position(l,j) * dpsids(l,0);
-  //       //   }
-
-  //       // Add to list of tangents
-  //       t.push_back(interpolated_dxds);
-  //     }
-
-  //       // Calculate the angle between them (inverse cos of the dot product).
-  //       return acos(t[0][0]*t[1][0] + t[0][1]*t[1][1]) / (2*Pi);
-  //     }
-
-  //   };
-
-  //   //======================================================================
-  //   /// 3D specialisation: calculate solid angles.
-  //   //======================================================================
-  //   template< class ELEMENT>
-  //   class MicromagCornerAngleElement<ELEMENT,3> :
-  //     public virtual FaceGeometry<FaceGeometry<ELEMENT> >,
-  //     public virtual PointElement
-  //   {
-
-  //     //??ds calculating the angle is going to be harder here, do it later...
-  //   };
-
-
+  };
 
 }
 

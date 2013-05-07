@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
   problem.set_phi_problem_pt(phi_problem_pt);
 
   BoundaryElementHandlerBase* bem_handler_pt = new
-    BoundaryElementHandler<MicromagFaceElement<QSemiImplicitMicromagElement<2,2> > >;
+    BoundaryElementHandler<QMicromagBEMElement<2,2> >;
   problem.bem_handler_pt() = bem_handler_pt;
 
 
