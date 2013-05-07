@@ -4,7 +4,6 @@
 
 #include "generic.h"
 #include "./micromagnetics_element.h"
-#include "./micromagnetics_element.cc"
 #include "./variable_order_quadrature.h"
 #include <functional>
 #include <algorithm>

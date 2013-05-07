@@ -37,14 +37,13 @@
 
 #include<sstream>
 
-// //OOMPH-LIB headers
-// #include "../../../generic/projection.h"
-// #include "../../../generic/nodes.h"
-// #include "../../../generic/Qelements.h"
-// #include "../../../generic/oomph_utilities.h"
-
-#include "generic.h"
-
+//OOMPH-LIB headers
+#include "../../src/generic/Vector.h"
+#include "../../src/generic/nodes.h"
+#include "../../src/generic/Qelements.h"
+#include "../../src/generic/Telements.h"
+#include "../../src/generic/oomph_utilities.h"
+#include "../../src/generic/oomph_definitions.h"
 
 namespace oomph
 {

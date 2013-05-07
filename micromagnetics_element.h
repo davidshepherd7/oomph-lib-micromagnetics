@@ -3,7 +3,12 @@
 
 
 // Generic oomph-lib routines
-#include "generic.h"
+#include "../../src/generic/Vector.h"
+#include "../../src/generic/nodes.h"
+#include "../../src/generic/Qelements.h"
+#include "../../src/generic/Telements.h"
+#include "../../src/generic/oomph_utilities.h"
+#include "../../src/generic/oomph_definitions.h"
 
 // Print vectors nicely
 #include "./prettyprint98.hpp"

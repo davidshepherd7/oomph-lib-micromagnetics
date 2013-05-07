@@ -1,7 +1,7 @@
 #ifndef OOMPH_MAGNETIC_MATERIALS_H
 #define OOMPH_MAGNETIC_MATERIALS_H
 
-#include "generic.h"
+#include "../../src/generic/Vector.h"
 
 namespace mag_parameters
 {
