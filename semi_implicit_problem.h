@@ -12,6 +12,7 @@
 
 #include "./micromagnetics_boundary_element.h"
 #include "./magnetostatic_field_flux_element.h"
+#include "./micromag.h"
 
 using namespace oomph;
 
@@ -30,8 +31,108 @@ namespace oomph
     {}
 
 
-    void build()
+    void build(bool pin_phi1 = true)
     {
+
+
+      // Set up phi_1 problem
+      // ============================================================
+      {
+
+        Vector<unsigned> neu_bound;
+        for(unsigned b=0, nb=phi_1_mesh_pt()->nboundary(); b < nb; b++)
+          {
+            neu_bound.push_back(b);
+          }
+
+        // phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m)
+        phi_1_problem_pt()->set_neumann_boundaries(neu_bound, 0);
+
+        if(pin_phi1)
+          {
+            // Pin a node which isn't involved in the boundary element method (we
+            // have to pin something to avoid a singular Jacobian, can't be a
+            // boundary node or things will go wrong with BEM).
+            Node* pinned_phi_1_node_pt = phi_1_mesh_pt()->get_some_non_boundary_node();
+            pinned_phi_1_node_pt->pin(0);
+            pinned_phi_1_node_pt->set_value(0,0.0);
+          }
+        else
+          {
+            std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
+                      << " you might be ok..."
+                      << std::endl;
+          }
+
+        // Finish off the problem
+        phi_1_problem_pt()->build();
+
+        // Things will go wrong if the nodes of all meshes are not in
+        // the same place:
+#ifdef PARANOID
+        if((phi_1_mesh_pt()->nnode() != phi_mesh_pt()->nnode())
+           || (phi_1_mesh_pt()->nnode() != llg_mesh_pt()->nnode()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nodes must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        unsigned dim = phi_mesh_pt()->node_pt(0)->ndim();
+        for(unsigned j=0; j<dim; j++)
+          {
+            for(unsigned nd=0, nnode= phi_1_mesh_pt()->nnode(); nd<nnode; nd++)
+              {
+                if((phi_1_mesh_pt()->node_pt(nd)->x(j) !=
+                    phi_mesh_pt()->node_pt(nd)->x(j))
+                   ||
+                   (phi_1_mesh_pt()->node_pt(nd)->x(j) !=
+                    llg_mesh_pt()->node_pt(nd)->x(j)))
+                  {
+                    std::ostringstream error_msg;
+                    error_msg << "Mesh nodes must be in the same places.";
+                    throw OomphLibError(error_msg.str(),
+                                        OOMPH_CURRENT_FUNCTION,
+                                        OOMPH_EXCEPTION_LOCATION);
+                  }
+              }
+          }
+#endif
+
+        // Assign micromagnetics element pointers
+        // ??ds dodgy...
+        for(unsigned e=0, ne=phi_1_mesh_pt()->nelement(); e < ne; e++)
+          {
+            MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_1_mesh_pt()->element_pt(e));
+
+            MicromagEquations* m_ele_pt = checked_dynamic_cast<MicromagEquations*>
+              (llg_mesh_pt()->element_pt(e));
+
+            ele_pt->set_micromag_element_pt( m_ele_pt);
+          }
+      }
+
+      // BEM handler:
+      // ============================================================
+      {
+        // Construct the BEM (must be done before pinning phi values)
+        bem_handler_pt()->set_bem_all_boundaries(phi_1_mesh_pt());
+
+        // both zero because they are in seperate problems
+        bem_handler_pt()->set_input_index(0);
+        bem_handler_pt()->set_output_index(0);
+
+        // Create an integration scheme
+        bem_handler_pt()->integration_scheme_pt() =
+          Factories::variable_order_integrator_factory(phi_1_mesh_pt()->finite_element_pt(0));
+
+        bem_handler_pt()->input_corner_data_pt() = 0; //??Ds
+
+        bem_handler_pt()->build();
+      }
 
       // Now we can set up phi problem
       // ============================================================
@@ -100,31 +201,15 @@ namespace oomph
         }
 
 
-      // Build the LLG part of the problem
-      ImplicitLLGProblem::build();
-
-//       // Linear solvers
-//       // ============================================================
-
-//       // CG + AMG preconditioner is excellent for poisson solves:
-//       IterativeLinearSolver* CG_pt = new CG<CRDoubleMatrix>;
-//       phi_problem_pt()->linear_solver_pt() = CG_pt;
-// #ifdef OOMPH_HAS_HYPRE
-//       HyprePreconditioner* AMG_pt = new HyprePreconditioner;
-//       AMG_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-//       CG_pt->preconditioner_pt() = AMG_pt;
-// #endif
-
-//       // Same for phi_1
-//       IterativeLinearSolver* CG_1_pt = new CG<CRDoubleMatrix>;
-//       Phi_1_problem_pt->linear_solver_pt() = CG_1_pt;
-// #ifdef OOMPH_HAS_HYPRE
-//       HyprePreconditioner* AMG_1_pt = new HyprePreconditioner;
-//       AMG_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-//       CG_1_pt->preconditioner_pt() = AMG_1_pt;
-// #endif
-
-//       // ??ds No idea yet for LLG solver.. something fancy?
+      // Build the LLG part of the problem. ??ds
+      if(llg_sub_problem_pt() == this)
+        {
+          ImplicitLLGProblem::build();
+        }
+      else
+        {
+          llg_sub_problem_pt()->build();
+        }
 
     };
 
@@ -488,6 +573,231 @@ namespace oomph
 
   //   soln_file.close();
   // }
+
+  namespace SemiImplicitFactories
+  {
+     /// \short Make a mesh as specified by an input argument. Refined
+    /// according to the given refinement level (in some way appropriate
+    /// for that mesh type). Assumption: this will be passed into a
+    /// problem, which will delete the pointer when it's done.
+    Mesh* llg_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           unsigned nnode1d = 2)
+    {
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt = 0;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          unsigned nx = 5 * std::pow(2, refinement_level);
+          mesh_pt = new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+            ("../meshes/square." + to_string(refinement_level) + ".node",
+             "../meshes/square." + to_string(refinement_level) + ".ele",
+             "../meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          // nmag cubeoid
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = 2 * std::pow(2, refinement_level);
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+            ("../meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+            ("../meshes/sphere." + to_string(refinement_level) + ".node",
+             "../meshes/sphere." + to_string(refinement_level) + ".ele",
+             "../meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // For some reason we have to call this manually...
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+
+    /// \short Make a mesh as specified by an input argument. Refined
+    /// according to the given refinement level (in some way appropriate
+    /// for that mesh type). Assumption: this will be passed into a
+    /// problem, which will delete the pointer when it's done.
+    Mesh* phi_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           unsigned nnode1d = 2)
+    {
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt = 0;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          unsigned nx = 5 * std::pow(2, refinement_level);
+          mesh_pt = new SimpleRectangularQuadMesh<QMagnetostaticFieldElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          mesh_pt = new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
+            ("../meshes/square." + to_string(refinement_level) + ".node",
+             "../meshes/square." + to_string(refinement_level) + ".ele",
+             "../meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          // nmag cubeoid
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = 2 * std::pow(2, refinement_level);
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+            ("../meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "../meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+            ("../meshes/sphere." + to_string(refinement_level) + ".node",
+             "../meshes/sphere." + to_string(refinement_level) + ".ele",
+             "../meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // For some reason we have to call this manually...
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+  }
+
+  class SemiImplicitMMArgs : public MyCliArgs
+  {
+  public:
+
+    SemiImplicitMMArgs() : llg_mesh_pt(0),
+                           phi_1_mesh_pt(0), phi_mesh_pt(0),
+                           initial_m_fct_pt(0), h_app_fct_pt(0) {}
+
+
+    virtual void set_flags()
+    {
+      MyCliArgs::set_flags();
+
+      CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
+      mesh_name = "sq_square";
+
+      CommandLineArgs::specify_command_line_flag("-initm", &initial_m_name);
+      initial_m_name = "z";
+
+      CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
+      h_app_name = "minus_z";
+    }
+
+
+    void run_factories()
+    {
+      MyCliArgs::run_factories();
+
+      to_lower(mesh_name);
+      to_lower(initial_m_name);
+      to_lower(h_app_name);
+
+      llg_mesh_pt = SemiImplicitFactories::llg_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
+
+      // Make the two phi meshes
+      phi_mesh_pt = SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
+      phi_1_mesh_pt = SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
+
+      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
+      h_app_fct_pt = HApp::h_app_factory(h_app_name);
+    }
+
+    /// Write out all args (in a parseable format) to a stream.
+    virtual void dump_args(std::ostream& out_stream) const
+    {
+      MyCliArgs::dump_args(out_stream);
+
+      out_stream
+        << "mesh " << mesh_name << std::endl
+        << "initial_m " << initial_m_name << std::endl
+        << "h_app " << h_app_name << std::endl;
+    }
+
+
+    Mesh* llg_mesh_pt;
+    Mesh* phi_1_mesh_pt;
+    Mesh* phi_mesh_pt;
+    InitialM::InitialMFctPt initial_m_fct_pt;
+    HApp::HAppFctPt h_app_fct_pt;
+
+
+    // Strings for input to factory functions
+    std::string mesh_name;
+    std::string initial_m_name;
+    std::string h_app_name;
+  };
+
 
 } // End of oomph namespace
 

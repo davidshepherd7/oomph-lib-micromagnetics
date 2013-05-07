@@ -218,6 +218,8 @@ namespace oomph
     virtual void set_bem_all_boundaries(const Mesh*) =0;
     virtual unsigned input_index() const=0;
     virtual unsigned output_index() const =0;
+    virtual void set_input_index(unsigned)=0;
+    virtual void set_output_index(unsigned)=0;
     virtual Integral* &integration_scheme_pt() =0;
     virtual Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt() =0;
     virtual void build() =0;
@@ -345,14 +347,14 @@ namespace oomph
     /// Non-const access to the boundary matrix
     DenseDoubleMatrix* bem_matrix_pt() {return &Bem_matrix;}
 
-    /// \short Non-const access function for Input_index.
-    unsigned& input_index() {return Input_index;}
+    /// \short Set function for Input_index.
+    void set_input_index(unsigned input_index) {Input_index = input_index;}
 
     /// \short Const access function for Input_index.
     unsigned input_index() const {return Input_index;}
 
-    /// \short Non-const access function for Output_index.
-    unsigned& output_index() {return Output_index;}
+    /// \short Set function for Output_index.
+    void set_output_index(unsigned output_index) {Output_index = output_index;}
 
     /// \short Const access function for Output_index.
     unsigned output_index() const {return Output_index;}

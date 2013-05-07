@@ -42,8 +42,13 @@ namespace oomph
         {
           std::ostringstream error_msg;
           error_msg << "Must assign mesh, timestepper and applied "
-                    << "field pointers  "
-                    << "before calling build().";
+                    << "field pointers to non-null values "
+                    << "before calling build().\n"
+                    << "bulk_mesh_pt() = " << bulk_mesh_pt() << "\n"
+                    << "applied_field_fct_pt() = " << applied_field_fct_pt() << "\n"
+                    << "this->time_stepper_pt() = " << this->time_stepper_pt()
+                    << std::endl;
+
           throw OomphLibError(error_msg.str(),
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
