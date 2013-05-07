@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 
   // Assign timestepper and mesh from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
-  problem.bulk_mesh_pt() = args.mesh_pt;
+  problem.set_bulk_mesh_pt(args.mesh_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
 
   // Set magnetic parameters

@@ -474,10 +474,21 @@ namespace oomph
     }
 
     /// \short Non-const access function for Bulk_mesh_pt.
-    Mesh*& bulk_mesh_pt() {return Bulk_mesh_pt;}
+    void set_bulk_mesh_pt(Mesh* mesh_pt) {Bulk_mesh_pt = mesh_pt;}
 
     /// \short Const access function for Bulk_mesh_pt.
-    Mesh* bulk_mesh_pt() const {return Bulk_mesh_pt;}
+    Mesh* bulk_mesh_pt() const
+    {
+#ifdef PARANOID
+      if(Bulk_mesh_pt == 0)
+        {
+          std::string error_msg = "Null bulk mesh pointer!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Bulk_mesh_pt;
+    }
 
     // /// Use mid-point method (rather than bdf2)? Public to avoid lots of
     // /// access function junk, see how it goes...
