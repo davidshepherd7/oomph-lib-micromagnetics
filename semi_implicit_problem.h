@@ -18,149 +18,47 @@ using namespace oomph;
 namespace oomph
 {
 
-  template<class FIELD_ELEMENT>
-  class SemiImplicitHybridMicromagneticsProblem : public ImplicitLLGProblem
+  class SemiImplicitHybridMicromagneticsProblem :
+    public ImplicitLLGProblem
   {
   public:
 
     // Default constructor, who knows what will happen here... ??ds
     SemiImplicitHybridMicromagneticsProblem() :
-      Bem_handler(), Phi_1_problem(), Phi_problem(),
+      Bem_handler_pt(0), Phi_1_problem_pt(), Phi_problem_pt(),
       Phi_boundary_values_pts()
     {}
 
 
-    /// Constructor
-    SemiImplicitHybridMicromagneticsProblem
-    (Mesh* phi_1_mesh_pt,
-     Mesh* phi_mesh_pt,
-     Mesh* llg_mesh_pt,
-     HApp::HAppFctPt applied_field_pt,
-     Vector<std::pair<Vector<double>,double> >* corner_data_pt=0,
-     bool pin_phi1=true)
+    void build()
     {
-      // Set up phi_1 problem
-      // ============================================================
-
-      Phi_1_problem.set_bulk_mesh(phi_1_mesh_pt);
-      for(unsigned b=0, nb=phi_1_mesh_pt->nboundary(); b < nb; b++)
-        {
-          // Phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m)
-          Phi_1_problem.set_neumann_boundary(b, 0);
-        }
-
-      if(pin_phi1)
-        {
-          // Pin a node which isn't involved in the boundary element method (we
-          // have to pin something to avoid a singular Jacobian, can't be a
-          // boundary node or things will go wrong with BEM).
-          Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_some_non_boundary_node();
-          pinned_phi_1_node_pt->pin(0);
-          pinned_phi_1_node_pt->set_value(0,0.0);
-        }
-      else
-        {
-          std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
-                    << " you might be ok..."
-                    << std::endl;
-        }
-
-      // Finish off the problem
-      Phi_1_problem.build();
-
-      // Things will go wrong if the nodes of all meshes are not in
-      // the same place:
-#ifdef PARANOID
-      if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
-         || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
-        {
-          std::ostringstream error_msg;
-          error_msg << "Mesh nodes must be the same.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
-      for(unsigned j=0; j<dim; j++)
-        {
-          for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
-            {
-              if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                  phi_mesh_pt->node_pt(nd)->x(j))
-                 ||
-                 (phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                  llg_mesh_pt->node_pt(nd)->x(j)))
-                {
-                  std::ostringstream error_msg;
-                  error_msg << "Mesh nodes must be in the same places.";
-                  throw OomphLibError(error_msg.str(),
-                                      OOMPH_CURRENT_FUNCTION,
-                                      OOMPH_EXCEPTION_LOCATION);
-                }
-            }
-        }
-#endif
-
-      // Assign micromagnetics element pointers
-      // ??ds dodgy...
-      for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
-        {
-          FIELD_ELEMENT* ele_pt = dynamic_cast<FIELD_ELEMENT*>
-            (phi_1_mesh_pt->element_pt(e));
-
-          MicromagEquations* m_ele_pt = dynamic_cast<MicromagEquations*>
-            (llg_mesh_pt->element_pt(e));
-
-          ele_pt->set_micromag_element_pt( m_ele_pt);
-        }
-
-
-      // BEM handler:
-      // ============================================================
-
-      // Construct the BEM (must be done before pinning phi values)
-      Bem_handler.set_bem_all_boundaries(phi_1_mesh_pt);
-      // both zero because they are in seperate problems
-      Bem_handler.input_index() = 0;
-      Bem_handler.output_index() = 0;
-
-      // Create an integration scheme
-      Bem_handler.integration_scheme_pt() =
-        Factories::variable_order_integrator_factory(phi_1_mesh_pt->finite_element_pt(0));
-
-      Bem_handler.input_corner_data_pt() = corner_data_pt;
-
-      Bem_handler.build();
-
 
       // Now we can set up phi problem
       // ============================================================
 
-      Phi_problem.set_bulk_mesh(phi_mesh_pt);
-      unsigned nboundary = phi_mesh_pt->nboundary();
+      unsigned nboundary = phi_mesh_pt()->nboundary();
       Phi_boundary_values_pts.assign(nboundary, 0);
       for(unsigned b=0; b < nboundary; b++)
         {
           // Phi is determined by BEM
           LinearAlgebraDistribution* dist_pt =
             new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
-                                          phi_mesh_pt->nboundary_node(b), false);
+                                          phi_mesh_pt()->nboundary_node(b), false);
 
           Phi_boundary_values_pts[b] = new DoubleVector(dist_pt);
-          Phi_problem.set_dirichlet_boundary_by_vector(b, Phi_boundary_values_pts[b]);
+          phi_problem_pt()->set_dirichlet_boundary_by_vector(b, Phi_boundary_values_pts[b]);
         }
-      Phi_problem.build();
+      phi_problem_pt()->build();
 
       // Assign micromagnetics element pointers
       // ??ds dodgy...
-      for(unsigned e=0, ne=phi_mesh_pt->nelement(); e < ne; e++)
+      for(unsigned e=0, ne=phi_mesh_pt()->nelement(); e < ne; e++)
         {
-          FIELD_ELEMENT* ele_pt = dynamic_cast<FIELD_ELEMENT*>
-            (phi_mesh_pt->element_pt(e));
+          MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
+            (phi_mesh_pt()->element_pt(e));
 
-          MicromagEquations* m_ele_pt = dynamic_cast<MicromagEquations*>
-            (llg_mesh_pt->element_pt(e));
+          MicromagEquations* m_ele_pt = checked_dynamic_cast<MicromagEquations*>
+            (llg_mesh_pt()->element_pt(e));
 
           ele_pt->set_micromag_element_pt(m_ele_pt);
         }
@@ -168,12 +66,10 @@ namespace oomph
       // LLG problem:
       // ============================================================
 
-      llg_sub_problem_pt()->bulk_mesh_pt() = llg_mesh_pt;
-
       //??ds while we still have phi in MM elements pin them all
-      for(unsigned nd=0, nnode=llg_mesh_pt->nnode(); nd<nnode; nd++)
+      for(unsigned nd=0, nnode=llg_mesh_pt()->nnode(); nd<nnode; nd++)
         {
-          Node* nd_pt = llg_mesh_pt->node_pt(nd);
+          Node* nd_pt = llg_mesh_pt()->node_pt(nd);
 
           unsigned phi_index = llg_element_pt()->phi_index_micromag();
           unsigned phi_1_index = llg_element_pt()->phi_1_index_micromag();
@@ -182,50 +78,53 @@ namespace oomph
           nd_pt->pin(phi_1_index);
         }
 
-      // Get timestepper from mesh
-      TimeStepper* ts_pt = llg_mesh_pt->node_pt(0)->time_stepper_pt();
-      llg_sub_problem_pt()->add_time_stepper_pt(ts_pt);
+      // // Get timestepper from mesh
+      // TimeStepper* ts_pt = llg_mesh_pt->node_pt(0)->time_stepper_pt();
+      // llg_sub_problem_pt()->add_time_stepper_pt(ts_pt);
 
-      // Magnetic parameters
-      llg_sub_problem_pt()->mag_parameters_pt()->set_nmag_rectangle();
-      llg_sub_problem_pt()->applied_field_fct_pt() = applied_field_pt;
+      // // Magnetic parameters
+      // llg_sub_problem_pt()->mag_parameters_pt()->set_nmag_rectangle();
+      // llg_sub_problem_pt()->applied_field_fct_pt() = applied_field_pt;
 
-      llg_sub_problem_pt()->build();
+      // llg_sub_problem_pt()->build();
 
       // Assign phi element pointers
       // ??ds dodgy...
-      for(unsigned e=0, ne=llg_mesh_pt->nelement(); e < ne; e++)
+      for(unsigned e=0, ne=llg_mesh_pt()->nelement(); e < ne; e++)
         {
           SemiImplicitMicromagEquations* ele_pt
             = checked_dynamic_cast<SemiImplicitMicromagEquations*>
-            (llg_mesh_pt->element_pt(e));
+            (llg_mesh_pt()->element_pt(e));
           ele_pt->magnetostatic_field_element_pt() =
-            dynamic_cast<FIELD_ELEMENT*>(phi_mesh_pt->element_pt(e));
+            checked_dynamic_cast<MagnetostaticFieldEquations*>(phi_mesh_pt()->element_pt(e));
         }
 
 
-      // Linear solvers
-      // ============================================================
+      // Build the LLG part of the problem
+      ImplicitLLGProblem::build();
 
-      // CG + AMG preconditioner is excellent for poisson solves:
-      IterativeLinearSolver* CG_pt = new CG<CRDoubleMatrix>;
-      Phi_problem.linear_solver_pt() = CG_pt;
-#ifdef OOMPH_HAS_HYPRE
-      HyprePreconditioner* AMG_pt = new HyprePreconditioner;
-      AMG_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-      CG_pt->preconditioner_pt() = AMG_pt;
-#endif
+//       // Linear solvers
+//       // ============================================================
 
-      // Same for phi_1
-      IterativeLinearSolver* CG_1_pt = new CG<CRDoubleMatrix>;
-      Phi_1_problem.linear_solver_pt() = CG_1_pt;
-#ifdef OOMPH_HAS_HYPRE
-      HyprePreconditioner* AMG_1_pt = new HyprePreconditioner;
-      AMG_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-      CG_1_pt->preconditioner_pt() = AMG_1_pt;
-#endif
+//       // CG + AMG preconditioner is excellent for poisson solves:
+//       IterativeLinearSolver* CG_pt = new CG<CRDoubleMatrix>;
+//       phi_problem_pt()->linear_solver_pt() = CG_pt;
+// #ifdef OOMPH_HAS_HYPRE
+//       HyprePreconditioner* AMG_pt = new HyprePreconditioner;
+//       AMG_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+//       CG_pt->preconditioner_pt() = AMG_pt;
+// #endif
 
-      // ??ds No idea yet for LLG solver.. something fancy?
+//       // Same for phi_1
+//       IterativeLinearSolver* CG_1_pt = new CG<CRDoubleMatrix>;
+//       Phi_1_problem_pt->linear_solver_pt() = CG_1_pt;
+// #ifdef OOMPH_HAS_HYPRE
+//       HyprePreconditioner* AMG_1_pt = new HyprePreconditioner;
+//       AMG_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+//       CG_1_pt->preconditioner_pt() = AMG_1_pt;
+// #endif
+
+//       // ??ds No idea yet for LLG solver.. something fancy?
 
     };
 
@@ -245,15 +144,15 @@ namespace oomph
 
       // solve for phi1
       std::cout << "solving phi1" << std::endl;
-      Phi_1_problem.newton_solve();
+      phi_1_problem_pt()->newton_solve();
 
       // update boundary values of phi
       std::cout << "solving BEM" << std::endl;
-      Bem_handler.get_bem_values(Phi_boundary_values_pts);
+      Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
 
       // solve for phi
       std::cout << "solving phi" << std::endl;
-      Phi_problem.newton_solve();
+      phi_problem_pt()->newton_solve();
 
       // solve for m
       if(eps != 0.0)
@@ -288,7 +187,7 @@ namespace oomph
     /// mesh should be the same type otherwise preconditioning framework
     /// will fail so this should be safe.
     MicromagEquations* llg_element_pt() const
-    {return dynamic_cast<MicromagEquations*>
+    {return checked_dynamic_cast<MicromagEquations*>
         (llg_sub_problem_pt()->bulk_mesh_pt()->element_pt(0));}
 
     /// Get access to magnetic parameters - only relevant in LLG problem so
@@ -303,29 +202,77 @@ namespace oomph
     /// \short Non-const acess function for LLG_problem.
     ImplicitLLGProblem* llg_sub_problem_pt() {return this;}
 
-    const Mesh* bem_mesh_pt() const {return Bem_handler.bem_mesh_pt();}
+    const Mesh* bem_mesh_pt() const {return Bem_handler_pt->bem_mesh_pt();}
 
-    const DenseMatrix<double>* bem_matrix_pt() const {return Bem_handler.bem_matrix_pt();}
+    const Mesh* llg_mesh_pt() const
+    {
+#ifdef PARANOID
+      if(llg_sub_problem_pt()->bulk_mesh_pt() == 0)
+        {
+          std::string error_msg = "LLG mesh pointer is null!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return llg_sub_problem_pt()->bulk_mesh_pt();
+    }
 
+    const Mesh* phi_1_mesh_pt() const {return phi_1_problem_pt()->bulk_mesh_pt();}
+    const Mesh* phi_mesh_pt() const {return phi_problem_pt()->bulk_mesh_pt();}
 
-    GenericPoissonProblem<FIELD_ELEMENT>* phi_problem_pt()
-    {return &Phi_problem;}
+    const DenseMatrix<double>* bem_matrix_pt() const {return Bem_handler_pt->bem_matrix_pt();}
 
     // /// Set the list of sharp corners in the mesh to be a rectangle.
     // void set_rectangular_corners()
-    // {Bem_handler.Mesh_angles_type = "rectangular";}
+    // {Bem_handler_pt->Mesh_angles_type = "rectangular";}
+
+    BoundaryElementHandlerBase* &bem_handler_pt() {return Bem_handler_pt;}
+
+
+    void set_phi_1_problem_pt(GenericPoissonProblem* p)
+    { Phi_1_problem_pt = p;}
+
+    GenericPoissonProblem* phi_1_problem_pt() const
+    {
+#ifdef PARANOID
+      if(Phi_1_problem_pt == 0)
+        {
+          std::string error_msg = "Phi 1 problem pointer is null!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Phi_1_problem_pt;
+    }
+
+
+    void set_phi_problem_pt(GenericPoissonProblem* p)
+    { Phi_problem_pt = p;}
+
+    GenericPoissonProblem* phi_problem_pt() const
+    {
+#ifdef PARANOID
+      if(Phi_problem_pt == 0)
+        {
+          std::string error_msg = "Phi problem pointer is null!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Phi_problem_pt;
+    }
+
 
   private:
 
     /// Object to provide all BEM related capabilities.
-    BoundaryElementHandler<MicromagFaceElement<FIELD_ELEMENT> > Bem_handler;
+    BoundaryElementHandlerBase* Bem_handler_pt;
 
     /// Problem to solve for phi_1 (the BEM pre-calculation).
-    GenericPoissonProblem<FIELD_ELEMENT, QMagnetostaticFieldFluxElement<2,2> >
-    Phi_1_problem;
+    GenericPoissonProblem* Phi_1_problem_pt;
 
     /// Problem to solve for phi (the magnetostatic potential).
-    GenericPoissonProblem<FIELD_ELEMENT> Phi_problem;
+    GenericPoissonProblem* Phi_problem_pt;
 
     // /// Problem to solve for the magnetisation change.
     // ImplicitLLGProblem LLG_problem;
@@ -337,8 +284,7 @@ namespace oomph
   };
 
 
-  template<class FIELD_ELEMENT>
-  void SemiImplicitHybridMicromagneticsProblem<FIELD_ELEMENT>::
+  void SemiImplicitHybridMicromagneticsProblem::
   set_initial_condition(const InitialM::InitialMFctPt initial_m_pt)
   {
     // Backup time in global Time object
@@ -350,17 +296,17 @@ namespace oomph
 
     // Get M indicies
     Vector<unsigned> m_index_micromag(3,0);
-    MicromagEquations* elem_pt = dynamic_cast<MicromagEquations* >(llg_sub_problem_pt()->mesh_pt()->element_pt(0));
+    MicromagEquations* elem_pt = checked_dynamic_cast<MicromagEquations* >(llg_mesh_pt()->element_pt(0));
     for(unsigned i=0; i<3; i++)
       {
         m_index_micromag[i] = elem_pt->m_index_micromag(i);
       }
 
     // Find number of nodes in mesh
-    unsigned num_nod = llg_sub_problem_pt()->mesh_pt()->nnode();
+    unsigned num_nod = llg_mesh_pt()->nnode();
 
     // Set continuous times at previous timesteps:
-    int nprev_steps=llg_sub_problem_pt()->time_stepper_pt()->nprev_values();
+    int nprev_steps=time_stepper_pt()->nprev_values();
     Vector<double> prev_time(nprev_steps+1);
     for (int t=nprev_steps;t>=0;t--)
       {
@@ -397,8 +343,7 @@ namespace oomph
     llg_sub_problem_pt()->time_pt()->time()=backed_up_time;
   }
 
-  template<class FIELD_ELEMENT>
-  void SemiImplicitHybridMicromagneticsProblem<FIELD_ELEMENT>::
+  void SemiImplicitHybridMicromagneticsProblem::
   doc_solution()
   {
     using namespace StringConversion;
@@ -414,17 +359,17 @@ namespace oomph
     // Output the magnetostatic field data
     std::ofstream field_file((Doc_info.directory() + "/field"
                               + Doc_info.number_as_string() + ".dat").c_str());
-    for(unsigned e=0, ne=Phi_problem.mesh_pt()->nelement(); e < ne; e++)
+    for(unsigned e=0, ne=phi_problem_pt()->mesh_pt()->nelement(); e < ne; e++)
       {
-        FIELD_ELEMENT* ele_pt = dynamic_cast<FIELD_ELEMENT*>
-          (Phi_problem.mesh_pt()->element_pt(e));
+        MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
+          (phi_problem_pt()->mesh_pt()->element_pt(e));
         ele_pt->output(field_file,npts);
       }
     field_file.close();
 
     std::ofstream phi1_file((Doc_info.directory() + "/phione"
                              + Doc_info.number_as_string() + ".dat").c_str());
-    Phi_1_problem.mesh_pt()->output(phi1_file,npts);
+    phi_1_problem_pt()->mesh_pt()->output(phi1_file,npts);
     phi1_file.close();
 
     // Write average magnetisations to a file
@@ -481,22 +426,21 @@ namespace oomph
   //============================================================
   //
   //============================================================
-  template<class FIELD_ELEMENT>
-  void SemiImplicitHybridMicromagneticsProblem<FIELD_ELEMENT>::
+  void SemiImplicitHybridMicromagneticsProblem::
   average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const
   {
-    const unsigned nodal_dim = checked_dynamic_cast<FIELD_ELEMENT*>
-      (Phi_problem.mesh_pt()->element_pt(0))->node_pt(0)->ndim();
+    const unsigned nodal_dim = checked_dynamic_cast<MagnetostaticFieldEquations*>
+      (phi_problem_pt()->mesh_pt()->element_pt(0))->node_pt(0)->ndim();
 
     // Pick a point in the middle of the element
     const Vector<double> s(nodal_dim, 0.3);
     Vector<double> total_dphidx(nodal_dim,0.0);
 
     // Loop over all elements calculating the value in the middle of the element
-    for(unsigned e=0, ne=Phi_problem.mesh_pt()->nelement(); e < ne; e++)
+    for(unsigned e=0, ne=phi_problem_pt()->mesh_pt()->nelement(); e < ne; e++)
       {
-        FIELD_ELEMENT* ele_pt = checked_dynamic_cast<FIELD_ELEMENT*>
-          (Phi_problem.mesh_pt()->element_pt(e));
+        MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
+          (phi_problem_pt()->mesh_pt()->element_pt(e));
 
         // Get the shape function and eulerian coordinate derivative at
         // position s.
@@ -522,7 +466,7 @@ namespace oomph
 
     // Divide sum by number of elements to get the average. Take the
     // negative to get the field.
-    double nele = double(Phi_problem.mesh_pt()->nelement());
+    double nele = double(phi_problem_pt()->mesh_pt()->nelement());
     average_magnetostatic_field.assign(3,0.0);
     for(unsigned j=0; j<nodal_dim; j++)
       {
@@ -530,8 +474,7 @@ namespace oomph
       }
   }
 
-  // template<class FIELD_ELEMENT, class MM_ELEMENT>
-  // void SemiImplicitHybridMicromagneticsProblem<FIELD_ELEMENT, MM_ELEMENT>::
+  // void SemiImplicitHybridMicromagneticsProblem::
   // doc_magnetostatic_field(DocInfo &doc_info) const
   // {
   //   // Number of plot points
@@ -541,7 +484,7 @@ namespace oomph
   //   std::ofstream soln_file((doc_info.directory() + "/soln"
   //                            + doc_info.number_as_string() + ".dat").c_str());
 
-  //   Phi_problem.doc_solution(soln
+  //   phi_problem_pt()->doc_solution(soln
 
   //   soln_file.close();
   // }

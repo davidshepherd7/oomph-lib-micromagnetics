@@ -211,6 +211,22 @@ namespace oomph
     {BrokenCopy::broken_assign("CornerAngleList");}
   };
 
+  // We need this for now to avoid templating by element... ??ds remove?
+  class BoundaryElementHandlerBase
+  {
+    public:
+    virtual void set_bem_all_boundaries(const Mesh*) =0;
+    virtual unsigned input_index() const=0;
+    virtual unsigned output_index() const =0;
+    virtual Integral* &integration_scheme_pt() =0;
+    virtual Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt() =0;
+    virtual void build() =0;
+    virtual void get_bem_values(DoubleVector&) const =0;
+    virtual void get_bem_values(const Vector<DoubleVector*>&) const =0;
+    virtual const Mesh* bem_mesh_pt() const =0;
+    virtual DenseDoubleMatrix* bem_matrix_pt() =0;
+  };
+
   // =================================================================
   /// A class implementing all the boundary element methods stuff needed for
   /// the hybrid method in micromagnetics. Problems can then simply contain
@@ -223,7 +239,7 @@ namespace oomph
   /// semi-implicit "problem".
   // =================================================================
   template<class BEM_ELEMENT>
-  class BoundaryElementHandler
+  class BoundaryElementHandler : public BoundaryElementHandlerBase
   {
 
     // Note: in BEM input (output) index == jacobian col (row) == phi_1 (phi)
