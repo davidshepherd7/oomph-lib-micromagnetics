@@ -211,23 +211,6 @@ namespace oomph
     {BrokenCopy::broken_assign("CornerAngleList");}
   };
 
-  // We need this for now to avoid templating by element... ??ds remove?
-  class BoundaryElementHandlerBase
-  {
-    public:
-    virtual void set_bem_all_boundaries(const Mesh*) =0;
-    virtual unsigned input_index() const=0;
-    virtual unsigned output_index() const =0;
-    virtual void set_input_index(unsigned)=0;
-    virtual void set_output_index(unsigned)=0;
-    virtual Integral* &integration_scheme_pt() =0;
-    virtual Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt() =0;
-    virtual void build() =0;
-    virtual void get_bem_values(DoubleVector&) const =0;
-    virtual void get_bem_values(const Vector<DoubleVector*>&) const =0;
-    virtual const Mesh* bem_mesh_pt() const =0;
-    virtual DenseDoubleMatrix* bem_matrix_pt() =0;
-  };
 
   // =================================================================
   /// A class implementing all the boundary element methods stuff needed for
@@ -240,8 +223,7 @@ namespace oomph
   /// Problem (for fully implicit methods) do not make sense for the
   /// semi-implicit "problem".
   // =================================================================
-  template<class BEM_ELEMENT>
-  class BoundaryElementHandler : public BoundaryElementHandlerBase
+  class BoundaryElementHandler
   {
 
     // Note: in BEM input (output) index == jacobian col (row) == phi_1 (phi)
@@ -249,10 +231,17 @@ namespace oomph
 
   public:
 
+    /// \short function pointer type for function to create a new BEM
+    /// element.
+    typedef MicromagBEMElementEquations*
+    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
+
     /// Default constructor
-    BoundaryElementHandler() : Integration_scheme_pt(0), Bem_mesh_pt(0),
-                               Input_index(0), Output_index(0),
-                               Input_corner_data_pt(0)
+    BoundaryElementHandler() :
+      Bem_element_factory(0),
+      Integration_scheme_pt(0), Bem_mesh_pt(0),
+      Input_index(0), Output_index(0),
+      Input_corner_data_pt(0)
     {
       // Boundary meshes do not "own" their nodes. However the Mesh
       // destructor doesn't know that and so will try to delete the
@@ -406,6 +395,8 @@ namespace oomph
     {return Input_corner_data_pt;}
 
 
+    BEMElementFactoryFctPt Bem_element_factory;
+
   private:
 
     /// \short Lookup between output value global equation numbers and node
@@ -469,9 +460,7 @@ namespace oomph
   //==========================================================================
   /// Get the fully assembled boundary matrix in dense storage.
   //==========================================================================
-  template<class BEM_ELEMENT>
-  void BoundaryElementHandler<BEM_ELEMENT>::
-  build_bem_matrix()
+  void BoundaryElementHandler::build_bem_matrix()
   {
 
 #ifdef PARANOID
@@ -488,7 +477,8 @@ namespace oomph
     // Check that mesh pointer in elements are equal to mesh pointer here
     for(unsigned e=0, ne=bem_mesh_pt()->nelement(); e < ne; e++)
       {
-        BEM_ELEMENT* ele_pt = dynamic_cast<BEM_ELEMENT*>(bem_mesh_pt()->element_pt(e));
+        MicromagBEMElementEquations* ele_pt =
+          checked_dynamic_cast<MicromagBEMElementEquations*>(bem_mesh_pt()->element_pt(e));
         if (ele_pt->boundary_mesh_pt() != bem_mesh_pt())
           {
             std::ostringstream error_msg;
@@ -513,7 +503,8 @@ namespace oomph
     for(unsigned long e=0;e<n_bem_element;e++)
       {
         // Get the pointer to the element and cast it.
-        BEM_ELEMENT* elem_pt = dynamic_cast<BEM_ELEMENT* >
+        MicromagBEMElementEquations* elem_pt =
+          checked_dynamic_cast<MicromagBEMElementEquations*>
           (bem_mesh_pt()->element_pt(e));
 
         // Find number of nodes in the element
@@ -556,9 +547,7 @@ namespace oomph
   //======================================================================
   /// Build the mesh of bem elements.
   //======================================================================
-  template<class BEM_ELEMENT>
-  void BoundaryElementHandler<BEM_ELEMENT>::
-  build_bem_mesh()
+  void BoundaryElementHandler::build_bem_mesh()
   {
 #ifdef PARANOID
     // Check list of BEM boundaries is not empty
@@ -594,9 +583,9 @@ namespace oomph
         for(unsigned e=0, ne=mesh_pt->nboundary_element(b); e<ne;e++)
           {
             // Create the corresponding BEM Element
-            BEM_ELEMENT* bem_element_pt =
-              new BEM_ELEMENT (mesh_pt->boundary_element_pt(b,e),
-                               mesh_pt->face_index_at_boundary(b,e));
+            MicromagBEMElementEquations* bem_element_pt =
+              Bem_element_factory(mesh_pt->boundary_element_pt(b,e),
+                                  mesh_pt->face_index_at_boundary(b,e));
 
             // Add the new BEM element to the BEM mesh
             Bem_mesh_pt->add_element_pt(bem_element_pt);
@@ -623,8 +612,7 @@ namespace oomph
   /// distribution. Otherwise return a "non-distributed distribution" with
   /// the correct number of rows.
   // =================================================================
-  template<class BEM_ELEMENT>
-  void BoundaryElementHandler<BEM_ELEMENT>::
+  void BoundaryElementHandler::
   get_bm_distribution(LinearAlgebraDistribution& dist) const
   {
     // Try to cast to a distributed object.
@@ -650,8 +638,7 @@ namespace oomph
   /// Put the output values from the boundary element method into a
   /// DoubleVector.
   // =================================================================
-  template<class BEM_ELEMENT>
-  void BoundaryElementHandler<BEM_ELEMENT>::
+  void BoundaryElementHandler::
   get_bem_values(DoubleVector &bem_output_values) const
   {
     // Get the boundary matrix linear algebra distribution (if there is one).
@@ -680,8 +667,7 @@ namespace oomph
   /// Put the output values from the boundary element method into vectors
   /// (one per boundary). Not exceptionally efficient....
   // =================================================================
-  template<class BEM_ELEMENT>
-  void BoundaryElementHandler<BEM_ELEMENT>::
+  void BoundaryElementHandler::
   get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
   {
     // Get as one big vector

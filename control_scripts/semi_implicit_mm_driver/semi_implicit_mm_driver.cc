@@ -18,6 +18,12 @@ using namespace oomph;
 using namespace MathematicalConstants;
 using namespace StringConversion;
 
+MicromagBEMElementEquations* temp_ele_factory(FiniteElement* const ele,
+                                              const int& face)
+{
+  return new QMicromagBEMElement<2,2>(ele, face);
+}
+
 int main(int argc, char *argv[])
 {
   // Start MPI if necessary
@@ -48,9 +54,8 @@ int main(int argc, char *argv[])
   phi_problem_pt->set_bulk_mesh(args.phi_mesh_pt);
   problem.set_phi_problem_pt(phi_problem_pt);
 
-  BoundaryElementHandlerBase* bem_handler_pt = new
-    BoundaryElementHandler<QMicromagBEMElement<2,2> >;
-  problem.bem_handler_pt() = bem_handler_pt;
+  problem.bem_handler_pt() = new BoundaryElementHandler;
+  problem.bem_handler_pt()->Bem_element_factory = &temp_ele_factory;
 
 
   // Do the rest (mag parameters, phi etc.)

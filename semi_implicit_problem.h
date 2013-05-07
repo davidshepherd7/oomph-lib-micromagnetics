@@ -311,7 +311,7 @@ namespace oomph
     // void set_rectangular_corners()
     // {Bem_handler_pt->Mesh_angles_type = "rectangular";}
 
-    BoundaryElementHandlerBase* &bem_handler_pt() {return Bem_handler_pt;}
+    BoundaryElementHandler* &bem_handler_pt() {return Bem_handler_pt;}
 
 
     void set_phi_1_problem_pt(GenericPoissonProblem* p)
@@ -351,7 +351,7 @@ namespace oomph
   private:
 
     /// Object to provide all BEM related capabilities.
-    BoundaryElementHandlerBase* Bem_handler_pt;
+    BoundaryElementHandler* Bem_handler_pt;
 
     /// Problem to solve for phi_1 (the BEM pre-calculation).
     GenericPoissonProblem* Phi_1_problem_pt;

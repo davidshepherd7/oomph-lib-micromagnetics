@@ -31,7 +31,7 @@ namespace oomph
     /// \short Constructor, takes the pointer to the bulk element and the
     /// index of the face to which the element is attached.
     MicromagBEMElementEquations(FiniteElement* const bulk_el_pt,
-                        const int& face_index);
+                                const int& face_index);
 
     ///\short  Broken empty constructor
     MicromagBEMElementEquations()
