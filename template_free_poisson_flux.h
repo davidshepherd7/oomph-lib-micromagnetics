@@ -233,27 +233,16 @@ TFPoissonFluxEquations(FiniteElement* const &bulk_el_pt,
                        const int &face_index) :
  FaceElement()
   {
-//# ifdef PARANOID
-//    {
-//     //Check that the element is not a refineable 3d element
-//     ELEMENT* elem_pt = new ELEMENT;
-//     //If it's three-d
-//     if(elem_pt->dim()==3)
-//      {
-//       //Is it refineable
-//       if(dynamic_cast<RefineableElement*>(elem_pt))
-//        {
-//         //Issue a warning
-//         OomphLibWarning(
-//          "This flux element will not work correctly if nodes are hanging\n",
-//          "TFPoissonFluxEquations::Constructor",
-//          OOMPH_EXCEPTION_LOCATION);
-//        }
-//      }
-//     delete elem_pt;
-//    }
-// #endif
-   //??ds
+# ifdef PARANOID
+    // Check that the element is not a refineable 3d element
+    if((bulk_el_pt->dim()==3)
+       && (dynamic_cast<RefineableElement*>(bulk_el_pt) != 0))
+     {
+      //Issue a warning
+      OomphLibWarning("This flux element will not work correctly if nodes are hanging\n",
+                      OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
+     }
+#endif
 
    // Let the bulk element build the FaceElement, i.e. setup the pointers
    // to its nodes (by referring to the appropriate nodes in the bulk
@@ -267,8 +256,8 @@ TFPoissonFluxEquations(FiniteElement* const &bulk_el_pt,
    // the first node
    Dim = this->node_pt(0)->ndim();
 
-   //Set up U_index_poisson. Initialise to zero, which probably won't change
-   //in most cases, oh well, the price we pay for generality.
+   // Set up U_index_poisson. Initialise to zero, which probably won't change
+   // in most cases, oh well, the price we pay for generality.
    U_index_poisson = dynamic_cast<TFPoissonEquations*>(bulk_el_pt)
     ->u_index_poisson();
   }
@@ -354,6 +343,37 @@ fill_in_generic_residual_contribution_poisson_flux(
     }
   }
 }
+
+template<unsigned DIM, unsigned NNODE_1D>
+class QTFPoissonFluxElement : public virtual FaceGeometry<QElement<DIM, NNODE_1D> >,
+                              public virtual TFPoissonFluxEquations
+{
+
+public:
+ QTFPoissonFluxElement(FiniteElement* const &bulk_el_pt,
+                       const int& face_index)
+  : FaceGeometry<QElement<DIM, NNODE_1D> >(),
+    TFPoissonFluxEquations(bulk_el_pt, face_index)
+ {}
+
+};
+
+
+template<unsigned DIM, unsigned NNODE_1D>
+class TTFPoissonFluxElement : public virtual FaceGeometry<TElement<DIM, NNODE_1D> >,
+                              public virtual TFPoissonFluxEquations
+{
+
+public:
+ TTFPoissonFluxElement(FiniteElement* const &bulk_el_pt,
+                       const int& face_index)
+  : FaceGeometry<TElement<DIM, NNODE_1D> >(),
+    TFPoissonFluxEquations(bulk_el_pt, face_index)
+ {}
+
+};
+
+
 
 
 }
