@@ -13,14 +13,15 @@
 
 #include "generic.h"
 
-#include "poisson.h"
+// #include "poisson.h"
+#include "./template_free_poisson.h"
+#include "./template_free_poisson_flux.h"
 
 using namespace oomph;
 
 namespace oomph
 {
 
-  template<class ELEMENT, class FLUX_ELEMENT = PoissonFluxElement<ELEMENT> >
   class GenericPoissonProblem : public Problem
   {
 
@@ -31,19 +32,24 @@ namespace oomph
     typedef FiniteElement::SteadyExactSolutionFctPt DirichletFctPt;
 
     /// Typedef because the full name is far too long
-    typedef typename FLUX_ELEMENT::PoissonPrescribedFluxFctPt
+    typedef typename TFPoissonFluxEquations::PoissonPrescribedFluxFctPt
     PoissonFluxFctPt;
 
-    // Note: typename is needed here and in some places below because the
-    // definitions of the things after "typename" are in other files and the
-    // compiler needs to know that they are types not classes or
-    // functions. (I think...)
+    typedef typename TFPoissonEquations::PoissonSourceFctPt SourceFctPt;
 
-    /// Constructor: Pass pointer to source function
+    typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
+                                          const Vector<unsigned> &boundaries);
+
+
+    // Note: typename is needed here and in some places below because the
+    // definitions of the things after "typename" are in other files and
+    // the compiler needs to know that they are types not functions (I
+    // think...).
+
+    /// Constructor
     GenericPoissonProblem() :
-      Bulk_mesh_number(-10), Flux_mesh_number(-10),
-      Poisson_dof_number(0), Source_fct_pt(0),
-      Exact_solution_fct_pt(0)
+      Flux_mesh_factory(0), Bulk_mesh_number(-10), Flux_mesh_number(-10),
+      Poisson_dof_number(0), Source_fct_pt(0), Exact_solution_fct_pt(0)
     {}
 
     /// Destructor (empty)
@@ -52,10 +58,37 @@ namespace oomph
     /// Doc the solution.
     virtual void doc_solution(DocInfo& doc_info) const;
 
-    /// \short Create flux elements on boundary b of bulk mesh with the flux
-    /// given by the value of the pointer (store them in the surface mesh).
-    void set_neumann_boundary(const unsigned &b,
-                              PoissonFluxFctPt const prescribed_flux_pt);
+    /// \short Create flux mesh on boundaries of bulk mesh, with the flux
+    /// given by the output of the function pointer pointer.
+    void set_neumann_boundaries(const Vector<unsigned> &boundaries,
+                                PoissonFluxFctPt const prescribed_flux_pt)
+    {
+#ifdef PARANOID
+      if(Flux_mesh_number != -10)
+        {
+          std::string error_msg = "Already have a flux mesh!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Build the mesh
+      Mesh* flux_mesh_pt = Flux_mesh_factory(bulk_mesh_pt(), boundaries);
+
+      // Set the prescribed flux function on the elements
+      for(unsigned e=0, ne=flux_mesh_pt->nelement(); e < ne; e++)
+        {
+          TFPoissonFluxEquations* ele_pt
+            = checked_dynamic_cast<TFPoissonFluxEquations*>(flux_mesh_pt->element_pt(e));
+          ele_pt->flux_fct_pt() = prescribed_flux_pt;
+        }
+
+      // Store the mesh and its location in the list of meshes.
+      Flux_mesh_number = add_sub_mesh(flux_mesh_pt);
+    }
+
+
+
 
     /// \short Pin nodes on boundary b of bulk mesh with the value given by a
     /// function pointer.
@@ -157,11 +190,11 @@ namespace oomph
 
     /// Set function for Source_fct_pt.
     void set_source_fct_pt
-    (typename ELEMENT::PoissonSourceFctPt const source_fct_pt)
+    (SourceFctPt const source_fct_pt)
     {Source_fct_pt = source_fct_pt;}
 
     /// Const access function for Source_fct_pt.
-    typename ELEMENT::PoissonSourceFctPt source_fct_pt() const
+    SourceFctPt source_fct_pt() const
     {
       if(Source_fct_pt == 0)
         {
@@ -238,6 +271,8 @@ namespace oomph
     FiniteElement::SteadyExactSolutionFctPt exact_solution_fct_pt() const
     {return Exact_solution_fct_pt;}
 
+    FluxMeshFactoryFctPt Flux_mesh_factory;
+
   private:
 
     /// \short Store the number of the bulk mesh in the global mesh_pt
@@ -255,7 +290,7 @@ namespace oomph
 
     /// \short Storage for a pointer to the source function of the Poisson
     /// equations.
-    typename ELEMENT::PoissonSourceFctPt Source_fct_pt;
+    SourceFctPt Source_fct_pt;
 
     /// \short Storage for a pointer to a function giving the exact solution
     /// (for validation).
@@ -282,8 +317,7 @@ namespace oomph
   // =================================================================
   /// Finish off building the problem (once everything has been set).
   // =================================================================
-  template<class ELEMENT, class FLUX_ELEMENT>
-  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::
+  void GenericPoissonProblem::
   build()
   {
 #ifdef PARANOID
@@ -342,7 +376,8 @@ namespace oomph
     for(unsigned i=0;i<n_element;i++)
       {
         // Upcast from GeneralisedElement to the present element
-        ELEMENT *el_pt = dynamic_cast<ELEMENT*>(bulk_mesh_pt()->element_pt(i));
+        TFPoissonEquations *el_pt =
+          checked_dynamic_cast<TFPoissonEquations*>(bulk_mesh_pt()->element_pt(i));
 
         // Set the source function pointer
         el_pt->source_fct_pt() = Source_fct_pt;
@@ -363,47 +398,13 @@ namespace oomph
   /// Create Poisson flux elements on the b-th boundary of the bulk mesh,
   /// add the elements to the flux mesh and set the prescribed flux pointer.
   //=======================================================================
-  template<class ELEMENT, class FLUX_ELEMENT>
-  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::set_neumann_boundary
-  (const unsigned &b, PoissonFluxFctPt const prescribed_flux_pt)
-  {
-    // If we don't have a flux mesh yet then make one
-    if(Flux_mesh_number == -10)
-      {
-        Flux_mesh_number = add_sub_mesh(new Mesh);
-      }
 
-    // Loop over the bulk elements adjacent to boundary b
-    unsigned n_element = bulk_mesh_pt()->nboundary_element(b);
-    for(unsigned e=0;e<n_element;e++)
-      {
-        // Get pointer to the bulk element that is adjacent to boundary b
-        ELEMENT* bulk_elem_pt = checked_dynamic_cast<ELEMENT*>
-          (bulk_mesh_pt()->boundary_element_pt(b,e));
-
-        // What is the index of the face of the bulk element e on bondary b
-        int face_index = bulk_mesh_pt()->face_index_at_boundary(b,e);
-
-        // Build the corresponding prescribed-flux element
-        FLUX_ELEMENT* flux_element_pt = new
-          FLUX_ELEMENT(bulk_elem_pt,face_index);
-
-        // Add the prescribed-flux element to the surface mesh
-        flux_mesh_pt()->add_element_pt(flux_element_pt);
-
-        // Set the prescribed flux on this element
-        flux_element_pt->flux_fct_pt() = prescribed_flux_pt;
-
-      } //end of loop over bulk elements adjacent to boundary b
-
-  } // end of create_flux_elements
 
 
   // =================================================================
   /// Doc the solution.
   // =================================================================
-  template<class ELEMENT, class FLUX_ELEMENT>
-  void GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::doc_solution(DocInfo& doc_info)
+  void GenericPoissonProblem::doc_solution(DocInfo& doc_info)
     const
   {
 
@@ -453,8 +454,7 @@ namespace oomph
   /// Get the norm of the error (requires exact solution fct_pt). Used for
   /// testing purposes.
   // =================================================================
-  template<class ELEMENT, class FLUX_ELEMENT>
-  double GenericPoissonProblem<ELEMENT, FLUX_ELEMENT>::get_error_norm() const
+  double GenericPoissonProblem::get_error_norm() const
   {
     double error, norm;
     std::ofstream dummy_file;

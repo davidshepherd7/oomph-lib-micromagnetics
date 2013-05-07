@@ -12,6 +12,43 @@
 // Mesh for running Poisson tests
 #include "meshes/simple_rectangular_quadmesh.h"
 
+// #include "../my_general_header.h"
+
+namespace Factories
+{
+    template<class ELEMENT>
+    Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,
+                               const Vector<unsigned> &boundaries)
+    {
+      Mesh* flux_mesh_pt = new Mesh;
+
+      // Loop over boundaries which need a surface mesh
+      for(unsigned i=0, ni=boundaries.size(); i<ni; i++)
+        {
+          // Get boundary number
+          unsigned b = boundaries[i];
+
+          // Loop over the bulk elements adjacent to boundary b
+          for(unsigned e=0, ne=bulk_mesh_pt->nboundary_element(b); e<ne; e++)
+            {
+              // Get pointer to the bulk element that is adjacent to boundary b
+              FiniteElement* bulk_elem_pt = bulk_mesh_pt->boundary_element_pt(b, e);
+
+              // Get the index of the face of the bulk element e on bondary b
+              int face_index = bulk_mesh_pt->face_index_at_boundary(b, e);
+
+              // Build the corresponding prescribed-flux element
+              ELEMENT* flux_element_pt = new ELEMENT(bulk_elem_pt, face_index);
+
+              // Add the prescribed-flux element to the surface mesh
+              flux_mesh_pt->add_element_pt(flux_element_pt);
+            }
+        }
+
+      return flux_mesh_pt;
+    }
+}
+
 // =================================================================
 /// Functions for Poisson tests
 // =================================================================
@@ -60,8 +97,7 @@ namespace oomph
   // =================================================================
   /// Basic Poisson problem for tests
   // =================================================================
-  class GenericPoissonForTests :
-    public GenericPoissonProblem<QPoissonElement<2,3> >
+  class GenericPoissonForTests : public GenericPoissonProblem
   {
   public:
     /// Constructor - build a Poisson problem with some of each type of
@@ -70,7 +106,11 @@ namespace oomph
     {
       // Make a mesh
       Mesh* Bulk_mesh_pt =
-        new SimpleRectangularQuadMesh<QPoissonElement<2,3> >(4,4,1.0,2.0);
+        new SimpleRectangularQuadMesh<QTFPoissonElement<2,3> >(4,4,1.0,2.0);
+
+      // Set the factory function used to create the surface mesh for
+      // Neumman boundaries.
+      this->Flux_mesh_factory = &Factories::surface_mesh_factory<QTFPoissonFluxElement<2,3> >;
 
       // Assign bulk mesh (flux mesh is automatically dealt with)
       this->set_bulk_mesh(Bulk_mesh_pt);
@@ -80,8 +120,8 @@ namespace oomph
         {
           if(b != 1) this->set_dirichlet_boundary(b, &TanhSolnForPoisson::get_exact_u);
         }
-      this->set_neumann_boundary
-        (1, &TanhSolnForPoisson::prescribed_flux_on_fixed_x_boundary);
+      this->set_neumann_boundaries(Vector<unsigned>(1,1),
+                                   &TanhSolnForPoisson::prescribed_flux_on_fixed_x_boundary);
 
       // Assign function pointers
       this->set_source_fct_pt(&TanhSolnForPoisson::source_function);
@@ -125,9 +165,12 @@ namespace oomph
           // Solve the problem
           newton_solve();
 
-          if(get_error_norm() > Allowed_error[istep])
+          double error_norm = get_error_norm();
+          if(error_norm > Allowed_error[istep])
             {
-              std::cerr << "Generic poisson test FAILED: error norm is too large"
+              std::cerr << "Generic poisson test FAILED: error norm = "
+                        << error_norm
+                        << " is too large."
                         << std::endl;
               return 1;
             }
