@@ -29,7 +29,11 @@
 // #include "./vector_helpers.h"
 
 
-#include "./micromagnetics_element.h"
+// We need full definition of elements so that we can create meshes of
+// them.
+#include "./micromag.h"
+
+
 #include "./magnetics_helpers.h"
 
 // Problems
