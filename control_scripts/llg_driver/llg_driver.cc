@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 #endif
 
   // Read and process command line arguments
-  MyCliArgs args;
+  LLGArgs args;
   args.parse(argc, argv);
 
   // Create problem

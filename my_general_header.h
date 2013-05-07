@@ -259,80 +259,79 @@ namespace oomph
 
 
   /// \short Parse inputs and store in a struct-like format. The objects
-  /// specified are created using factory functions.
-  // ??ds Should be two classes: CliArgs and MMCliArgs...
+  /// specified are created using factory functions. Extension to specific
+  /// problems can be done by inheriting and overloading set_flags and
+  /// run_factories as appropriate.
   class MyCliArgs
   {
   public:
 
     /// Constructor: Initialise pointers to null.
-    MyCliArgs()
-      : initial_m_fct_pt(0), h_app_fct_pt(0), time_stepper_pt(0), mesh_pt(0) {}
+    MyCliArgs() : time_stepper_pt(0), mesh_pt(0) {}
 
-    /// \short Fill in defaults
-    void assign_default_values()
-    {
-      dt = 1e-6;
-      tmax = 1.0;
-      tol = 0.0;
-      refinement = 1;
+    virtual void set_flags()
+      {
 
-      outdir = "results";
-      output_jacobian = "never";
+        dt = 1e-6;
+        CommandLineArgs::specify_command_line_flag("-dt", &dt);
 
-      initial_m_fct_pt = 0;
-      h_app_fct_pt = 0;
-      time_stepper_pt = 0;
-      mesh_pt = 0;
+        tmax = 1.0;
+        CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
 
-      time_stepper_name = "bdf2";
-      initial_m_name = "z";
-      h_app_name = "minus_z";
-      mesh_name = "sq_square";
-    }
+        tol = 0.0;
+        CommandLineArgs::specify_command_line_flag("-tol", &tol);
+
+        refinement = 1;
+        CommandLineArgs::specify_command_line_flag("-ref", &refinement);
+
+        CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
+        CommandLineArgs::specify_command_line_flag("-output_jac", &output_jacobian);
+
+        CommandLineArgs::specify_command_line_flag("-ts", &time_stepper_name);
+
+        CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
+
+
+        // Fill in defaults
+        outdir = "results";
+        output_jacobian = "never";
+
+        time_stepper_pt = 0;
+        mesh_pt = 0;
+
+        time_stepper_name = "bdf2";
+
+        mesh_name = "sq_square";
+      }
 
     void parse(int argc, char *argv[])
     {
-      // Fill in the default values
-      assign_default_values();
-
       // Store command line args
       CommandLineArgs::setup(argc,argv);
-      CommandLineArgs::specify_command_line_flag("-dt", &dt);
-      CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
-      CommandLineArgs::specify_command_line_flag("-tol", &tol);
-      CommandLineArgs::specify_command_line_flag("-ref", &refinement);
-
-      CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
-      CommandLineArgs::specify_command_line_flag("-output_jac", &output_jacobian);
-
-      CommandLineArgs::specify_command_line_flag("-ts", &time_stepper_name);
-
-      CommandLineArgs::specify_command_line_flag("-initm", &initial_m_name);
-      CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
-      CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
-
+      set_flags();
       CommandLineArgs::parse_and_assign();
-      CommandLineArgs::output();
       CommandLineArgs::doc_specified_flags();
 
+      // Run any processing that needs to be done on the arguments
+      // (e.g. creating meshes).
+      run_factories();
+    }
+
+    virtual void run_factories()
+    {
       // Make sure all strings are lower case
       time_stepper_name = to_lower(time_stepper_name);
-      initial_m_name = to_lower(initial_m_name);
-      h_app_name = to_lower(h_app_name);
       mesh_name = to_lower(mesh_name);
 
       // Build all the pointers to stuff
       time_stepper_pt = Factories::time_stepper_factory(time_stepper_name, tol);
-      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
-      h_app_fct_pt = HApp::h_app_factory(h_app_name);
       mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
 
       // etc. for precond?
     }
 
     /// Write out all args (in a parseable format) to a stream.
-    void dump_args(std::ostream& out_stream) const
+    virtual void dump_args(std::ostream& out_stream) const
     {
       out_stream
         << "initial_dt " << dt << std::endl
@@ -344,8 +343,6 @@ namespace oomph
         << "output_jacobian " << output_jacobian << std::endl
 
         << "time_stepper " << time_stepper_name << std::endl
-        << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl
         << "mesh " << mesh_name << std::endl;
     }
 
@@ -361,17 +358,63 @@ namespace oomph
     std::string outdir;
     std::string output_jacobian;
 
-    InitialM::InitialMFctPt initial_m_fct_pt;
-    HApp::HAppFctPt h_app_fct_pt;
     TimeStepper* time_stepper_pt;
     Mesh* mesh_pt;
 
     // Strings for input to factory functions
     std::string time_stepper_name;
-    std::string initial_m_name;
-    std::string h_app_name;
     std::string mesh_name;
 
+  };
+
+
+  /// Command line args class for llg problems.
+  class LLGArgs : public MyCliArgs
+  {
+    public:
+
+    /// Constructor: Initialise pointers to null.
+    LLGArgs() : initial_m_fct_pt(0), h_app_fct_pt(0) {}
+
+
+    virtual void set_flags()
+    {
+      MyCliArgs::set_flags();
+
+      CommandLineArgs::specify_command_line_flag("-initm", &initial_m_name);
+      CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
+      initial_m_name = "z";
+      h_app_name = "minus_z";
+    }
+
+
+    virtual void run_factories()
+    {
+      MyCliArgs::run_factories();
+
+      initial_m_name = to_lower(initial_m_name);
+      h_app_name = to_lower(h_app_name);
+
+      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
+      h_app_fct_pt = HApp::h_app_factory(h_app_name);
+    }
+
+    /// Write out all args (in a parseable format) to a stream.
+    virtual void dump_args(std::ostream& out_stream) const
+    {
+      MyCliArgs::dump_args(out_stream);
+
+      out_stream
+        << "initial_m " << initial_m_name << std::endl
+        << "h_app " << h_app_name << std::endl;
+    }
+
+    InitialM::InitialMFctPt initial_m_fct_pt;
+    HApp::HAppFctPt h_app_fct_pt;
+
+    // Strings for input to factory functions
+    std::string initial_m_name;
+    std::string h_app_name;
   };
 
 
