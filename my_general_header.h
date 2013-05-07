@@ -122,12 +122,13 @@ namespace oomph
     /// according to the given refinement level (in some way appropriate
     /// for that mesh type). Assumption: this will be passed into a
     /// problem, which will delete the pointer when it's done.
-    Mesh* mesh_factory(const std::string& mesh_name,
+    Mesh* mesh_factory(const std::string& _mesh_name,
                        int refinement_level,
                        TimeStepper* time_stepper_pt,
                        unsigned nnode1d = 2)
     {
-      // Lower case mesh names!
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
 
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt = 0;
@@ -222,6 +223,38 @@ namespace oomph
         }
     }
 
+    template<class ELEMENT>
+    Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,
+                               const Vector<unsigned> &boundaries)
+    {
+      Mesh* flux_mesh_pt = new Mesh;
+
+      // Loop over boundaries which need a surface mesh
+      for(unsigned i=0, ni=boundaries.size(); i<ni; i++)
+        {
+          // Get boundary number
+          unsigned b = boundaries[i];
+
+          // Loop over the bulk elements adjacent to boundary b
+          for(unsigned e=0, ne=bulk_mesh_pt->nboundary_element(b); e<ne; e++)
+            {
+              // Get pointer to the bulk element that is adjacent to boundary b
+              FiniteElement* bulk_elem_pt = bulk_mesh_pt->boundary_element_pt(b, e);
+
+              // Get the index of the face of the bulk element e on bondary b
+              int face_index = bulk_mesh_pt->face_index_at_boundary(b, e);
+
+              // Build the corresponding prescribed-flux element
+              ELEMENT* flux_element_pt = new ELEMENT(bulk_elem_pt, face_index);
+
+              // Add the prescribed-flux element to the surface mesh
+              flux_mesh_pt->add_element_pt(flux_element_pt);
+            }
+        }
+
+      return flux_mesh_pt;
+    }
+
   }
 
 
@@ -232,7 +265,7 @@ namespace oomph
   {
   public:
 
-    // Initialise pointers to null
+    /// Constructor: Initialise pointers to null.
     MyCliArgs()
       : initial_m_fct_pt(0), h_app_fct_pt(0), time_stepper_pt(0), mesh_pt(0) {}
 
