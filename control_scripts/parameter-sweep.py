@@ -162,7 +162,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
 
     return 0
 
-def midpoint_comparisons(parameter_set, serial_mode=False):
+def standard_sweep(parameter_set, serial_mode=False):
 
     # Construct lists of args
     if parameter_set == '0':
@@ -237,13 +237,25 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
         fields = ['minus_z']
         meshes = ['ut_cubeoid', 'st_cubeoid']
 
+    elif parameter_set == 'check_semi_impl':
+        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
+        dts = [1e-6]
+        tmaxs = [2.0]
+        tols = [1e-3]
+        refines = [2,3]
+        outdirs = [None]
+        timesteppers = ['midpoint']
+        initial_ms = ['z']
+        fields = ['minus_z']
+        meshes = ['ut_sphere', 'sq_square']
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
-    output_root='../experiments/midpoint_sweeps_' + str(parameter_set)
+    output_root = pjoin('../experiments/parameter_sweeps',
+                        str('_'.join(parameter_set)))
 
-    print("Running midpoint parameter sweep",
-          "with parameter set", parameter_set)
+    print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)
 
     # Run the parameter sweep!
@@ -253,6 +265,7 @@ def midpoint_comparisons(parameter_set, serial_mode=False):
     parallel_parameter_sweep(fun, arg_list, serial_mode)
 
     return 0
+
 
 def main():
     """
@@ -272,8 +285,9 @@ def main():
 
     parser.add_argument('--jacobians', dest='j_parameter_set',
                         help = 'Do a parameter sweep just dumping jacobians.')
-    parser.add_argument('--midpoint', dest='midpoint_parameter_set',
-                        help = 'Do a parameter sweep comparing midpoint and BDF2')
+
+    parser.add_argument('--parameters', '-p', dest='parameters',
+                        help = 'Do a standard parameter sweep with the specified parameter set.')
 
     args = parser.parse_args()
 
@@ -285,13 +299,17 @@ def main():
     subp.check_call(['make', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd = "./llg_driver")
 
-    if args.j_parameter_set is not None:
+    print("Building in ./semi_implicit_mm_driver folder.")
+    subp.check_call(['make', '--silent', '--keep-going',
+                     'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
+
+    if args.parameters is not None:
+        standard_sweep(args.parameters, args.debug_mode)
+
+    elif args.j_parameter_set is not None:
         print("Running Jacobian generation parameter sweep",
               "with parameter set", args.j_parameter_set)
         milan_jacobians(args.j_parameter_set,args.debug_mode)
-
-    if args.midpoint_parameter_set is not None:
-        midpoint_comparisons(args.midpoint_parameter_set, args.debug_mode)
 
     return 0
 
