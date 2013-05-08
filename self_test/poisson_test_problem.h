@@ -110,7 +110,7 @@ namespace oomph
 
       // Set the factory function used to create the surface mesh for
       // Neumman boundaries.
-      this->Flux_mesh_factory = &Factories::surface_mesh_factory<QTFPoissonFluxElement<2,3> >;
+      set_flux_mesh_factory(&Factories::surface_mesh_factory<QTFPoissonFluxElement<2,3> >);
 
       // Assign bulk mesh (flux mesh is automatically dealt with)
       this->set_bulk_mesh(Bulk_mesh_pt);

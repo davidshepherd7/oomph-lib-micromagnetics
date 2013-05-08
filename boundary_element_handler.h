@@ -13,10 +13,10 @@
   */
 
 #include "generic.h"
-
 #include "./prettyprint98.hpp"
-
 #include "./vector_helpers.h"
+
+#include "./micromagnetics_boundary_element.h"
 
 using namespace oomph;
 

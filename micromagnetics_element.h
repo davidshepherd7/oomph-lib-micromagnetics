@@ -775,11 +775,15 @@ namespace oomph
                             const Vector<double>& x,
                             double& source) const
     {
-      // Get contribution from divergence of M at this integration point.
-      source = Micromag_element_pt->divergence_m(ipt);
+      source = 0;
+      if(Micromag_element_pt != 0)
+        {
+          // Get contribution from divergence of M at this integration point.
+          source += Micromag_element_pt->divergence_m(ipt);
+        }
 
       // Get contribution from any real source functions.
-      double poisson_source;
+      double poisson_source=0;
       TFPoissonEquations::get_source_poisson(ipt, x, poisson_source);
       source += poisson_source;
     }

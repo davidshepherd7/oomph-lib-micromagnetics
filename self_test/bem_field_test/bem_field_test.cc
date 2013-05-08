@@ -5,6 +5,7 @@
 #include "generic.h"
 #include "meshes/tetgen_mesh.h"
 
+#include "../../semi_implicit_problem.h"
 #include "../../my_assert.h"
 #include "../../boundary_element_handler.h"
 #include "../../generic_poisson_problem.h"
@@ -38,18 +39,23 @@ namespace oomph
 
     /// Constructor
     ExplicitHybridMagnetostaticFieldProblem
-    (Mesh* phi_1_mesh_pt, Mesh* phi_mesh_pt,
-     const PoissonSourceFctPt divM_pt,
-     const PoissonPrescribedFluxFctPt Mdotn_pt)
+    (Mesh* phi_1_mesh_pt,
+       Mesh* phi_mesh_pt,
+       const PoissonSourceFctPt divM_pt,
+       const PoissonPrescribedFluxFctPt Mdotn_pt)
     {
       // Set up phi_1 problem
       Phi_1_problem.set_bulk_mesh(phi_1_mesh_pt);
       Phi_1_problem.set_source_fct_pt(divM_pt);
+
+      Phi_1_problem.set_flux_mesh_factory(SemiImplicitFactories::
+          phi_1_flux_mesh_factory_factory(phi_1_mesh_pt->finite_element_pt(0)));
+
+      // Phi_1 b.c.s are all Neumann
+      Vector<unsigned> boundaries;
       for(unsigned b=0, nb=phi_1_mesh_pt->nboundary(); b < nb; b++)
-        {
-          // Phi_1 b.c.s are all Neumann
-          Phi_1_problem.set_neumann_boundary(b, Mdotn_pt);
-        }
+        {boundaries.push_back(b);}
+      Phi_1_problem.set_neumann_boundaries(boundaries, Mdotn_pt);
 
       // Pin a single phi_1 value so that the problem is fully determined.
       // This is necessary to avoid having a free constant of integration
@@ -64,9 +70,12 @@ namespace oomph
       // Construct the BEM (must be done before pinning phi values)
       Bem_handler.set_bem_all_boundaries(phi_1_mesh_pt);
       // both zero because they are in seperate problems
-      Bem_handler.input_index() = 0;
-      Bem_handler.output_index() = 0;
-      Bem_handler.integration_scheme_pt() = new TVariableOrderGaussLegendre<2>; //??ds memory leak
+      Bem_handler.set_input_index(0);
+      Bem_handler.set_output_index(0);
+//??ds memory leak?
+      Bem_handler.integration_scheme_pt() = new TVariableOrderGaussLegendre<2>;
+      Bem_handler.Bem_element_factory =
+        SemiImplicitFactories::bem_element_factory_factory(phi_1_mesh_pt->finite_element_pt(0));
       Bem_handler.build();
 
 
@@ -90,6 +99,7 @@ namespace oomph
       Phi_problem.linear_solver_pt() = new CG<CRDoubleMatrix>;
       Phi_1_problem.linear_solver_pt() = new CG<CRDoubleMatrix>;
 
+#ifdef OOMPH_HAS_HYPRE
       // Cast to iterative solver pointers
       IterativeLinearSolver* phi_it_solver_pt =
         dynamic_cast<IterativeLinearSolver*>(Phi_problem.linear_solver_pt());
@@ -97,7 +107,6 @@ namespace oomph
       IterativeLinearSolver* phi_1_it_solver_pt =
         dynamic_cast<IterativeLinearSolver*>(Phi_1_problem.linear_solver_pt());
 
-#ifdef OOMPH_HAS_HYPRE
       // AMG preconditioners
       HyprePreconditioner *amg_phi_pt, *amg_phi_1_pt;
       amg_phi_pt = new HyprePreconditioner;
@@ -151,14 +160,14 @@ namespace oomph
 
     /// Bem handler object - provide functions and data needed for hybird
     /// BEM method (dim hardcoded to 3, probably ok).
-    BoundaryElementHandler<MicromagFaceElement<ELEMENT> > Bem_handler;
+    BoundaryElementHandler Bem_handler;
 
     /// The problem for the preliminary poisson solve to get boundary
     /// conditions on the magnetostatic potential solve.
-    GenericPoissonProblem<ELEMENT> Phi_1_problem;
+    GenericPoissonProblem Phi_1_problem;
 
     /// The problem for the "real" magnetostatic potential.
-    GenericPoissonProblem<ELEMENT> Phi_problem;
+    GenericPoissonProblem Phi_problem;
 
     /// Intermediate storage for results of bem (ideally we would have it
     /// call a function to get the boundary values filled in but c++ member
@@ -299,26 +308,22 @@ int main()
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
   // Make a spherical mesh from the listed files generated previously.
-  TetgenMesh<TPoissonElement<3,2> > sphere_mesh1("mesh.1.node",
-                                                 "mesh.1.ele",
-                                                 "mesh.1.face");
+  TetgenMesh<TMagnetostaticFieldElement<3,2> > sphere_mesh1("mesh.1.node",
+                                                            "mesh.1.ele",
+                                                            "mesh.1.face");
   // Make a spherical mesh from the listed files generated previously.
-  TetgenMesh<TPoissonElement<3,2> > sphere_mesh("mesh.1.node",
-                                                "mesh.1.ele",
-                                                "mesh.1.face");
-  //??ds - must be a more elegant way to have two identical meshes... or
-  // avoid having two altogether... how can we be sure that we don't break
-  // everything by applying changes (e.g. refinement) to only one mesh?
-
+  TetgenMesh<TMagnetostaticFieldElement<3,2> > sphere_mesh("mesh.1.node",
+                                                           "mesh.1.ele",
+                                                           "mesh.1.face");
 
   // Set a divergence of M (M = constant so divM = 0).
   PoissonSourceFctPt divM_pt = &Inputs::div_M;
 
-  // Set flux conditioners on phi_1 (= Mdotn).
+  // Set flux conditions on phi_1 (= Mdotn).
   PoissonPrescribedFluxFctPt Mdotn_pt = &Inputs::Mdotn;
 
   // Make a hybrid problem
-  ExplicitHybridMagnetostaticFieldProblem<TPoissonElement<3,2> >
+  ExplicitHybridMagnetostaticFieldProblem<TMagnetostaticFieldElement<3,2> >
     magnetostatic_problem(&sphere_mesh1, &sphere_mesh,
                           divM_pt, Mdotn_pt);
 

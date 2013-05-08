@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 
       // Build problem
       ImplicitLLGProblem threedproblem;
-      threedproblem.bulk_mesh_pt() = &threedmesh;
+      threedproblem.set_bulk_mesh_pt(&threedmesh);
       threedproblem.add_time_stepper_pt(&bdf2);
       threedproblem.applied_field_fct_pt() = &HApp::zero;
       threedproblem.mag_parameters_pt()->set_simple_llg_parameters();
