@@ -48,7 +48,7 @@ namespace oomph
 
     /// Constructor
     GenericPoissonProblem() :
-      Flux_mesh_factory(0), Bulk_mesh_number(-10), Flux_mesh_number(-10),
+      Flux_mesh_factory_fct_pt(0), Bulk_mesh_number(-10), Flux_mesh_number(-10),
       Poisson_dof_number(0), Source_fct_pt(0), Exact_solution_fct_pt(0)
     {}
 
@@ -73,7 +73,7 @@ namespace oomph
 #endif
 
       // Build the mesh
-      Mesh* flux_mesh_pt = Flux_mesh_factory(bulk_mesh_pt(), boundaries);
+      Mesh* flux_mesh_pt = flux_mesh_factory(bulk_mesh_pt(), boundaries);
 
       // Set the prescribed flux function on the elements
       for(unsigned e=0, ne=flux_mesh_pt->nelement(); e < ne; e++)
@@ -87,8 +87,25 @@ namespace oomph
       Flux_mesh_number = add_sub_mesh(flux_mesh_pt);
     }
 
+    /// \short Call the stored Flux_mesh_factory_fct_pt (and check if null
+    /// in PARANOID).
+    Mesh* flux_mesh_factory(Mesh* bulk_mesh_pt,
+                            const Vector<unsigned> &boundaries) const
+    {
+#ifdef PARANOID
+      if(Flux_mesh_factory_fct_pt == 0)
+        {
+          std::string error_msg = "No flux mesh factory function pointer has been set.";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Flux_mesh_factory_fct_pt(bulk_mesh_pt, boundaries);
+    }
 
-
+    /// \short Set function for Flux_mesh_factory.
+    void set_flux_mesh_factory(FluxMeshFactoryFctPt flux_mesh_factory_fct_pt)
+    { Flux_mesh_factory_fct_pt = flux_mesh_factory_fct_pt; }
 
     /// \short Pin nodes on boundary b of bulk mesh with the value given by a
     /// function pointer.
@@ -271,9 +288,11 @@ namespace oomph
     FiniteElement::SteadyExactSolutionFctPt exact_solution_fct_pt() const
     {return Exact_solution_fct_pt;}
 
-    FluxMeshFactoryFctPt Flux_mesh_factory;
-
   private:
+
+    /// \short Function pointer for the function to use to construct a flux
+    /// mesh on boundaries of the bulk mesh.
+    FluxMeshFactoryFctPt Flux_mesh_factory_fct_pt;
 
     /// \short Store the number of the bulk mesh in the global mesh_pt
     /// array. Defaults to magic number -10 so that we can tell if it is
