@@ -602,6 +602,16 @@ namespace oomph
     write_tecplot_zone_footer(outfile,2);
   }
 
+
+  /// Return FE representation of M at local coordinate s and current time.
+  void MicromagEquations::interpolated_dmdx_micromag(const Vector<double> &s,
+                                                     Vector<Vector<double> >& itp_dmdx) const
+  {
+    MMInterpolator intp(this, s);
+    itp_dmdx = intp.dmdx();
+  }
+
+
   // //======================================================================
   // /// C-style output function:
   // ///

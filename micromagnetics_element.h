@@ -17,7 +17,7 @@
 #include "./vector_helpers.h"
 #include "./magnetic_materials.h"
 
-#include "./micromagnetics_flux_element.h"
+// #include "./micromagnetics_flux_element.h"
 
 // Magnetostatic elements are based on Poisson
 #include "./template_free_poisson.h"
@@ -281,6 +281,23 @@ namespace oomph
     //   else (*Exact_m_pt)(t,x,m_exact);
     // }
 
+
+    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    inline double dshape_dtest(const Vector<double> &s,
+                               Shape &psi, DShape &dpsidx,
+                               Shape &test, DShape &dtestdx) const
+    {
+      // Call the geometrical shape functions and derivatives
+      const double J = this->dshape_eulerian(s,psi,dpsidx);
+
+      // Set the test functions equal to the shape functions
+      test = psi;
+      dtestdx= dpsidx;
+
+      // Return the jacobian
+      return J;
+    }
+
     /// Return FE representation of function value phi(s) at local coordinate s
     inline double interpolated_phi_micromag(const Vector<double> &s) const
     {
@@ -361,13 +378,9 @@ namespace oomph
         }
     }
 
-    // /// Return FE representation of M at local coordinate s and current time.
-    // inline void interpolated_dmdx_micromag(const Vector<double> &s,
-    //                                        DenseDoubleMatrix& itp_dmdx) const
-    // {
-    //   MMInterpolator intp(this, s);
-    //   itp_dmdx = intp.dmdx();
-    // }
+    /// Return FE representation of M at local coordinate s and current time.
+    void interpolated_dmdx_micromag(const Vector<double> &s,
+                                    Vector<Vector<double> >& itp_dmdx) const;
 
 
     /// \short Return FE representation of solution vector (phis,M,H_ex)
@@ -630,21 +643,21 @@ namespace oomph
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {MicromagEquations::output(file_pt,n_plot);}
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
+    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    // inline double dshape_dtest(const Vector<double> &s,
+    //                            Shape &psi, DShape &dpsidx,
+    //                            Shape &test, DShape &dtestdx) const
+    // {
+    //   // Call the geometrical shape functions and derivatives
+    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
 
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
+    //   // Set the test functions equal to the shape functions
+    //   test = psi;
+    //   dtestdx= dpsidx;
 
-      // Return the jacobian
-      return J;
-    }
+    //   // Return the jacobian
+    //   return J;
+    // }
 
     void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const
@@ -701,22 +714,6 @@ namespace oomph
     // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {MicromagEquations::output(file_pt,n_plot);}
-
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
-
-      // Return the jacobian
-      return J;
-    }
 
     void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const
@@ -1118,21 +1115,21 @@ namespace oomph
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {SemiImplicitMicromagEquations::output(file_pt,n_plot);}
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
+    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    // inline double dshape_dtest(const Vector<double> &s,
+    //                            Shape &psi, DShape &dpsidx,
+    //                            Shape &test, DShape &dtestdx) const
+    // {
+    //   // Call the geometrical shape functions and derivatives
+    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
 
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
+    //   // Set the test functions equal to the shape functions
+    //   test = psi;
+    //   dtestdx= dpsidx;
 
-      // Return the jacobian
-      return J;
-    }
+    //   // Return the jacobian
+    //   return J;
+    // }
 
     //??ds
     void fill_in_face_element_contribution_to_jacobian
@@ -1174,21 +1171,21 @@ namespace oomph
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {SemiImplicitMicromagEquations::output(file_pt,n_plot);}
 
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
+    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
+    // inline double dshape_dtest(const Vector<double> &s,
+    //                            Shape &psi, DShape &dpsidx,
+    //                            Shape &test, DShape &dtestdx) const
+    // {
+    //   // Call the geometrical shape functions and derivatives
+    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
 
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
+    //   // Set the test functions equal to the shape functions
+    //   test = psi;
+    //   dtestdx= dpsidx;
 
-      // Return the jacobian
-      return J;
-    }
+    //   // Return the jacobian
+    //   return J;
+    // }
 
     //??ds
     void fill_in_face_element_contribution_to_jacobian

@@ -18,6 +18,9 @@
 //??ds
 #include <iomanip>
 
+// class MicromagEquations;
+#include "./micromagnetics_element.h"
+
 using namespace oomph;
 
 namespace oomph
@@ -35,7 +38,7 @@ namespace oomph
 
     /// \short Constructor, takes the pointer to the "bulk" element and the
     /// index of the face to which the element is attached.
-    MicromagFluxElement(ELEMENT* const &bulk_el_pt,
+    MicromagFluxElement(FiniteElement* const &bulk_el_pt,
                         const int& face_index);
 
     ///\short  Broken empty constructor
@@ -101,7 +104,7 @@ namespace oomph
     {FiniteElement::output(file_pt,n_plot);}
 
     /// Access function for the pointer the to bulk element
-    ELEMENT* bulk_element_pt() const {return Bulk_element_pt;}
+    MicromagEquations* bulk_element_pt() const {return Bulk_element_pt;}
 
     unsigned m_index_micromag(const unsigned &i) const
     {
@@ -185,7 +188,7 @@ namespace oomph
     unsigned Nodal_dim;
 
     /// Pointer to the attached bulk element
-    ELEMENT* Bulk_element_pt;
+    MicromagEquations* Bulk_element_pt;
   };
 
   //////////////////////////////////////////////////////////////////////
@@ -203,11 +206,11 @@ namespace oomph
   //===========================================================================
   template<class ELEMENT>
   MicromagFluxElement<ELEMENT>::
-  MicromagFluxElement(ELEMENT* const &bulk_el_pt,
+  MicromagFluxElement(FiniteElement* const &bulk_el_pt,
                       const int &face_index) :
     FaceGeometry<ELEMENT>(),
     FaceElement(),
-    Bulk_element_pt(bulk_el_pt)
+    Bulk_element_pt(checked_dynamic_cast<MicromagEquations*>(bulk_el_pt))
   {
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
@@ -288,7 +291,7 @@ namespace oomph
         // face could be non-zero on the boundary.
         Vector<double> s_bulk(3,0.0);
         get_local_coordinate_in_bulk(s,s_bulk);
-        DenseDoubleMatrix itp_dmdx(3,3,0.0);
+        Vector<Vector<double> > itp_dmdx;
         bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
 
         // Vector<double> low_dim_normal(Nodal_dim,0.0), normal(3,0.0);
@@ -300,7 +303,7 @@ namespace oomph
         Vector<double> dmdn(3,0.0);
         for(unsigned i=0; i<3; i++)
           for(unsigned j=0; j<Nodal_dim; j++)
-            dmdn[i] += normal[j] * itp_dmdx(i,j);
+            dmdn[i] += normal[j] * itp_dmdx[i][j];
 
         // std::cout << "from residual dmdn at x = " << itp_x << " is " << dmdn << std::endl
         //           << "       m is " << itp_m << std::endl;
@@ -392,7 +395,7 @@ namespace oomph
 
 
     // Get some values
-    const ELEMENT* be_pt = bulk_element_pt();
+    const MicromagEquations* be_pt = bulk_element_pt();
     const unsigned bulk_nnode = be_pt->nnode();
     const unsigned nodal_dim = this->node_pt(0)->ndim();
     const unsigned face_ele_dim = this->dim();
