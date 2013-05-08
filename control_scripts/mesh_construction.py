@@ -17,7 +17,6 @@ import os.path
 from os.path import join as pjoin
 
 
-
 def generate_triangle_meshes(initial_poly_file):
     """Generate a set of mesh refinements using triangle.
     """
@@ -35,8 +34,8 @@ def generate_triangle_meshes(initial_poly_file):
     # Generate refinements
     for refine in [1, 2, 3, 4, 5]:
 
-        # File to refine is someting like square.1.poly (if we started with
-        # square.poly).
+        # File to refine is something like square.1.poly (if we started
+        # with square.poly).
         file_to_refine = (os.path.join(dirname, basename)
                           + '.' + str(refine) + ext)
 
@@ -46,6 +45,7 @@ def generate_triangle_meshes(initial_poly_file):
                          file_to_refine])
 
     return
+
 
 def generate_tetgen_meshes(initial_poly_file, poly_volume):
     """Generate a set of mesh refinements using tegen.
@@ -61,10 +61,11 @@ def generate_tetgen_meshes(initial_poly_file, poly_volume):
     subp.check_call(['tetgen', '-q', '-a' + str(initial_vol), '-p',
                      initial_poly_file])
 
-        # Generate refinements
+
+    # Generate refinements
     for refine in [1, 2, 3, 4, 5]:
 
-        # File to refine is someting like square.1.poly (if we started with
+        # File to refine is something like square.1.poly (if we started with
         # square.poly).
         file_to_refine = (os.path.join(dirname, basename)
                           + '.' + str(refine))
@@ -86,7 +87,7 @@ def generate_sphere_mesh(mesh_dir, radius, refinement):
     # Name the file with "refinement-1" because tetgen will increment the
     # label (I guess it assumes we are refining something in the normal
     # way).
-    mesh_input_filename = pjoin(mesh_dir, "sphere." + str(refinement) + ".poly")
+    mesh_input_filename = pjoin(mesh_dir, "sphere." + str(refinement - 1) + ".poly")
 
     with open(mesh_input_filename, 'w') as mesh_input_file:
         subp.check_call([command, str(radius), str(refinement)],
@@ -119,7 +120,7 @@ def generate_sphere_meshes(mesh_dir, radius):
                     cwd = pjoin(mesh_dir, "generate_tetgen_sphere_input"))
 
     # Make some meshes with different refinement levels
-    for refine in [1, 2, 3, 4, 5]:
+    for refine in [1, 2, 3, 4, 5, 6]:
          generate_sphere_mesh(mesh_dir, radius, refine)
 
     return
