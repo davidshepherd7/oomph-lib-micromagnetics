@@ -8,7 +8,7 @@
 #include "generic.h"
 #include "./boundary_element_handler.h"
 #include "./generic_poisson_problem.h"
-#include "./implicit_llg_problem.h"
+#include "./llg_problem.h"
 
 #include "./micromagnetics_boundary_element.h"
 #include "./magnetostatic_field_flux_element.h"
@@ -20,7 +20,7 @@ namespace oomph
 {
 
   class SemiImplicitHybridMicromagneticsProblem :
-    public ImplicitLLGProblem
+    public LLGProblem
   {
   public:
 
@@ -33,8 +33,6 @@ namespace oomph
 
     void build(bool pin_phi1 = true)
     {
-
-
       // Set up phi_1 problem
       // ============================================================
       {
@@ -204,7 +202,7 @@ namespace oomph
       // Build the LLG part of the problem. ??ds
       if(llg_sub_problem_pt() == this)
         {
-          ImplicitLLGProblem::build();
+          LLGProblem::build();
         }
       else
         {
@@ -281,11 +279,11 @@ namespace oomph
     {return llg_sub_problem_pt()->mag_parameters_pt();}
 
     /// \short Const access function for LLG_problem.
-    const ImplicitLLGProblem* llg_sub_problem_pt() const
+    const LLGProblem* llg_sub_problem_pt() const
     {return this;}
 
     /// \short Non-const acess function for LLG_problem.
-    ImplicitLLGProblem* llg_sub_problem_pt() {return this;}
+    LLGProblem* llg_sub_problem_pt() {return this;}
 
     const Mesh* bem_mesh_pt() const {return Bem_handler_pt->bem_mesh_pt();}
 
@@ -360,7 +358,7 @@ namespace oomph
     GenericPoissonProblem* Phi_problem_pt;
 
     // /// Problem to solve for the magnetisation change.
-    // ImplicitLLGProblem LLG_problem;
+    // LLGProblem LLG_problem;
 
     /// Intermediate storage for results of bem (ideally we would have it
     /// call a function to get the boundary values filled in but c++ member

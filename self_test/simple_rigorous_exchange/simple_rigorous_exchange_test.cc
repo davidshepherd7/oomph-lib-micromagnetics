@@ -35,7 +35,7 @@
 #include <fenv.h>
 
 #include "generic.h"
-#include "../../implicit_llg_problem.h"
+#include "../../llg_problem.h"
 #include "../../my_general_header.h"
 
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
   if(CommandLineArgs::command_line_flag_has_been_set("-do2d"))
     {
       // Build problem
-      ImplicitLLGProblem problem;
+      LLGProblem problem;
       problem.add_time_stepper_pt(Factories::time_stepper_factory("bdf2", 0.0));
       problem.mesh_pt() = Factories::mesh_factory("sq_square", 3, problem.time_stepper_pt());
       problem.applied_field_fct_pt() = HApp::zero;
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 
 
       // Build problem
-      ImplicitLLGProblem threedproblem;
+      LLGProblem threedproblem;
       threedproblem.set_bulk_mesh_pt(&threedmesh);
       threedproblem.add_time_stepper_pt(&bdf2);
       threedproblem.applied_field_fct_pt() = &HApp::zero;

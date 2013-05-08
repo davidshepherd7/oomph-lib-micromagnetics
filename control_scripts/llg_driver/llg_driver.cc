@@ -5,7 +5,7 @@
 #include "generic.h"
 
 #include "../../my_general_header.h"
-#include "../../implicit_llg_problem.h"
+#include "../../llg_problem.h"
 #include "../../midpoint_method.h"
 #include "../../magnetics_helpers.h"
 
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   args.parse(argc, argv);
 
   // Create problem
-  ImplicitLLGProblem problem;
+  LLGProblem problem;
 
   // Assign timestepper and mesh from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);

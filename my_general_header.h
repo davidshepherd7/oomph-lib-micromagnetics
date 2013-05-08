@@ -14,31 +14,13 @@
 #include "prettyprint98.hpp"
 #endif
 
-
-// // Basic oomph-lib headers
-// #include "generic.h"
-
 #include <ostream>
-// #include <utility>
-
-
-// // Floating point debugging
-// #include <fenv.h>
-
-// // Quicker to use vector functions
-// #include "./vector_helpers.h"
-
 
 // We need full definition of elements so that we can create meshes of
 // them.
 #include "./micromag.h"
 
-
 #include "./magnetics_helpers.h"
-
-// Problems
-// #include "./my_generic_problem.h"
-// #include "./implicit_llg_problem.h"
 
 // Timesteppers
 #include "./midpoint_method.h"

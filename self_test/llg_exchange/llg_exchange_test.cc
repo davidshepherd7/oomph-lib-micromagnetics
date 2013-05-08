@@ -5,7 +5,7 @@
 #include "generic.h"
 #include "meshes/simple_rectangular_tri_mesh.h"
 
-#include "../../implicit_llg_problem.h"
+#include "../../llg_problem.h"
 
 
 /*
@@ -47,7 +47,7 @@ int main()
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
   // Build problem
-  ImplicitLLGProblem<TMicromagElement<2,2> >
+  LLGProblem<TMicromagElement<2,2> >
     problem(10, 10, 1.0, 1.0, HApp::x, true);
 
   // Fiddle with exchange strength.
