@@ -26,76 +26,16 @@
 //LIC//
 //LIC//====================================================================
 
+#include <iostream>
+#include <cstdlib>
+#include <cmath>
 
-//Generic routines
-#include "generic.h"
-
-// Get the mesh
-#include "meshes/triangle_mesh.h"
-#include "meshes/tetgen_mesh.h"
-#include "meshes/rectangular_quadmesh.h"
-
-#include "oomph_triangle.h"
-#include "oomph_tetgen.h"
+#include <vector>
+#include <map>
+#include <set>
 
 
 using namespace std;
-
-using namespace oomph;
-
-
-//============================================================================
-/// \short A class to do comparison of the nodes by lexicographical ordering
-/// on the Cartesian coordinate
-//============================================================================
-class CompareNodes
-{
-public:
-
-  ///The actual comparison operator
-  int operator() (Node* const &node1_pt,
-                  Node* const &node2_pt)
-  {
-    //Find the dimension of the element
-    unsigned n_dim = node1_pt->ndim();
-    //Check that the dimensions of bothelements are the same
-    {
-      unsigned n_dim2 = node2_pt->ndim();
-
-      if(n_dim != n_dim2)
-        {
-          std::ostringstream warn_message;
-          warn_message
-            << "Warning: Two nodess do not have the same dimension"
-            << n_dim << " and " << n_dim2 << ". They cannot be compared\n";
-          OomphLibWarning(warn_message.str(),
-                          "CompareNodes::()",
-                          OOMPH_EXCEPTION_LOCATION);
-        }
-    }
-
-    //Get the coordinates of the nodes
-    Vector<double> x1(n_dim), x2(n_dim);
-    for(unsigned i=0;i<n_dim;i++)
-      {
-        x1[i] = node1_pt->x(i);
-        x2[i] = node2_pt->x(i);
-      }
-
-    //This is the Stroustrup-approved way to do lexicographical ordering
-    //Loop over the components until they are not equal
-    //to within a given tolerance
-    {
-      unsigned i=0; double tol = 1.0e-14;
-      while(i!=n_dim && (std::abs(x1[i]-x2[i]) < tol)){ ++i;}
-      //If we've reached the end, the coordinates are equal, return false
-      if(i==n_dim) {return 0;}
-      //Otherwise, return the ordering on the final component
-      return x1[i] < x2[i];
-    }
-  }
-};
-
 
 //=====================================================================
 /// Class for the spherical inclusion
@@ -106,16 +46,16 @@ class SphereMeshInput
   double Radius;
 
   //Storage for the centre
-  Vector<double> Centre;
+  vector<double> Centre;
 
   //Storage for the refinement level
   unsigned N_level;
 
   //Storage for the points
-  Vector<Vector<double> > Vertex;
+  vector<vector<double> > Vertex;
 
   //Storage for the Faces
-  Vector<Vector<unsigned> > Facet;
+  vector<vector<unsigned> > Facet;
 
 public:
 
@@ -319,7 +259,7 @@ public:
         unsigned facet_counter=0;
 
         //Storage for the new facets
-        Vector<Vector<unsigned> > new_facet;
+        vector<vector<unsigned> > new_facet;
         //Local storage for the edge nodes index by the set of vertices
         //bounding the edge. The set will be sorted, so this gives a unique
         //key for each edge
@@ -327,9 +267,9 @@ public:
         //Local storage for the key to the mape
         std::set<unsigned> edge_index;
         //Storage for a new vertex
-        Vector<double> new_vertex(3);
+        vector<double> new_vertex(3);
         //Storage for the indices of  edge vertices
-        Vector<unsigned> edge_vertex_index(3);
+        vector<unsigned> edge_vertex_index(3);
 
         //Loop over all the facets
         for(unsigned f=0;f<n_facet;f++)
@@ -435,8 +375,8 @@ public:
   }
 
   //Write out the data structure
-  void write_facets(Vector<Vector<double> > &vertex,
-                    Vector<Vector<unsigned> > &facet)
+  void write_facets(vector<vector<double> > &vertex,
+                    vector<vector<unsigned> > &facet)
   {
     vertex = Vertex;
     facet = Facet;
@@ -456,8 +396,8 @@ int main(int argc, char* argv[])
 
   if (argc == 3)
     {
-      radius = atof(argv[1]);
-      refinement_level = atoi(argv[2]);
+      radius = std::atof(argv[1]);
+      refinement_level = std::atoi(argv[2]);
     }
   else
     {
@@ -472,8 +412,8 @@ int main(int argc, char* argv[])
   // Make a sphere centred at the origin
   SphereMeshInput sphere(radius, 0.0, 0.0, 0.0, refinement_level);
 
-  Vector<Vector<double> > points;
-  Vector<Vector<unsigned> > facets;
+  vector<vector<double> > points;
+  vector<vector<unsigned> > facets;
 
   sphere.write_facets(points, facets);
 
