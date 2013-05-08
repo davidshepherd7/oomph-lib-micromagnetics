@@ -53,7 +53,7 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
         outdir = ("results_" + str(dt) + "_" + str(tol) + "_" + str(refinement)
                   + "_" + timestepper + "_" + applied_field + "_" + mesh
                   + "_" + initial_m)
-    final_outdir = os.path.join(output_root, outdir)
+    final_outdir = pjoin(output_root, outdir)
 
 
     # Make sure the directory is empty and exists
@@ -226,7 +226,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         meshes = ['ut_sphere']
 
     elif parameter_set == 'cubeoid':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
+        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3, 1e-4, 1e-5]
@@ -242,7 +242,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         dts = [1e-6]
         tmaxs = [2.0]
         tols = [1e-3]
-        refines = [2,3]
+        refines = [1,2]
         outdirs = [None]
         timesteppers = ['midpoint']
         initial_ms = ['z']
@@ -253,7 +253,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
     output_root = pjoin('../experiments/parameter_sweeps',
-                        str('_'.join(parameter_set)))
+                        '_'.join(parameter_set.split()))
 
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)
