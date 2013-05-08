@@ -574,12 +574,20 @@ namespace oomph
   //   soln_file.close();
   // }
 
+
+  /// \short A namespace full of functions that take some "dynamic"
+  /// (i.e. can be calculated at runtime) input and create a new instance
+  /// of the appropriate object, using the new command (Factory Method
+  /// design pattern).
+  ///
+  /// Typically these objects are passed straight into other classes and
+  /// will be deleted by the destructor of that class. If not it is your
+  /// responsibility to make sure the objects are deleted.
   namespace SemiImplicitFactories
   {
-     /// \short Make a mesh as specified by an input argument. Refined
-    /// according to the given refinement level (in some way appropriate
-    /// for that mesh type). Assumption: this will be passed into a
-    /// problem, which will delete the pointer when it's done.
+    /// \short Make a mesh of Micromag elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
     Mesh* llg_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
@@ -651,11 +659,9 @@ namespace oomph
       return mesh_pt;
     }
 
-
-    /// \short Make a mesh as specified by an input argument. Refined
-    /// according to the given refinement level (in some way appropriate
-    /// for that mesh type). Assumption: this will be passed into a
-    /// problem, which will delete the pointer when it's done.
+    /// \short Make a mesh of MagnetostaticField elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
     Mesh* phi_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
@@ -726,6 +732,87 @@ namespace oomph
       // Done: pass out the mesh pointer
       return mesh_pt;
     }
+
+
+    /// \short Return a factory function which will create the appropriate
+    /// "flux mesh" for the bulk element pointer given.
+    GenericPoissonProblem::FluxMeshFactoryFctPt
+    phi_1_flux_mesh_factory_factory(const FiniteElement* bulk_phi_1_ele_pt)
+    {
+      if(dynamic_cast<const TMagnetostaticFieldElement<2, 2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<TMagnetostaticFieldFluxElement<2, 2> >;
+        }
+      else if(dynamic_cast<const TMagnetostaticFieldElement<3, 2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<TMagnetostaticFieldFluxElement<3, 2> >;
+        }
+
+      else if(dynamic_cast<const QMagnetostaticFieldElement<2,2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<QMagnetostaticFieldFluxElement<2,2> >;
+        }
+      else if(dynamic_cast<const QMagnetostaticFieldElement<3,2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<QMagnetostaticFieldFluxElement<3,2> >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+    }
+
+
+    typedef MicromagBEMElementEquations*
+    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
+
+
+    /// \short very simple function: create a new face element of type
+    /// ELEMENT.
+    template<class ELEMENT>
+    MicromagBEMElementEquations* bem_element_factory(FiniteElement* ele,
+                                                     const int& face)
+      {
+        return new ELEMENT(ele, face);
+      }
+
+
+    /// \short Return a function which will create the appropriate BEM face
+    /// element for the bulk element pointer given (should work for a
+    /// pointer to any bulk element type i.e., field or llg).
+    BEMElementFactoryFctPt bem_element_factory_factory
+    (const FiniteElement* bulk_ele_pt)
+    {
+      if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const TElement<3, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<3,2> >;
+        }
+
+      else if(dynamic_cast<const QElement<2,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const QElement<3,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<3,2> >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
   }
 
   class SemiImplicitMMArgs : public MyCliArgs
@@ -734,7 +821,10 @@ namespace oomph
 
     SemiImplicitMMArgs() : llg_mesh_pt(0),
                            phi_1_mesh_pt(0), phi_mesh_pt(0),
-                           initial_m_fct_pt(0), h_app_fct_pt(0) {}
+                           initial_m_fct_pt(0), h_app_fct_pt(0),
+                           phi_1_flux_mesh_factory_fct_pt(0),
+                           bem_element_factory_fct_pt(0)
+    {}
 
 
     virtual void set_flags()
@@ -769,8 +859,19 @@ namespace oomph
       phi_1_mesh_pt = SemiImplicitFactories::phi_mesh_factory
         (mesh_name, refinement, time_stepper_pt);
 
+      // Pick the m and applied field function pointers
       initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
+
+      // Pick the factory function for creating the phi 1 surface mesh
+      phi_1_flux_mesh_factory_fct_pt =
+        SemiImplicitFactories::phi_1_flux_mesh_factory_factory
+        (phi_1_mesh_pt->finite_element_pt(0));
+
+      // Pick the factory function for creating the BEM elements
+      bem_element_factory_fct_pt =
+        SemiImplicitFactories::bem_element_factory_factory
+        (llg_mesh_pt->finite_element_pt(0));
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -791,6 +892,9 @@ namespace oomph
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
 
+
+    GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
+    SemiImplicitFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;
 
     // Strings for input to factory functions
     std::string mesh_name;

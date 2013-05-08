@@ -18,12 +18,6 @@ using namespace oomph;
 using namespace MathematicalConstants;
 using namespace StringConversion;
 
-MicromagBEMElementEquations* temp_ele_factory(FiniteElement* const ele,
-                                              const int& face)
-{
-  return new QMicromagBEMElement<2,2>(ele, face);
-}
-
 int main(int argc, char *argv[])
 {
   // Start MPI if necessary
@@ -34,42 +28,43 @@ int main(int argc, char *argv[])
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 #endif
 
+  // Create objects
+  // ============================================================
+
   // Read and process command line arguments
   SemiImplicitMMArgs args;
   args.parse(argc, argv);
 
-  // Create problem
+  // Create main semi implicit problem
   SemiImplicitHybridMicromagneticsProblem problem;
-
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.llg_sub_problem_pt()->set_bulk_mesh_pt(args.llg_mesh_pt);
+  problem.llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
+  problem.Doc_info.Args_pt = &args;
 
-  GenericPoissonProblem* phi_1_problem_pt = new GenericPoissonProblem;
-  phi_1_problem_pt->set_bulk_mesh(args.phi_1_mesh_pt);
-  phi_1_problem_pt->Flux_mesh_factory =
-    &Factories::surface_mesh_factory<QMagnetostaticFieldFluxElement<2,2> >;
-  problem.set_phi_1_problem_pt(phi_1_problem_pt);
+  // Create and set phi_1 sub problem
+  GenericPoissonProblem phi_1_problem;
+  phi_1_problem.set_bulk_mesh(args.phi_1_mesh_pt);
+  phi_1_problem.set_flux_mesh_factory(args.phi_1_flux_mesh_factory_fct_pt);
+  problem.set_phi_1_problem_pt(&phi_1_problem);
 
-  GenericPoissonProblem* phi_problem_pt = new GenericPoissonProblem;
-  phi_problem_pt->set_bulk_mesh(args.phi_mesh_pt);
-  problem.set_phi_problem_pt(phi_problem_pt);
+  // Create and set phi sub problem
+  GenericPoissonProblem phi_problem;
+  phi_problem.set_bulk_mesh(args.phi_mesh_pt);
+  problem.set_phi_problem_pt(&phi_problem);
 
-  problem.bem_handler_pt() = new BoundaryElementHandler;
-  problem.bem_handler_pt()->Bem_element_factory = &temp_ele_factory;
+  // Create and set the BEM handler
+  BoundaryElementHandler bem_handler;
+  problem.bem_handler_pt() = &bem_handler;
+  problem.bem_handler_pt()->Bem_element_factory = args.bem_element_factory_fct_pt;
 
 
-  // Do the rest (mag parameters, phi etc.)
+  // Do the rest of the set up
   // ============================================================
 
-  // Set magnetic parameters
-  double gilbert_damping = 0.5; // (normalised hk)
+  // Set up the magnetic parameters
   problem.mag_parameters_pt()->set_simple_llg_parameters();
-  problem.mag_parameters_pt()->gilbert_damping() = gilbert_damping;
-  problem.mag_parameters_pt()->magnetostatic_debug_coeff() = 0;
-
-
-  // Set applied field
-  problem.llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
+  // problem.mag_parameters_pt()->magnetostatic_debug_coeff() = 0;
 
   // Set exact solution if we have one
   if((args.h_app_name == "minus_z") && (args.initial_m_name == "z"))
@@ -77,20 +72,24 @@ int main(int argc, char *argv[])
       problem.Compare_with_mallinson = true;
     }
 
-  // Finished inputing stuff, now we can build the problem
+  // Customise details of the output
+  problem.Doc_info.set_directory(args.outdir);
+  problem.Doc_info.output_jacobian = args.output_jacobian;
+
+  // Finished customising the problem, now we can build it.
   problem.build();
 
-  // Initialise problem and output
+
+  // Initialise problem and output initial conditions
+  // ============================================================
   problem.initialise_dt(args.dt);
   problem.set_initial_condition(args.initial_m_fct_pt);
 
-  problem.Doc_info.set_directory(args.outdir);
-  problem.Doc_info.Args_pt = &args;
-  problem.Doc_info.output_jacobian = args.output_jacobian;
-
   problem.initial_doc();
 
+
   // All ready: step until completion
+  // ============================================================
   double dt = args.dt;
   while(problem.time() < args.tmax)
     {
