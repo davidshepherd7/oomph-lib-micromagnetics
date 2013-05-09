@@ -225,6 +225,10 @@ namespace oomph
     double semi_implicit_step(const double &dt, const double eps=0.0)
     {
 
+      std::cout << std::endl
+                << "BEM solve" << std::endl
+                << "--------------------------" <<std::endl;
+
       // solve for phi1
       std::cout << "solving phi1" << std::endl;
       phi_1_problem_pt()->newton_solve();

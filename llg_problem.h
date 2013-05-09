@@ -129,13 +129,26 @@ namespace oomph
         }
     }
 
+    void actions_before_newton_step()
+      {
+        std::cout << std::endl
+                  << "Newton step " << Nnewton_iter_taken + 1 << std::endl
+                  << "---------------------------------------" << std::endl;
+      }
+
     void actions_after_newton_solve()
     {
+      std::cout << std::endl
+                << "Finalising" << std::endl
+                << "-------------------------------------------" << std::endl;
+
+
       // If we're using BDF we need to keep M normalised.
       if(renormalise_each_time_step())
         {
           renormalise_magnetisation();
         }
+
     }
 
     /// Output solution

@@ -98,12 +98,15 @@ int main(int argc, char *argv[])
   double dt = args.dt;
   while(problem.time() < args.tmax)
     {
-      std::cout << "step number = " << problem.Doc_info.number()
-                << ", time = " << problem.time()
-                << ", dt = " << dt
-                << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
-                << ", error norm = " << problem.llg_sub_problem_pt()->get_error_norm()
-                << std::endl;
+      std::cout
+        << std::endl
+        << std::endl
+        << "Time step " << problem.Doc_info.number() << std::endl
+        << "==========================" << std::endl
+        << "time = " << problem.time()
+        << ", dt = " << dt
+        << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
+        << std::endl;
 
       // Take a step (adaptive if args.tol != 0.0)
       dt = problem.semi_implicit_step(dt, args.tol);
