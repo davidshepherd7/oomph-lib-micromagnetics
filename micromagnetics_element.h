@@ -112,6 +112,10 @@ namespace oomph
     void add_face_element_pt(FiniteElement* const face_element_pt)
     { Face_element_pts.insert(face_element_pt); }
 
+    /// \short We need 5 values: 3 magnetisation + phi + phi1.
+    unsigned required_nvalue(const unsigned &n) const
+    {return 5;}
+
     unsigned ndof_types()
     {return required_nvalue(0);}
 
@@ -610,10 +614,6 @@ namespace oomph
   template < unsigned DIM, unsigned NNODE_1D>
   class QMicromagElement : public QElement<DIM,NNODE_1D>, public MicromagEquations
   {
-  private:
-    /// Static int that holds the number of variables at nodes: always the same
-    static const unsigned Initial_Nvalue;
-
   public:
     /// Constructor: Call constructors for QElement and Micromag equations
     QMicromagElement() : QElement<DIM,NNODE_1D>(), MicromagEquations()
@@ -630,10 +630,6 @@ namespace oomph
     {
       BrokenCopy::broken_assign("QMicromagElement");
     }
-
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return Initial_Nvalue;}
 
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
@@ -682,10 +678,6 @@ namespace oomph
   template < unsigned DIM, unsigned NNODE_1D>
   class TMicromagElement : public TElement<DIM,NNODE_1D>, public MicromagEquations
   {
-  private:
-    /// Static int that holds the number of variables at nodes: always the same
-    static const unsigned Initial_Nvalue;
-
   public:
     /// Constructor: Call constructors for TElement and Micromag equations
     TMicromagElement() : TElement<DIM,NNODE_1D>(), MicromagEquations()
@@ -702,10 +694,6 @@ namespace oomph
     {
       BrokenCopy::broken_assign("TMicromagElement");
     }
-
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return Initial_Nvalue;}
 
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
@@ -879,10 +867,6 @@ namespace oomph
   {
   public:
 
-    /// Return howm any data entries are needed at each node. For this case
-    /// it is always 1.
-    unsigned required_nvalue(const unsigned &n) const {return 1;}
-
     // Overload output functions (diamond inheritance...)
     // ============================================================
 
@@ -948,10 +932,6 @@ namespace oomph
                                      public MagnetostaticFieldEquations
   {
   public:
-
-    /// Return howm any data entries are needed at each node. For this case
-    /// it is always 1.
-    unsigned required_nvalue(const unsigned &n) const {return 1;}
 
     // Overload output functions (diamond inheritance...)
     // ============================================================
@@ -1107,10 +1087,6 @@ namespace oomph
   {
   public:
 
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return 5;}
-
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {SemiImplicitMicromagEquations::output(outfile,n_plot);}
@@ -1162,10 +1138,6 @@ namespace oomph
                                        public SemiImplicitMicromagEquations
   {
   public:
-
-    /// Required  # of `values' (pinned or dofs) at node n.
-    inline unsigned required_nvalue(const unsigned &n) const
-    {return 5;}
 
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)

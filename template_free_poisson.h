@@ -89,6 +89,9 @@ namespace oomph
       BrokenCopy::broken_assign("TFPoissonEquations");
     }
 
+    /// \short Requires storage for one value.
+    unsigned required_nvalue(const unsigned &n) const {return 1;}
+
     /// \short Return the index at which the unknown value
     /// is stored. The default value, 0, is appropriate for single-physics
     /// problems, when there is only one variable, the value that satisfies

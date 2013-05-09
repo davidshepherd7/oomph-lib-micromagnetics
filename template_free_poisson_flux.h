@@ -90,6 +90,11 @@ public:
                           const unsigned &i) const
   {return FaceElement::zeta_nodal(n,k,i);}
 
+
+  /// Doesn't need to store any values: This element just modifies the
+  /// residuals at the surface.
+  unsigned required_nvalue(const unsigned &n) const {return 0;}
+
  /// Access function for the prescribed-flux function pointer
  PoissonPrescribedFluxFctPt& flux_fct_pt() {return Flux_fct_pt;}
 
