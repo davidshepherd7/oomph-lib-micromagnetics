@@ -3,6 +3,9 @@
 
 #include "micromagnetics_element.h"
 
+// For output in
+#include <iomanip>
+
 using namespace oomph;
 using namespace MathematicalConstants;
 using namespace VectorOps;
@@ -19,6 +22,105 @@ namespace oomph
   unsigned MicromagEquations::self_test()
   {
     return 0;
+  }
+
+  void MicromagEquations::check_interpolation(MMInterpolator& intp) const
+  {
+#ifdef PARANOID
+    // Track whether any errors have been found
+    bool failed = false;
+
+    //??ds move to an option somewhere higher up?
+    bool throw_on_fail = false;
+
+    // Tolerence for differences in interpolation
+    double tol = 5e-10;
+
+    // Check that we are not using midpoint: old way doesn't work for midpoint
+    if(node_pt(0)->time_stepper_pt()->nprev_values_for_value_at_evaluation_time() != 1)
+      {
+        return;
+      }
+
+    // Find out how many nodes there are
+    const unsigned n_node = nnode();
+
+    // Allocate memory for local quantities and initialise to zero. dphidx
+    // is also H_demag so we need all 3 components.
+    double itp_phi(0.0), itp_phi_1(0.0);
+    Vector<double> itp_x(nodal_dimension(),0.0), itp_dphidx(3,0.0),
+      itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0);
+    DenseDoubleMatrix itp_dmdx(3,3,0.0);
+
+    // Interpolate values at knot by looping over nodes adding contributions
+    for(unsigned l=0;l<n_node;l++)
+      {
+        itp_phi += nodal_value(l,phi_index_micromag()) * intp.psi(l);
+        itp_phi_1 += nodal_value(l,phi_1_index_micromag()) * intp.psi(l);
+
+        Vector<double> dmdt(3,0.0);
+        dm_dt_micromag(l,dmdt); // get dmdt at node l
+
+        for(unsigned j=0; j<3; j++)
+          {
+            itp_dmdt[j] += dmdt[j]*intp.psi(l);
+            itp_m[j] += nodal_value(l,m_index_micromag(j))*intp.psi(l);
+          }
+
+        // Interpolate spatial values/derivatives
+        for(unsigned j=0; j<nodal_dimension(); j++)
+          {
+            itp_x[j] += nodal_position(l,j)*intp.psi(l);
+            itp_dphidx[j] += nodal_value(l,phi_index_micromag())*intp.dpsidx(l,j);
+            itp_dphi_1dx[j] += nodal_value(l,phi_1_index_micromag())*intp.dpsidx(l,j);
+            for(unsigned k=0; k<3; k++)
+              itp_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*intp.dpsidx(l,j);
+          }
+      }
+
+    std::cerr << std::setprecision(12);
+
+    if(two_norm_diff(intp.x(), itp_x) > tol)
+      {
+        std::cerr << "Error in x interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.x(), itp_x) << std::endl;
+        std::cerr << itp_x << std::endl;
+        std::cerr << intp.x() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    if(two_norm_diff(intp.m(), itp_m) > tol)
+      {
+        std::cerr << "Error in m interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.m(), itp_m) << std::endl;
+        std::cerr << itp_m << std::endl;
+        std::cerr << intp.m() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    if(two_norm_diff(intp.dmdt(), itp_dmdt) > tol)
+      {
+        std::cerr << "Error in dmdt interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.dmdt(), itp_dmdt) << std::endl;
+        std::cerr << itp_dmdt << std::endl;
+        std::cerr << intp.dmdt() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    //??ds dmdx?
+
+    //??ds phis?
+
+    if(failed && throw_on_fail)
+      {
+        std::string error_msg = "Error: difference between old interpolation and new";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
   }
 
   //======================================================================
@@ -66,56 +168,10 @@ namespace oomph
         // Create interpolator
         MMInterpolator intp(this, s);
 
+        // Check it vs old implementation if we are in paranoid mode
+        check_interpolation(intp);
+
         double W = integral_pt()->weight(ipt) * intp.j();
-
-        // {
-        // // Allocate memory for local quantities and initialise to zero. dphidx
-        // // is also H_demag so we need all 3 components.
-        // double itp_phi(0.0), itp_phi_1(0.0);
-        // Vector<double> itp_x(nodal_dimension(),0.0), itp_dphidx(3,0.0),
-        //   itp_dphi_1dx(3,0.0),itp_m(3,0.0), itp_dmdt(3,0.0);
-        // DenseDoubleMatrix itp_dmdx(3,3,0.0);
-
-        // // Interpolate values at knot by looping over nodes adding contributions
-        // for(unsigned l=0;l<n_node;l++)
-        //   {
-        //     itp_phi += nodal_value(l,phi_index_micromag()) * intp.psi(l);
-        //     itp_phi_1 += nodal_value(l,phi_1_index_micromag()) * intp.psi(l);
-
-        //     Vector<double> dmdt(3,0.0);
-        //     dm_dt_micromag(l,dmdt); // get dmdt at node l
-
-        //     for(unsigned j=0; j<3; j++)
-        //       {
-        //         itp_dmdt[j] += dmdt[j]*intp.psi(l);
-        //         itp_m[j] += nodal_value(l,m_index_micromag(j))*intp.psi(l);
-        //       }
-
-        //     // Interpolate spatial values/derivatives
-        //     for(unsigned j=0; j<nodal_dimension(); j++)
-        //       {
-        //         itp_x[j] += nodal_position(l,j)*intp.psi(l);
-        //         itp_dphidx[j] += nodal_value(l,phi_index_micromag())*intp.dpsidx(l,j);
-        //         itp_dphi_1dx[j] += nodal_value(l,phi_1_index_micromag())*intp.dpsidx(l,j);
-        //         for(unsigned k=0; k<3; k++)
-        //           itp_dmdx(k,j) += nodal_value(l,m_index_micromag(k))*intp.dpsidx(l,j);
-        //       }
-        //   }
-
-        // if(two_norm_diff(intp.m(), itp_m) > 1e-12)
-        //   {
-        //     std::cout << itp_m << std::endl;
-        //     std::cout << intp.m() << std::endl;
-        //     std::cout << std::endl;
-        //   }
-
-        // if(two_norm_diff(intp.dmdt(), itp_dmdt) > 1e-12)
-        //   {
-        //     std::cout << itp_dmdt << std::endl;
-        //     std::cout << intp.dmdt() << std::endl;
-        //     std::cout << std::endl;
-        //   }
-        // }
 
         // Calculate other things:
 
@@ -145,7 +201,7 @@ namespace oomph
 
         if(two_norm(h_magnetostatic) != 0.0)
           {
-            std::cout <<  "non-zero hms from built in phis!" << std::endl;
+            std::cerr <<  "non-zero hms from built in phis!" << std::endl;
           }
 
         //======================================================================
@@ -162,7 +218,7 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(node_pt(l)->is_on_boundary())))
               {
-                std::cout <<  "unpinned phis!" << std::endl;
+                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
                 for(unsigned k=0;k<nodal_dimension();k++)                       // Poisson
@@ -173,7 +229,7 @@ namespace oomph
             const int phi_1_eqn = nodal_local_eqn(l,phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
-                std::cout <<  "unpinned phis!" << std::endl;
+                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
                 for(unsigned k=0;k<nodal_dimension();k++)
@@ -193,11 +249,11 @@ namespace oomph
             // Cross product for exchange contribution
             const Vector<double> mxexch = cross(intp.m(), gradtestdotgradmi);
 
-            // std::cout << "mxhapp  = " << itp_mxhapp[0] << " "
+            // std::cerr << "mxhapp  = " << itp_mxhapp[0] << " "
             //           << itp_mxhapp[1] <<  " " << itp_mxhapp[2] << "\n";
-            // std::cout << "mxhms  = " << mxhms[0] << " "
+            // std::cerr << "mxhms  = " << mxhms[0] << " "
             //           << mxhms[1]<< " " << mxhms[2] << "\n";
-            // std::cout << "mxexch  = " << mxexch[0] << " "
+            // std::cerr << "mxexch  = " << mxexch[0] << " "
             //           << mxexch[1] << " " << mxexch[2] << std::endl;
 
             // add to residual
@@ -436,12 +492,9 @@ namespace oomph
         // output eulerian coordinates of plot point
         for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x(i) << " ";
 
-        // std::cout << intp.x() << std::endl;
-        // std::cout << intp.x(0) << " " << intp.x(1) << std::endl;
-
         // Output the magnetostatic field (= - dphidx) at this point
         Vector<double> intp_dphidx = intp.dphidx();
-        for(unsigned i=0; i<3; i++) outfile << -intp_dphidx[i] << " ";
+        for(unsigned i=0; i<dim(); i++) outfile << -intp_dphidx[i] << " ";
 
         // Phi 1 at this point
         outfile << intp.phi() << " ";

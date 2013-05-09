@@ -550,6 +550,10 @@ namespace oomph
                                                         DenseMatrix<double> &jacobian,
                                                         const unsigned& flag) const;
 
+    /// In PARANOID compare new and old interpolation functions to check
+    /// they are the same, else do nothing.
+    void check_interpolation(MMInterpolator& intp) const;
+
     // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
     // virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
     //                             Shape &test, DShape &dtestdx) const=0;
