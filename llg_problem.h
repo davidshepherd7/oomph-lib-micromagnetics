@@ -337,56 +337,56 @@ namespace oomph
     }
 
 
-    /// Elementwise calculation of m . dm/dn on the boundaries. This gives a good measure of
-    /// orthogonality of m and dmdn.
-    double mean_orthogonality_m_error() const
-    {
-      // unsigned nele = surface_exchange_mesh_pt()->nelement();
-      // double temp_sum = 0.0;
+    // /// Elementwise calculation of m . dm/dn on the boundaries. This gives a good measure of
+    // /// orthogonality of m and dmdn.
+    // double mean_orthogonality_m_error() const
+    // {
+    //   // unsigned nele = surface_exchange_mesh_pt()->nelement();
+    //   // double temp_sum = 0.0;
 
-      // // Calculate m . dm/dn for each element
-      // for(unsigned e=0; e < nele; e++)
-      //   {
-      //     MicromagFluxElement<MicromagEquations>* ele_pt
-      //       = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
-      //       (surface_exchange_mesh_pt()->element_pt(e));
-      //     Vector<double> s(ele_pt->dim(), 0.5); // middle of element
-      //     temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
-      //   }
+    //   // // Calculate m . dm/dn for each element
+    //   // for(unsigned e=0; e < nele; e++)
+    //   //   {
+    //   //     MicromagFluxElement<MicromagEquations>* ele_pt
+    //   //       = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
+    //   //       (surface_exchange_mesh_pt()->element_pt(e));
+    //   //     Vector<double> s(ele_pt->dim(), 0.5); // middle of element
+    //   //     temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
+    //   //   }
 
-      // // Take average
-      // return temp_sum / double(nele);
+    //   // // Take average
+    //   // return temp_sum / double(nele);
 
-      std::ostringstream error_msg;
-      error_msg << "Not implemented.";
-      throw OomphLibError(error_msg.str(),
-                          OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
+    //   std::ostringstream error_msg;
+    //   error_msg << "Not implemented.";
+    //   throw OomphLibError(error_msg.str(),
+    //                       OOMPH_CURRENT_FUNCTION,
+    //                       OOMPH_EXCEPTION_LOCATION);
 
-    }
+    // }
 
-    void orthogonality_m_error(double &orthogonality_error_avg,
-                               double &orthogonality_error_stddev) const
-    {
-      orthogonality_error_avg = mean_orthogonality_m_error();
+    // void orthogonality_m_error(double &orthogonality_error_avg,
+    //                            double &orthogonality_error_stddev) const
+    // {
+    //   orthogonality_error_avg = mean_orthogonality_m_error();
 
-      unsigned nele = surface_exchange_mesh_pt()->nelement();
-      double temp_sum = 0.0;
+    //   unsigned nele = surface_exchange_mesh_pt()->nelement();
+    //   double temp_sum = 0.0;
 
-      // Calculate m . dm/dn for each element
-      for(unsigned e=0; e < nele; e++)
-        {
-          MicromagFluxElement<MicromagEquations>* ele_pt
-            = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
-            (surface_exchange_mesh_pt()->element_pt(e));
-          Vector<double> s(ele_pt->dim(), 0.5); // middle of element
-          temp_sum += pow( ele_pt->interpolated_mdotdmdn_micromag(s)
-                           - orthogonality_error_avg, 2);
-        }
+    //   // Calculate m . dm/dn for each element
+    //   for(unsigned e=0; e < nele; e++)
+    //     {
+    //       MicromagFluxElement<MicromagEquations>* ele_pt
+    //         = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
+    //         (surface_exchange_mesh_pt()->element_pt(e));
+    //       Vector<double> s(ele_pt->dim(), 0.5); // middle of element
+    //       temp_sum += pow( ele_pt->interpolated_mdotdmdn_micromag(s)
+    //                        - orthogonality_error_avg, 2);
+    //     }
 
-      // Take stddev
-      orthogonality_error_stddev = std::sqrt(temp_sum / double(nele));
-    }
+    //   // Take stddev
+    //   orthogonality_error_stddev = std::sqrt(temp_sum / double(nele));
+    // }
 
 
     double get_error_norm() const
@@ -440,25 +440,25 @@ namespace oomph
     /// \short Const access function for Renormalise_each_time_step.
     bool renormalise_each_time_step() const {return Renormalise_each_time_step;}
 
-    /// \short Non-const access function for Surface_exchange_mesh_pt.
-    Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
+//     /// \short Non-const access function for Surface_exchange_mesh_pt.
+//     Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
 
-    /// \short Const access function for Surface_exchange_mesh_pt.
-    Mesh* surface_exchange_mesh_pt() const
-    {
-#ifdef PARANOID
-      if(Surface_exchange_mesh_pt == 0)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Surface exchange mesh pointer not set.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
+//     /// \short Const access function for Surface_exchange_mesh_pt.
+//     Mesh* surface_exchange_mesh_pt() const
+//     {
+// #ifdef PARANOID
+//       if(Surface_exchange_mesh_pt == 0)
+//         {
+//           std::ostringstream error_msg;
+//           error_msg << "Surface exchange mesh pointer not set.";
+//           throw OomphLibError(error_msg.str(),
+//                               OOMPH_CURRENT_FUNCTION,
+//                               OOMPH_EXCEPTION_LOCATION);
+//         }
+// #endif
 
-      return Surface_exchange_mesh_pt;
-    }
+//       return Surface_exchange_mesh_pt;
+//     }
 
     /// \short Non-const access function for Bulk_mesh_pt.
     void set_bulk_mesh_pt(Mesh* mesh_pt) {Bulk_mesh_pt = mesh_pt;}
@@ -502,10 +502,10 @@ namespace oomph
     /// Pointer to bulk mesh (i.e. the magnetic material).
     Mesh* Bulk_mesh_pt;
 
-    /// Pointer to the mesh of face elements for dealing with boundary
-    /// conditions caused by reducing order of differentiation in exchange
-    /// term.
-    Mesh* Surface_exchange_mesh_pt;
+    // /// Pointer to the mesh of face elements for dealing with boundary
+    // /// conditions caused by reducing order of differentiation in exchange
+    // /// term.
+    // Mesh* Surface_exchange_mesh_pt;
 
     /// Create
     void create_surface_exchange_elements(const unsigned& b);
