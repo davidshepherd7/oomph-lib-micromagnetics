@@ -40,17 +40,22 @@ int main(int argc, char *argv[])
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.llg_sub_problem_pt()->set_bulk_mesh_pt(args.llg_mesh_pt);
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
+  problem.llg_sub_problem_pt()->linear_solver_pt() = args.solver_pt;
   problem.Doc_info.Args_pt = &args;
 
   // Create and set phi_1 sub problem
   GenericPoissonProblem phi_1_problem;
   phi_1_problem.set_bulk_mesh(args.phi_1_mesh_pt);
   phi_1_problem.set_flux_mesh_factory(args.phi_1_flux_mesh_factory_fct_pt);
+  // (CG w/ Ilu0 prec works well enough to hard code it).
+  phi_1_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-ilu");
   problem.set_phi_1_problem_pt(&phi_1_problem);
 
   // Create and set phi sub problem
   GenericPoissonProblem phi_problem;
   phi_problem.set_bulk_mesh(args.phi_mesh_pt);
+  // (CG w/ Ilu0 prec works well enough to hard code it).
+  phi_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-ilu");
   problem.set_phi_problem_pt(&phi_problem);
 
   // Create and set the BEM handler

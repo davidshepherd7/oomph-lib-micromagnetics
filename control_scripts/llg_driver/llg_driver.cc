@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.set_bulk_mesh_pt(args.mesh_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
+  problem.linear_solver_pt() = args.solver_pt;
 
   // Set magnetic parameters
   double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)

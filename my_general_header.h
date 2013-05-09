@@ -237,6 +237,61 @@ namespace oomph
       return flux_mesh_pt;
     }
 
+
+    LinearSolver* linear_solver_factory(const std::string& _solver_name)
+    {
+      const std::string solver_name = to_lower(_solver_name);
+
+      LinearSolver* solver_pt;
+      if(solver_name == "superlu")
+        {
+          solver_pt = new SuperLUSolver;
+        }
+
+      else if(solver_name == "gmres-ilu")
+        {
+          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
+          gmres_pt->preconditioner_pt()
+            = new ILUZeroPreconditioner<CRDoubleMatrix>;
+
+          solver_pt = gmres_pt;
+        }
+
+      else if(solver_name == "cg-ilu")
+        {
+          IterativeLinearSolver* cg_pt = new CG<CRDoubleMatrix>;
+          cg_pt->preconditioner_pt()
+            = new ILUZeroPreconditioner<CRDoubleMatrix>;
+
+          solver_pt = cg_pt;
+        }
+
+      else if(solver_name == "gmres-amg")
+        {
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* amg_pt = new HyprePreconditioner;
+          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+
+          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
+          gmres_pt->preconditioner_pt() = amg_pt;
+
+          solver_pt = gmres_pt;
+#else // If no Hypre then give an error
+          throw OomphLibError("Don't have Hypre.",
+                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+#endif
+        }
+      else
+        {
+          std::string err("Unrecognised solver name ");
+          err += solver_name;
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      return solver_pt;
+    }
+
   }
 
 
@@ -273,6 +328,9 @@ namespace oomph
 
         CommandLineArgs::specify_command_line_flag("-ts", &time_stepper_name);
         time_stepper_name = "bdf2";
+
+        CommandLineArgs::specify_command_line_flag("-solver", &solver_name);
+        solver_name = "superlu";
       }
 
     void parse(int argc, char *argv[])
@@ -295,7 +353,7 @@ namespace oomph
 
       // Build all the pointers to stuff
       time_stepper_pt = Factories::time_stepper_factory(time_stepper_name, tol);
-
+      solver_pt = Factories::linear_solver_factory(solver_name);
       // etc. for precond?
     }
 
@@ -311,7 +369,8 @@ namespace oomph
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
 
-        << "time_stepper " << time_stepper_name << std::endl;
+        << "time_stepper " << time_stepper_name << std::endl
+        << "solver_name " << solver_name << std::endl;
     }
 
     // Adaptive if a tolerance has been set
@@ -327,9 +386,11 @@ namespace oomph
     std::string output_jacobian;
 
     TimeStepper* time_stepper_pt;
+    LinearSolver* solver_pt;
 
     // Strings for input to factory functions
     std::string time_stepper_name;
+    std::string solver_name;
 
   };
 
