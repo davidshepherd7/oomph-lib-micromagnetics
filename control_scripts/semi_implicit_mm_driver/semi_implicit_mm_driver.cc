@@ -9,7 +9,7 @@
 #include "../../midpoint_method.h"
 #include "../../magnetics_helpers.h"
 
-#include "../../micromag.h"
+#include "micromag.h"
 
 // Floating point error checks
 #include <fenv.h>

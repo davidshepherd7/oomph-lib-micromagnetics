@@ -44,9 +44,10 @@ library_include_HEADERS=$(headers) $(incl_cc_files)
 $(libname).h: dummy_$(libname).h
 
 dummy_$(libname).h:  $(headers)
-	echo  $(libname) $(headers) > all_$(libname).aux
+	echo  "." $(headers) > all_$(libname).aux
 	$(AWK) -f $(top_srcdir)/bin/headers.awk < \
 		all_$(libname).aux > $(libname).h
+	sed -e 's/</ "/g' -e 's/>/"/g' -i $(libname).h
 	rm all_$(libname).aux
 
 
