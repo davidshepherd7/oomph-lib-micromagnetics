@@ -123,6 +123,15 @@ namespace InitialM
     return m;
   }
 
+  Vector<double> xz(const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(3, 0.0);
+    m[0] = 1.0;
+    m[2] = 1.0;
+    normalise(m);
+    return m;
+  }
+
   Vector<double> smoothly_varying(const double& t, const Vector<double> &x)
   {
     Vector<double> m(3,0.0);
@@ -149,6 +158,10 @@ namespace InitialM
     else if(m_name == "z")
       {
         return &InitialM::z;
+      }
+    else if(m_name == "xz")
+      {
+        return &InitialM::xz;
       }
     else if(m_name == "smoothly_varying")
       {

@@ -639,6 +639,13 @@ namespace oomph
           mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
           mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
@@ -711,6 +718,13 @@ namespace oomph
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
           mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)

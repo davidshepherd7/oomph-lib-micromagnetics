@@ -19,6 +19,7 @@
 // We need full definition of elements so that we can create meshes of
 // them.
 #include "./micromag.h"
+// #include "./micromagnetics_element.h"
 
 #include "./magnetics_helpers.h"
 
@@ -29,6 +30,7 @@
 #include "meshes/simple_rectangular_quadmesh.h"
 #include "meshes/simple_rectangular_tri_mesh.h"
 #include "meshes/simple_cubic_tet_mesh.h"
+#include "meshes/simple_cubic_mesh.h"
 #include "meshes/tetgen_mesh.h"
 #include "meshes/triangle_mesh.h"
 
@@ -151,6 +153,13 @@ namespace oomph
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
           mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
