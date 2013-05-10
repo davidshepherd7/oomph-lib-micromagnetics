@@ -48,14 +48,14 @@ int main(int argc, char *argv[])
   phi_1_problem.set_bulk_mesh(args.phi_1_mesh_pt);
   phi_1_problem.set_flux_mesh_factory(args.phi_1_flux_mesh_factory_fct_pt);
   // (CG w/ Ilu0 prec works well enough to hard code it).
-  phi_1_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-ilu");
+  phi_1_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-amg");
   problem.set_phi_1_problem_pt(&phi_1_problem);
 
   // Create and set phi sub problem
   GenericPoissonProblem phi_problem;
   phi_problem.set_bulk_mesh(args.phi_mesh_pt);
   // (CG w/ Ilu0 prec works well enough to hard code it).
-  phi_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-ilu");
+  phi_problem.linear_solver_pt() = Factories::linear_solver_factory("cg-amg");
   problem.set_phi_problem_pt(&phi_problem);
 
   // Create and set the BEM handler

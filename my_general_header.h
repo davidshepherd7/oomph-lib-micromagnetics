@@ -266,13 +266,20 @@ namespace oomph
           solver_pt = gmres_pt;
         }
 
-      else if(solver_name == "cg-ilu")
+      else if(solver_name == "cg-amg")
         {
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* amg_pt = new HyprePreconditioner;
+          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+
           IterativeLinearSolver* cg_pt = new CG<CRDoubleMatrix>;
-          cg_pt->preconditioner_pt()
-            = new ILUZeroPreconditioner<CRDoubleMatrix>;
+          cg_pt->preconditioner_pt() = amg_pt;
 
           solver_pt = cg_pt;
+#else // If no Hypre then give an error
+          throw OomphLibError("Don't have Hypre.",
+                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+#endif
         }
 
       else if(solver_name == "gmres-amg")
