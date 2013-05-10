@@ -144,9 +144,11 @@ def existing_items_match(small_dict, full_dict):
     return True
 
 
-def split_up_stuff(big_dict_list):
+def split_up_stuff(big_dict_list, keys_to_split_on=None):
 
-    keys_to_split = ['initial_m', 'mesh', 'h_app', 'time_stepper', 'tmax']
+    if keys_to_split_on is None:
+       keys_to_split_on = ['initial_m', 'mesh', 'h_app', 'time_stepper', 'tmax']
+
     parameter_sets = [{k: bigdict[k] for k in keys_to_split}
                       for bigdict in big_dict_list]
 
@@ -268,6 +270,31 @@ def plot(data, quantity_name, y_axis_data='tol'):
     fig.colorbar(im, cax=cbar_ax) #??ds only accurate for last subplot atm
 
     return fig
+
+
+def nsteps_vs_tol(data):
+
+    p = split_up_stuff(data, ['initial_m', 'h_app', 'mesh'])
+
+    for data_set in p:
+        fig, axarr = plt.subplots(2, 1, sharex = True)
+
+        fig.suptitle(data_set[0]['initial_m']+ ' ' +data_set[0]['mesh'] + ' ' +
+                     data_set[0]['h_app']+ ' ' +data_set[0]['time_stepper'])
+
+        for d in data if d['refine'] == 2:
+            axarr[0].scatter(d['tol'], sp.mean(d['error_norms']),
+                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+            axarr[0].set_ylabel('error norm')
+            axarr[0].legend(loc=0)
+
+            axarr[1].scatter(d['tol'], d['nsteps'],
+                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+            axarr[1].set_ylabel('nsteps')
+            axarr[1].set_xlabel('tol')
+            axarr[1].legend(loc=0)
+
+    return
 
 
 def main():

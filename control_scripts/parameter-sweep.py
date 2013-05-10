@@ -237,6 +237,18 @@ def standard_sweep(parameter_set, serial_mode=False):
         fields = ['minus_z']
         meshes = ['ut_cubeoid', 'st_cubeoid']
 
+    elif parameter_set == 'nmag_cubeoid':
+        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
+        dts = [1e-6]
+        tmaxs = [5.0]
+        tols = [1e-3]
+        refines = [1]
+        outdirs = [None]
+        timesteppers = ['midpoint']
+        initial_ms = ['xz']
+        fields = ['zero']
+        meshes = ['sq_cubeoid']
+
     elif parameter_set == 'check_semi_impl':
         rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
         dts = [1e-6]
@@ -245,7 +257,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         refines = [1,2]
         outdirs = [None]
         timesteppers = ['midpoint']
-        initial_ms = ['z']
+        initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
         meshes = ['ut_sphere', 'sq_square']
 
