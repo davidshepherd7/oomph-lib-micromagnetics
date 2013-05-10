@@ -48,7 +48,7 @@ namespace oomph
 
       // Cast bulk element to MagnetostaticFieldEquations
       MagnetostaticFieldEquations* field_ele_pt =
-        dynamic_cast<MagnetostaticFieldEquations*>(this->bulk_element_pt());
+        checked_dynamic_cast<MagnetostaticFieldEquations*>(this->bulk_element_pt());
 
       // Get magnetisation from bulk magnetics element.
       unsigned dim = this->nodal_dimension();

@@ -197,6 +197,10 @@ protected:
     }
   }
 
+  //??Ds stupid function but I seem to need it...
+  virtual void get_elemental_flux(const Vector<double> &s,
+                                  double& flux) const {}
+
 private:
 
 
@@ -326,8 +330,10 @@ fill_in_generic_residual_contribution_poisson_flux(
     }
 
    //Get the imposed flux
-   double flux;
-   get_flux(interpolated_x,flux);
+   double flux = 0, elemental_flux = 0;
+   get_flux(interpolated_x, flux);
+   get_elemental_flux(s, elemental_flux);
+   flux += elemental_flux;
 
    //Now add to the appropriate equations
 
