@@ -619,9 +619,8 @@ namespace oomph
   class QMicromagElement : public QElement<DIM,NNODE_1D>, public MicromagEquations
   {
   public:
-    /// Constructor: Call constructors for QElement and Micromag equations
-    QMicromagElement() : QElement<DIM,NNODE_1D>(), MicromagEquations()
-    {}
+    /// Constructor
+    QMicromagElement() {}
 
     /// Broken copy constructor
     QMicromagElement(const QMicromagElement<DIM,NNODE_1D>& dummy)
@@ -683,9 +682,8 @@ namespace oomph
   class TMicromagElement : public TElement<DIM,NNODE_1D>, public MicromagEquations
   {
   public:
-    /// Constructor: Call constructors for TElement and Micromag equations
-    TMicromagElement() : TElement<DIM,NNODE_1D>(), MicromagEquations()
-    {}
+    /// Constructor
+    TMicromagElement() {}
 
     /// Broken copy constructor
     TMicromagElement(const TMicromagElement<DIM,NNODE_1D>& dummy)
@@ -768,11 +766,8 @@ namespace oomph
                             double& source) const
     {
       source = 0;
-      if(Micromag_element_pt != 0)
-        {
-          // Get contribution from divergence of M at this integration point.
-          source += Micromag_element_pt->divergence_m(ipt);
-        }
+      // Get contribution from divergence of M at this integration point.
+      source += Micromag_element_pt->divergence_m(ipt);
 
       // Get contribution from any real source functions.
       double poisson_source=0;
@@ -1012,16 +1007,7 @@ namespace oomph
     {
       // Lots of checks because this is stupid really...
 #ifdef PARANOID
-      if(Magnetostatic_field_element_pt == 0)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Magnetics element pointer not set.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      if(this->nnode() != Magnetostatic_field_element_pt->nnode())
+      if(this->nnode() != magnetostatic_field_element_pt()->nnode())
         {
           std::ostringstream error_msg;
           error_msg << "Elements must be the same geometry for this to "
@@ -1031,7 +1017,7 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 
-      if(this->dim() != Magnetostatic_field_element_pt->dim())
+      if(this->dim() != magnetostatic_field_element_pt()->dim())
         {
           std::ostringstream error_msg;
           error_msg << "Elements must be the same geometry for this to "
@@ -1041,7 +1027,7 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 
-      if(this->integral_pt() != Magnetostatic_field_element_pt->integral_pt())
+      if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
         {
           std::ostringstream error_msg;
           error_msg << "Elements must have the same integration scheme for this to"
@@ -1054,7 +1040,7 @@ namespace oomph
 
       // Get contribution from field element
       Vector<double> h_ms;
-      Magnetostatic_field_element_pt->magnetostatic_field(s, h_ms);
+      magnetostatic_field_element_pt()->magnetostatic_field(s, h_ms);
 
       // Get contribution from any real applied field functions.
       Vector<double> h_app = MicromagEquations::get_applied_field(t, x, s);
@@ -1074,7 +1060,18 @@ namespace oomph
 
     /// \short Const access function for Magnetostatic_field_element_pt.
     MagnetostaticFieldEquations* magnetostatic_field_element_pt() const
-    {return Magnetostatic_field_element_pt;}
+    {
+#ifdef PARANOID
+      if(Magnetostatic_field_element_pt == 0)
+        {
+          std::ostringstream error_msg;
+          error_msg << "Magnetics element pointer not set.";
+          throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Magnetostatic_field_element_pt;
+    }
 
   private:
 
@@ -1199,6 +1196,8 @@ namespace oomph
 
   class MMInterpolator : public GeneralInterpolator
   {
+    // Assumption: m_index_micromag(0 - 3) are consecutive.
+
   private:
 
     // Extra storage for magnetisation values, so we can have nice vector

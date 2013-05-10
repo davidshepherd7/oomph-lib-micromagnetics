@@ -15,6 +15,7 @@
 #include "./micromag.h"
 
 using namespace oomph;
+using namespace StringConversion;
 
 namespace oomph
 {
@@ -103,14 +104,16 @@ namespace oomph
         // ??ds dodgy...
         for(unsigned e=0, ne=phi_1_mesh_pt()->nelement(); e < ne; e++)
           {
-            MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
+            MagnetostaticFieldEquations* ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
               (phi_1_mesh_pt()->element_pt(e));
 
             MicromagEquations* m_ele_pt = checked_dynamic_cast<MicromagEquations*>
               (llg_mesh_pt()->element_pt(e));
 
-            ele_pt->set_micromag_element_pt( m_ele_pt);
+            ele_pt->set_micromag_element_pt(m_ele_pt);
           }
+
       }
 
       // BEM handler:
@@ -162,30 +165,19 @@ namespace oomph
           ele_pt->set_micromag_element_pt(m_ele_pt);
         }
 
+
       // LLG problem:
       // ============================================================
 
       //??ds while we still have phi in MM elements pin them all
+      unsigned phi_index = llg_element_pt()->phi_index_micromag();
+      unsigned phi_1_index = llg_element_pt()->phi_1_index_micromag();
       for(unsigned nd=0, nnode=llg_mesh_pt()->nnode(); nd<nnode; nd++)
         {
           Node* nd_pt = llg_mesh_pt()->node_pt(nd);
-
-          unsigned phi_index = llg_element_pt()->phi_index_micromag();
-          unsigned phi_1_index = llg_element_pt()->phi_1_index_micromag();
-
           nd_pt->pin(phi_index);
           nd_pt->pin(phi_1_index);
         }
-
-      // // Get timestepper from mesh
-      // TimeStepper* ts_pt = llg_mesh_pt->node_pt(0)->time_stepper_pt();
-      // llg_sub_problem_pt()->add_time_stepper_pt(ts_pt);
-
-      // // Magnetic parameters
-      // llg_sub_problem_pt()->mag_parameters_pt()->set_nmag_rectangle();
-      // llg_sub_problem_pt()->applied_field_fct_pt() = applied_field_pt;
-
-      // llg_sub_problem_pt()->build();
 
       // Assign phi element pointers
       // ??ds dodgy...
@@ -433,7 +425,6 @@ namespace oomph
   void SemiImplicitHybridMicromagneticsProblem::
   doc_solution()
   {
-    using namespace StringConversion;
 
     unsigned npts = 2;
 

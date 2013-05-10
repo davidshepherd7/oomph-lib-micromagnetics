@@ -43,6 +43,8 @@ namespace oomph
   (and for "free") return vectors of a single row (i.e. all derivatives
   of one value).
 
+  * No need to template by DIM or Nnode: it has no effect on speed (tested).
+
 
   TODO:
 
@@ -128,7 +130,7 @@ namespace oomph
      if(nd_pt->nvalue() != Nvalue)
       {
        std::ostringstream error_msg;
-       error_msg << "NUmber of values must be the same at all nodes to use this interpolator.";
+       error_msg << "Number of values must be the same at all nodes to use this interpolator.";
        throw OomphLibError(error_msg.str(),
                            OOMPH_CURRENT_FUNCTION,
                            OOMPH_EXCEPTION_LOCATION);
@@ -138,7 +140,7 @@ namespace oomph
      if(nd_pt->time_stepper_pt() != This_element->node_pt(0)->time_stepper_pt())
       {
        std::ostringstream error_msg;
-       error_msg << "Time steppers should all be the same within one element!";
+       error_msg << "Time steppers should all be the same within an element!";
        throw OomphLibError(error_msg.str(),
                            OOMPH_CURRENT_FUNCTION,
                            OOMPH_EXCEPTION_LOCATION);
