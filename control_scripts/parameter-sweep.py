@@ -39,10 +39,7 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          output_root = "./",
                          **kwargs):
 
-    args = [os.path.basename(driver), dt, tmax, tol, refinement,
-            timestepper, initial_m, applied_field, mesh]
-
-    # Convert keyword args into correct format for command line input.
+    # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
     for key, value in kwargs.iteritems():
         processed_kwargs.append('-'+str(key))
@@ -55,15 +52,15 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                   + "_" + initial_m)
     final_outdir = pjoin(output_root, outdir)
 
-
     # Make sure the directory is empty and exists
     try:
         os.makedirs(final_outdir)
     except OSError:
-        for result_file in glob(pjoin(outdir,"*")):
+        for result_file in glob(pjoin(final_outdir, "*")):
             os.remove(result_file)
 
-    # Run with specified args, put output (stdout and stderr) into a file.
+    # Run with specified args in the driver directory, put output (stdout
+    # and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
         arglist = ['mpirun', '-np', str(mpi_ncores),
                    driver,
@@ -77,14 +74,21 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                    "-happ", applied_field,
                    "-mesh", mesh] + processed_kwargs
 
-        err_code = subp.call(arglist, stdout = stdout_file,
+        err_code = subp.call(arglist,
+                             stdout = stdout_file,
                              stderr = subp.STDOUT)
 
     if err_code == 0:
-        print(greenColour, args, endColour)
+        print(greenColour, [os.path.basename(driver), dt, tmax, tol, refinement,
+                            timestepper, initial_m, applied_field, mesh],
+                            endColour)
     else:
+        # Print failure message to screen
+        print('\n', redColour, ' '.join(arglist), endColour)
         print(redColour, "FAILED with exit code", err_code, "see",
               pjoin(final_outdir, "stdout"), endColour)
+
+        # Print failure message into file in ouput directory
         print('This run failed!', file=open(pjoin(final_outdir, "FAILED"), 'w'))
     return 0
 
