@@ -448,9 +448,11 @@ namespace oomph
       initial_m_name = to_lower(initial_m_name);
       h_app_name = to_lower(h_app_name);
 
-      mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
       initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
+
+      // Do the mesh last of all because it can be slow
+      mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
     }
 
     /// Write out all args (in a parseable format) to a stream.

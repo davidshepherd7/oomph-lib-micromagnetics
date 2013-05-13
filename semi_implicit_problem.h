@@ -798,6 +798,14 @@ namespace oomph
       to_lower(initial_m_name);
       to_lower(h_app_name);
 
+      // Pick the m and applied field function pointers
+      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
+      h_app_fct_pt = HApp::h_app_factory(h_app_name);
+
+      // Build the meshes, do this last because they can be SLOW, must be
+      // done before factory mesh function selection...
+
+      // LLG (magnetism) mesh
       llg_mesh_pt = SemiImplicitFactories::llg_mesh_factory
         (mesh_name, refinement, time_stepper_pt);
 
@@ -806,10 +814,6 @@ namespace oomph
         (mesh_name, refinement, time_stepper_pt);
       phi_1_mesh_pt = SemiImplicitFactories::phi_mesh_factory
         (mesh_name, refinement, time_stepper_pt);
-
-      // Pick the m and applied field function pointers
-      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
-      h_app_fct_pt = HApp::h_app_factory(h_app_name);
 
       // Pick the factory function for creating the phi 1 surface mesh
       phi_1_flux_mesh_factory_fct_pt =
