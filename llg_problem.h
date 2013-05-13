@@ -12,6 +12,7 @@
 
 #include "./mallinson_solution.h"
 
+#include <algorithm>
 
 
 namespace oomph

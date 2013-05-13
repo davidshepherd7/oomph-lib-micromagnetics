@@ -13,293 +13,14 @@
 
 using namespace oomph;
 
-namespace oomph
-{
-
-  // Don't change these typedefs! They are needed for compatability with
-  // poisson elements
-
-  /// \short Function pointer to the prescribed-flux function fct(x,f(x)) --
-  /// x is a Vector!
-  typedef void (*PoissonPrescribedFluxFctPt)
-  (const Vector<double>& x, double& flux);
-
-  /// \short Function pointer to source function fct(x,f(x)) --
-  /// x is a Vector!
-  typedef void (*PoissonSourceFctPt)(const Vector<double>& x, double& f);
-
-  // =================================================================
-  /// Solve for the magnetostatic field in a mesh with known magnetisation
-  /// using the hybrid FEM/BEM method.
-  // =================================================================
-  template<class ELEMENT>
-  class ExplicitHybridMagnetostaticFieldProblem
-  {
-  public:
-
-    /// Constructor
-    ExplicitHybridMagnetostaticFieldProblem
-    (Mesh* phi_1_mesh_pt,
-       Mesh* phi_mesh_pt,
-       const PoissonSourceFctPt divM_pt,
-       const PoissonPrescribedFluxFctPt Mdotn_pt)
-    {
-      // Set up phi_1 problem
-      Phi_1_problem.set_bulk_mesh(phi_1_mesh_pt);
-      Phi_1_problem.set_source_fct_pt(divM_pt);
-
-      Phi_1_problem.set_flux_mesh_factory(SemiImplicitFactories::
-          phi_1_flux_mesh_factory_factory(phi_1_mesh_pt->finite_element_pt(0)));
-
-      // Phi_1 b.c.s are all Neumann
-      Vector<unsigned> boundaries;
-      for(unsigned b=0, nb=phi_1_mesh_pt->nboundary(); b < nb; b++)
-        {boundaries.push_back(b);}
-      Phi_1_problem.set_neumann_boundaries(boundaries, Mdotn_pt);
-
-      // Pin a single phi_1 value so that the problem is fully determined.
-      // This is necessary to avoid having a free constant of integration
-      // (which causes scaling problems). Just pin the first non boundary
-      // node ??ds not sure this is ok...
-      Node* pinned_phi_1_node_pt = phi_1_mesh_pt->get_some_non_boundary_node();
-      pinned_phi_1_node_pt->pin(0);
-      pinned_phi_1_node_pt->set_value(0,0.0);
-      Phi_1_problem.build();
-
-
-      // Construct the BEM (must be done before pinning phi values)
-      Bem_handler.set_bem_all_boundaries(phi_1_mesh_pt);
-      // both zero because they are in seperate problems
-      Bem_handler.set_input_index(0);
-      Bem_handler.set_output_index(0);
-//??ds memory leak?
-      Bem_handler.integration_scheme_pt() = new TVariableOrderGaussLegendre<2>;
-      Bem_handler.Bem_element_factory =
-        SemiImplicitFactories::bem_element_factory_factory(phi_1_mesh_pt->finite_element_pt(0));
-      Bem_handler.build();
-
-
-      // Now we can set up phi problem
-      Phi_problem.set_bulk_mesh(phi_mesh_pt);
-      unsigned nboundary = phi_mesh_pt->nboundary();
-      Phi_boundary_values_pts.assign(nboundary, 0);
-      for(unsigned b=0; b < nboundary; b++)
-        {
-          // Phi is determined by BEM
-          LinearAlgebraDistribution* dist_pt =
-            new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
-                                          phi_mesh_pt->nboundary_node(b), false);
-
-          Phi_boundary_values_pts[b] = new DoubleVector(dist_pt);
-          Phi_problem.set_dirichlet_boundary_by_vector(b, Phi_boundary_values_pts[b]);
-        }
-      Phi_problem.build();
-
-      // Set up linear solvers
-      Phi_problem.linear_solver_pt() = new CG<CRDoubleMatrix>;
-      Phi_1_problem.linear_solver_pt() = new CG<CRDoubleMatrix>;
-
-#ifdef OOMPH_HAS_HYPRE
-      // Cast to iterative solver pointers
-      IterativeLinearSolver* phi_it_solver_pt =
-        dynamic_cast<IterativeLinearSolver*>(Phi_problem.linear_solver_pt());
-
-      IterativeLinearSolver* phi_1_it_solver_pt =
-        dynamic_cast<IterativeLinearSolver*>(Phi_1_problem.linear_solver_pt());
-
-      // AMG preconditioners
-      HyprePreconditioner *amg_phi_pt, *amg_phi_1_pt;
-      amg_phi_pt = new HyprePreconditioner;
-      phi_it_solver_pt->preconditioner_pt() = amg_phi_pt;
-      amg_phi_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-
-      amg_phi_1_pt = new HyprePreconditioner;
-      phi_1_it_solver_pt->preconditioner_pt() = amg_phi_1_pt;
-      amg_phi_1_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-#endif
-
-      // // ILU0 preconditioners
-      // phi_it_solver_pt->preconditioner_pt()=new ILUZeroPreconditioner<CRDoubleMatrix>;
-      // phi_1_it_solver_pt->preconditioner_pt()=new ILUZeroPreconditioner<CRDoubleMatrix>;
-
-
-    };
-
-
-    /// Blank destructor
-    ~ExplicitHybridMagnetostaticFieldProblem() {}
-
-    void solve()
-    {
-      // Solve for phi1
-      Phi_1_problem.newton_solve();
-
-      // Update boundary values of phi
-      Bem_handler.get_bem_values(Phi_boundary_values_pts);
-
-      // Solve for phi
-      Phi_problem.newton_solve();
-    }
-
-    /// Calculate the magnetostatic field at each node (= - grad phi).
-    void average_magnetostatic_field(Vector<double> &magnetostatic_field) const;
-
-    /// Output solution (phi values only).
-    void doc_solution(const unsigned &label) const;
-
-    // Access functions
-    // ============================================================
-
-    /// \short Const access function for Phi_mesh_pt.
-    Mesh* phi_mesh_pt() const {return Phi_problem.bulk_mesh_pt();}
-
-    /// \short Const access function for Phi_mesh_pt.
-    Mesh* phi1_mesh_pt() const {return Phi_1_problem.bulk_mesh_pt();}
-
-  private:
-
-    /// Bem handler object - provide functions and data needed for hybird
-    /// BEM method (dim hardcoded to 3, probably ok).
-    BoundaryElementHandler Bem_handler;
-
-    /// The problem for the preliminary poisson solve to get boundary
-    /// conditions on the magnetostatic potential solve.
-    GenericPoissonProblem Phi_1_problem;
-
-    /// The problem for the "real" magnetostatic potential.
-    GenericPoissonProblem Phi_problem;
-
-    /// Intermediate storage for results of bem (ideally we would have it
-    /// call a function to get the boundary values filled in but c++ member
-    /// functions pointers are useless...
-    Vector<DoubleVector*> Phi_boundary_values_pts;
-
-  };
-
-  // =================================================================
-  /// Calculate the average field in the mesh (= - grad phi).
-  // =================================================================
-  template<class ELEMENT>
-  void ExplicitHybridMagnetostaticFieldProblem<ELEMENT>::
-  average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const
-  {
-    // Pick a point in the middle of the element
-    const Vector<double> s(3,0.3);
-    Vector<double> total_dphidx(3,0.0);
-
-    // Loop over all elements calculating the value in the middle of the element
-    for(unsigned e=0, ne=phi_mesh_pt()->nelement(); e < ne; e++)
-      {
-        ELEMENT* ele_pt = dynamic_cast<ELEMENT*>
-          (phi_mesh_pt()->element_pt(e));
-
-        // Get the shape function and eulerian coordinate derivative at
-        // position s.
-        unsigned n_node = ele_pt->nnode();
-        Shape psi(n_node); DShape dpsidx(n_node,3);
-        ele_pt->dshape_eulerian(s,psi,dpsidx);
-
-        // Interpolate grad phi
-        Vector<double> interpolated_dphidx(3,0.0);
-        for(unsigned l=0;l<n_node;l++)
-          {
-            double phi_value = ele_pt->raw_nodal_value(l,0);
-            for(unsigned i=0; i<3; i++)
-              {interpolated_dphidx[i] += phi_value*dpsidx(l,i);}
-          }
-
-        // Add this grad phi to the sum
-        for(unsigned j=0; j<3; j++)
-          {
-            total_dphidx[j] += interpolated_dphidx[j];
-          }
-      }
-
-    // Divide sum by number of elements to get the average. Take the
-    // negative to get the field.
-    double nele = double(phi_mesh_pt()->nelement());
-    for(unsigned j=0; j<3; j++)
-      {
-        average_magnetostatic_field[j] = - total_dphidx[j] / nele;
-      }
-  }
-
-  // =================================================================
-  /// Output solution
-  // =================================================================
-  template<class ELEMENT>
-  void ExplicitHybridMagnetostaticFieldProblem<ELEMENT>::
-  doc_solution(const unsigned &label) const
-  {
-    std::ofstream some_file;
-    char filename[100];
-
-    // Number of plot points
-    unsigned npts;
-    npts=3;
-
-    // Output solution with specified number of plot points per element
-    sprintf(filename,"results/phi_solution%i.dat",label);
-    some_file.open(filename);
-    phi_mesh_pt()->output(some_file,npts);
-    some_file.close();
-
-    sprintf(filename,"results/phi1_solution%i.dat",label);
-    some_file.open(filename);
-    phi1_mesh_pt()->output(some_file,npts);
-    some_file.close();
-  }
-
-
-
-} // End of oomph namespace
-
 namespace Inputs
 {
-  //??ds try some others eventually?
-
-  void exact_M(const Vector<double> &x, Vector<double> &M)
+  Vector<double> exact_M(const double& t, const Vector<double> &x)
   {
-    M.assign(3,0.0);
+    Vector<double> M(3,0.0);
     M[0] = 1;
+    return M;
   }
-
-  void unit_surface_normal(const Vector<double> &x, Vector<double> &n)
-  {
-    // n = r/|r| = normalised position since this is a sphere
-    n = x;
-    normalise(n);
-  }
-
-  void div_M(const Vector<double>& x, double& f)
-  {
-    // Finite difference it...
-    double eps = 1e-10;
-
-    Vector<double> Mxp, Mxm, Myp, Mym, Mzp, Mzm;
-    Vector<double> Xxp(x), Xxm(x), Xyp(x), Xym(x), Xzp(x), Xzm(x);
-    Xxp[0] += eps; Xxm[0] -= eps;
-    Xyp[1] += eps; Xym[1] -= eps;
-    Xzp[2] += eps; Xzm[2] -= eps;
-
-    exact_M(Xxp,Mxp); exact_M(Xxm,Mxm);
-    exact_M(Xyp,Myp); exact_M(Xym,Mym);
-    exact_M(Xzp,Mzp); exact_M(Xzm,Mzm);
-
-    f = Mxp[0] - Mxm[0]
-      + Myp[1] - Mym[1]
-      + Mzp[2] - Mzm[2];
-  }
-
-  void Mdotn(const Vector<double>& x, double& f)
-  {
-    Vector<double> M, n;
-    exact_M(x,M);
-    unit_surface_normal(x,n);
-
-    f = VectorOps::dot(M,n);
-  }
-
 }
 
 int main()
@@ -307,35 +28,64 @@ int main()
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  // Make a spherical mesh from the listed files generated previously.
-  TetgenMesh<TMagnetostaticFieldElement<3,2> > sphere_mesh1("mesh.1.node",
-                                                            "mesh.1.ele",
-                                                            "mesh.1.face");
-  // Make a spherical mesh from the listed files generated previously.
-  TetgenMesh<TMagnetostaticFieldElement<3,2> > sphere_mesh("mesh.1.node",
-                                                           "mesh.1.ele",
-                                                           "mesh.1.face");
+  char *fake_argv[] = {"*dummy*", "-ref", "2", "-mesh", "ut_sphere", "-happ", "zero"};
+  int fake_argc = 7;
 
-  // Set a divergence of M (M = constant so divM = 0).
-  PoissonSourceFctPt divM_pt = &Inputs::div_M;
+  // Read and process the fake command line arguments
+  SemiImplicitMMArgs fake_args;
+  fake_args.parse(fake_argc, fake_argv);
 
-  // Set flux conditions on phi_1 (= Mdotn).
-  PoissonPrescribedFluxFctPt Mdotn_pt = &Inputs::Mdotn;
+  // Create main semi implicit problem
+  SemiImplicitHybridMicromagneticsProblem problem;
+  problem.add_time_stepper_pt(fake_args.time_stepper_pt);
+  problem.llg_sub_problem_pt()->set_bulk_mesh_pt(fake_args.llg_mesh_pt);
+  problem.llg_sub_problem_pt()->applied_field_fct_pt() = fake_args.h_app_fct_pt;
+  problem.Doc_info.Args_pt = &fake_args;
 
-  // Make a hybrid problem
-  ExplicitHybridMagnetostaticFieldProblem<TMagnetostaticFieldElement<3,2> >
-    magnetostatic_problem(&sphere_mesh1, &sphere_mesh,
-                          divM_pt, Mdotn_pt);
+  // Create and set phi_1 sub problem
+  GenericPoissonProblem phi_1_problem;
+  phi_1_problem.set_bulk_mesh(fake_args.phi_1_mesh_pt);
+  phi_1_problem.set_flux_mesh_factory(fake_args.phi_1_flux_mesh_factory_fct_pt);
+  problem.set_phi_1_problem_pt(&phi_1_problem);
+
+  // Create and set phi sub problem
+  GenericPoissonProblem phi_problem;
+  phi_problem.set_bulk_mesh(fake_args.phi_mesh_pt);
+  problem.set_phi_problem_pt(&phi_problem);
+
+  // Create and set the BEM handler
+  BoundaryElementHandler bem_handler;
+  problem.bem_handler_pt() = &bem_handler;
+  problem.bem_handler_pt()->Bem_element_factory = fake_args.bem_element_factory_fct_pt;
+
+  // Set up the magnetic parameters
+  problem.mag_parameters_pt()->set_simple_llg_parameters();
+
+  // Customise details of the output
+  problem.Doc_info.set_directory(fake_args.outdir);
+  problem.Doc_info.output_jacobian = fake_args.output_jacobian;
+
+  // Finished customising the problem, now we can build it.
+  problem.build();
+
+
+  // Initialise problem and output initial conditions
+  // ============================================================
+  problem.initialise_dt(1e-6);
+  problem.set_initial_condition(Inputs::exact_M);
+
+  problem.initial_doc();
+
 
   // Solve it
-  magnetostatic_problem.solve();
+  // ============================================================
+  problem.magnetostatics_solve();
 
   // Output results
-  magnetostatic_problem.doc_solution(0);
+  problem.doc_solution();
 
   // Compute field
-  Vector<double> average_field(3,0.0);
-  magnetostatic_problem.average_magnetostatic_field(average_field);
+  Vector<double> average_field = problem.average_magnetostatic_field();
   double rel_err = std::abs((average_field[0] - (-1.0/3.0))/average_field[0]);
   double abs_err = std::abs(average_field[0] - (-1.0/3.0));
 

@@ -815,14 +815,11 @@ namespace oomph
     // ============================================================
 
     /// \short Non-const access function for Micromag_element_pt.
-    MicromagEquations* micromag_element_pt() const
-    {return micromag_element_pt();}
-
     void set_micromag_element_pt(MicromagEquations* ele_pt)
     {Micromag_element_pt = ele_pt;}
 
     /// \short Const access function for Micromag_element_pt.
-    MicromagEquations*& micromag_element_pt()
+    MicromagEquations* micromag_element_pt() const
     {
       // Lots of checks because this is stupid really...
 #ifdef PARANOID

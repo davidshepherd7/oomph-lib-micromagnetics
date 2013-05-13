@@ -213,10 +213,10 @@ namespace oomph
         }
     }
 
-    /// Replacement for "newton_solve()" that does a few different solves.
-    double semi_implicit_step(const double &dt, const double eps=0.0)
-    {
 
+    /// \short Solve for the magnetostatic field.
+    void magnetostatics_solve()
+    {
       std::cout << std::endl
                 << "BEM solve" << std::endl
                 << "--------------------------" <<std::endl;
@@ -232,6 +232,14 @@ namespace oomph
       // solve for phi
       std::cout << "solving phi" << std::endl;
       phi_problem_pt()->newton_solve();
+    }
+
+
+    /// Replacement for "newton_solve()" that does a few different solves.
+    double semi_implicit_step(const double &dt, const double eps=0.0)
+    {
+      // Solve for the magnetostatic field.
+      magnetostatics_solve();
 
       // solve for m
       if(eps != 0.0)
@@ -257,7 +265,7 @@ namespace oomph
     /// Output
     void doc_solution_additional(std::ofstream &some_file) const;
 
-    void average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const;
+    Vector<double> average_magnetostatic_field() const;
 
     /// Access functions
     // =================================================================
@@ -445,8 +453,8 @@ namespace oomph
   //============================================================
   //
   //============================================================
-  void SemiImplicitHybridMicromagneticsProblem::
-  average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const
+  Vector<double> SemiImplicitHybridMicromagneticsProblem::
+  average_magnetostatic_field() const
   {
     const unsigned nodal_dim = checked_dynamic_cast<MagnetostaticFieldEquations*>
       (phi_problem_pt()->mesh_pt()->element_pt(0))->node_pt(0)->ndim();
@@ -486,11 +494,13 @@ namespace oomph
     // Divide sum by number of elements to get the average. Take the
     // negative to get the field.
     double nele = double(phi_problem_pt()->mesh_pt()->nelement());
-    average_magnetostatic_field.assign(3,0.0);
+    Vector<double> average_magnetostatic_field(3,0.0);
     for(unsigned j=0; j<nodal_dim; j++)
       {
         average_magnetostatic_field[j] = - total_dphidx[j] / nele;
       }
+
+    return average_magnetostatic_field;
   }
 
   // void SemiImplicitHybridMicromagneticsProblem::

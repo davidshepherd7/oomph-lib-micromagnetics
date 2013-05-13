@@ -1,7 +1,6 @@
 #ifndef OOMPH_VECTOR_HELPERS_H
 #define OOMPH_VECTOR_HELPERS_H
 
-#include "generic.h"
 #include "./prettyprint98.hpp"
 
 #include <cmath>
