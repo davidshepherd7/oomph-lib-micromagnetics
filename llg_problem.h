@@ -150,6 +150,21 @@ namespace oomph
           renormalise_magnetisation();
         }
 
+#ifdef PARANOID
+      double max_angle_var = *std::max_element(elemental_max_m_angle_variations());
+      if(max_angle_var > MathematicalConstants::Pi/6)
+        {
+          std::string error_msg
+            = "Large angle variations of " + to_string(max_angle_var)
+            + " > " + to_string(MathematicalConstants::Pi/6)
+            + " across a single element,\n";
+          error_msg += "this often means that your mesh is not sufficiently refined.";
+          throw OomphLibWarning(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+
     }
 
     /// Output solution
@@ -170,8 +185,6 @@ namespace oomph
       norm_m_error(m_error_avg, m_error_stddev);
 
       Vector<double> angle_variations = elemental_max_m_angle_variations();
-
-      std::cout << angle_variations << std::endl;
 
       trace_file
         << m_error_avg << " "

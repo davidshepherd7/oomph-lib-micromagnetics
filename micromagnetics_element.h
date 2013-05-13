@@ -562,7 +562,7 @@ namespace oomph
       for(unsigned nd=0, n_nd=nnode(); nd<n_nd; nd++)
         {
           Vector<double> m1 = get_m(nd);
-          for(unsigned nd2=0; nd<n_nd; nd++)
+          for(unsigned nd2=0; nd2<n_nd; nd2++)
             {
               Vector<double> m2 = get_m(nd2);
               max_angle = std::max(max_angle,
