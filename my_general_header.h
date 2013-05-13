@@ -297,6 +297,10 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
 #endif
         }
+      else if(solver_name == "fdlu")
+        {
+          solver_pt = new FD_LU;
+        }
       else
         {
           std::string err("Unrecognised solver name ");
@@ -340,7 +344,7 @@ namespace oomph
         outdir = "results";
 
         CommandLineArgs::specify_command_line_flag("-output_jac", &output_jacobian);
-        output_jacobian = "never";
+        output_jacobian = "at_start";
 
         CommandLineArgs::specify_command_line_flag("-ts", &time_stepper_name);
         time_stepper_name = "bdf2";

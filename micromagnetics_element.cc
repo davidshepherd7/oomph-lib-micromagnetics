@@ -273,6 +273,11 @@ namespace oomph
                     // derivatives of the test function).
                     residuals[m_eqn] -= exch_c * llg_precess_c * mxexch[i] * W;
                   }
+                else
+                  {
+                    std::cerr << "PINNED magnetisation! shouldn't be any of these!"
+                              <<std::endl;
+                  }
               }
 
           } // End of loop over test functions, end of residual calculations

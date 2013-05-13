@@ -101,6 +101,7 @@ namespace oomph
 
       // Do equation numbering
       std::cout << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
+      std::cout << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
     }
 
     /// Destructor

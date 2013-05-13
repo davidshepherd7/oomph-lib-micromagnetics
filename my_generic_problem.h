@@ -175,6 +175,13 @@ namespace oomph
           }
 #endif
 
+        // Output Jacobian if requested
+        if((to_lower(Doc_info.output_jacobian) == "at_start")
+           || (to_lower(Doc_info.output_jacobian) == "always"))
+          {
+            dump_current_jacobian("at_start");
+          }
+
         write_initial_data();
         this->doc_solution();
         initial_doc_additional();
@@ -183,12 +190,10 @@ namespace oomph
     void final_doc()
       {
         // Output Jacobian if requested
-        if(to_lower(Doc_info.output_jacobian) == "at_end")
+        if((to_lower(Doc_info.output_jacobian) == "at_end")
+           || (to_lower(Doc_info.output_jacobian) == "always"))
           {
-            CRDoubleMatrix J;
-            DoubleVector dummy;
-            this->get_jacobian(dummy, J);
-            J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian_at_end");
+            dump_current_jacobian("at_end");
           }
 
         final_doc_additional();
@@ -202,11 +207,7 @@ namespace oomph
         // Output Jacobian if requested
         if(to_lower(Doc_info.output_jacobian) == "always")
           {
-            CRDoubleMatrix J;
-            DoubleVector dummy;
-            this->get_jacobian(dummy, J);
-            J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian" +
-                                    to_string(Doc_info.number()));
+            dump_current_jacobian(to_string(Doc_info.number()));
           }
 
         std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
@@ -222,6 +223,15 @@ namespace oomph
     virtual double get_error_norm() const
     {
       return -1;
+    }
+
+    void dump_current_jacobian(const std::string& label)
+    {
+      CRDoubleMatrix J;
+      DoubleVector dummy;
+      this->get_jacobian(dummy, J);
+      J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian_" +
+                              label);
     }
 
     unsigned Dim;

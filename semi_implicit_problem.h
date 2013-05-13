@@ -236,7 +236,7 @@ namespace oomph
       // solve for m
       if(eps != 0.0)
         {
-          std::cout << "solving LLG adaptively" << std::endl;
+          std::cout << "solving LLG (with time adaptivity)" << std::endl;
           return llg_sub_problem_pt()->adaptive_unsteady_newton_solve(dt, eps);
         }
       else
