@@ -80,6 +80,14 @@ namespace VectorOps
   {diff = vector_diff(a, b);}
 
 
+  /// \short Get the (smallest) angle between two vectors.
+  double angle_diff(const Vector<double> &a, const Vector<double> &b)
+    {
+      // Use the dot product formula:
+      return std::acos(dot(a, b) / (two_norm(a) * two_norm(b)));
+    }
+
+
   inline Vector<double> abs_vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
     check_lengths_match(a,b);

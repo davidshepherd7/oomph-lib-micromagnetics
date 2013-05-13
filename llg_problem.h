@@ -169,13 +169,33 @@ namespace oomph
       double m_error_avg(0), m_error_stddev(0);
       norm_m_error(m_error_avg, m_error_stddev);
 
+      Vector<double> angle_variations = elemental_max_m_angle_variations();
+
+      std::cout << angle_variations << std::endl;
+
       trace_file
         << m_error_avg << " "
-        << m_error_stddev << " ";
+        << m_error_stddev << " "
+        << *std::max_element(angle_variations.begin(), angle_variations.end()) << " ";
     }
 
     /// Set up an initial M
     void set_initial_condition(const InitialM::InitialMFctPt initial_m_pt);
+
+
+    /// \short Return a vector of the maximum angle variation in each
+    /// element.
+    Vector<double> elemental_max_m_angle_variations() const
+      {
+        Vector<double> angles;
+        for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
+          {
+            MicromagEquations* ele_pt = dynamic_cast<MicromagEquations*>
+              (bulk_mesh_pt()->element_pt(e));
+            angles.push_back(ele_pt->max_m_angle_variation());
+          }
+        return angles;
+      }
 
     /// Error for adaptive timestepper (rms of nodal error determined by
     /// comparison with explicit timestepper result).

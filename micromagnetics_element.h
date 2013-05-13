@@ -537,6 +537,42 @@ namespace oomph
     } // end of dM_dt_micromag
 
 
+    /// \short Return a vector containing the magnetisation at a node.
+    Vector<double> get_m(unsigned node) const
+    {
+      Vector<double> m(3, 0.0);
+      for(unsigned j=0; j<3; j++)
+        {
+          m[j] = nodal_value(node, m_index_micromag(j));
+        }
+      return m;
+    }
+
+
+    /// \short Get the maximum difference in angle between the
+    /// magnetisation of two nodes of the element. If this is large there
+    /// is likely an error somewhere (in code or in problem setup), or
+    /// there is not enough refinement.
+    double max_m_angle_variation() const
+    {
+      double max_angle = 0;
+
+      // Double loop over nodes: compare magnetisation angles at all nodes
+      // to each other, store the maximum difference of angles.
+      for(unsigned nd=0, n_nd=nnode(); nd<n_nd; nd++)
+        {
+          Vector<double> m1 = get_m(nd);
+          for(unsigned nd2=0; nd<n_nd; nd++)
+            {
+              Vector<double> m2 = get_m(nd2);
+              max_angle = std::max(max_angle,
+                                   VectorOps::angle_diff(m1, m2));
+            }
+        }
+      return max_angle;
+    }
+
+
     /// A dummy double to hold space in Jacobian matrices for entries that are
     /// determined by the boundary element method part of the hybrid method
     /// (until it can be filled in at the problem level).

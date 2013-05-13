@@ -255,7 +255,7 @@ namespace oomph
     {llg_sub_problem_pt()->initialise_dt(dt);}
 
     /// Output
-    void doc_solution();
+    void doc_solution_additional(std::ofstream &some_file) const;
 
     void average_magnetostatic_field(Vector<double> &average_magnetostatic_field) const;
 
@@ -423,82 +423,23 @@ namespace oomph
   }
 
   void SemiImplicitHybridMicromagneticsProblem::
-  doc_solution()
+  doc_solution_additional(std::ofstream &some_file) const
   {
-
     unsigned npts = 2;
 
-    // Output llg solution
-    std::ofstream soln_file((Doc_info.directory() + "/soln"
-                             + Doc_info.number_as_string() + ".dat").c_str());
-    llg_sub_problem_pt()->mesh_pt()->output(soln_file,npts);
-    soln_file.close();
+    // Output llg solution into the main output file
+    llg_sub_problem_pt()->mesh_pt()->output(some_file, npts);
 
     // Output the magnetostatic field data
     std::ofstream field_file((Doc_info.directory() + "/field"
                               + Doc_info.number_as_string() + ".dat").c_str());
-    for(unsigned e=0, ne=phi_problem_pt()->mesh_pt()->nelement(); e < ne; e++)
-      {
-        MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
-          (phi_problem_pt()->mesh_pt()->element_pt(e));
-        ele_pt->output(field_file,npts);
-      }
+    phi_problem_pt()->mesh_pt()->output(field_file, npts);
     field_file.close();
 
     std::ofstream phi1_file((Doc_info.directory() + "/phione"
                              + Doc_info.number_as_string() + ".dat").c_str());
-    phi_1_problem_pt()->mesh_pt()->output(phi1_file,npts);
+    phi_1_problem_pt()->mesh_pt()->output(phi1_file, npts);
     phi1_file.close();
-
-    // Write average magnetisations to a file
-    Vector<double> m = llg_sub_problem_pt()->mean_magnetisation();
-
-    std::ofstream avgs((Doc_info.directory() +"/averages").c_str(),
-                       std::ios::app);
-    avgs << llg_sub_problem_pt()->time();
-    for(unsigned j=0; j<3; j++) avgs << " " << m[j];
-    avgs << std::endl;
-    avgs.close();
-
-
-    // Write average field to a file
-    Vector<double> hms;
-    average_magnetostatic_field(hms);
-    std::ofstream field_avgs((Doc_info.directory() +"/field_averages").c_str(),
-                             std::ios::app);
-    field_avgs << llg_sub_problem_pt()->time();
-    for(unsigned j=0; j<3; j++) field_avgs << " " << hms[j];
-    field_avgs << std::endl;
-    field_avgs.close();
-
-
-    // Get average (and standard deviation) of |m| - 1 and |m|.dm/dn
-    double m_error_avg(0), m_error_stddev(0), orthogonality_error_avg(0),
-      orthogonality_error_stddev(0);
-    llg_sub_problem_pt()->norm_m_error(m_error_avg, m_error_stddev);
-    // llg_sub_problem_pt()->orthogonality_m_error
-      // (orthogonality_error_avg, orthogonality_error_stddev);
-
-    // Write them to file
-    std::ofstream errors((Doc_info.directory()+"/errors").c_str(),std::ios::app);
-    errors << llg_sub_problem_pt()->time()
-           << " " << m_error_avg
-           << " " << m_error_stddev
-           << " " << orthogonality_error_avg
-           << " " << orthogonality_error_stddev
-           << std::endl;
-    errors.close();
-
-
-    // Output convergence data if we have it
-    if(llg_sub_problem_pt()->record_convergence_data())
-      {
-        llg_sub_problem_pt()->convergence_data_pt()
-          ->output_this_newton_step("convergence_data");
-      }
-
-    // Finally increment the label ready for next time
-    Doc_info.number()++;
   }
 
   //============================================================
