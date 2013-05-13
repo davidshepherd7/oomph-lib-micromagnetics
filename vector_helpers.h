@@ -86,7 +86,24 @@ namespace VectorOps
   double angle_diff(const Vector<double> &a, const Vector<double> &b)
     {
       // Use the dot product formula:
-      return std::acos(dot(a, b) / (two_norm(a) * two_norm(b)));
+      double temp = dot(a, b) / (two_norm(a) * two_norm(b));
+
+      // Be safe for slightly wrong floating point values
+      if(temp > 1.0)
+        {
+          if(temp < 1.0 + 1e-12)
+            {
+              temp = 1.0;
+            }
+          else
+            {
+              throw OomphLibError(to_string(temp) +" is out of range",
+                                  OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+        }
+
+      return std::acos(temp);
     }
 
 
