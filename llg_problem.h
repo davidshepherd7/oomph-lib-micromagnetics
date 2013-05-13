@@ -101,8 +101,8 @@ namespace oomph
       this->build_global_mesh();
 
       // Do equation numbering
-      std::cout << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
-      std::cout << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
+      oomph_info << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
+      oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
     }
 
     /// Destructor
@@ -152,12 +152,22 @@ namespace oomph
         }
 
 #ifdef PARANOID
-      double max_angle_var = *std::max_element(elemental_max_m_angle_variations());
-      if(max_angle_var > MathematicalConstants::Pi/6)
+
+      // From the nmag user manual:
+      // [Begin quote M Donahue]
+      // * if the spin angle is approaching 180 degrees, then the results are completely bogus.
+      // * over 90 degrees the results are highly questionable.
+      // * Under 30 degrees the results are probably reliable.
+      // [end quote]
+      // (the spin angle is the angle between two neighbouring magnetisations).
+
+      Vector<double> a = elemental_max_m_angle_variations();
+      double max_angle_var = *std::max_element(a.begin(), a.end());
+      if(max_angle_var > MathematicalConstants::Pi/4)
         {
           std::string error_msg
             = "Large angle variations of " + to_string(max_angle_var)
-            + " > " + to_string(MathematicalConstants::Pi/6)
+            + " > " + to_string(MathematicalConstants::Pi/4)
             + " across a single element,\n";
           error_msg += "this often means that your mesh is not sufficiently refined.";
           throw OomphLibWarning(error_msg, OOMPH_CURRENT_FUNCTION,
