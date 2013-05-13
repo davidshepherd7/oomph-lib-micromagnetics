@@ -126,9 +126,9 @@ namespace oomph
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
           mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
-            ("../meshes/square." + to_string(refinement_level) + ".node",
-             "../meshes/square." + to_string(refinement_level) + ".ele",
-             "../meshes/square." + to_string(refinement_level) + ".poly",
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
              time_stepper_pt);
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
@@ -143,9 +143,9 @@ namespace oomph
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
-            ("../meshes/cubeoid." + to_string(refinement_level) + ".node",
-             "../meshes/cubeoid." + to_string(refinement_level) + ".ele",
-             "../meshes/cubeoid." + to_string(refinement_level) + ".face",
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
@@ -165,9 +165,9 @@ namespace oomph
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
-            ("../meshes/sphere." + to_string(refinement_level) + ".node",
-             "../meshes/sphere." + to_string(refinement_level) + ".ele",
-             "../meshes/sphere." + to_string(refinement_level) + ".face",
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
       else
