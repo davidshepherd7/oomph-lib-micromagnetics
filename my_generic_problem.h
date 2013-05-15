@@ -11,6 +11,7 @@
 #include "../../src/generic/oomph_utilities.h"
 
 #include "./my_general_header.h"
+#include "./git_version.h"
 
 #include <ctime>
 #include <ostream>
@@ -112,7 +113,9 @@ namespace oomph
 
       info_file
         << "real_time " << real_date_time() << std::endl
-        << "unix_time " << time() << std::endl;
+        << "unix_time " << time() << std::endl
+        << "git_version " << GitVersion::VERSION << std::endl
+        << "build_time " << GitVersion::BUILD_TIME <<std::endl;
 
       Doc_info.Args_pt->dump_args(info_file);
 

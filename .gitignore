@@ -44,6 +44,10 @@ callgrind*
 *.edge
 sphere.0
 
+# Generated headers
+git_version.h
+micromag.h
+
 # Just ignore entire experiments folder, should be ok...
 experiments/*
 */old_experiments*/*

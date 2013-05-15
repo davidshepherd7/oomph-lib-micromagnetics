@@ -49,6 +49,7 @@ dummy_$(libname).h:  $(headers)
 		all_$(libname).aux > $(libname).h
 	sed -e 's/</ "/g' -e 's/>/"/g' -i $(libname).h
 	rm all_$(libname).aux
+	./generate_git_version_header.sh
 
 
 # Extra hook for install: Optionally replace headers by symbolic links
