@@ -36,6 +36,7 @@ endColour = '\033[0m'
 
 def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                          outdir, timestepper, initial_m, applied_field, mesh,
+                         solver,
                          output_root = "./",
                          **kwargs):
 
@@ -62,7 +63,7 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
     # Run with specified args in the driver directory, put output (stdout
     # and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
-        arglist = ['mpirun', '-np', str(mpi_ncores),
+        arglist = (['mpirun', '-np', str(mpi_ncores),
                    driver,
                    '-dt', str(dt),
                    "-tmax", str(tmax),
@@ -72,7 +73,9 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
                    "-ts", timestepper,
                    "-initm", initial_m,
                    "-happ", applied_field,
-                   "-mesh", mesh] + processed_kwargs
+                   "-mesh", mesh,
+                   "-solver", solver]
+                   + processed_kwargs)
 
         err_code = subp.call(arglist,
                              stdout = stdout_file,
@@ -180,6 +183,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
         meshes = ['sq_square', 'ut_square']
+        solvers = ['superlu']
 
     elif parameter_set == '1':
         rel_driver_paths = ["./llg_driver/llg_driver"]
@@ -192,6 +196,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
         meshes = ['ut_square']
+        solvers = ['superlu']
 
     elif parameter_set == '2':
         rel_driver_paths = ["./llg_driver/llg_driver"]
@@ -204,6 +209,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
         meshes = ['ut_square']
+        solvers = ['superlu']
 
     elif parameter_set == '3':
         rel_driver_paths = ["./llg_driver/llg_driver"]
@@ -216,6 +222,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z']
         fields = ['minus_z']
         meshes = ['ut_square', 'sq_square']
+        solvers = ['superlu']
 
     elif parameter_set == '4':
         rel_driver_paths = ["./llg_driver/llg_driver"]
@@ -228,6 +235,7 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z']
         fields = ['minus_z']
         meshes = ['ut_sphere']
+        solvers = ['superlu']
 
     elif parameter_set == 'cubeoid':
         rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
@@ -240,18 +248,22 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z']
         fields = ['minus_z']
         meshes = ['ut_cubeoid', 'st_cubeoid']
+        solvers = ['superlu']
 
     elif parameter_set == 'nmag_cubeoid':
         rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
         dts = [1e-6]
         tmaxs = [5.0]
         tols = [1e-3]
-        refines = [1]
+        refines = [4]
         outdirs = [None]
         timesteppers = ['midpoint']
         initial_ms = ['xz']
         fields = ['zero']
         meshes = ['sq_cubeoid']
+        solvers = ['gmres-amg']
+
+        # ./semi_implicit_mm_driver/semi_implicit_mm_driver -dt 1e-06 -tmax 5.0 -tol 0.001 -ref 5 -outdir ../experiments/parameter_sweeps/nmag_cubeoid_final -initm xz -happ zero -mesh sq_cubeoid -solver gmres-amg
 
     elif parameter_set == 'check_semi_impl':
         rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
@@ -264,6 +276,20 @@ def standard_sweep(parameter_set, serial_mode=False):
         initial_ms = ['z', 'smoothly_varying']
         fields = ['minus_z']
         meshes = ['ut_sphere', 'sq_square']
+        solvers = ['superlu']
+
+    elif parameter_set == 'cubeoid-timestep-newton-convergence':
+        rel_driver_paths = ["./llg_driver/llg_driver"]
+        dts = [1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+        tmaxs = [1e-8]
+        tols = [0.0]
+        refines = [3]
+        outdirs = [None]
+        timesteppers = ['bdf2']
+        initial_ms = ['z']
+        fields = ['minus_z']
+        meshes = ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid']
+        solvers = ['superlu']
 
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
@@ -277,7 +303,7 @@ def standard_sweep(parameter_set, serial_mode=False):
     # Run the parameter sweep!
     fun = par(execute_oomph_driver, 1, output_root=output_root)
     arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
-                timesteppers, initial_ms, fields, meshes]
+                timesteppers, initial_ms, fields, meshes, solvers]
     parallel_parameter_sweep(fun, arg_list, serial_mode)
 
     return 0
