@@ -269,11 +269,15 @@ namespace oomph
           solver_pt = gmres_pt;
         }
 
-      else if(solver_name == "cg-amg")
+      else if((solver_name == "cg-amg") || (solver_name == "poisson"))
         {
 #ifdef OOMPH_HAS_HYPRE
           HyprePreconditioner* amg_pt = new HyprePreconditioner;
           amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+
+          // Use good Poisson settings for 3D (2D problems should be ok
+          // with the same ones I hope...).
+          Hypre_default_settings::set_defaults_for_3D_poisson_problem(amg_pt);
 
           IterativeLinearSolver* cg_pt = new CG<CRDoubleMatrix>;
           cg_pt->preconditioner_pt() = amg_pt;
