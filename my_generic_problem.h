@@ -91,6 +91,18 @@ namespace oomph
         << "mean_jacobian_setup_time" << " " // 9
         << "stddev_jacobian_setup_time" << " " // 10
 
+        // Reserved slots in case I think of more things to add later
+        << "dummy" << " " // 11
+        << "dummy" << " " // 12
+        << "dummy" << " " // 13
+        << "dummy" << " " // 14
+        << "dummy" << " " // 15
+        << "dummy" << " " // 16
+        << "dummy" << " " // 17
+        << "dummy" << " " // 18
+        << "dummy" << " " // 19
+        << "dummy" << " " // 20
+
         << std::endl;
 
       trace_file.close();

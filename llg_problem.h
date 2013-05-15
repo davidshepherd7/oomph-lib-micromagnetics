@@ -194,8 +194,8 @@ namespace oomph
             + " > " + to_string(MathematicalConstants::Pi/4)
             + " across a single element,\n";
           error_msg += "this often means that your mesh is not sufficiently refined.";
-          throw OomphLibWarning(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
+          OomphLibWarning(error_msg, OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
         }
 #endif
 
@@ -220,11 +220,16 @@ namespace oomph
       norm_m_error(m_error_avg, m_error_stddev);
 
       Vector<double> angle_variations = elemental_max_m_angle_variations();
+      Vector<double> mean_m = mean_magnetisation();
 
       trace_file
         << m_error_avg << " "
         << m_error_stddev << " "
-        << *std::max_element(angle_variations.begin(), angle_variations.end()) << " ";
+        << *std::max_element(angle_variations.begin(), angle_variations.end()) << " "
+        << mean_m[0] << " "
+        << mean_m[1] << " "
+        << mean_m[2] << " "
+        << std::endl;
     }
 
     /// Set up an initial M

@@ -133,6 +133,8 @@ namespace oomph
 
         bem_handler_pt()->input_corner_data_pt() = 0; //??Ds
 
+
+        oomph_info << "Creating BEM handler" << std::endl;
         bem_handler_pt()->build();
       }
 
