@@ -41,6 +41,8 @@ int main(int argc, char *argv[])
   problem.llg_sub_problem_pt()->set_bulk_mesh_pt(args.llg_mesh_pt);
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
   problem.llg_sub_problem_pt()->linear_solver_pt() = args.solver_pt;
+  problem.llg_sub_problem_pt()->renormalise_each_time_step() = args.renormalise_flag();
+  problem.llg_sub_problem_pt()->set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.Doc_info.Args_pt = &args;
 
   // Create and set phi_1 sub problem
@@ -66,10 +68,6 @@ int main(int argc, char *argv[])
 
   // Do the rest of the set up
   // ============================================================
-
-  // Set up the magnetic parameters
-  problem.mag_parameters_pt()->set_simple_llg_parameters();
-  // problem.mag_parameters_pt()->magnetostatic_debug_coeff() = 0;
 
   // Set exact solution if we have one
   if((args.h_app_name == "minus_z") && (args.initial_m_name == "z"))

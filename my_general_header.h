@@ -38,6 +38,9 @@
 #include "./variable_order_quadrature.h"
 
 using namespace oomph;
+using namespace CommandLineArgs;
+using namespace StringConversion;
+
 
 namespace oomph
 {
@@ -328,38 +331,41 @@ namespace oomph
 
     virtual void set_flags()
       {
-        CommandLineArgs::specify_command_line_flag("-dt", &dt);
+        specify_command_line_flag("-dt", &dt);
         dt = 1e-6;
 
-        CommandLineArgs::specify_command_line_flag("-tmax", &tmax);
+        specify_command_line_flag("-tmax", &tmax);
         tmax = 1.0;
 
-        CommandLineArgs::specify_command_line_flag("-tol", &tol);
+        specify_command_line_flag("-tol", &tol);
         tol = 0.0;
 
-        CommandLineArgs::specify_command_line_flag("-ref", &refinement);
+        specify_command_line_flag("-ref", &refinement);
         refinement = 1;
 
-        CommandLineArgs::specify_command_line_flag("-outdir", &outdir);
+        specify_command_line_flag("-outdir", &outdir);
         outdir = "results";
 
-        CommandLineArgs::specify_command_line_flag("-output_jac", &output_jacobian);
+        specify_command_line_flag("-output_jac", &output_jacobian);
         output_jacobian = "at_start";
 
-        CommandLineArgs::specify_command_line_flag("-ts", &time_stepper_name);
+        specify_command_line_flag("-ts", &time_stepper_name);
         time_stepper_name = "bdf2";
 
-        CommandLineArgs::specify_command_line_flag("-solver", &solver_name);
+        specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
+
+        specify_command_line_flag("-renorm_m", &Renormalise);
+        Renormalise = -1;
       }
 
     void parse(int argc, char *argv[])
     {
       // Store command line args
-      CommandLineArgs::setup(argc,argv);
+      setup(argc,argv);
       this->set_flags();
-      CommandLineArgs::parse_and_assign();
-      CommandLineArgs::doc_specified_flags();
+      parse_and_assign();
+      doc_specified_flags();
 
       // Run any processing that needs to be done on the arguments
       // (e.g. creating meshes).
@@ -396,6 +402,22 @@ namespace oomph
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
+    bool renormalise_flag()
+    {
+      // If flag not set then only do it for bdf timesteppers
+      if(Renormalise == -1)
+        {
+          return (time_stepper_name == "bdf2")
+            || (time_stepper_name == "bdf1");
+        }
+      // Otherwise do what the flag says
+      else
+        {
+          return bool(Renormalise);
+        }
+    }
+
+
     // Variables
     double dt;
     double tmax;
@@ -412,6 +434,12 @@ namespace oomph
     std::string time_stepper_name;
     std::string solver_name;
 
+    private:
+
+    /// Flag to control renormalisation of |m| after each step. -1 =
+    /// default for timestepper, 0 = off, 1 = on.
+    int Renormalise;
+
   };
 
 
@@ -421,22 +449,24 @@ namespace oomph
     public:
 
     /// Constructor: Initialise pointers to null.
-    LLGArgs() : mesh_pt(0), initial_m_fct_pt(0), h_app_fct_pt(0) {}
-
+    LLGArgs() : mesh_pt(0), initial_m_fct_pt(0), h_app_fct_pt(0),
+    magnetic_parameters_pt(0) {}
 
     virtual void set_flags()
     {
       MyCliArgs::set_flags();
 
-
-      CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
+      specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
 
-      CommandLineArgs::specify_command_line_flag("-initm", &initial_m_name);
+      specify_command_line_flag("-initm", &initial_m_name);
       initial_m_name = "z";
 
-      CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
+      specify_command_line_flag("-happ", &h_app_name);
       h_app_name = "minus_z";
+
+      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
+      magnetic_parameters_name = "simple-llg";
     }
 
 
@@ -447,9 +477,12 @@ namespace oomph
       mesh_name = to_lower(mesh_name);
       initial_m_name = to_lower(initial_m_name);
       h_app_name = to_lower(h_app_name);
+      magnetic_parameters_name = to_lower(magnetic_parameters_name);
 
       initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
+      magnetic_parameters_pt =
+        Factories::magnetic_parameters_factory(magnetic_parameters_name);
 
       // Do the mesh last of all because it can be slow
       mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
@@ -463,17 +496,20 @@ namespace oomph
       out_stream
         << "mesh " << mesh_name << std::endl
         << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl;
+        << "h_app " << h_app_name << std::endl
+        << "mag_params " << magnetic_parameters_name << std::endl;
     }
 
     Mesh* mesh_pt;
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
+    MagneticParameters* magnetic_parameters_pt;
 
     // Strings for input to factory functions
     std::string mesh_name;
     std::string initial_m_name;
     std::string h_app_name;
+    std::string magnetic_parameters_name;
   };
 
 

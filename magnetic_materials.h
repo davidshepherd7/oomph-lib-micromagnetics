@@ -16,6 +16,8 @@ namespace mag_parameters
 }
 
 using namespace mag_parameters;
+using namespace StringConversion;
+
 
 namespace oomph
 {
@@ -214,50 +216,6 @@ namespace oomph
     void set_cubic_anisotropy()
     {Crystalline_ansiotropy_type = mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY;}
 
-    // /// set properties for permalloy (Fe_20 Ni_80)
-    // void set_permalloy()
-    // {
-    //   saturation_magnetisation() = 1.04/mag_parameters::mu0; // T/mu0 unitsm
-    //   exchange_constant() = 7e-12; // J/m
-    //   k1() = -2e3; // J/(m^3)
-    // }
-
-    /// Set properties as used in umag standard problem #4
-    void set_mumag4()
-    {
-      exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
-      saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
-      k1() = 0.0;
-
-      gilbert_damping() = 0.02;
-      gamma() = 2.211e5; // m/(As)
-    }
-
-    void set_nmag_rectangle()
-    {
-      saturation_magnetisation() = 0.86e6; // A/m
-      exchange_constant() = 13.0e-12; // J/m
-      k1() = 0.0;
-
-      gilbert_damping() = 0.5;
-      gamma() = 2.210173e5; // m/(As)
-    }
-
-    void set_simple_llg_parameters()
-    {
-      saturation_magnetisation() = 1.0; // normalised units
-      exchange_constant() = 0.5 * mag_parameters::mu0; // this gives hex = 1
-      k1() = 0.0;
-      gamma() = 1;
-      distance_units() = 1;
-
-      // The only real parameter left here (can be varied):
-      gilbert_damping() = 0.5;
-    }
-
-
-    // etc...
-
   private:
     double Gamma;
     double Gilbert_damping;
@@ -278,6 +236,58 @@ namespace oomph
 
     bool Surface_anisotropy_enabled;
   };
+
+
+  namespace Factories
+  {
+
+    /// \short Create a MagneticsParameters object.
+    MagneticParameters* magnetic_parameters_factory(const std::string & parameters_name)
+    {
+      MagneticParameters* parameters_pt = 0;
+
+      // Set properties as used in umag standard problem #4
+      if(to_lower(parameters_name) == "mumag4")
+        {
+          parameters_pt = new MagneticParameters;
+          parameters_pt->exchange_constant() = 1.3e-11; //J/m (1.3e-6 erg/cm)
+          parameters_pt->saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
+          parameters_pt->k1() = 0.0;
+
+          parameters_pt->gilbert_damping() = 0.02;
+          parameters_pt->gamma() = 2.211e5; // m/(As)
+        }
+
+      // Set parameters as used in nmag's cubeoid example
+      else if(to_lower(parameters_name) == "nmag-cubeoid")
+        {
+          parameters_pt = new MagneticParameters;
+          parameters_pt->saturation_magnetisation() = 0.86e6; // A/m
+          parameters_pt->exchange_constant() = 13.0e-12; // J/m
+          parameters_pt->k1() = 0.0;
+
+          parameters_pt->gilbert_damping() = 0.5;
+          parameters_pt->gamma() = 2.210173e5; // m/(As)
+        }
+
+      // Set parameters to remove all coefficients except gilbert damping
+      // from the llg. Set gilbert damping to 0.5.
+      else if(to_lower(parameters_name) == "simple-llg")
+        {
+          parameters_pt = new MagneticParameters;
+          parameters_pt->saturation_magnetisation() = 1.0; // normalised units
+          parameters_pt->exchange_constant() = 0.5 * mag_parameters::mu0; // this gives hex = 1
+          parameters_pt->k1() = 0.0;
+          parameters_pt->distance_units() = 1;
+
+          parameters_pt->gamma() = 1;
+          parameters_pt->gilbert_damping() = 0.5;
+        }
+
+      return parameters_pt;
+    }
+  }
+
 
 }
 

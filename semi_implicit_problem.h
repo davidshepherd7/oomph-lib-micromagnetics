@@ -16,6 +16,7 @@
 
 using namespace oomph;
 using namespace StringConversion;
+using namespace CommandLineArgs;
 
 namespace oomph
 {
@@ -279,7 +280,7 @@ namespace oomph
 
     /// Get access to magnetic parameters - only relevant in LLG problem so
     /// return the pointer from that problem.
-    MagneticParameters* mag_parameters_pt()
+    const MagneticParameters* mag_parameters_pt() const
     {return llg_sub_problem_pt()->mag_parameters_pt();}
 
     /// \short Const access function for LLG_problem.
@@ -775,11 +776,13 @@ namespace oomph
 
   class SemiImplicitMMArgs : public MyCliArgs
   {
+
   public:
 
     SemiImplicitMMArgs() : llg_mesh_pt(0),
                            phi_1_mesh_pt(0), phi_mesh_pt(0),
                            initial_m_fct_pt(0), h_app_fct_pt(0),
+                           magnetic_parameters_pt(0),
                            phi_1_flux_mesh_factory_fct_pt(0),
                            bem_element_factory_fct_pt(0)
     {}
@@ -789,14 +792,17 @@ namespace oomph
     {
       MyCliArgs::set_flags();
 
-      CommandLineArgs::specify_command_line_flag("-mesh", &mesh_name);
+      specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
 
-      CommandLineArgs::specify_command_line_flag("-initm", &initial_m_name);
+      specify_command_line_flag("-initm", &initial_m_name);
       initial_m_name = "z";
 
-      CommandLineArgs::specify_command_line_flag("-happ", &h_app_name);
+      specify_command_line_flag("-happ", &h_app_name);
       h_app_name = "minus_z";
+
+      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
+      magnetic_parameters_name = "simple-llg";
     }
 
 
@@ -807,10 +813,14 @@ namespace oomph
       to_lower(mesh_name);
       to_lower(initial_m_name);
       to_lower(h_app_name);
+      magnetic_parameters_name = to_lower(magnetic_parameters_name);
 
       // Pick the m and applied field function pointers
       initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
+
+      magnetic_parameters_pt =
+        Factories::magnetic_parameters_factory(magnetic_parameters_name);
 
       // Build the meshes, do this last because they can be SLOW, must be
       // done before factory mesh function selection...
@@ -844,7 +854,8 @@ namespace oomph
       out_stream
         << "mesh " << mesh_name << std::endl
         << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl;
+        << "h_app " << h_app_name << std::endl
+        << "mag_params " << magnetic_parameters_name << std::endl;
     }
 
 
@@ -853,6 +864,7 @@ namespace oomph
     Mesh* phi_mesh_pt;
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
+    MagneticParameters* magnetic_parameters_pt;
 
 
     GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
@@ -862,6 +874,7 @@ namespace oomph
     std::string mesh_name;
     std::string initial_m_name;
     std::string h_app_name;
+    std::string magnetic_parameters_name;
   };
 
 

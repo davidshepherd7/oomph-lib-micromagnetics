@@ -54,7 +54,7 @@ namespace oomph
 #endif
 
       // Write out parameters data.
-      Magnetic_parameters.output(std::cout);
+      mag_parameters_pt()->output(std::cout);
 
       // Cache the problem dimension
       this->Dim = this->ele_pt()->nodal_dimension();
@@ -106,10 +106,11 @@ namespace oomph
     }
 
     /// Destructor
-    ~LLGProblem()
+    virtual ~LLGProblem()
     {
       // mesh is cleaned up by problem base class
       // timestepper is cleaned up by problem base class
+      delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
     }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
@@ -148,6 +149,7 @@ namespace oomph
       // If we're using BDF we need to keep M normalised.
       if(renormalise_each_time_step())
         {
+          std::cout << "Renormalising nodal magnetisations." << std::endl;
           renormalise_magnetisation();
         }
 
@@ -472,12 +474,25 @@ namespace oomph
     /// \short Const access function for Applied_field_fct_pt.
     HApp::HAppFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
 
-    /// \short Non-const access function for Magnetic_parameters_pt.
-    MagneticParameters* mag_parameters_pt() {return &Magnetic_parameters;}
+    /// \short Set function for Magnetic_parameters_pt.
+    void set_mag_parameters_pt(MagneticParameters* _magnetic_parameters_pt)
+    {
+      Magnetic_parameters_pt = _magnetic_parameters_pt;
+    }
 
     /// \short Const access function for Magnetic_parameters_pt.
     const MagneticParameters* mag_parameters_pt() const
-    {return &Magnetic_parameters;}
+    {
+#ifdef PARANOID
+      if(Magnetic_parameters_pt == 0)
+        {
+          std::string error_msg = "Magnetic paramters pointer is null.";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Magnetic_parameters_pt;
+    }
 
     /// \short Non-const access function for Renormalise_each_time_step.
     bool& renormalise_each_time_step() {return Renormalise_each_time_step;}
@@ -539,7 +554,7 @@ namespace oomph
     HApp::HAppFctPt Applied_field_fct_pt;
 
     /// Magnetic parameters storage. ??ds should maybe go in meshes?
-    MagneticParameters Magnetic_parameters;
+    MagneticParameters* Magnetic_parameters_pt;
 
     /// Normalise magnetisation problem after each step?
     bool Renormalise_each_time_step;

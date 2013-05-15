@@ -33,19 +33,15 @@ int main(int argc, char *argv[])
   // Create problem
   LLGProblem problem;
 
+  // Tell it if we want renormalisation or not
+  problem.renormalise_each_time_step() = args.renormalise_flag();
+
   // Assign timestepper and mesh from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.set_bulk_mesh_pt(args.mesh_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
   problem.linear_solver_pt() = args.solver_pt;
-
-  // Set magnetic parameters
-  double gilbert_damping = 0.5, hk = 0.0; // (normalised hk)
-  problem.mag_parameters_pt()->set_simple_llg_parameters();
-  problem.mag_parameters_pt()->gilbert_damping() = gilbert_damping;
-  // problem.mag_parameters_pt()->exchange_constant() = 0.0;
-  problem.mag_parameters_pt()->magnetostatic_debug_coeff() = 0.0;
-  problem.mag_parameters_pt()->k1() = hk * mag_parameters::mu0/2;
+  problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
 
   // Set applied field
   problem.applied_field_fct_pt() = args.h_app_fct_pt;
