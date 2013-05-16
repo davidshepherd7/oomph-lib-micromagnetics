@@ -4,6 +4,8 @@
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
+from __future__ import unicode_literals
+
 
 # Imports from main libraries
 import subprocess as subp
@@ -37,8 +39,16 @@ def dict2argslist(inputdict):
     for use as input to a subprocess command.
     """
 
+    # Support python 2 and 3
+    try:
+        # python 2 version
+        dict_iter = inputdict.iteritems()
+    except AttributeError:
+        # python 3 version
+        dict_iter = inputdict.items()
+
     processed_kwargs = []
-    for key, value in inputdict.iteritems():
+    for key, value in dict_iter:
         processed_kwargs.append('-'+str(key))
         processed_kwargs.append(str(value))
 
