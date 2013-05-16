@@ -58,6 +58,33 @@ namespace VectorOps
     return output;
   }
 
+  // Collection of cross product functions: get a single row of the cross
+  // product. Can use double* or vectors for compatability.
+  double opt_cross(unsigned i, const double* A, const double* B)
+  {
+    unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
+    return A[ia]*B[ib] - A[ib]*B[ia];
+  }
+  double opt_cross(unsigned i, const Vector<double>& A, const double* B)
+  {
+    unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
+    return A[ia]*B[ib] - A[ib]*B[ia];
+  }
+  double opt_cross(unsigned i, const double* A, const Vector<double>& B)
+  {
+    unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
+    return A[ia]*B[ib] - A[ib]*B[ia];
+  }
+  double opt_cross(unsigned i, const Vector<double>& A, const Vector<double>& B)
+  {
+    unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
+    return A[ia]*B[ib] - A[ib]*B[ia];
+  }
+
+
+
+
+
   /// Calculate the cross product of vectors A and B, store the result in
   /// vector output. NOTE: the cross product is only valid for 3-dimensional
   /// vectors
@@ -256,6 +283,18 @@ namespace VectorOps
     rowindex2rowstart(row_index,row_start);
     cr_matrix.build(n, values, col_index, row_start);
   }
+
+  Vector<double> random_vector(unsigned length, double max_value=100)
+    {
+      Vector<double> a(length);
+
+      for(unsigned i=0; i<length; i++)
+        {
+          a[i] = double(rand() % int(10000*max_value)) / 10000.0;
+        }
+      return a;
+    }
+
 
   void random_single_element_per_row_cr_matrix(CRDoubleMatrix& cr_matrix,
                                                const unsigned& n,

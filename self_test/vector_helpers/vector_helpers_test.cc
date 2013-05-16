@@ -18,6 +18,7 @@ int main()
 
   // angle diff function
   // ============================================================
+  {
   double pi = 4*std::atan2(1,1);
 
   Vector<Vector<double> > v1s, v2s;
@@ -81,6 +82,47 @@ int main()
           return_value++;
         }
     }
+
+  }
+
+  // Optimised cross product
+  // ============================================================
+  {
+    std::cout << "Checking Optimised cross product." << std::endl;
+    Vector<Vector<double> > a, b;
+
+    // Do for some random vectors
+    for(unsigned i=0; i<30; i++)
+      {
+        Vector<double> tempa = random_vector(3);
+        Vector<double> tempb = random_vector(3);
+
+        a.push_back(tempa);
+        b.push_back(tempb);
+      }
+
+    // Run tests
+    for(unsigned i=0; i< a.size(); i++)
+      {
+        Vector<double> v(3);
+        v[0] = opt_cross(0, a[i], b[i]);
+        v[1] = opt_cross(1, a[i], b[i]);
+        v[2] = opt_cross(2, a[i], b[i]);
+
+        // Just compare with the old cross product implementation
+        double error = two_norm_diff(v, cross(a[i],b[i]));
+
+        if(!numerical_zero(error))
+          {
+            std::cerr << "Error:"
+                      << "opt_cross("
+                      << a[i] << ", " << b[i] << ") == " << cross(a[i], b[i]) <<std::endl
+                      << "Got: " << v << std::endl;
+            return_value++;
+          }
+      }
+  }
+
 
   return return_value;
 }
