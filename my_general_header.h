@@ -291,17 +291,16 @@ namespace oomph
 
       else if(solver_name == "gmres-amg")
         {
+          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
+          solver_pt = gmres_pt;
 #ifdef OOMPH_HAS_HYPRE
           HyprePreconditioner* amg_pt = new HyprePreconditioner;
           amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-
-          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
           gmres_pt->preconditioner_pt() = amg_pt;
-
-          solver_pt = gmres_pt;
 #else // If no Hypre then give an error
-          throw OomphLibError("Don't have Hypre.",
+          OomphLibWarning("Don't have Hypre, using exact preconditioner.",
                               OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+          gmres_pt->preconditioner_pt() = new SuperLUPreconditioner;
 #endif
         }
       else if(solver_name == "fdlu")
