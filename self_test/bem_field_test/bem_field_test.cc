@@ -59,7 +59,7 @@ int main()
   problem.bem_handler_pt()->Bem_element_factory = fake_args.bem_element_factory_fct_pt;
 
   // Set up the magnetic parameters
-  problem.mag_parameters_pt()->set_simple_llg_parameters();
+  problem.set_mag_parameters_pt(Factories::magnetic_parameters_factory("simple-llg"));
 
   // Customise details of the output
   problem.Doc_info.set_directory(fake_args.outdir);

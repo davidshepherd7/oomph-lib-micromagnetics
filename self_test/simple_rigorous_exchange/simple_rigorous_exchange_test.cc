@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
       problem.mesh_pt() = Factories::mesh_factory("sq_square", 3, problem.time_stepper_pt());
       problem.applied_field_fct_pt() = HApp::zero;
 
-      problem.mag_parameters_pt()->set_simple_llg_parameters();
+      problem.set_mag_parameters_pt(Factories::magnetic_parameters_factory("simple-llg"));
       problem.renormalise_each_time_step() = true;
 
       // Mangle the mesh a little (so that we have dmdn non-zero on some
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
       threedproblem.set_bulk_mesh_pt(&threedmesh);
       threedproblem.add_time_stepper_pt(&bdf2);
       threedproblem.applied_field_fct_pt() = &HApp::zero;
-      threedproblem.mag_parameters_pt()->set_simple_llg_parameters();
+      threedproblem.set_mag_parameters_pt(Factories::magnetic_parameters_factory("simple-llg"));
       threedproblem.renormalise_each_time_step() = true;
 
       threedproblem.build();
