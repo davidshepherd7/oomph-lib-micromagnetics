@@ -160,15 +160,20 @@ namespace oomph
       }
 
     /// \short Write a trace file
-    void write_trace() const
+    void write_trace()
     {
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
 
-      double Dummy_doc_data = -1;
-
-      std::cout << Solver_iterations << std::endl;
-      std::cout << Jacobian_setup_times << std::endl;
+      //??ds rubbish fix..
+      if(Solver_iterations.empty())
+        {Solver_iterations.push_back(Dummy_doc_data);}
+      if(Solver_times.empty())
+        {Solver_times.push_back(Dummy_doc_data);}
+      if(Jacobian_setup_times.empty())
+        {Jacobian_setup_times.push_back(Dummy_doc_data);}
+      if(Preconditioner_setup_times.empty())
+        {Preconditioner_setup_times.push_back(Dummy_doc_data);}
 
       // Write out data that can be done for every problem
       trace_file
