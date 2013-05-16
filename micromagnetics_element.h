@@ -187,10 +187,11 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
 
     /// Get the applied field at Eulerian position x.
-    virtual Vector<double> get_applied_field(const double& t, const Vector<double> &x,
-                                             const Vector<double> &s) const
+    void get_applied_field(const double& t, const Vector<double> &x,
+                           const Vector<double> &s,
+                           Vector<double> &H_app) const
     {
-      Vector<double> H_app(3,0.0);
+      H_app.assign(3,0.0);
       if(Applied_field_pt != 0)
         {
           H_app = (*Applied_field_pt)(t, x);
@@ -200,18 +201,16 @@ namespace oomph
         {
           H_app[j] *= magnetic_parameters_pt()->field_normalisation_factor();
         }
-      return H_app;
     }
 
     /// Get the crystalline anisotropy field at Eulerian position x.
-    inline Vector<double> get_H_cryst_anis_field(const double& t,
-                                                 const Vector<double> &x,
-                                                 const Vector<double>& m) const
+    void get_H_cryst_anis_field(const double& t,
+                                const Vector<double> &x,
+                                const Vector<double>& m,
+                                Vector<double> &h_ca) const
     {
-      Vector<double> h_ca(3, 0.0);
       magnetic_parameters_pt()->
         crystalline_ansiotropy_field(t, x, m, h_ca);
-      return h_ca;
     }
 
     void get_hca_derivative(const double& t, const Vector<double>&x,
@@ -1076,7 +1075,7 @@ namespace oomph
       magnetostatic_field_element_pt()->magnetostatic_field(s, h_ms);
 
       // Get contribution from any real applied field functions.
-      Vector<double> h_app = MicromagEquations::get_applied_field(t, x, s);
+      Vector<double> h_app; MicromagEquations::get_applied_field(t, x, s, h_app);
 
       //Add them up
       for(unsigned j=0; j<3; j++) h_app[j] += h_ms[j];

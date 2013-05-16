@@ -183,9 +183,9 @@ namespace oomph
         const double phi_1_source = get_phi_1_source(intp.time(),intp.x());
 
         // Fields at integration point
-        const Vector<double> h_applied = get_applied_field(intp.time(), intp.x(), s);
-        const Vector<double> h_cryst_anis = get_H_cryst_anis_field(intp.time(),
-                                                                   intp.x(), intp.m());
+        Vector<double> h_applied, h_cryst_anis;
+        get_applied_field(intp.time(), intp.x(), s, h_applied);
+        get_H_cryst_anis_field(intp.time(), intp.x(), intp.m(), h_cryst_anis);
 
         // Cross product for magnetostatic contribution
         Vector<double> h_magnetostatic(3,0.0);
