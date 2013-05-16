@@ -161,12 +161,18 @@ namespace oomph
           }
       }
 
+    void actions_before_newton_solve()
+      {
+        // Call lower level actions function
+        MyProblem::actions_before_newton_solve();
+      }
+
     void actions_after_newton_solve()
     {
+
       std::cout << std::endl
                 << "Finalising" << std::endl
                 << "-------------------------------------------" << std::endl;
-
 
       // If we're using BDF we need to keep M normalised.
       if(renormalise_each_time_step())
@@ -200,6 +206,12 @@ namespace oomph
 #endif
 
 
+    }
+
+    void actions_after_newton_step()
+    {
+      // Call lower level actions function
+      MyProblem::actions_after_newton_step();
     }
 
     /// Output solution

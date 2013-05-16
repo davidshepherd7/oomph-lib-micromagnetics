@@ -62,10 +62,12 @@ namespace oomph
   public:
     /// Default constructor
     MyProblem() :
-      Problem(), Dim(0),
+      Problem(),
+      Dim(0),
       Doc_info("results", 0),
       Trace_filename("trace"),
-      Info_filename("info")
+      Info_filename("info"),
+      Dummy_doc_data(-1)
     {}
 
     /// Destructor
@@ -91,10 +93,10 @@ namespace oomph
         << "std_dev_solver_time" << " " // 8
         << "mean_jacobian_setup_time" << " " // 9
         << "stddev_jacobian_setup_time" << " " // 10
+        << "mean_preconditioner_setup_time" << " " // 11
+        << "stddev_preconditioner_setup_time" << " " // 12
 
         // Reserved slots in case I think of more things to add later
-        << "dummy" << " " // 11
-        << "dummy" << " " // 12
         << "dummy" << " " // 13
         << "dummy" << " " // 14
         << "dummy" << " " // 15
@@ -126,17 +128,47 @@ namespace oomph
     /// file. Note: don't add any line endings, just space seperated data.
     virtual void write_additional_trace_data(std::ofstream& trace_file) const {}
 
+    virtual void actions_after_newton_step()
+      {
+        Jacobian_setup_times.push_back
+          (this->linear_solver_pt()->jacobian_setup_time());
+        Solver_times.push_back
+          (this->linear_solver_pt()->linear_solver_solution_time());
+
+        const IterativeLinearSolver* its_pt
+          = dynamic_cast<const IterativeLinearSolver*>(this->linear_solver_pt());
+        if(its_pt != 0)
+          {
+            Solver_iterations.push_back(its_pt->iterations());
+            Preconditioner_setup_times.push_back(its_pt->preconditioner_setup_time());
+          }
+        else
+          {
+            // Fill in dummy data
+            Solver_iterations.push_back(Dummy_doc_data);
+            Preconditioner_setup_times.push_back(-1);
+          }
+      }
+
+    virtual void actions_before_newton_solve()
+      {
+        // Clean up times vectors
+        Jacobian_setup_times.clear();
+        Solver_times.clear();
+        Solver_iterations.clear();
+        Preconditioner_setup_times.clear();
+      }
+
     /// \short Write a trace file
     void write_trace() const
     {
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
 
-      Vector<double> solver_iters(1, -1);
-      Vector<double> solver_times(1, -1);
-      Vector<double> jacobian_setup_times(1, -1);
+      double Dummy_doc_data = -1;
 
-      double dummy = -1;
+      std::cout << Solver_iterations << std::endl;
+      std::cout << Jacobian_setup_times << std::endl;
 
       // Write out data that can be done for every problem
       trace_file
@@ -147,25 +179,28 @@ namespace oomph
 
         << Nnewton_iter_taken << " " // 4
 
-        << VectorOps::mean(solver_iters) << " " // 5
-        << VectorOps::stddev(solver_iters) << " " // 6
+        << VectorOps::mean(Solver_iterations) << " " // 5
+        << VectorOps::stddev(Solver_iterations) << " " // 6
 
-        << VectorOps::mean(solver_times) << " " // 7
-        << VectorOps::stddev(solver_times) << " " // 8
-        << VectorOps::mean(jacobian_setup_times) << " " // 9
-        << VectorOps::stddev(jacobian_setup_times) << " " // 10
+        << VectorOps::mean(Solver_times) << " " // 7
+        << VectorOps::stddev(Solver_times) << " " // 8
+        << VectorOps::mean(Jacobian_setup_times) << " " // 9
+        << VectorOps::stddev(Jacobian_setup_times) << " " // 10
+        << VectorOps::mean(Preconditioner_setup_times) << " " // 11
+        << VectorOps::stddev(Preconditioner_setup_times) << " " // 12
 
         // Reserved slots in case I think of more things to add later
-        << dummy << " " // 11
-        << dummy << " " // 12
-        << dummy << " " // 13
-        << dummy << " " // 14
-        << dummy << " " // 15
-        << dummy << " " // 16
-        << dummy << " " // 17
-        << dummy << " " // 18
-        << dummy << " " // 19
-        << dummy << " "; // 20
+        << Dummy_doc_data << " " // 13
+        << Dummy_doc_data << " " // 14
+        << Dummy_doc_data << " " // 15
+        << Dummy_doc_data << " " // 16
+        << Dummy_doc_data << " " // 17
+        << Dummy_doc_data << " " // 18
+        << Dummy_doc_data << " " // 19
+        << Dummy_doc_data << " "; // 20
+
+      //??ds residuals?
+      //??ds max values? Just list all values of vectors with ; as sep?
 
       // Add problem specific data
       write_additional_trace_data(trace_file);
@@ -257,6 +292,12 @@ namespace oomph
     std::string Info_filename;
 
   private:
+
+    double Dummy_doc_data;
+    Vector<double> Jacobian_setup_times;
+    Vector<double> Solver_times;
+    Vector<double> Solver_iterations;
+    Vector<double> Preconditioner_setup_times;
 
     /// Inaccessible copy constructor
     MyProblem(const MyProblem &dummy)
