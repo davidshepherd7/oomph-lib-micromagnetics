@@ -56,6 +56,9 @@ experiments/*
 control_scripts/*/*driver
 meshes/generate_tetgen_sphere_input/generate_tetgen_sphere_input
 
+# Self test output folders
+self_test/*/Validation
+
 # self test binaries
 self_test/midpoint_method/midpoint_method_test
 self_test/bem_field_test/bem_field_test
@@ -66,3 +69,4 @@ self_test/llg_exchange/llg_exchange_test
 self_test/node_global_lookups/node_lookup_test
 self_test/simple_rigorous_exchange/simple_rigorous_exchange_test
 self_test/sum_of_matrices/sum_of_matrices_test
+self_test/vector_helpers/vector_helpers_test

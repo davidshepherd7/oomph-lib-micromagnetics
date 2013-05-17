@@ -310,11 +310,10 @@ namespace oomph
   // Checks to see if private variables are initialised
   bool uninitialised(double var) {return var == NotYetCalculatedValue;}
 
-  /// \short Recursively check inside vectors to see if the values have
-  /// been calculated. ??ds this might be too slow...
+  /// \short Check to see if a vector is initialised. Recusive checking
+  /// would be faster but takes a fairly large amount of time.
   template<typename T> bool uninitialised(Vector<T> var)
   {
-   {
     bool uninitialised_entry = false;
     for(unsigned j=0; j<var.size(); j++)
      {
@@ -325,7 +324,7 @@ namespace oomph
        }
      }
     return var.empty() || uninitialised_entry;
-   }
+    // return var.empty();
   }
 
 
