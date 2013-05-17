@@ -1236,7 +1236,6 @@ namespace oomph
     // access to them.
     Vector<double> Dmdt;
     Vector<double> M;
-    Vector<Vector<double> > Dmdx;
     double Div_m;
 
     const MicromagEquations* This_element;
@@ -1278,14 +1277,9 @@ namespace oomph
       return Dmdt;
     }
 
-    const Vector<Vector<double> >& dmdx()
+    const Vector<double>& dmdx(const unsigned &i_val)
     {
-      if(this->uninitialised(Dmdx))
-        {
-          Dmdx = this->interpolate_dvaluesdx(This_element->m_index_micromag(0),
-                                             This_element->m_index_micromag(2) + 1);
-        }
-      return Dmdx;
+      return this->dvaluedx(This_element->m_index_micromag(i_val));
     }
 
     double div_m()
@@ -1293,7 +1287,7 @@ namespace oomph
       if(this->uninitialised(Div_m))
         {
           Div_m = 0;
-          for(unsigned j=0; j<Dim; j++) Div_m += dmdx()[j][j];
+          for(unsigned j=0; j<Dim; j++) Div_m += dmdx(j)[j];
         }
       return Div_m;
     }

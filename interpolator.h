@@ -202,7 +202,7 @@ namespace oomph
   {
    if(Dvaluesdx[i_val].empty())
     {
-     Dvaluesdx[i_val] = interpolate_dvaluesdx(i_val, i_val+1)[0];
+     Dvaluesdx[i_val] = interpolate_dvaluesdx(i_val);
     }
    return Dvaluesdx[i_val];
   }
@@ -260,11 +260,10 @@ namespace oomph
    else {return interpolate_dvaluesdt_with_hanging_nodes(start, end);}
   }
 
-  virtual Vector<Vector<double> > interpolate_dvaluesdx(const unsigned &start,
-                                                        const unsigned &end)
+  virtual Vector<double> interpolate_dvaluesdx(const unsigned &i_val)
   {
-   if(!Has_hanging_nodes) {return interpolate_dvaluesdx_raw(start, end);}
-   else {return interpolate_dvaluesdx_with_hanging_nodes(start, end);}
+   if(!Has_hanging_nodes) {return interpolate_dvaluesdx_raw(i_val);}
+   else {return interpolate_dvaluesdx_with_hanging_nodes(i_val);}
   }
 
  protected:
@@ -496,46 +495,39 @@ namespace oomph
   // ============================================================
 
 
-  Vector<Vector<double> > interpolate_dvaluesdx_raw(const unsigned &start,
-                                                    const unsigned &end) const
+  Vector<double> interpolate_dvaluesdx_raw(const unsigned &i_value) const
   {
-   Vector<Vector<double> > output(end - start, Vector<double>(Dim, 0.0));
-   for(unsigned j=start; j<end; j++)
-    {
-     for(unsigned i_direc=0; i_direc<Dim; i_direc++)
+    Vector<double> output(Dim, 0.0);
+    for(unsigned i_direc=0; i_direc<Dim; i_direc++)
       {
-       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
-        {
-         for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
+        for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
           {
-           output[j-start][i_direc] += This_element->raw_nodal_value(i_tm, i_nd, j)
-            * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
+            for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
+              {
+                output[i_direc] += This_element->raw_nodal_value(i_tm, i_nd, i_value)
+                  * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
+              }
           }
-        }
       }
-    }
-   return output;
+    return output;
   }
 
-  Vector<Vector<double> > interpolate_dvaluesdx_with_hanging_nodes(const unsigned &start,
-                                                                   const unsigned &end) const
+  Vector<double> interpolate_dvaluesdx_with_hanging_nodes(const unsigned &i_value) const
   {
-   Vector<Vector<double> > output(end - start, Vector<double>(Dim, 0.0));
-   for(unsigned j=start; j<end; j++)
-    {
-     for(unsigned i_direc=0; i_direc<Dim; i_direc++)
+    Vector<double> output(Dim, 0.0);
+
+    for(unsigned i_direc=0; i_direc<Dim; i_direc++)
       {
-       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
-        {
-         for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
+        for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
           {
-           output[j-start][i_direc] += This_element->nodal_value(i_tm, i_nd, j)
-            * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
+            for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
+              {
+                output[i_direc] += This_element->nodal_value(i_tm, i_nd, i_value)
+                  * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
+              }
           }
-        }
       }
-    }
-   return output;
+    return output;
   }
 
 

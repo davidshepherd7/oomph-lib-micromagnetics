@@ -244,17 +244,7 @@ namespace oomph
             Vector<double> gradtestdotgradmi(3,0.0);
             for(unsigned i=0; i<3; i++)
               for(unsigned j=0; j<nodal_dimension(); j++)
-                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx()[i][j];
-
-            // Cross product for exchange contribution
-            const Vector<double> mxexch = cross(intp.m(), gradtestdotgradmi);
-
-            // std::cerr << "mxhapp  = " << itp_mxhapp[0] << " "
-            //           << itp_mxhapp[1] <<  " " << itp_mxhapp[2] << "\n";
-            // std::cerr << "mxhms  = " << mxhms[0] << " "
-            //           << mxhms[1]<< " " << mxhms[2] << "\n";
-            // std::cerr << "mxexch  = " << mxexch[0] << " "
-            //           << mxexch[1] << " " << mxexch[2] << std::endl;
+                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
 
             // add to residual
             for(unsigned i=0; i<3; i++)
@@ -269,7 +259,7 @@ namespace oomph
                                           + llg_precess_c * mxhms[i]
                                           - llg_damp_c *itp_mxdmdt[i] )*intp.test(l)*W;
 
-                    // (m x exchange) term (seperate because it involves
+                    // (m x exchange) term (separate because it involves
                     // derivatives of the test function).
                     residuals[m_eqn] -= exch_c * llg_precess_c * mxexch[i] * W;
                   }
@@ -315,8 +305,13 @@ namespace oomph
 
             Vector<double> gradtestdotgradmi(3,0.0);
             for(unsigned i=0; i<3; i++)
-              for(unsigned j=0; j<nodal_dimension(); j++) //??ds repeated calculation..
-                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx()[i][j];
+              {
+                gradtestdotgradmi[i] = 0.0;
+                for(unsigned j=0; j<nodal_dimension(); j++) //??ds repeated calculation..
+                  {
+                    gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
+                  }
+              }
 
             DenseMatrix<double> dhcadm(3,3,0.0);
             get_hca_derivative(intp.time(),intp.x(),intp.m(),intp.psi(l2),dhcadm);
@@ -651,13 +646,13 @@ namespace oomph
   }
 
 
-  /// Return FE representation of M at local coordinate s and current time.
-  void MicromagEquations::interpolated_dmdx_micromag(const Vector<double> &s,
-                                                     Vector<Vector<double> >& itp_dmdx) const
-  {
-    MMInterpolator intp(this, s);
-    itp_dmdx = intp.dmdx();
-  }
+  // /// Return FE representation of M at local coordinate s and current time.
+  // void MicromagEquations::interpolated_dmdx_micromag(const Vector<double> &s,
+  //                                                    Vector<Vector<double> >& itp_dmdx) const
+  // {
+  //   MMInterpolator intp(this, s);
+  //   itp_dmdx = intp.dmdx();
+  // }
 
 
   // //======================================================================
