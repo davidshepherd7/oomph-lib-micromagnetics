@@ -66,8 +66,6 @@ def recreate_dir(dirname):
 
 def generate_jacobians(argsdict):
 
-    print("Running", argsdict)
-
     argslist = dict2argslist(argsdict)
 
     outdir = argsdict['outdir']
@@ -76,17 +74,21 @@ def generate_jacobians(argsdict):
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Run the driver with the given arguments and outputting the Jacobian
-    subp.check_call([DRIVER, '-output_jac', 'always',
-                     '-solver', 'gmres-amg'] + argslist,
-                     stdout=open(pjoin(outdir, 'stdout'), 'w')
-        )
+    l = [DRIVER, '-output_jac', 'always', '-solver', 'gmres-amg'] + argslist
+    print("Running", ' '.join(l))
+    try:
+        subp.check_call(l, stdout=open(pjoin(outdir, 'stdout'), 'w'),
+                        stderr=subp.STDOUT)
+    except subp.CalledProcessError:
+        print("FAILED", ' '.join(l))
+        return False
 
     # Remove time data from the info file
     computed_info_file = pjoin(outdir, 'info')
     data="".join(open(computed_info_file).readlines()[5:-1])
     open(computed_info_file, "wb").write(data)
 
-    return
+    return True
 
 
 def check_jacobians(argsdict):
@@ -109,7 +111,8 @@ def check_jacobians(argsdict):
             try:
                 print("Comparing", stored_file, computed_file, end=' ')
                 subp.check_call([FPDIFF, stored_file, computed_file],
-                                stdout=tracefile)
+                                stdout=tracefile,
+                                stderr=tracefile)
             except subp.CalledProcessError as e:
                 if e.returncode == 2:
                     print("FAILED")
@@ -122,8 +125,7 @@ def check_jacobians(argsdict):
 
 
 def jacobian_dump_check(argsdict):
-    generate_jacobians(argsdict)
-    return check_jacobians(argsdict)
+    return generate_jacobians(argsdict) and check_jacobians(argsdict)
 
 
 def main():
