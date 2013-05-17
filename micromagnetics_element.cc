@@ -135,6 +135,7 @@ namespace oomph
     // Find out how many nodes there are
     const unsigned n_node = nnode();
     const unsigned ndim = nodal_dimension();
+    const unsigned eldim = dim();
 
     // Get coefficients
     const double llg_precess_c = llg_precession_coeff();
@@ -155,8 +156,8 @@ namespace oomph
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
-        Vector<double> s(ndim);
-        for(unsigned j=0; j<ndim; j++) {s[j] = integral_pt()->knot(ipt,j);}
+        Vector<double> s(eldim);
+        for(unsigned j=0; j<eldim; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
         // Create interpolator
         MMInterpolator intp(this, s);
