@@ -151,7 +151,7 @@ namespace oomph
     void crystalline_ansiotropy_field_derivative
     (const double& t, const Vector<double>& x,
      const Vector<double>& m, const double shape_fn_l2_at_x,
-     DenseMatrix<double>& dhcadm) const
+     double dhcadm[3][3]) const
     {
       switch (crystalline_ansiotropy_type())
         {
@@ -169,7 +169,7 @@ namespace oomph
 
           for(unsigned j=0; j<3; j++)
             for(unsigned i=0; i<3; i++)
-              dhcadm(i,j) = shape_fn_l2_at_x
+              dhcadm[i][j] = shape_fn_l2_at_x
                 * easy_axis[i] * easy_axis[j] * normalised_hk() ;
           break;
         }

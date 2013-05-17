@@ -216,7 +216,7 @@ namespace oomph
     void get_hca_derivative(const double& t, const Vector<double>&x,
                             const Vector<double>& m,
                             const double shape_fn_k_at_x,
-                            DenseMatrix<double>& dhcadm) const
+                            double dhcadm[3][3]) const
     {
       magnetic_parameters_pt()->
         crystalline_ansiotropy_field_derivative(t,x,m,shape_fn_k_at_x,dhcadm);

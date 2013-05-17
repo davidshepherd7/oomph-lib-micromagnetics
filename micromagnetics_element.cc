@@ -142,6 +142,7 @@ namespace oomph
 
     // Find out how many nodes there are
     const unsigned n_node = nnode();
+    const unsigned ndim = nodal_dimension();
 
     // Get coefficients
     const double llg_precess_c = llg_precession_coeff();
@@ -162,8 +163,8 @@ namespace oomph
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
-        Vector<double> s(nodal_dimension());
-        for(unsigned j=0; j<nodal_dimension(); j++) {s[j] = integral_pt()->knot(ipt,j);}
+        Vector<double> s(ndim);
+        for(unsigned j=0; j<ndim; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
         // Create interpolator
         MMInterpolator intp(this, s);
@@ -187,6 +188,7 @@ namespace oomph
         get_applied_field(intp.time(), intp.x(), s, h_applied);
         get_H_cryst_anis_field(intp.time(), intp.x(), intp.m(), h_cryst_anis);
 
+
         // Cross product for magnetostatic contribution
         Vector<double> h_magnetostatic(3,0.0);
         for(unsigned j=0; j<intp.dphidx().size(); j++)
@@ -194,15 +196,10 @@ namespace oomph
             h_magnetostatic[j] = -1 * magstatic_c * intp.dphidx()[j];
           }
 
-        const Vector<double> itp_mxdmdt = cross(intp.m(), intp.dmdt());
-        const Vector<double> itp_mxhapp = cross(intp.m(), h_applied);
-        const Vector<double> itp_mxhca = cross(intp.m(), h_cryst_anis);
-        const Vector<double> mxhms = cross(intp.m(), h_magnetostatic);
-
-        if(two_norm(h_magnetostatic) != 0.0)
-          {
-            std::cerr <<  "non-zero hms from built in phis!" << std::endl;
-          }
+        // if(two_norm(h_magnetostatic) != 0.0)
+        //   {
+        //     std::cerr <<  "non-zero hms from built in phis!" << std::endl;
+        //   }
 
         //======================================================================
         /// Use the above values to calculate the residuals
@@ -221,7 +218,7 @@ namespace oomph
                 std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
-                for(unsigned k=0;k<nodal_dimension();k++)                       // Poisson
+                for(unsigned k=0;k<ndim;k++)                       // Poisson
                   residuals[phi_eqn] -= intp.dphidx()[k]*intp.dtestdx(l,k)*W;
               }
 
@@ -232,7 +229,7 @@ namespace oomph
                 std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
-                for(unsigned k=0;k<nodal_dimension();k++)
+                for(unsigned k=0;k<ndim;k++)
                   residuals[phi_1_eqn] -= intp.dphi1dx()[k]*intp.dtestdx(l,k)*W;
               }
 
@@ -241,29 +238,30 @@ namespace oomph
 
             // Exchange residual contribution after integration by parts:
             //??ds possibly could optimise - this is calculated twice
-            Vector<double> gradtestdotgradmi(3,0.0);
+            double gradtestdotgradmi[3] = {0,0,0};
             for(unsigned i=0; i<3; i++)
-              for(unsigned j=0; j<nodal_dimension(); j++)
+              for(unsigned j=0; j<ndim; j++)
                 gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
-
-            const Vector<double> mxexch = cross(intp.m(), gradtestdotgradmi);
 
             // add to residual
             for(unsigned i=0; i<3; i++)
               {
-                const int m_eqn = nodal_local_eqn(l,m_index_micromag(i));
+                const int m_eqn = nodal_local_eqn(l, m_index_micromag(i));
                 if(m_eqn >= 0)  // If it's not a boundary condition
                   {
                     // dmdt, mxh_ap, mxh_ca, mxh_ms and mxdmdt terms
-                    residuals[m_eqn] += ( intp.dmdt()[i]
-                                          + llg_precess_c * itp_mxhapp[i]
-                                          + llg_precess_c * itp_mxhca[i]
-                                          + llg_precess_c * mxhms[i]
-                                          - llg_damp_c *itp_mxdmdt[i] )*intp.test(l)*W;
+                    residuals[m_eqn] +=
+                      ( intp.dmdt()[i]
+                        + llg_precess_c * opt_cross(i, intp.m(), h_applied)
+                        + llg_precess_c * opt_cross(i, intp.m(), h_cryst_anis)
+                        + llg_precess_c * opt_cross(i, intp.m(), h_magnetostatic)
+                        - llg_damp_c * opt_cross(i, intp.m(), intp.dmdt())
+                        )*intp.test(l)*W;
 
                     // (m x exchange) term (separate because it involves
                     // derivatives of the test function).
-                    residuals[m_eqn] -= exch_c * llg_precess_c * mxexch[i] * W;
+                    residuals[m_eqn] -= exch_c * llg_precess_c *
+                      opt_cross(i, intp.m(), gradtestdotgradmi) * W;
                   }
                 else
                   {
@@ -286,6 +284,24 @@ namespace oomph
         // braces and indentation gets ridiculous with so many nested for loops
         // and if statements.
 
+
+        // nondiffterms precalcs
+        double nondiffterms[3];
+        for(unsigned i=0; i<3; i++)
+          nondiffterms[i] = - llg_damp_c * intp.dmdt()[i]
+            + llg_precess_c * h_magnetostatic[i]
+            + llg_precess_c * (h_cryst_anis[i] + h_applied[i]);
+
+
+        double gradpsil2[3];
+        double gradtestl[3];
+        double gradtestdotgradmi[3];
+        double diffterms[3];
+        int m_eqn[3], m_unknown[3];
+        double dhcadm[3][3];
+
+
+
         // Double loop over nodes for the jacobian
         for(unsigned l=0; l<n_node; l++){
 
@@ -297,25 +313,27 @@ namespace oomph
             double mt0weight = d_valuederivative_evaltime_by_dvalue_np1;
 
             // Pre-calculations
-            Vector<double> gradpsil2(3,0.0), gradtestl(3,0.0);
-            for(unsigned j=0; j<nodal_dimension(); j++){
-              gradpsil2[j] = intp.dpsidx(l2,j);
-              gradtestl[j] = intp.dtestdx(l,j);
-            }
-            double gradtestldotgradpsil2 = dot(gradtestl, gradpsil2);
-            const Vector<double> itpmxgradpsil2 = cross(intp.m(), gradpsil2);
+            for(unsigned j=0; j<ndim; j++)
+              {
+                gradpsil2[j] = intp.dpsidx(l2,j);
+                gradtestl[j] = intp.dtestdx(l,j);
+              }
 
-            Vector<double> gradtestdotgradmi(3,0.0);
+            double gradtestldotgradpsil2 = 0.0;
+            for(unsigned i=0; i < ndim; i++)
+              {
+                gradtestldotgradpsil2 += gradtestl[i] * gradpsil2[i];
+              }
+
             for(unsigned i=0; i<3; i++)
               {
                 gradtestdotgradmi[i] = 0.0;
-                for(unsigned j=0; j<nodal_dimension(); j++) //??ds repeated calculation..
+                for(unsigned j=0; j<ndim; j++) //??ds repeated calculation..
                   {
                     gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
                   }
               }
 
-            DenseMatrix<double> dhcadm(3,3,0.0);
             get_hca_derivative(intp.time(),intp.x(),intp.m(),intp.psi(l2),dhcadm);
 
             //=========================================================
@@ -346,7 +364,7 @@ namespace oomph
                       jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
 
                     // w.r.t. m
-                    for(unsigned j=0; j<nodal_dimension(); j++){
+                    for(unsigned j=0; j<ndim; j++){
                       const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
                       if(m_unknown >= 0)
                         jacobian(phi_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
@@ -368,7 +386,7 @@ namespace oomph
                 jacobian(phi_1_eqn,phi_1_unknown) += - gradtestldotgradpsil2 * W;
 
               // w.r.t. m
-              for(unsigned j=0; j<nodal_dimension(); j++){
+              for(unsigned j=0; j<ndim; j++){
                 const int m_unknown = nodal_local_eqn(l2,m_index_micromag(j));
                 if(m_unknown >= 0)
                   jacobian(phi_1_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
@@ -382,7 +400,6 @@ namespace oomph
             //======================================================================
             /// LLg derivatives
             //======================================================================
-            Vector<int> m_eqn(3), m_unknown(3);
             for(unsigned j=0; j<3; j++)
               {
                 m_eqn[j] = nodal_local_eqn(l,m_index_micromag(j));
@@ -395,7 +412,7 @@ namespace oomph
               for(unsigned j=0; j<3; j++){
                 if(m_eqn[j] >= 0)
                   jacobian(m_eqn[j],phi_unknown) -= llg_precess_c
-                    * magstatic_c * itpmxgradpsil2[j] * W * intp.test(l);
+                    * magstatic_c * opt_cross(j, intp.m(), gradpsil2) * W * intp.test(l);
               }
             }
 
@@ -407,26 +424,15 @@ namespace oomph
               {
                 if((!(m_unknown[j] >= 0)) || (!(m_eqn[j] >= 0))) continue;
 
-                Vector<double> jhat(3,0.0); jhat[j] = 1.0;
-
-                // exchange pre-calcs
-                const Vector<double> mxjhat = cross(intp.m(),jhat);
-                const Vector<double> jhatxgradtestdotgradmi = cross(jhat,gradtestdotgradmi);
-
-                // jhat x nondiffterms precalcs
-                Vector<double> nondiffterms(3,0.0);
-                for(unsigned i=0; i<3; i++)
-                  nondiffterms[i] = - llg_damp_c * intp.dmdt()[i]
-                    + llg_precess_c * h_magnetostatic[i]
-                    + llg_precess_c * (h_cryst_anis[i] + h_applied[i]);
-                const Vector<double> jhatxnondiffterms = cross(jhat,nondiffterms);
+                // Initialise jhat
+                double jhat[3] = {0,0,0}; jhat[j] = 1.0;
 
                 // itp_m x terms precalcs
-                Vector<double> diffterms(3,0.0);
                 for(unsigned i=0; i<3; i++)
-                  diffterms[i] += llg_precess_c * dhcadm(i,j);
+                  {
+                    diffterms[i] = llg_precess_c * dhcadm[i][j];
+                  }
                 diffterms[j] -= llg_damp_c * intp.psi(l2) * mt0weight;
-                const Vector<double> mxdiffterms = cross(intp.m(),diffterms);
 
                 // mass matrix component due to time derivative
                 jacobian(m_eqn[j],m_unknown[j])
@@ -441,18 +447,20 @@ namespace oomph
 
                     // dmidmj x (....)
                     jacobian(m_eqn[i],m_unknown[j]) +=
-                      W * intp.test(l) * intp.psi(l2) * jhatxnondiffterms[i]
+                      W * intp.test(l) * intp.psi(l2) * opt_cross(i, jhat, nondiffterms)
                       * d_value_evaltime_by_dvalue_np1;
 
                     // m x d/dmj(.....)
-                    jacobian(m_eqn[i],m_unknown[j]) +=
-                      W * intp.test(l) * mxdiffterms[i];
+                    jacobian(m_eqn[i], m_unknown[j]) +=
+                      W * intp.test(l) * opt_cross(i, intp.m(), diffterms);
 
                     // Exchange contribution
                     jacobian(m_eqn[i],m_unknown[j])
                       -= llg_precess_c * exch_c * W *
-                      ( intp.psi(l2) * jhatxgradtestdotgradmi[i]
-                        + mxjhat[i] * gradtestldotgradpsil2)
+                      ( intp.psi(l2) * opt_cross(i, jhat, gradtestdotgradmi)
+
+                        + opt_cross(i, intp.m(), jhat) * gradtestldotgradpsil2
+                        )
                       * d_value_evaltime_by_dvalue_np1;
 
                   }
