@@ -16,14 +16,6 @@ namespace oomph
   /// ??ds
   const double MicromagEquations::DummyBEMControlledEntry = 10;
 
-  //======================================================================
-  ///
-  //======================================================================
-  unsigned MicromagEquations::self_test()
-  {
-    return 0;
-  }
-
   void MicromagEquations::check_interpolation(MMInterpolator& intp) const
   {
 #ifdef PARANOID

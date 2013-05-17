@@ -58,7 +58,24 @@ namespace oomph
     {BrokenCopy::broken_assign("MicromagEquations");}
 
     /// Self-test: Return 0 for OK.
-    unsigned self_test();
+    unsigned self_test()
+    {
+#ifdef PARANOID
+      // Check that M indicies are sequential. Otherwise interpolation will
+      // break...
+      bool ok = ((m_index_micromag(0) +1) == m_index_micromag(1));
+      ok = ok && ((m_index_micromag(1) +1) == m_index_micromag(2));
+      if(!ok)
+        {
+          std::string error_msg = "M indicies must be sequential!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+
+      return 0;
+    }
 
     // Equation numbering
     /// Specify nodal index for phi.
@@ -71,10 +88,12 @@ namespace oomph
     unsigned m_index_micromag(const unsigned &k) const
     {
 #ifdef PARANOID
-      if(k>=3)
-        throw OomphLibError("M only has 3 indices",
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
+      if(k>=3) throw OomphLibError("M only has 3 indices",
+                                   OOMPH_CURRENT_FUNCTION,
+                                   OOMPH_EXCEPTION_LOCATION);
+      if(k<0) throw OomphLibError("M index must be  >= zero.",
+                                  OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
 #endif
       return 2 + k; // equations 2,3,4
     }
