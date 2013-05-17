@@ -350,7 +350,7 @@ namespace oomph
         outdir = "results";
 
         specify_command_line_flag("-output_jac", &output_jacobian);
-        output_jacobian = "at_start";
+        output_jacobian = "never";
 
         specify_command_line_flag("-ts", &time_stepper_name);
         time_stepper_name = "bdf2";
