@@ -246,6 +246,8 @@ namespace oomph
               for(unsigned j=0; j<nodal_dimension(); j++)
                 gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
 
+            const Vector<double> mxexch = cross(intp.m(), gradtestdotgradmi);
+
             // add to residual
             for(unsigned i=0; i<3; i++)
               {

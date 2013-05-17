@@ -164,7 +164,7 @@ namespace oomph
 
   const Vector<double> &x()
   {
-   if(X.empty()) X = interpolate_x();
+   if(uninitialised(X)) X = interpolate_x();
    return X;
   }
 
@@ -173,7 +173,7 @@ namespace oomph
 
   const Vector<double> &dxdt()
   {
-   if(Dxdt.empty()) Dxdt = interpolate_dxdt();
+   if(uninitialised(Dxdt)) Dxdt = interpolate_dxdt();
    return Dxdt;
   }
 
@@ -191,21 +191,22 @@ namespace oomph
 
   const Vector<double> &dvaluedt()
   {
-   if(Dvaluesdt.empty()) Dvaluesdt = interpolate_dvaluesdt(0, Nvalue);
+   if(uninitialised(Dvaluesdt)) Dvaluesdt = interpolate_dvaluesdt(0, Nvalue);
    return Dvaluesdt;
   }
 
   double dvaluedx(const unsigned &i_val, const unsigned &direction)
   {return dvaluedx(i_val)[direction];}
 
-  const Vector<double>& dvaluedx(const unsigned &i_val)
-  {
-   if(Dvaluesdx[i_val].empty())
-    {
-     Dvaluesdx[i_val] = interpolate_dvaluesdx(i_val);
-    }
-   return Dvaluesdx[i_val];
-  }
+
+   const Vector<double>& dvaluedx(const unsigned &i_val)
+   {
+     if(uninitialised(Dvaluesdx[i_val]))
+       {
+         Dvaluesdx[i_val] = interpolate_dvaluesdx(i_val);
+       }
+     return Dvaluesdx[i_val];
+   }
 
   // Access functions for Jacobian and shape/test functions
   double j() const {return J;}
