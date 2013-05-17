@@ -98,6 +98,7 @@ def check_jacobians(argsdict):
     compare_files = ([pjoin(validatadir, 'info.gz')]
                      + glob.glob(pjoin(validatadir, 'jacobian*')))
 
+    success = True
     with open(pjoin(outdir, 'check_trace'), 'a') as tracefile:
         for stored_file in compare_files:
 
@@ -105,16 +106,24 @@ def check_jacobians(argsdict):
             basename = os.path.basename(os.path.splitext(stored_file)[0])
             computed_file = pjoin(outdir,basename)
 
-            print("Comparing", stored_file, computed_file)
-            subp.check_call([FPDIFF, stored_file, computed_file],
-                             stdout=tracefile)
-    return
+            try:
+                print("Comparing", stored_file, computed_file, end=' ')
+                subp.check_call([FPDIFF, stored_file, computed_file],
+                                stdout=tracefile)
+            except subp.CalledProcessError as e:
+                if e.returncode == 2:
+                    print("FAILED")
+                    success = False
+                else:
+                    raise
+            else:
+                print() # Finsh the line
+    return success
 
 
 def jacobian_dump_check(argsdict):
     generate_jacobians(argsdict)
-    check_jacobians(argsdict)
-    return
+    return check_jacobians(argsdict)
 
 
 def main():
@@ -153,14 +162,14 @@ def main():
                         'ref': 3,
                         'dt': 1e-4,
                         'tmax': 3e-4,
-                        'initm': 'smoothly_varying',
+                        'initm': 'smoothly_varying_5',
                         'outdir': 'Validation/J1'},
 
                         {'mesh': 'sq_cubeoid',
                         'ref': 2,
                         'dt': 1e-4,
                         'tmax': 2e-4,
-                        'initm': 'smoothly_varying',
+                        'initm': 'smoothly_varying_500',
                         'outdir': 'Validation/J2'},
 
                         ]
@@ -193,13 +202,14 @@ def main():
 
     # Otherwise calculate and compare all the Jacobians
     if args.serial:
-        list(map(jacobian_dump_check, jacobian_params))
+        results = list(map(jacobian_dump_check, jacobian_params))
     else:
-        list(Pool().map(jacobian_dump_check, jacobian_params, chunksize=1))
+        results = list(Pool().map(jacobian_dump_check, jacobian_params, chunksize=1))
 
-
-    # If it gets to here then everything worked!
-    return 0
+    if all(results):
+        return 0
+    else:
+        return 2
 
 
 # If this script is run from a shell then run main() and return the result.

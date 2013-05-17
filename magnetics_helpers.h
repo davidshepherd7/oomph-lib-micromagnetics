@@ -132,7 +132,7 @@ namespace InitialM
     return m;
   }
 
-  Vector<double> smoothly_varying(const double& t, const Vector<double> &x)
+  Vector<double> smoothly_varying_5(const double& t, const Vector<double> &x)
   {
     Vector<double> m(3,0.0);
 
@@ -146,11 +146,11 @@ namespace InitialM
   }
 
   // ??ds smoothly varying over long length scale (for larger meshes)
-  Vector<double> smoothly_varying100(const double& t, const Vector<double> &x)
+  Vector<double> smoothly_varying_500(const double& t, const Vector<double> &x)
   {
     Vector<double> m(3,0.0);
 
-    double l = 100;
+    double l = 500;
     m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
     m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
     m[2] = 1.0 - m[0] - m[1];
@@ -177,9 +177,13 @@ namespace InitialM
       {
         return &InitialM::xz;
       }
-    else if(m_name == "smoothly_varying")
+    else if(m_name == "smoothly_varying_5")
       {
-        return &InitialM::smoothly_varying;
+        return &InitialM::smoothly_varying_5;
+      }
+    else if(m_name == "smoothly_varying_500")
+      {
+        return &InitialM::smoothly_varying_500;
       }
     else
       {
