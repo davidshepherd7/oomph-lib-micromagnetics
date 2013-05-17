@@ -160,10 +160,7 @@ namespace oomph
         for(unsigned j=0; j<eldim; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
         // Create interpolator
-        MMInterpolator intp(this, s);
-
-        // Check it vs old implementation if we are in paranoid mode
-        check_interpolation(intp);
+        MMArrayInterpolator<5> intp(this, s);
 
         double W = integral_pt()->weight(ipt) * intp.j();
 
@@ -172,19 +169,25 @@ namespace oomph
         // Divergence of m
         const double itp_divm = intp.div_m();
 
+        Vector<double> xvec(ndim, 0.0);
+        for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
+
+        Vector<double> mvec(3, 0.0);
+        for(unsigned i=0; i<ndim; i++) {mvec[i] = intp.m()[i];}
+
         // Source functions (for debugging, normally zero)
-        const double phi_source = get_phi_source(intp.time(),intp.x());
-        const double phi_1_source = get_phi_1_source(intp.time(),intp.x());
+        const double phi_source = get_phi_source(intp.time(),xvec);
+        const double phi_1_source = get_phi_1_source(intp.time(),xvec);
 
         // Fields at integration point
         Vector<double> h_applied, h_cryst_anis;
-        get_applied_field(intp.time(), intp.x(), s, h_applied);
-        get_H_cryst_anis_field(intp.time(), intp.x(), intp.m(), h_cryst_anis);
+        get_applied_field(intp.time(), xvec, s, h_applied);
+        get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
 
 
         // Cross product for magnetostatic contribution
         Vector<double> h_magnetostatic(3,0.0);
-        for(unsigned j=0; j<intp.dphidx().size(); j++)
+        for(unsigned j=0; j<ndim; j++)
           {
             h_magnetostatic[j] = -1 * magstatic_c * intp.dphidx()[j];
           }
@@ -298,6 +301,19 @@ namespace oomph
         // Double loop over nodes for the jacobian
         for(unsigned l=0; l<n_node; l++){
 
+          // Pre calculate values with no l2 dependencies
+          for(unsigned j=0; j<ndim; j++) {gradtestl[j] = intp.dtestdx(l,j);}
+          for(unsigned i=0; i<3; i++)
+            {
+              m_eqn[i] = nodal_local_eqn(l,m_index_micromag(i));
+
+              gradtestdotgradmi[i] = 0.0;
+              for(unsigned j=0; j<ndim; j++) //??ds repeated calculation..
+                {
+                  gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
+                }
+            }
+
           for(unsigned l2=0;l2<n_node;l2++){
 
             // Timestepper weight for m at this node, at this
@@ -305,12 +321,7 @@ namespace oomph
             // safe bet.
             double mt0weight = d_valuederivative_evaltime_by_dvalue_np1;
 
-            // Pre-calculations
-            for(unsigned j=0; j<ndim; j++)
-              {
-                gradpsil2[j] = intp.dpsidx(l2,j);
-                gradtestl[j] = intp.dtestdx(l,j);
-              }
+            for(unsigned j=0; j<ndim; j++) {gradpsil2[j] = intp.dpsidx(l2,j);}
 
             double gradtestldotgradpsil2 = 0.0;
             for(unsigned i=0; i < ndim; i++)
@@ -318,16 +329,7 @@ namespace oomph
                 gradtestldotgradpsil2 += gradtestl[i] * gradpsil2[i];
               }
 
-            for(unsigned i=0; i<3; i++)
-              {
-                gradtestdotgradmi[i] = 0.0;
-                for(unsigned j=0; j<ndim; j++) //??ds repeated calculation..
-                  {
-                    gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
-                  }
-              }
-
-            get_hca_derivative(intp.time(),intp.x(),intp.m(),intp.psi(l2),dhcadm);
+            get_hca_derivative(intp.time(),xvec,mvec,intp.psi(l2),dhcadm);
 
             //=========================================================
             /// Actual Jacobian calculation
@@ -395,7 +397,6 @@ namespace oomph
             //======================================================================
             for(unsigned j=0; j<3; j++)
               {
-                m_eqn[j] = nodal_local_eqn(l,m_index_micromag(j));
                 m_unknown[j] = nodal_local_eqn(l2,m_index_micromag(j));
               }
 

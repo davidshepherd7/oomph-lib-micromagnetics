@@ -23,6 +23,7 @@
 #include "./template_free_poisson.h"
 
 #include "./interpolator.h"
+#include "./array_interpolator.h"
 
 
 using namespace oomph;
@@ -1307,6 +1308,77 @@ namespace oomph
         {
           Div_m = 0;
           for(unsigned j=0; j<Dim; j++) Div_m += dmdx(j)[j];
+        }
+      return Div_m;
+    }
+  };
+
+  template<unsigned VAL>
+  class MMArrayInterpolator : public GeneralArrayInterpolator<VAL>
+  {
+    // Assumption: m_index_micromag(0 - 3) are consecutive.
+
+  private:
+
+    // Extra storage for magnetisation values, so we can have nicer access
+    // to them.
+    double* Dmdt;
+    double* M;
+    double Div_m;
+
+    const MicromagEquations* This_element;
+
+  public:
+
+    /// Default constructor
+    MMArrayInterpolator(const FiniteElement* const this_element,
+                        const Vector<double> &s)
+      : GeneralArrayInterpolator<VAL>(this_element, s),
+        Dmdt(0), M(0), Div_m(this->NotYetCalculatedValue)
+    {}
+
+    double phi() {return this->value(This_element->phi_index_micromag());}
+    const double* dphidx()
+    {return this->dvaluedx(This_element->phi_index_micromag());}
+
+    double phi1() {return this->value(This_element->phi_1_index_micromag());}
+    const double* dphi1dx()
+    {return this->dvaluedx(This_element->phi_1_index_micromag());}
+
+    const double* m()
+    {
+      if(this->uninitialised(M))
+        {
+          this->interpolate_values(This_element->m_index_micromag(0),
+                                   This_element->m_index_micromag(2) + 1);
+          M = this->Values + This_element->m_index_micromag(0);
+        }
+      return M;
+    }
+
+    const double* dmdt()
+    {
+      if(this->uninitialised(Dmdt))
+        {
+          this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
+                                      This_element->m_index_micromag(2) + 1);
+
+          Dmdt = this->Dvaluesdt + This_element->m_index_micromag(0);
+        }
+      return Dmdt;
+    }
+
+    const double* dmdx(const unsigned &i_val)
+    {
+      return this->dvaluedx(This_element->m_index_micromag(i_val));
+    }
+
+    double div_m()
+    {
+      if(this->uninitialised(Div_m))
+        {
+          Div_m = 0;
+          for(unsigned j=0; j<this->Dim; j++) Div_m += dmdx(j)[j];
         }
       return Div_m;
     }
