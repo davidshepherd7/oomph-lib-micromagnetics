@@ -207,9 +207,9 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
 
     /// Get the applied field at Eulerian position x.
-    void get_applied_field(const double& t, const Vector<double> &x,
-                           const Vector<double> &s,
-                           Vector<double> &H_app) const
+    virtual void get_applied_field(const double& t, const Vector<double> &x,
+                                   const Vector<double> &s,
+                                   Vector<double> &H_app) const
     {
       H_app.assign(3,0.0);
       if(Applied_field_pt != 0)
@@ -1053,9 +1053,9 @@ namespace oomph
 
     /// For micromagnetics the source function is the divergence of the
     /// magnetisation.
-    Vector<double> get_applied_field(const double& t,
-                                     const Vector<double> &x,
-                                     const Vector<double> &s) const
+      void get_applied_field(const double& t, const Vector<double> &x,
+                             const Vector<double> &s,
+                             Vector<double> &H_app) const
     {
       // Lots of checks because this is stupid really...
 #ifdef PARANOID
@@ -1094,13 +1094,18 @@ namespace oomph
       Vector<double> h_ms;
       magnetostatic_field_element_pt()->magnetostatic_field(s, h_ms);
 
+      if(magnetostatic_field_element_pt() == 0)
+        {
+          throw OomphLibError("No magnetostatic ele pt.", OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
       // Get contribution from any real applied field functions.
-      Vector<double> h_app; MicromagEquations::get_applied_field(t, x, s, h_app);
+      H_app.assign(3, 0.0);
+      MicromagEquations::get_applied_field(t, x, s, H_app);
 
       //Add them up
-      for(unsigned j=0; j<3; j++) h_app[j] += h_ms[j];
-
-      return h_app;
+      for(unsigned j=0; j<3; j++) H_app[j] += h_ms[j];
     }
 
     // Access functions:
