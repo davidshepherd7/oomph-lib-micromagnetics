@@ -670,6 +670,7 @@ namespace oomph
   void BoundaryElementHandler::
   get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
   {
+
     // Get as one big vector
     DoubleVector full_vector;
     get_bem_values(full_vector);
@@ -677,6 +678,16 @@ namespace oomph
     // Need this later
     OomphCommunicator* comm_pt = full_vector.distribution_pt()
       ->communicator_pt();
+
+#ifdef PARANOID
+    if(bem_output_values.size() != Bem_boundaries.size())
+      {
+        std::string error_msg = "Wrong number of doublevectors in output vector.";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
 
     // Now split it up into vectors on each boundary
     for(unsigned i=0, ni=Bem_boundaries.size(); i < ni; i++)
@@ -686,10 +697,16 @@ namespace oomph
         const Mesh* m_pt = Bem_boundaries[i].second;
         unsigned nnode = m_pt->nboundary_node(b);
 
-        // Make sure the vector is the right size
-        LinearAlgebraDistribution dist(comm_pt, nnode);
-        bem_output_values[i]->build(&dist, 0.0);
-        //??ds risky, segfaults? -- dist destroyed before bem_output_values.
+// Check output DoubleVector is the correct size
+#ifdef PARANOID
+        if(bem_output_values[i]->nrow() != nnode)
+          {
+            std::string error_msg = "Output DoubleVector " + to_string(i)
+              + " is the wrong size.";
+            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+#endif
 
         // Fill it in
         for(unsigned nd=0; nd<nnode; nd++)
