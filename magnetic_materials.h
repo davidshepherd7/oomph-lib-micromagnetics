@@ -177,18 +177,24 @@ namespace oomph
 
     void output(std::ostream& stream) const
     {
+      stream << std::endl;
       stream << "Magnetic parameters are:" << std::endl;
       stream << "Gamma = " << gamma() << std::endl;
       stream << "Damping = " << gilbert_damping() << std::endl;
       stream << "M_s = "  << saturation_magnetisation() << std::endl;
       stream << "Exchange constant = " << exchange_constant() <<std::endl;
       stream << "K_1 = " << k1() << std::endl;
+      stream << "magnetostatic debug = " << magnetostatic_debug_coeff() << std::endl;
+      stream << "exchange debug = " << exchange_debug_coeff() << std::endl;
+      stream << "boundary exchange debug = " << boundary_exchange_debug_coeff() << std::endl;
+      stream << "cryst anisotropy debug = " << ca_debug_coeff() << std::endl;
       stream << std::endl;
 
       stream << "This gives the following normalised coeffs:" << std::endl;
       stream << "Normalised_gamma = " <<    normalised_gamma() << std::endl;
       stream << "Normalised_gilbert_damping = " <<  normalised_gilbert_damping() << std::endl;
-      stream << "Normalised_saturation_magnetisation = " <<  normalised_saturation_magnetisation() << std::endl;
+      stream << "Normalised_saturation_magnetisation = "
+             <<  normalised_saturation_magnetisation() << std::endl;
       stream << "Normalised_hex = " <<  normalised_hex() << std::endl;
       stream << "Normalised_hk = " <<  normalised_hk() << std::endl;
       stream << "Normalised_hms = " <<  normalised_hms() << std::endl;
