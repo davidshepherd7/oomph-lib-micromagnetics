@@ -65,13 +65,10 @@ def parse_trace_file(filename):
     # Load from the file. don't read first line (titles), only load some
     # columns (the ones I want..) and transpose the array for easy
     # extraction into seperate vectors.
-    trace = sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,21,22),
-                       unpack=True, ndmin=2)
+    return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,21,22,23,24,25,26),
+                      unpack=True, ndmin=2)
 
-    # Unpack into separate vectors
-    times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev = trace
 
-    return times, dts, err_norms, newton_iters, m_length_mean, m_length_stddev
 
 
 def parse_run(results_folder):
@@ -82,8 +79,9 @@ def parse_run(results_folder):
     except IOError:
         return None
 
-    times, dts, err_norms, newton_iters, mle_mean, mle_stddev \
-      = parse_trace_file(pjoin(results_folder, "trace"))
+    (times, dts, err_norms, newton_iters, mle_mean, mle_stddev,
+     max_angle_variation, mxs, mys, mzs) = \
+        parse_trace_file(pjoin(results_folder, "trace"))
 
     # If there's only one time point then this run failed immediately and
     # we can't calculate anything interesting.
@@ -115,6 +113,13 @@ def parse_run(results_folder):
     # If there is a "FAILED" file then something didn't work
     d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
 
+    d['max_angle_variation'] = max_angle_variation
+
+    # Magnetisations
+    d['mxs'] = mxs
+    d['mys'] = mys
+    d['mzs'] = mzs
+
     return d
 
 
@@ -126,6 +131,7 @@ def parse_parameter_sweep(root_dir):
     results = []
     for root, dirs, filenames in os.walk(root_dir):
         for d in dirs:
+            print("Parsing", pjoin(root, d))
             results.append(parse_run(pjoin(root, d)))
 
     return results
@@ -149,7 +155,7 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     if keys_to_split_on is None:
        keys_to_split_on = ['initial_m', 'mesh', 'h_app', 'time_stepper', 'tmax']
 
-    parameter_sets = [{k: bigdict[k] for k in keys_to_split}
+    parameter_sets = [{k: bigdict[k] for k in keys_to_split_on}
                       for bigdict in big_dict_list]
 
     # use a set to get a unique list of parameter sets. Dictionaries cannot
@@ -207,9 +213,10 @@ def plot(data, quantity_name, y_axis_data='tol'):
     # data for the same parameters with different tol/refines.
     p = split_up_stuff(data)
 
-    # Decide if we should plot logs or not by comparing the max and min
+    # Decide if we should plot on a log scale by comparing the max and min
     # values.
     values = [d[quantity_name] for sublist in p for d in sublist]
+    print(quantity_name)
     if max(values) > 100 * min(values):
         normaliser = sp.log10
         normaliser.label = "$\log_{10}$ of "
@@ -272,6 +279,28 @@ def plot(data, quantity_name, y_axis_data='tol'):
     return fig
 
 
+def plot_m_averages(data):
+
+    fig, axs = plt.subplots(4, 1, sharex = True)
+
+    for d in data:
+        name = str(d['tol']) + " " + str(d['refinement']) + " " + str(d['time_stepper'])
+        axs[0].plot(d['times'], d['mxs'], label=name)
+        axs[0].set_ylabel('mean m_x')
+
+        axs[1].plot(d['times'], d['mys'])
+        axs[1].set_ylabel('mean m_y')
+
+        axs[2].plot(d['times'], d['mzs'])
+        axs[2].set_ylabel('mean m_z')
+
+        axs[3].plot(d['times'], d['dts'])
+        axs[3].set_ylabel('dt')
+        axs[3].set_xlabel('time')
+
+
+    axs[0].legend()
+
 def nsteps_vs_tol(data):
 
     p = split_up_stuff(data, ['initial_m', 'h_app', 'mesh'])
@@ -282,7 +311,7 @@ def nsteps_vs_tol(data):
         fig.suptitle(data_set[0]['initial_m']+ ' ' +data_set[0]['mesh'] + ' ' +
                      data_set[0]['h_app']+ ' ' +data_set[0]['time_stepper'])
 
-        for d in data if d['refine'] == 2:
+        for d in [d for d in data if d['refine'] == 2]:
             axarr[0].scatter(d['tol'], sp.mean(d['error_norms']),
                           label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
             axarr[0].set_ylabel('error norm')
@@ -333,14 +362,19 @@ def main():
 
     # Plot and save pdfs of interesting quantities
     # interesting_quantities = ['mean_ml_error', 'nsteps', 'mean_newton_iters']
-    interesting_quantities = ['mean_ml_error', 'max_err_norm', 'mean_err_norm']
+    interesting_quantities = ['mean_ml_error',
+                              # 'max_err_norm',
+                              # 'mean_err_norm'
+                              ]
 
     for q in interesting_quantities:
         fig = plot(all_results, q, y_axis_data=y_axis_data)
         fig.savefig(pjoin(args.rootdir, q + "_plot.pdf"),
                     transparent=True, bbox_inches='tight')
 
-    plot_time_error(all_results)
+    # plot_time_error(all_results)
+
+    plot_m_averages(all_results)
 
     plt.show()
 
