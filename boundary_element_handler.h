@@ -675,10 +675,6 @@ namespace oomph
     DoubleVector full_vector;
     get_bem_values(full_vector);
 
-    // Need this later
-    OomphCommunicator* comm_pt = full_vector.distribution_pt()
-      ->communicator_pt();
-
 #ifdef PARANOID
     if(bem_output_values.size() != Bem_boundaries.size())
       {
