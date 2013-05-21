@@ -86,7 +86,7 @@ def generate_jacobians(argsdict):
     # Remove time data from the info file
     computed_info_file = pjoin(outdir, 'info')
     data="".join(open(computed_info_file).readlines()[5:-1])
-    open(computed_info_file, "wb").write(data)
+    open(computed_info_file, "wb").write(bytes(data, 'UTF8'))
 
     return True
 
