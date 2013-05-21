@@ -143,29 +143,29 @@ namespace oomph
     }
 
     void actions_before_newton_step()
-      {
-        std::cout << std::endl
-                  << "Newton step " << Nnewton_iter_taken + 1 << std::endl
-                  << "---------------------------------------" << std::endl;
+    {
+      std::cout << std::endl
+                << "Newton step " << Nnewton_iter_taken + 1 << std::endl
+                << "---------------------------------------" << std::endl;
 
-        if(Swap_solver_large_dt)
-          {
-            if(this->time_pt()->dt() > 1e-2)
-              {
-                linear_solver_pt() = Default_linear_solver_pt;
-              }
-            else
-              {
-                linear_solver_pt() = My_linear_solver_pt;
-              }
-          }
-      }
+      if(Swap_solver_large_dt)
+        {
+          if(this->time_pt()->dt() > 1e-2)
+            {
+              linear_solver_pt() = Default_linear_solver_pt;
+            }
+          else
+            {
+              linear_solver_pt() = My_linear_solver_pt;
+            }
+        }
+    }
 
     void actions_before_newton_solve()
-      {
-        // Call lower level actions function
-        MyProblem::actions_before_newton_solve();
-      }
+    {
+      // Call lower level actions function
+      MyProblem::actions_before_newton_solve();
+    }
 
     void actions_after_newton_solve()
     {
@@ -251,16 +251,16 @@ namespace oomph
     /// \short Return a vector of the maximum angle variation in each
     /// element.
     Vector<double> elemental_max_m_angle_variations() const
-      {
-        Vector<double> angles;
-        for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
-          {
-            MicromagEquations* ele_pt = dynamic_cast<MicromagEquations*>
-              (bulk_mesh_pt()->element_pt(e));
-            angles.push_back(ele_pt->max_m_angle_variation());
-          }
-        return angles;
-      }
+    {
+      Vector<double> angles;
+      for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
+        {
+          MicromagEquations* ele_pt = dynamic_cast<MicromagEquations*>
+            (bulk_mesh_pt()->element_pt(e));
+          angles.push_back(ele_pt->max_m_angle_variation());
+        }
+      return angles;
+    }
 
     /// Error for adaptive timestepper (rms of nodal error determined by
     /// comparison with explicit timestepper result).
@@ -331,12 +331,12 @@ namespace oomph
       Vector<double> mean_m(3, 0.0);
 
       unsigned n_ms = ms.size();
-        for(unsigned i=0; i<n_ms; i++)
-          {
-            mean_m[0] += ms[i][0];
-            mean_m[1] += ms[i][1];
-            mean_m[2] += ms[i][2];
-          }
+      for(unsigned i=0; i<n_ms; i++)
+        {
+          mean_m[0] += ms[i][0];
+          mean_m[1] += ms[i][1];
+          mean_m[2] += ms[i][2];
+        }
 
       mean_m[0] /= n_ms;
       mean_m[1] /= n_ms;
@@ -539,25 +539,25 @@ namespace oomph
     /// \short Const access function for Renormalise_each_time_step.
     bool renormalise_each_time_step() const {return Renormalise_each_time_step;}
 
-//     /// \short Non-const access function for Surface_exchange_mesh_pt.
-//     Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
+    //     /// \short Non-const access function for Surface_exchange_mesh_pt.
+    //     Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
 
-//     /// \short Const access function for Surface_exchange_mesh_pt.
-//     Mesh* surface_exchange_mesh_pt() const
-//     {
-// #ifdef PARANOID
-//       if(Surface_exchange_mesh_pt == 0)
-//         {
-//           std::ostringstream error_msg;
-//           error_msg << "Surface exchange mesh pointer not set.";
-//           throw OomphLibError(error_msg.str(),
-//                               OOMPH_CURRENT_FUNCTION,
-//                               OOMPH_EXCEPTION_LOCATION);
-//         }
-// #endif
+    //     /// \short Const access function for Surface_exchange_mesh_pt.
+    //     Mesh* surface_exchange_mesh_pt() const
+    //     {
+    // #ifdef PARANOID
+    //       if(Surface_exchange_mesh_pt == 0)
+    //         {
+    //           std::ostringstream error_msg;
+    //           error_msg << "Surface exchange mesh pointer not set.";
+    //           throw OomphLibError(error_msg.str(),
+    //                               OOMPH_CURRENT_FUNCTION,
+    //                               OOMPH_EXCEPTION_LOCATION);
+    //         }
+    // #endif
 
-//       return Surface_exchange_mesh_pt;
-//     }
+    //       return Surface_exchange_mesh_pt;
+    //     }
 
     /// \short Non-const access function for Bulk_mesh_pt.
     void set_bulk_mesh_pt(Mesh* mesh_pt) {Bulk_mesh_pt = mesh_pt;}
@@ -686,6 +686,186 @@ namespace oomph
   }
 
 
+
+  namespace LLGFactories
+  {
+    /// \short Make a mesh as specified by an input argument. Refined
+    /// according to the given refinement level (in some way appropriate
+    /// for that mesh type). Assumption: this will be passed into a
+    /// problem, which will delete the pointer when it's done.
+    Mesh* mesh_factory(const std::string& _mesh_name,
+                       int refinement_level,
+                       TimeStepper* time_stepper_pt,
+                       unsigned nnode1d = 2)
+    {
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt = 0;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          unsigned nx = 5 * std::pow(2, refinement_level);
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          // nmag cubeoid
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = 2 * std::pow(2, refinement_level);
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // For some reason we have to call this manually...
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+  }
+
+
+  /// Command line args class for llg problems.
+  class LLGArgs : public MyCliArgs
+  {
+  public:
+
+    /// Constructor: Initialise pointers to null.
+    LLGArgs() : mesh_pt(0), initial_m_fct_pt(0), h_app_fct_pt(0),
+                magnetic_parameters_pt(0) {}
+
+    virtual void set_flags()
+    {
+      MyCliArgs::set_flags();
+
+      specify_command_line_flag("-mesh", &mesh_name);
+      mesh_name = "sq_square";
+
+      specify_command_line_flag("-initm", &initial_m_name);
+      initial_m_name = "z";
+
+      specify_command_line_flag("-happ", &h_app_name);
+      h_app_name = "minus_z";
+
+      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
+      magnetic_parameters_name = "simple-llg";
+
+      specify_command_line_flag("-renorm_m", &Renormalise);
+      Renormalise = -1;
+    }
+
+
+    virtual void run_factories()
+    {
+      MyCliArgs::run_factories();
+
+      mesh_name = to_lower(mesh_name);
+      initial_m_name = to_lower(initial_m_name);
+      h_app_name = to_lower(h_app_name);
+      magnetic_parameters_name = to_lower(magnetic_parameters_name);
+
+      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
+      h_app_fct_pt = HApp::h_app_factory(h_app_name);
+      magnetic_parameters_pt =
+        Factories::magnetic_parameters_factory(magnetic_parameters_name);
+
+      // Do the mesh last of all because it can be slow
+      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt);
+    }
+
+    /// Write out all args (in a parseable format) to a stream.
+    virtual void dump_args(std::ostream& out_stream) const
+    {
+      MyCliArgs::dump_args(out_stream);
+
+      out_stream
+        << "mesh " << mesh_name << std::endl
+        << "initial_m " << initial_m_name << std::endl
+        << "h_app " << h_app_name << std::endl
+        << "mag_params " << magnetic_parameters_name << std::endl;
+    }
+
+
+    bool renormalise_flag()
+    {
+      // If flag not set then only do it for bdf timesteppers
+      if(Renormalise == -1)
+        {
+          return (time_stepper_name == "bdf2")
+            || (time_stepper_name == "bdf1");
+        }
+      // Otherwise do what the flag says
+      else
+        {
+          return bool(Renormalise);
+        }
+    }
+
+    Mesh* mesh_pt;
+    InitialM::InitialMFctPt initial_m_fct_pt;
+    HApp::HAppFctPt h_app_fct_pt;
+    MagneticParameters* magnetic_parameters_pt;
+
+    // Strings for input to factory functions
+    std::string mesh_name;
+    std::string initial_m_name;
+    std::string h_app_name;
+    std::string magnetic_parameters_name;
+
+
+    /// Flag to control renormalisation of |m| after each step. -1 =
+    /// default for timestepper, 0 = off, 1 = on.
+    int Renormalise;
+  };
 
 }
 

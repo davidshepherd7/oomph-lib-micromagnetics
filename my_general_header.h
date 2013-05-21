@@ -16,11 +16,6 @@
 
 #include <ostream>
 
-// We need full definition of elements so that we can create meshes of
-// them.
-#include "./micromag.h"
-// #include "./micromagnetics_element.h"
-
 #include "./magnetics_helpers.h"
 
 // Timesteppers
@@ -105,87 +100,6 @@ namespace oomph
     }
 
 
-    /// \short Make a mesh as specified by an input argument. Refined
-    /// according to the given refinement level (in some way appropriate
-    /// for that mesh type). Assumption: this will be passed into a
-    /// problem, which will delete the pointer when it's done.
-    Mesh* mesh_factory(const std::string& _mesh_name,
-                       int refinement_level,
-                       TimeStepper* time_stepper_pt,
-                       unsigned nnode1d = 2)
-    {
-      // Ignore case in mesh names
-      const std::string mesh_name = to_lower(_mesh_name);
-
-      // Make the mesh and store a pointer to it
-      Mesh* mesh_pt = 0;
-      if(mesh_name == "sq_square" && nnode1d == 2)
-        {
-          double lx = 1.0;
-          unsigned nx = 5 * std::pow(2, refinement_level);
-          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
-            (nx, nx, lx, lx, time_stepper_pt);
-        }
-      else if(mesh_name == "ut_square" && nnode1d == 2)
-        {
-          mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
-            ("./meshes/square." + to_string(refinement_level) + ".node",
-             "./meshes/square." + to_string(refinement_level) + ".ele",
-             "./meshes/square." + to_string(refinement_level) + ".poly",
-             time_stepper_pt);
-        }
-      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
-        {
-          // nmag cubeoid
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = 2 * std::pow(2, refinement_level);
-          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
-          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
-            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
-        }
-      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
-        {
-          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
-            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
-        }
-      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
-        {
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
-        }
-      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
-        {
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
-        }
-      else if(mesh_name == "ut_sphere" && nnode1d == 2)
-        {
-          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
-            ("./meshes/sphere." + to_string(refinement_level) + ".node",
-             "./meshes/sphere." + to_string(refinement_level) + ".ele",
-             "./meshes/sphere." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
-        }
-      else
-        {
-          throw OomphLibError("Unrecognised mesh name " + mesh_name,
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      // For some reason we have to call this manually...
-      mesh_pt->setup_boundary_element_info();
-
-      // Done: pass out the mesh pointer
-      return mesh_pt;
-    }
 
     /// \short Create a variable order quadrature object based on the
     /// dimension and shape of the element. Only works for
@@ -357,9 +271,6 @@ namespace oomph
 
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
-
-        specify_command_line_flag("-renorm_m", &Renormalise);
-        Renormalise = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -405,21 +316,6 @@ namespace oomph
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
-    bool renormalise_flag()
-    {
-      // If flag not set then only do it for bdf timesteppers
-      if(Renormalise == -1)
-        {
-          return (time_stepper_name == "bdf2")
-            || (time_stepper_name == "bdf1");
-        }
-      // Otherwise do what the flag says
-      else
-        {
-          return bool(Renormalise);
-        }
-    }
-
 
     // Variables
     double dt;
@@ -437,83 +333,8 @@ namespace oomph
     std::string time_stepper_name;
     std::string solver_name;
 
-    private:
-
-    /// Flag to control renormalisation of |m| after each step. -1 =
-    /// default for timestepper, 0 = off, 1 = on.
-    int Renormalise;
-
   };
 
-
-  /// Command line args class for llg problems.
-  class LLGArgs : public MyCliArgs
-  {
-    public:
-
-    /// Constructor: Initialise pointers to null.
-    LLGArgs() : mesh_pt(0), initial_m_fct_pt(0), h_app_fct_pt(0),
-    magnetic_parameters_pt(0) {}
-
-    virtual void set_flags()
-    {
-      MyCliArgs::set_flags();
-
-      specify_command_line_flag("-mesh", &mesh_name);
-      mesh_name = "sq_square";
-
-      specify_command_line_flag("-initm", &initial_m_name);
-      initial_m_name = "z";
-
-      specify_command_line_flag("-happ", &h_app_name);
-      h_app_name = "minus_z";
-
-      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
-      magnetic_parameters_name = "simple-llg";
-    }
-
-
-    virtual void run_factories()
-    {
-      MyCliArgs::run_factories();
-
-      mesh_name = to_lower(mesh_name);
-      initial_m_name = to_lower(initial_m_name);
-      h_app_name = to_lower(h_app_name);
-      magnetic_parameters_name = to_lower(magnetic_parameters_name);
-
-      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
-      h_app_fct_pt = HApp::h_app_factory(h_app_name);
-      magnetic_parameters_pt =
-        Factories::magnetic_parameters_factory(magnetic_parameters_name);
-
-      // Do the mesh last of all because it can be slow
-      mesh_pt = Factories::mesh_factory(mesh_name, refinement, time_stepper_pt);
-    }
-
-    /// Write out all args (in a parseable format) to a stream.
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      MyCliArgs::dump_args(out_stream);
-
-      out_stream
-        << "mesh " << mesh_name << std::endl
-        << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl
-        << "mag_params " << magnetic_parameters_name << std::endl;
-    }
-
-    Mesh* mesh_pt;
-    InitialM::InitialMFctPt initial_m_fct_pt;
-    HApp::HAppFctPt h_app_fct_pt;
-    MagneticParameters* magnetic_parameters_pt;
-
-    // Strings for input to factory functions
-    std::string mesh_name;
-    std::string initial_m_name;
-    std::string h_app_name;
-    std::string magnetic_parameters_name;
-  };
 
 
 }

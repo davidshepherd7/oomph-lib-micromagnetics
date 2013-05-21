@@ -2,6 +2,7 @@
 #define OOMPH_MICROMAGNETICS_ELEMENT_CC
 
 #include "micromagnetics_element.h"
+#include "micromagnetics_flux_element.h"
 
 // For output in
 #include <iomanip>
@@ -159,7 +160,8 @@ namespace oomph
         Vector<double> s(eldim);
         for(unsigned j=0; j<eldim; j++) {s[j] = integral_pt()->knot(ipt,j);}
 
-        // Create interpolator
+        // Create interpolator //??ds maybe should move this out of loop,
+        // add .new_point() function or something?
         MMArrayInterpolator<5> intp(this, s);
 
         double W = integral_pt()->weight(ipt) * intp.j();
@@ -692,6 +694,63 @@ namespace oomph
   //   // Write tecplot footer (e.g. FE connectivity lists)
   //   write_tecplot_zone_footer(file_pt,nplot);
   // }
+
+  template <unsigned DIM, unsigned NNODE_1D>
+  void QMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
+  (DenseMatrix<double> &jacobian) const
+  {
+    std::set<FiniteElement*>::iterator it;
+    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+      {
+        MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+          dynamic_cast<MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* >
+          (*it);
+        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+      }
+  }
+
+
+  template < unsigned DIM, unsigned NNODE_1D>
+  void TMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
+  (DenseMatrix<double> &jacobian) const
+  {
+    std::set<FiniteElement*>::iterator it;
+    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+      {
+        MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+          dynamic_cast<MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* >
+          (*it);
+        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+      }
+  }
+
+  template < unsigned DIM, unsigned NNODE_1D>
+  void QSemiImplicitMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
+  (DenseMatrix<double> &jacobian) const
+  {
+    std::set<FiniteElement*>::iterator it;
+    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+      {
+        MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+          dynamic_cast<MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
+          (*it);
+        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+      }
+  }
+
+  template < unsigned DIM, unsigned NNODE_1D>
+  void TSemiImplicitMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
+  (DenseMatrix<double> &jacobian) const
+  {
+    std::set<FiniteElement*>::iterator it;
+    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
+      {
+        MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
+          dynamic_cast<MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
+          (*it);
+        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
+      }
+  }
 
 }
 

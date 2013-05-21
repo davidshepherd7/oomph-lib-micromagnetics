@@ -17,8 +17,6 @@
 #include "./vector_helpers.h"
 #include "./magnetic_materials.h"
 
-// #include "./micromagnetics_flux_element.h"
-
 // Magnetostatic elements are based on Poisson
 #include "./template_free_poisson.h"
 
@@ -714,17 +712,7 @@ namespace oomph
     // }
 
     void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
-    {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* >
-            (*it);
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
+    (DenseMatrix<double> &jacobian) const;
 
   }; // end of QMicromagElement class declaration
 
@@ -761,18 +749,7 @@ namespace oomph
     // {MicromagEquations::output(file_pt,n_plot);}
 
     void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
-    {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* >
-            (*it);
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
-
+    (DenseMatrix<double> &jacobian) const;
   }; // end of TMicromagElement class declaration
 
 
@@ -1171,19 +1148,7 @@ namespace oomph
 
     //??ds
     void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
-    {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
-            (*it);
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
-
-
+    (DenseMatrix<double> &jacobian) const;
   }; // end of QSemiImplicitMicromagElement class declaration
 
 
@@ -1223,31 +1188,7 @@ namespace oomph
 
     //??ds
     void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const
-    {
-      std::set<FiniteElement*>::iterator it;
-      for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-        {
-          MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-            dynamic_cast<MicromagFluxElement<TSemiImplicitMicromagElement<DIM, NNODE_1D> >* >
-            (*it);
-
-#ifdef PARANOID
-          if(flux_ele_pt == 0)
-            {
-              std::ostringstream error_msg;
-              error_msg << "Failed dynamic cast.";
-              throw OomphLibError(error_msg.str(),
-                                  OOMPH_CURRENT_FUNCTION,
-                                  OOMPH_EXCEPTION_LOCATION);
-            }
-#endif
-
-
-          flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-        }
-    }
-
+    (DenseMatrix<double> &jacobian) const;
   };
 
 
