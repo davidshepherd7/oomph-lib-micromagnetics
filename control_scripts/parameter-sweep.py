@@ -13,6 +13,7 @@ import sys
 import argparse
 import os
 import os.path
+import hashlib
 
 import itertools as it
 import functools as ft
@@ -34,23 +35,20 @@ greenColour = '\033[01;32m'
 redColour = '\033[01;31m'
 endColour = '\033[0m'
 
-def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
-                         outdir, timestepper, initial_m, applied_field, mesh,
-                         solver,
-                         output_root = "./",
-                         **kwargs):
+def execute_oomph_driver(args_dict, output_root):
 
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
-    for key, value in kwargs.iteritems():
-        processed_kwargs.append('-'+str(key))
-        processed_kwargs.append(str(value))
+    for key, value in args_dict.iteritems():
+        if key not in ['mpi_ncores', 'driver', 'outdir']:
+            processed_kwargs.append('-'+str(key))
+            processed_kwargs.append(str(value))
 
     # Construct an output directory name based on inputs if not specified.
-    if outdir is None:
-        outdir = ("results_" + str(dt) + "_" + str(tol) + "_" + str(refinement)
-                  + "_" + timestepper + "_" + applied_field + "_" + mesh
-                  + "_" + initial_m)
+    if args_dict.get('outdir') is None:
+        # Create a has of the inputs and use it to label the folder
+        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.iteritems()]) )
+        outdir = ("results_" + h.hexdigest())
     final_outdir = pjoin(output_root, outdir)
 
     # Make sure the directory is empty and exists
@@ -60,39 +58,32 @@ def execute_oomph_driver(mpi_ncores, driver, dt, tmax, tol, refinement,
         for result_file in glob(pjoin(final_outdir, "*")):
             os.remove(result_file)
 
+    # Construct argument list
+    arglist = (['mpirun', '-np', str(args_dict.get('mpi_ncores', 1)),
+                str(args_dict['driver']),
+                '-outdir', final_outdir]
+               + processed_kwargs)
+
     # Run with specified args in the driver directory, put output (stdout
     # and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
-        arglist = (['mpirun', '-np', str(mpi_ncores),
-                   driver,
-                   '-dt', str(dt),
-                   "-tmax", str(tmax),
-                   "-tol", str(tol),
-                   "-ref", str(refinement),
-                   "-outdir", final_outdir,
-                   "-ts", timestepper,
-                   "-initm", initial_m,
-                   "-happ", applied_field,
-                   "-mesh", mesh,
-                   "-solver", solver]
-                   + processed_kwargs)
-
         err_code = subp.call(arglist,
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
+    # Report result
+    command = ' '.join(arglist)
     if err_code == 0:
-        print(greenColour, [os.path.basename(driver), dt, tmax, tol, refinement,
-                            timestepper, initial_m, applied_field, mesh],
-                            endColour)
+        print(greenColour, command, endColour)
     else:
         # Print failure message to screen
-        print('\n', redColour, ' '.join(arglist), endColour)
+        print('\n', redColour, command , endColour)
         print(redColour, "FAILED with exit code", err_code, "see",
               pjoin(final_outdir, "stdout"), endColour)
 
         # Print failure message into file in ouput directory
         print('This run failed!', file=open(pjoin(final_outdir, "FAILED"), 'w'))
+
     return 0
 
 
@@ -103,7 +94,7 @@ def _apply_to_list(function, list_of_args):
     return function(*list_of_args)
 
 
-def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
+def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
     """Run function with all combinations of parameters in parallel using
     all available cores.
 
@@ -113,23 +104,21 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
     import multiprocessing
 
     # Generate a complete set of combinations of parameters
-    parameter_sets = it.product(*parameter_lists)
+    parameter_sets = [dict(it.izip(parameter_dictionary, x))
+                      for x in it.product(*parameter_dictionary.itervalues())]
 
     # multiprocessing doesn't include a "starmap", requires all functions
     # to take a single argument. Use a function wrapper to fix this. Also
     # print the list of args while we're in there.
-    wrapped_function = par(_apply_to_list, function)
 
     # For debugging we often need to run in serial (to get useful stack
     # traces).
     if serial_mode:
-        results = map(wrapped_function, parameter_sets)
+        results = map(function, parameter_sets)
 
     else:
         # Run in all parameter sets in parallel
-        pool = multiprocessing.Pool()
-        results = pool.map(wrapped_function, parameter_sets, 1)
-        pool.close()
+        results = multiprocessing.Pool().map(function, parameter_sets, 1)
 
     return results
 
@@ -137,35 +126,32 @@ def parallel_parameter_sweep(function, parameter_lists, serial_mode=False):
 def milan_jacobians(parameter_set, serial_mode=False):
 
     # Presumably we will always be using the implicit driver...
-    rel_driver_path = "./llg_driver/llg_driver"
+
 
     # Construct lists of args
     if parameter_set == "initial":
-        dts = [0.1, 0.05, 0.01, 0.001]
-        tmaxs = [0.001]
-        tols = [0.0]
-        refines = [1, 2, 3, 4, 5]
-        outdirs = [None]
-        timesteppers = ["bdf2"]
-        initial_ms = ['smoothly_varying']
-        fields = ['x', 'y', 'z']
-        meshes = ['sq_square', 'ut_square']
-
+        args_dict = {
+            'driver' : "./llg_driver/llg_driver",
+            'dt' : [0.1, 0.05, 0.01, 0.001],
+            'tmax' : [0.001],
+            'tol' : [0.0],
+            'refine' : [1, 2, 3, 4, 5],
+            'ts' : ["bdf2"],
+            'initm' : ['smoothly_varying'],
+            'happ' : ['x', 'y', 'z'],
+            'mesh' : ['sq_square', 'ut_square'],
+            'output_jac' : ['at_end']
+            }
         # more parameter sets go here
     else:
         raise NotImplementedError
 
-    arg_list = [dts, tmaxs, tols, refines, outdirs, timesteppers,
-                initial_ms, fields, meshes]
-
     # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver, 1,
-              rel_driver_path,
-              output_root='../experiments/jacobian_sweeps',
-              output_jac='at_end')
+    fun = par(execute_oomph_driver,
+              output_root='../experiments/jacobian_sweeps')
 
     # Run the parameter sweep!
-    parallel_parameter_sweep(fun, arg_list, serial_mode)
+    parallel_parameter_sweep(fun, args_dict, serial_mode)
 
     return 0
 
@@ -173,136 +159,153 @@ def standard_sweep(parameter_set, serial_mode=False):
 
     # Construct lists of args
     if parameter_set == '0':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [0.1, 0.05, 0.01, 0.001]
-        tmaxs = [6.0]
-        tols = [0.0]
-        refines = [1, 2, 3, 4, 5]
-        outdirs = [None]
-        timesteppers = ["bdf2", 'midpoint']
-        initial_ms = ['z', 'smoothly_varying']
-        fields = ['minus_z']
-        meshes = ['sq_square', 'ut_square']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [0.1, 0.05, 0.01, 0.001],
+            'tmax' : [6.0],
+            'tol' : [0.0],
+            'refine' : [1, 2, 3, 4, 5],
+            'ts' : ["bdf2", 'midpoint'],
+            'initm' : ['z', 'smoothly_varying'],
+            'happ' : ['minus_z'],
+            'mesh' : ['sq_square', 'ut_square'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == '1':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [0.1, 0.01]
-        tmaxs = [2.0]
-        tols = [0.0]
-        refines = [1, 5]
-        outdirs = [None]
-        timesteppers = ['midpoint']
-        initial_ms = ['z', 'smoothly_varying']
-        fields = ['minus_z']
-        meshes = ['ut_square']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [0.1, 0.01],
+            'tmax' : [2.0],
+            'tol' : [0.0],
+            'refine' : [1, 5],
+            'ts' : ['midpoint'],
+            'initm' : ['z', 'smoothly_varying'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_square'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == '2':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [1e-6]
-        tmaxs = [2.0]
-        tols = [1e-3, 1e-4, 1e-5]
-        refines = [1, 2, 3]
-        outdirs = [None]
-        timesteppers = ['bdf2', 'midpoint']
-        initial_ms = ['z', 'smoothly_varying']
-        fields = ['minus_z']
-        meshes = ['ut_square']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-6],
+            'tmax' : [2.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'refine' : [1, 2, 3],
+            'ts' : ['bdf2', 'midpoint'],
+            'initm' : ['z', 'smoothly_varying'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_square'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == '3':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [1e-6]
-        tmaxs = [2.0]
-        tols = [1e-3, 1e-4, 1e-5]
-        refines = [1, 2, 3]
-        outdirs = [None]
-        timesteppers = ['bdf2', 'midpoint']
-        initial_ms = ['z']
-        fields = ['minus_z']
-        meshes = ['ut_square', 'sq_square']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-6],
+            'tmax' : [2.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'refine' : [1, 2, 3],
+            'ts' : ['bdf2', 'midpoint'],
+            'initm' : ['z'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_square', 'sq_square'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == '4':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [1e-6]
-        tmaxs = [2.0]
-        tols = [1e-3, 1e-4, 1e-5]
-        refines = [1, 2, 3]
-        outdirs = [None]
-        timesteppers = ['bdf2', 'midpoint']
-        initial_ms = ['z']
-        fields = ['minus_z']
-        meshes = ['ut_sphere']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-6],
+            'tmax' : [2.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'refine' : [1, 2, 3],
+            'ts' : ['bdf2', 'midpoint'],
+            'initm' : ['z'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_sphere'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == 'cubeoid':
-        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
-        dts = [1e-6]
-        tmaxs = [2.0]
-        tols = [1e-3, 1e-4, 1e-5]
-        refines = [1, 2, 3]
-        outdirs = [None]
-        timesteppers = ['bdf2', 'midpoint']
-        initial_ms = ['z']
-        fields = ['minus_z']
-        meshes = ['ut_cubeoid', 'st_cubeoid']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-6],
+            'tmax' : [2.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'refine' : [1, 2, 3],
+            'ts' : ['bdf2', 'midpoint'],
+            'initm' : ['z'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_cubeoid', 'st_cubeoid'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == 'nmag_cubeoid':
-        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
-        dts = [1e-4]
-        tmaxs = [60.0]
-        tols = [1e-3, 1e-4, 1e-5]
-        refines = [4]
-        outdirs = [None]
-        timesteppers = ['midpoint', 'bdf2']
-        initial_ms = ['xz']
-        fields = ['zero']
-        meshes = ['sq_cubeoid']
-        solvers = ['gmres-amg']
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-4],
+            'tmax' : [60.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'refine' : [4],
+            'ts' : ['midpoint', 'bdf2'],
+            'initm' : ['xz'],
+            'happ' : ['zero'],
+            'mesh' : ['sq_cubeoid'],
+            'solver' : ['gmres-amg'],
+            }
 
     elif parameter_set == 'const_dt_nmag_cubeoid':
-        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
-        dts = [1e-4, 5e-5]
-        tmaxs = [30.0]
-        tols = [0.0]
-        refines = [4]
-        outdirs = [None]
-        timesteppers = ['midpoint', 'bdf2']
-        initial_ms = ['xz']
-        fields = ['zero']
-        meshes = ['sq_cubeoid']
-        solvers = ['gmres-amg']
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-4, 5e-5],
+            'tmax' : [30.0],
+            'tol' : [0.0],
+            'refine' : [4],
+            'ts' : ['midpoint', 'bdf2'],
+            'initm' : ['xz'],
+            'happ' : ['zero'],
+            'mesh' : ['sq_cubeoid'],
+            'solver' : ['gmres-amg'],
+            }
 
-        # ./semi_implicit_mm_driver/semi_implicit_mm_driver -dt 1e-06 -tmax 5.0 -tol 0.001 -ref 5 -outdir ../experiments/parameter_sweeps/nmag_cubeoid_final -initm xz -happ zero -mesh sq_cubeoid -solver gmres-amg
+    elif parameter_set == 'unsteady_heat_midpoint_vs_bdf2':
+        args_dict = {
+            'driver' : ["./unsteady_heat_driver/unsteady_heat_driver"],
+            'dt' : [1e-4],
+            'tmax' : [10.0],
+            'tol' : [1e-3, 1e-4, 1e-5],
+            'ts' : ['midpoint', 'bdf2'],
+            }
 
     elif parameter_set == 'check_semi_impl':
-        rel_driver_paths = ["./semi_implicit_mm_driver/semi_implicit_mm_driver"]
-        dts = [1e-6]
-        tmaxs = [2.0]
-        tols = [1e-3]
-        refines = [1,2]
-        outdirs = [None]
-        timesteppers = ['midpoint']
-        initial_ms = ['z', 'smoothly_varying']
-        fields = ['minus_z']
-        meshes = ['ut_sphere', 'sq_square']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-6],
+            'tmax' : [2.0],
+            'tol' : [1e-3],
+            'refine' : [1,2],
+            'ts' : ['midpoint'],
+            'initm' : ['z', 'smoothly_varying'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_sphere', 'sq_square'],
+            'solver' : ['superlu'],
+            }
 
     elif parameter_set == 'cubeoid-timestep-newton-convergence':
-        rel_driver_paths = ["./llg_driver/llg_driver"]
-        dts = [1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
-        tmaxs = [1e-8]
-        tols = [0.0]
-        refines = [3]
-        outdirs = [None]
-        timesteppers = ['bdf2']
-        initial_ms = ['z']
-        fields = ['minus_z']
-        meshes = ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid']
-        solvers = ['superlu']
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-4, 1e-5, 1e-6, 1e-7, 1e-8],
+            'tmax' : [1e-8],
+            'tol' : [0.0],
+            'refine' : [3],
+            'ts' : ['bdf2'],
+            'initm' : ['z'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
+            'solver' : ['superlu'],
+            }
 
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
@@ -314,10 +317,8 @@ def standard_sweep(parameter_set, serial_mode=False):
     print("Output is going into", output_root)
 
     # Run the parameter sweep!
-    fun = par(execute_oomph_driver, 1, output_root=output_root)
-    arg_list = [rel_driver_paths, dts, tmaxs, tols, refines, outdirs,
-                timesteppers, initial_ms, fields, meshes, solvers]
-    parallel_parameter_sweep(fun, arg_list, serial_mode)
+    fun = par(execute_oomph_driver, output_root=output_root)
+    parallel_parameter_sweep(fun, args_dict, serial_mode)
 
     return 0
 
@@ -354,9 +355,13 @@ def main():
     subp.check_call(['make', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd = "./llg_driver")
 
-    print("Building in ./semi_implicit_mm_driver folder.")
+    # print("Building in ./semi_implicit_mm_driver folder.")
+    # subp.check_call(['make', '--silent', '--keep-going',
+    #                  'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
+
+    print("Building in ./unsteady_heat_driver folder.")
     subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
+                     'LIBTOOLFLAGS=--silent'], cwd = "./unsteady_heat_driver")
 
     if args.parameters is not None:
         standard_sweep(args.parameters, args.debug_mode)
