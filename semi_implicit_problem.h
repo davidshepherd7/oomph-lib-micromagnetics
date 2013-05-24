@@ -776,53 +776,28 @@ namespace oomph
 
   }
 
-  class SemiImplicitMMArgs : public MyCliArgs
+  /// Command line args class for semi implicit llg problems. Just add the
+  /// mesh stuff.
+  class SemiImplicitMMArgs : public MMArgs
   {
 
   public:
-
-    SemiImplicitMMArgs() : llg_mesh_pt(0),
-                           phi_1_mesh_pt(0), phi_mesh_pt(0),
-                           initial_m_fct_pt(0), h_app_fct_pt(0),
-                           magnetic_parameters_pt(0),
-                           phi_1_flux_mesh_factory_fct_pt(0),
-                           bem_element_factory_fct_pt(0)
-    {}
-
+    SemiImplicitMMArgs() : llg_mesh_pt(0), phi_1_mesh_pt(0), phi_mesh_pt(0) {}
 
     virtual void set_flags()
     {
-      MyCliArgs::set_flags();
+      MMArgs::set_flags();
 
       specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
-
-      specify_command_line_flag("-initm", &initial_m_name);
-      initial_m_name = "z";
-
-      specify_command_line_flag("-happ", &h_app_name);
-      h_app_name = "minus_z";
-
-      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
-      magnetic_parameters_name = "simple-llg";
     }
 
 
     void run_factories()
     {
-      MyCliArgs::run_factories();
+      MMArgs::run_factories();
 
       to_lower(mesh_name);
-      to_lower(initial_m_name);
-      to_lower(h_app_name);
-      magnetic_parameters_name = to_lower(magnetic_parameters_name);
-
-      // Pick the m and applied field function pointers
-      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
-      h_app_fct_pt = HApp::h_app_factory(h_app_name);
-
-      magnetic_parameters_pt =
-        Factories::magnetic_parameters_factory(magnetic_parameters_name);
 
       // Build the meshes, do this last because they can be SLOW, must be
       // done before factory mesh function selection...
@@ -851,32 +826,20 @@ namespace oomph
     /// Write out all args (in a parseable format) to a stream.
     virtual void dump_args(std::ostream& out_stream) const
     {
-      MyCliArgs::dump_args(out_stream);
-
-      out_stream
-        << "mesh " << mesh_name << std::endl
-        << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl
-        << "mag_params " << magnetic_parameters_name << std::endl;
+      MMArgs::dump_args(out_stream);
+      out_stream << "mesh " << mesh_name << std::endl;
     }
 
 
     Mesh* llg_mesh_pt;
     Mesh* phi_1_mesh_pt;
     Mesh* phi_mesh_pt;
-    InitialM::InitialMFctPt initial_m_fct_pt;
-    HApp::HAppFctPt h_app_fct_pt;
-    MagneticParameters* magnetic_parameters_pt;
-
 
     GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
     SemiImplicitFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;
 
     // Strings for input to factory functions
     std::string mesh_name;
-    std::string initial_m_name;
-    std::string h_app_name;
-    std::string magnetic_parameters_name;
   };
 
 

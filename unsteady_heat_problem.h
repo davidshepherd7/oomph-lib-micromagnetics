@@ -375,6 +375,7 @@ public:
       MyCliArgs::dump_args(out_stream);
 
       out_stream
+        << "mesh " << "sq_square" << std::endl
         << "source_function " << source_fct_pt_name << std::endl;
     }
 

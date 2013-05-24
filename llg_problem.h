@@ -773,22 +773,18 @@ namespace oomph
 
   }
 
-
-  /// Command line args class for llg problems.
-  class LLGArgs : public MyCliArgs
+  /// Base command line args processing class for pure llg and semi
+  /// implicit (and any other magnetism problems).
+  class MMArgs : public MyCliArgs
   {
   public:
-
     /// Constructor: Initialise pointers to null.
-    LLGArgs() : mesh_pt(0), initial_m_fct_pt(0), h_app_fct_pt(0),
-                magnetic_parameters_pt(0) {}
+    MMArgs() : initial_m_fct_pt(0), h_app_fct_pt(0),
+               magnetic_parameters_pt(0) {}
 
     virtual void set_flags()
     {
       MyCliArgs::set_flags();
-
-      specify_command_line_flag("-mesh", &mesh_name);
-      mesh_name = "sq_square";
 
       specify_command_line_flag("-initm", &initial_m_name);
       initial_m_name = "z";
@@ -808,7 +804,6 @@ namespace oomph
     {
       MyCliArgs::run_factories();
 
-      mesh_name = to_lower(mesh_name);
       initial_m_name = to_lower(initial_m_name);
       h_app_name = to_lower(h_app_name);
       magnetic_parameters_name = to_lower(magnetic_parameters_name);
@@ -817,9 +812,6 @@ namespace oomph
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       magnetic_parameters_pt =
         Factories::magnetic_parameters_factory(magnetic_parameters_name);
-
-      // Do the mesh last of all because it can be slow
-      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt);
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -828,7 +820,6 @@ namespace oomph
       MyCliArgs::dump_args(out_stream);
 
       out_stream
-        << "mesh " << mesh_name << std::endl
         << "initial_m " << initial_m_name << std::endl
         << "h_app " << h_app_name << std::endl
         << "mag_params " << magnetic_parameters_name << std::endl;
@@ -850,13 +841,11 @@ namespace oomph
         }
     }
 
-    Mesh* mesh_pt;
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* magnetic_parameters_pt;
 
     // Strings for input to factory functions
-    std::string mesh_name;
     std::string initial_m_name;
     std::string h_app_name;
     std::string magnetic_parameters_name;
@@ -865,6 +854,50 @@ namespace oomph
     /// Flag to control renormalisation of |m| after each step. -1 =
     /// default for timestepper, 0 = off, 1 = on.
     int Renormalise;
+  };
+
+
+  /// Command line args class for llg problems. Just add the mesh
+  /// stuff. ??ds refactor to combine with MMArgs?
+  class LLGArgs : public MMArgs
+  {
+  public:
+
+    /// Constructor: Initialise pointers to null.
+    LLGArgs() : mesh_pt(0) {}
+
+    virtual void set_flags()
+    {
+      MMArgs::set_flags();
+
+      specify_command_line_flag("-mesh", &mesh_name);
+      mesh_name = "sq_square";
+    }
+
+
+    virtual void run_factories()
+    {
+      MMArgs::run_factories();
+
+      mesh_name = to_lower(mesh_name);
+
+      // Do the mesh last of all because it can be slow
+      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt);
+    }
+
+    /// Write out all args (in a parseable format) to a stream.
+    virtual void dump_args(std::ostream& out_stream) const
+    {
+      MMArgs::dump_args(out_stream);
+      out_stream << "mesh " << mesh_name << std::endl;
+    }
+
+
+    Mesh* mesh_pt;
+
+
+    // Strings for input to factory functions
+    std::string mesh_name;
   };
 
 }
