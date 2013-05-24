@@ -96,9 +96,10 @@ namespace oomph
         << "mean_preconditioner_setup_time" << " " // 11
         << "stddev_preconditioner_setup_time" << " " // 12
 
+        << "LTE_norm" << " " // 13
+        << "trace_value" << " " // 14
+
         // Reserved slots in case I think of more things to add later
-        << "dummy" << " " // 13
-        << "dummy" << " " // 14
         << "dummy" << " " // 15
         << "dummy" << " " // 16
         << "dummy" << " " // 17
@@ -194,9 +195,10 @@ namespace oomph
         << VectorOps::mean(Preconditioner_setup_times) << " " // 11
         << VectorOps::stddev(Preconditioner_setup_times) << " " // 12
 
+        << lte_norm() << " " // 13
+        << trace_value() << " "  // 14
+
         // Reserved slots in case I think of more things to add later
-        << Dummy_doc_data << " " // 13
-        << Dummy_doc_data << " " // 14
         << Dummy_doc_data << " " // 15
         << Dummy_doc_data << " " // 16
         << Dummy_doc_data << " " // 17
@@ -280,6 +282,37 @@ namespace oomph
     {
       return -1;
     }
+
+    /// \short Calculate norm of timestepper's lte error estimate.
+    double lte_norm() const
+    {
+      if(time_stepper_pt()->adaptive_flag())
+        {
+          double e = 0;
+          for(unsigned nd=0, nnode=mesh_pt()->nnode(); nd<nnode; nd++)
+            {
+              Node* nd_pt = mesh_pt()->node_pt(nd);
+              unsigned nvalue = nd_pt->nvalue();
+              for(unsigned i=0; i<nvalue; i++)
+                {
+                  e += std::pow(nd_pt->time_stepper_pt()->temporal_error_in_value(nd_pt, i), 2);
+                }
+            }
+          return std::sqrt(e);
+        }
+      else
+        {
+          return Dummy_doc_data;
+        }
+    }
+
+    virtual double trace_value() const
+      {
+        // Just use an element somewhere in the middle...
+        unsigned nele = mesh_pt()->nelement();
+        Node* trace_nd_pt = mesh_pt()->finite_element_pt(nele/2)->node_pt(0);
+        return trace_nd_pt->value(0);
+      }
 
     void dump_current_jacobian(const std::string& label)
     {
