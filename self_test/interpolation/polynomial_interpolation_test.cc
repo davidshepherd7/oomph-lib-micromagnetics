@@ -6,12 +6,13 @@
 #include <fenv.h>
 
 #include "../../poly_interp.h"
-#include "../../assert.h"
+#include "../../my_assert.h"
+#include "../../prettyprint98.hpp"
 
 
 
 using namespace oomph;
-
+using namespace PolyInterpHelpers;
 
 namespace input
 {
