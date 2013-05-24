@@ -278,7 +278,7 @@ namespace oomph
       // Store command line args
       setup(argc,argv);
       this->set_flags();
-      parse_and_assign();
+      parse_and_assign(argc, argv, true);
       doc_specified_flags();
 
       // Run any processing that needs to be done on the arguments
