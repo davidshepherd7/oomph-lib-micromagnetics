@@ -259,10 +259,10 @@ def standard_sweep(parameter_set, serial_mode=False):
     elif parameter_set == 'const_dt_nmag_cubeoid':
         args_dict = {
             'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-4, 5e-5],
-            'tmax' : [30.0],
+            'dt' : [1e-2, 5e-3],
+            'tmax' : [20.0],
             'tol' : [0.0],
-            'refine' : [4],
+            'refine' : [4,3,2],
             'ts' : ['midpoint', 'bdf2'],
             'initm' : ['xz'],
             'happ' : ['zero'],
@@ -275,7 +275,7 @@ def standard_sweep(parameter_set, serial_mode=False):
             'driver' : ["./unsteady_heat_driver/unsteady_heat_driver"],
             'dt' : [1e-4],
             'tmax' : [10.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
+            'tol' : [1e-2, 5e-3, 1e-3],
             'ts' : ['midpoint', 'bdf2'],
             }
 
@@ -355,9 +355,9 @@ def main():
     subp.check_call(['make', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd = "./llg_driver")
 
-    # print("Building in ./semi_implicit_mm_driver folder.")
-    # subp.check_call(['make', '--silent', '--keep-going',
-    #                  'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
+    print("Building in ./semi_implicit_mm_driver folder.")
+    subp.check_call(['make', '--silent', '--keep-going',
+                     'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
 
     print("Building in ./unsteady_heat_driver folder.")
     subp.check_call(['make', '--silent', '--keep-going',
