@@ -48,9 +48,9 @@ namespace OscillatoryHeatEqn
 {
   using namespace std;
 
-  double k = 0.01;
-  double omega1 = 0.1;
-  double omega2 = 10;
+  double k = 0.1;
+  double omega1 = 0.3;
+  double omega2 = 2;
   double beta = 0;
 
   double exact(const double &t, const Vector<double> &x)
@@ -63,7 +63,7 @@ namespace OscillatoryHeatEqn
       double a = sin(k*x[0]) * sin(omega1 * t) * cos(omega2 * t) * exp(-beta *t);
       double b = sin(k*x[0]) * cos(omega1 * t) * sin(omega2 * t) * exp(-beta *t);
       double u1 = exact(t,x);
-      u = u1 * (k*k - beta) - omega1 * a - omega2 * b;
+      u = -1 * (u1 * (k*k - beta) - omega1 * a - omega2 * b);
     }
 }
 
@@ -155,9 +155,6 @@ void build()
 
 
   // Set the boundary conditions for this problem:
-  // ---------------------------------------------
-  // All nodes are free by default -- just pin the ones that have
-  // Dirichlet conditions here.
   unsigned n_bound = mesh_pt()->nboundary();
   for(unsigned b=0;b<n_bound;b++)
     {
@@ -295,7 +292,7 @@ double UnsteadyHeatProblem::get_error_norm() const
     {
       Node* nd_pt = mesh_pt()->node_pt(ind);
 
-      Vector<double> approx_values(1,0.0), exact_values, x(2,0.0);
+      Vector<double> approx_values(1,0.0), x(2,0.0);
       nd_pt->position(x);
       nd_pt->value(approx_values);
       double exact = Exact_solution_fct_pt(time, x);

@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
 
   // Assign timestepper and mesh from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
-  problem.mesh_pt() = new RectangularQuadMesh<QUnsteadyHeatElement<2,3> >(10, 10, 1.0,1.0,
-                                                                          args.time_stepper_pt);
+  problem.mesh_pt() = new RectangularQuadMesh<QMidpointSafeUnsteadyHeatElement<2,3> >
+    (30, 30, 1.0,1.0, args.time_stepper_pt);
   problem.mesh_pt()->setup_boundary_element_info();
   problem.linear_solver_pt() = args.solver_pt;
 

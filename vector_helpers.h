@@ -33,8 +33,10 @@ namespace VectorOps
   {
     check_lengths_match(a,b);
     double temp = 0;
-    for(unsigned i=0; i<a.size(); i++)
-      temp += a[i] * b[i];
+    for(unsigned i=0, ni=a.size(); i<ni; i++)
+      {
+        temp += a[i] * b[i];
+      }
     return temp;
   }
 
