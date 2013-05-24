@@ -391,9 +391,13 @@ def main():
     #     fig.savefig(pjoin(args.rootdir, q + "_plot.pdf"),
     #                 transparent=True, bbox_inches='tight')
 
-    # plot_time_error(all_results)
 
     keys_to_split_on = ['mesh']
+
+
+    # Plot error norm vs time
+    plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
+    multi_plot(all_results, keys_to_split_on, plot_errors)
 
 
     # Plots that require magnetisation data (if there is none then just
