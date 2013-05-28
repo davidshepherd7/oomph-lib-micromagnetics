@@ -164,92 +164,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
 
 def standard_sweep(parameter_set, serial_mode=False):
 
-    # Construct lists of args
-    if parameter_set == '0':
-        args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [0.1, 0.05, 0.01, 0.001],
-            'tmax' : [6.0],
-            'tol' : [0.0],
-            'ref' : [1, 2, 3, 4, 5],
-            'ts' : ["bdf2", 'midpoint'],
-            'initm' : ['z', 'smoothly_varying'],
-            'happ' : ['minus_z'],
-            'mesh' : ['sq_square', 'ut_square'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == '1':
-        args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [0.1, 0.01],
-            'tmax' : [2.0],
-            'tol' : [0.0],
-            'ref' : [1, 5],
-            'ts' : ['midpoint'],
-            'initm' : ['z', 'smoothly_varying'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_square'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == '2':
-        args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-6],
-            'tmax' : [2.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
-            'ref' : [1, 2, 3],
-            'ts' : ['bdf2', 'midpoint'],
-            'initm' : ['z', 'smoothly_varying'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_square'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == '3':
-        args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-6],
-            'tmax' : [2.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
-            'ref' : [1, 2, 3],
-            'ts' : ['bdf2', 'midpoint'],
-            'initm' : ['z'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_square', 'sq_square'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == '4':
-        args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-6],
-            'tmax' : [2.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
-            'ref' : [1, 2, 3],
-            'ts' : ['bdf2', 'midpoint'],
-            'initm' : ['z'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_sphere'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == 'cubeoid':
-        args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-6],
-            'tmax' : [2.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
-            'ref' : [1, 2, 3],
-            'ts' : ['bdf2', 'midpoint'],
-            'initm' : ['z'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_cubeoid', 'st_cubeoid'],
-            'solver' : ['superlu'],
-            }
-
-    elif parameter_set == 'nmag_cubeoid':
+    if parameter_set == 'nmag_cubeoid':
         args_dict = {
             'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-4],
@@ -277,6 +192,15 @@ def standard_sweep(parameter_set, serial_mode=False):
             'solver' : ['gmres-amg'],
             }
 
+    elif parameter_set == 'script_test':
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-4],
+            'tmax' : [1.0],
+            'tol' : [1e-3],
+            'ref' : [2],
+            }
+
     elif parameter_set == 'unsteady_heat_midpoint_vs_bdf2':
         args_dict = {
             'driver' : ["./unsteady_heat_driver/unsteady_heat_driver"],
@@ -284,20 +208,6 @@ def standard_sweep(parameter_set, serial_mode=False):
             'tmax' : [10.0],
             'tol' : [1e-2, 5e-3, 1e-3],
             'ts' : ['midpoint', 'bdf2'],
-            }
-
-    elif parameter_set == 'check_semi_impl':
-        args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-6],
-            'tmax' : [2.0],
-            'tol' : [1e-3],
-            'ref' : [1,2],
-            'ts' : ['midpoint'],
-            'initm' : ['z', 'smoothly_varying'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_sphere', 'sq_square'],
-            'solver' : ['superlu'],
             }
 
     elif parameter_set == 'cubeoid-timestep-newton-convergence':
@@ -314,11 +224,31 @@ def standard_sweep(parameter_set, serial_mode=False):
             'solver' : ['superlu'],
             }
 
+    elif parameter_set == 'oscillating_fields':
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-4],
+            'tmax' : [200],
+            'tol' : [1e-3, 5e-4, 1e-4, 1e-5],
+            'ref' : [2,3,4],
+            'ts' : ['bdf2', 'midpoint'],
+            'initm' : ['z'],
+            'happ' : ['z_oscillating_p20'],
+            'mesh' : ['sq_square'],
+            'mag-params' :["simple-llg-max-damped"]
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
     output_root = pjoin('../experiments/parameter_sweeps',
                         '_'.join(parameter_set.split()))
+
+    # Make sure the driver binaries are up to date
+    driver_folder = os.path.dirname(args_dict['driver'][0])
+    print("Building in", driver_folder)
+    subp.check_call(['make', '--silent', '--keep-going',
+                     'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
 
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)
@@ -352,27 +282,19 @@ def main():
     parser.add_argument('--parameters', '-p', dest='parameters',
                         help = 'Do a standard parameter sweep with the specified parameter set.')
 
+    # parser.add_argument('-ncores', '-j', dest='ncores',
+    #                     help='Set number of cores to use.')
+
     args = parser.parse_args()
 
     # Main function
     # ============================================================
 
-    # Make sure the driver binary is up to date
-    print("Building in ./llg_driver folder.")
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./llg_driver")
-
-    print("Building in ./semi_implicit_mm_driver folder.")
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./semi_implicit_mm_driver")
-
-    print("Building in ./unsteady_heat_driver folder.")
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd = "./unsteady_heat_driver")
-
+    # Do parameter sweep
     if args.parameters is not None:
         standard_sweep(args.parameters, args.debug_mode)
 
+    # Or just dump some Jacobians
     elif args.j_parameter_set is not None:
         print("Running Jacobian generation parameter sweep",
               "with parameter set", args.j_parameter_set)
