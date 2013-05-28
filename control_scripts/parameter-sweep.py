@@ -71,6 +71,13 @@ def execute_oomph_driver(args_dict, output_root):
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
+    # Compress the output data files (but not info or trace). Use find +
+    # xargs to avoid issues with limits on the number of command line input
+    # args. Use shell=True for easy pipe-ing.
+    subp.check_call('find ' + final_outdir + ' -name "*.dat" ' +
+                    '| xargs --max-args=1000 gzip',
+                    shell=True)
+
     # Report result
     command = ' '.join(arglist)
     if err_code == 0:
