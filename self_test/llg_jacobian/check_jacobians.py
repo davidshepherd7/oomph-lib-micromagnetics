@@ -74,8 +74,11 @@ def generate_jacobians(argsdict):
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Run the driver with the given arguments and outputting the Jacobian
-    l = [DRIVER, '-output_jac', 'always', '-solver', 'gmres-amg',
-         '-doc-interval', 'all'] + argslist
+    l = [DRIVER, '-output_jac', 'always',
+         '-solver', 'gmres',
+         '-preconditioner', 'amg',
+         '-doc-interval', 'all'
+         ] + argslist
     print("Running", ' '.join(l))
     try:
         subp.check_call(l, stdout=open(pjoin(outdir, 'stdout'), 'w'),

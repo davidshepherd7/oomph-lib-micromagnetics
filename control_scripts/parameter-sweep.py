@@ -175,7 +175,8 @@ def standard_sweep(parameter_set, serial_mode=False):
             'initm' : ['xz'],
             'happ' : ['zero'],
             'mesh' : ['sq_cubeoid'],
-            'solver' : ['gmres-amg'],
+            'solver' : ['gmres'],
+            'preconditioner' : ['amg']
             }
 
     elif parameter_set == 'const_dt_nmag_cubeoid':
@@ -189,7 +190,8 @@ def standard_sweep(parameter_set, serial_mode=False):
             'initm' : ['xz'],
             'happ' : ['zero'],
             'mesh' : ['sq_cubeoid'],
-            'solver' : ['gmres-amg'],
+            'solver' : ['gmres'],
+            'preconditioner' : ['amg']
             }
 
     elif parameter_set == 'script_test':

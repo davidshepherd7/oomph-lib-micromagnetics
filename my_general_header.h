@@ -7,7 +7,7 @@
 
 
 // Include the appropriate version of the pretty print header depending on if we
-// are using c++0x or not
+// are using c++11 or not
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include "prettyprint.hpp"
 #else
@@ -169,58 +169,15 @@ namespace oomph
       const std::string solver_name = to_lower(_solver_name);
 
       LinearSolver* solver_pt;
+
       if(solver_name == "superlu")
-        {
-          solver_pt = new SuperLUSolver;
-        }
-
-      else if(solver_name == "gmres-ilu")
-        {
-          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
-          gmres_pt->preconditioner_pt()
-            = new ILUZeroPreconditioner<CRDoubleMatrix>;
-
-          solver_pt = gmres_pt;
-        }
-
-      else if((solver_name == "cg-amg") || (solver_name == "poisson"))
-        {
-#ifdef OOMPH_HAS_HYPRE
-          HyprePreconditioner* amg_pt = new HyprePreconditioner;
-          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-
-          // Use good Poisson settings for 3D (2D problems should be ok
-          // with the same ones I hope...).
-          Hypre_default_settings::set_defaults_for_3D_poisson_problem(amg_pt);
-
-          IterativeLinearSolver* cg_pt = new CG<CRDoubleMatrix>;
-          cg_pt->preconditioner_pt() = amg_pt;
-
-          solver_pt = cg_pt;
-#else // If no Hypre then give an error
-          throw OomphLibError("Don't have Hypre.", OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-#endif
-        }
-
-      else if(solver_name == "gmres-amg")
-        {
-          IterativeLinearSolver* gmres_pt = new GMRES<CRDoubleMatrix>;
-          solver_pt = gmres_pt;
-#ifdef OOMPH_HAS_HYPRE
-          HyprePreconditioner* amg_pt = new HyprePreconditioner;
-          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
-          gmres_pt->preconditioner_pt() = amg_pt;
-#else // If no Hypre then give an error
-          OomphLibWarning("Don't have Hypre, using exact preconditioner.",
-                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
-          gmres_pt->preconditioner_pt() = new SuperLUPreconditioner;
-#endif
-        }
+        { solver_pt = new SuperLUSolver; }
+      else if(solver_name == "gmres")
+        { solver_pt = new GMRES<CRDoubleMatrix>; }
+      else if(solver_name == "cg")
+        { solver_pt = new CG<CRDoubleMatrix>; }
       else if(solver_name == "fdlu")
-        {
-          solver_pt = new FD_LU;
-        }
+        { solver_pt = new FD_LU; }
       else
         {
           std::string err("Unrecognised solver name ");
@@ -232,7 +189,84 @@ namespace oomph
       return solver_pt;
     }
 
+    Preconditioner* preconditioner_factory(const std::string &_prec_name)
+    {
+      const std::string prec_name = to_lower(_prec_name);
+      Preconditioner* prec_pt = 0;
 
+      // AMG with optimal poisson paramters
+      // ============================================================
+      if(prec_name == "poisson-amg")
+        {
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* amg_pt = new HyprePreconditioner;
+          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+
+          // Use good Poisson settings for 3D (2D problems should be ok
+          // with the same ones I hope...).
+          Hypre_default_settings::set_defaults_for_3D_poisson_problem(amg_pt);
+
+          prec_pt = amg_pt;
+
+#else // If no Hypre then give a warning and use exact
+          OomphLibWarning("Don't have Hypre, using exact preconditioner.",
+                          OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+          prec_pt = preconditioner_factory("exact");
+#endif
+        }
+
+        // General purpose AMG (default parameters)
+        // ============================================================
+        else if(prec_name == "amg")
+          {
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* amg_pt = new HyprePreconditioner;
+          amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
+          prec_pt = amg_pt;
+
+#else // If no Hypre then give a warning and use exact
+          OomphLibWarning("Don't have Hypre, using exact preconditioner.",
+            OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+          prec_pt = preconditioner_factory("exact");
+#endif
+        }
+
+        else if(prec_name == "identity")
+          { prec_pt = new IdentityPreconditioner; }
+
+        else if(prec_name == "none")
+          { prec_pt = 0; }
+
+       else if(prec_name == "exact")
+          { prec_pt = new SuperLUPreconditioner; }
+
+       else if(prec_name == "milan-block-llg-1")
+         {
+            ExactBlockPreconditioner<CRDoubleMatrix>* ebp_pt
+              = new ExactBlockPreconditioner<CRDoubleMatrix>;
+
+            // Create +set reordering of blocks--swap x,y
+            Vector<unsigned> a(3); a[0] = 1; a[1] = 0; a[2] = 2;
+            ebp_pt->set_dof_to_block_map(a);
+
+            prec_pt = ebp_pt;
+          }
+
+        else
+          {
+            std::string err("Unrecognised preconditioner name ");
+            err += prec_name;
+            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+      return prec_pt;
+
+    }
+
+
+    /// \short Construct a list of times to output the full solution at
+    /// based on command line input in label.
     Vector<double> doc_times_factory(std::string &label, const double &t_max)
       {
         Vector<double> doc_times;
@@ -273,7 +307,7 @@ namespace oomph
   public:
 
     /// Constructor: Initialise pointers to null.
-    MyCliArgs() : time_stepper_pt(0) {}
+    MyCliArgs() : time_stepper_pt(0), solver_pt(0), prec_pt(0) {}
 
     virtual void set_flags()
       {
@@ -301,6 +335,9 @@ namespace oomph
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
 
+        specify_command_line_flag("-preconditioner", &prec_name);
+        prec_name = "none";
+
         specify_command_line_flag("-doc-interval", &doc_times_interval);
         doc_times_interval = "0.1";
       }
@@ -326,7 +363,28 @@ namespace oomph
       // Build all the pointers to stuff
       time_stepper_pt = Factories::time_stepper_factory(time_stepper_name, tol);
       solver_pt = Factories::linear_solver_factory(solver_name);
-      // etc. for precond?
+
+      // Create and set preconditioner pointer if our solver is iterative.
+      IterativeLinearSolver* its_pt
+        = dynamic_cast<IterativeLinearSolver*>(solver_pt);
+      if(its_pt == 0)
+        {
+#ifdef PARANOID
+          if(prec_name != "none")
+            {
+              std::string error_msg
+                = "Cannot use a preconditioner with a non-iterative solver"
+                + " of type " + to_string(solver_name);
+              throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+#endif
+        }
+      else if(prec_name != "none")
+        {
+          prec_pt = Factories::preconditioner_factory(prec_name);
+          its_pt->preconditioner_pt() = prec_pt;
+        }
 
       doc_times = Factories::doc_times_factory(doc_times_interval, tmax);
     }
@@ -345,6 +403,7 @@ namespace oomph
 
         << "time_stepper " << time_stepper_name << std::endl
         << "solver_name " << solver_name << std::endl
+        << "preconditioner_name " << prec_name <<std::endl
 
         << "doc_times_interval " << doc_times_interval << std::endl;
     }
@@ -364,10 +423,12 @@ namespace oomph
 
     TimeStepper* time_stepper_pt;
     LinearSolver* solver_pt;
+    Preconditioner* prec_pt;
 
     // Strings for input to factory functions
     std::string time_stepper_name;
     std::string solver_name;
+    std::string prec_name;
 
     std::string doc_times_interval;
     Vector<double> doc_times;
