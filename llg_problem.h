@@ -235,13 +235,13 @@ namespace oomph
       Vector<double> mean_m = mean_magnetisation();
 
       trace_file
-        << m_error_avg << " " // 21
-        << m_error_stddev << " " // 22
-        << *std::max_element(angle_variations.begin(), angle_variations.end()) << " " // 23
-        << mean_m[0] << " " // 24
-        << mean_m[1] << " " // 25
-        << mean_m[2] << " " // 26
-        << std::endl;
+        << m_error_avg << Trace_seperator // 21
+        << m_error_stddev << Trace_seperator // 22
+        << *std::max_element(angle_variations.begin(), angle_variations.end())
+        << Trace_seperator // 23
+        << mean_m[0] << Trace_seperator // 24
+        << mean_m[1] << Trace_seperator // 25
+        << mean_m[2] << Trace_seperator; // 26
     }
 
     /// Set up an initial M

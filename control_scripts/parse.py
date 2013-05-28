@@ -66,17 +66,20 @@ def parse_trace_file(filename):
     # ??ds input a dict of cols : names (past the first few)?
     # ??ds use structured arrays?
 
+    # Convert to new deliminator with "find -name 'trace' | xargs sed -e
+    # 's/ /; /g' -i"
+
     # Load from the file. don't read first line (titles), only load some
     # columns (the ones I want..) and transpose the array for easy
     # extraction into seperate vectors. If there aren't enough columns
     # ignore the magnetics stuff (it's probably unsteady heat)
     try:
         return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,13,14,21,22,23,24,25,26),
-                          unpack=True, ndmin=2)
+                          unpack=True, ndmin=2, delimiter="; ")
 
     except IndexError:
         return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,13,14),
-                          unpack=True, ndmin=2)
+                          unpack=True, ndmin=2, delimiter="; ")
 
 
 def parse_run(results_folder):

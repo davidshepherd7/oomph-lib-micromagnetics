@@ -67,68 +67,12 @@ namespace oomph
       Doc_info("results", 0),
       Trace_filename("trace"),
       Info_filename("info"),
+      Trace_seperator("; "),
       Dummy_doc_data(-1)
     {}
 
     /// Destructor
     ~MyProblem() {}
-
-    /// \short write out a general data file and initialise trace file
-    void write_initial_data() const
-    {
-      // Clear the trace file (by overwriting) and write headers
-      std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
-
-      trace_file
-        << "Doc_info.number()" << " " // 0
-        << "time()" << " " // 1
-        << "time_pt()->dt()" << " " // 2
-        << "get_error_norm()" << " " // 3
-
-        << "newton_iter" << " " // 4
-        << "mean_solver_iter" << " " // 5
-        << "std_dev_solver_iter" << " " // 6
-
-        << "mean_solver_time" << " " // 7
-        << "std_dev_solver_time" << " " // 8
-        << "mean_jacobian_setup_time" << " " // 9
-        << "stddev_jacobian_setup_time" << " " // 10
-        << "mean_preconditioner_setup_time" << " " // 11
-        << "stddev_preconditioner_setup_time" << " " // 12
-
-        << "LTE_norm" << " " // 13
-        << "trace_value" << " " // 14
-
-        // Reserved slots in case I think of more things to add later
-        << "dummy" << " " // 15
-        << "dummy" << " " // 16
-        << "dummy" << " " // 17
-        << "dummy" << " " // 18
-        << "dummy" << " " // 19
-        << "dummy" << " " // 20
-
-        << std::endl;
-
-      trace_file.close();
-
-      // Output other useful info
-      std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
-
-      info_file
-        << "real_time " << real_date_time() << std::endl
-        << "unix_time " << time() << std::endl
-        << "git_version " << GitVersion::VERSION << std::endl
-        << "build_time " << GitVersion::BUILD_TIME <<std::endl
-        << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
-
-      Doc_info.Args_pt->dump_args(info_file);
-
-      info_file.close();
-    }
-
-    /// \short Overload to write problem specific data into trace
-    /// file. Note: don't add any line endings, just space seperated data.
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const {}
 
     virtual void actions_after_newton_step()
       {
@@ -161,7 +105,8 @@ namespace oomph
         Preconditioner_setup_times.clear();
       }
 
-    /// \short Write a trace file
+    /// \short Write some general data about the previous time step to a
+    /// trace file. Extend by overloading write_additional_trace_data(...).
     void write_trace()
     {
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
@@ -179,33 +124,33 @@ namespace oomph
 
       // Write out data that can be done for every problem
       trace_file
-        << Doc_info.number() << " " // 0
-        << time() << " " // 1
-        << time_pt()->dt() << " " // 2
-        << get_error_norm() << " " // 3
+        << Doc_info.number() << Trace_seperator // 0
+        << time() << Trace_seperator // 1
+        << time_pt()->dt() << Trace_seperator // 2
+        << get_error_norm() << Trace_seperator // 3
 
-        << Nnewton_iter_taken << " " // 4
+        << Nnewton_iter_taken << Trace_seperator // 4
 
-        << VectorOps::mean(Solver_iterations) << " " // 5
-        << VectorOps::stddev(Solver_iterations) << " " // 6
+        << VectorOps::mean(Solver_iterations) << Trace_seperator // 5
+        << VectorOps::stddev(Solver_iterations) << Trace_seperator // 6
 
-        << VectorOps::mean(Solver_times) << " " // 7
-        << VectorOps::stddev(Solver_times) << " " // 8
-        << VectorOps::mean(Jacobian_setup_times) << " " // 9
-        << VectorOps::stddev(Jacobian_setup_times) << " " // 10
-        << VectorOps::mean(Preconditioner_setup_times) << " " // 11
-        << VectorOps::stddev(Preconditioner_setup_times) << " " // 12
+        << VectorOps::mean(Solver_times) << Trace_seperator // 7
+        << VectorOps::stddev(Solver_times) << Trace_seperator // 8
+        << VectorOps::mean(Jacobian_setup_times) << Trace_seperator // 9
+        << VectorOps::stddev(Jacobian_setup_times) << Trace_seperator // 10
+        << VectorOps::mean(Preconditioner_setup_times) << Trace_seperator // 11
+        << VectorOps::stddev(Preconditioner_setup_times) << Trace_seperator // 12
 
-        << lte_norm() << " " // 13
-        << trace_value() << " "  // 14
+        << lte_norm() << Trace_seperator // 13
+        << trace_value() << Trace_seperator  // 14
 
         // Reserved slots in case I think of more things to add later
-        << Dummy_doc_data << " " // 15
-        << Dummy_doc_data << " " // 16
-        << Dummy_doc_data << " " // 17
-        << Dummy_doc_data << " " // 18
-        << Dummy_doc_data << " " // 19
-        << Dummy_doc_data << " "; // 20
+        << Dummy_doc_data << Trace_seperator // 15
+        << Dummy_doc_data << Trace_seperator // 16
+        << Dummy_doc_data << Trace_seperator // 17
+        << Dummy_doc_data << Trace_seperator // 18
+        << Dummy_doc_data << Trace_seperator // 19
+        << Dummy_doc_data << Trace_seperator; // 20
 
       //??ds residuals?
       //??ds max values? Just list all values of vectors with ; as sep?
@@ -218,11 +163,22 @@ namespace oomph
       trace_file.close();
     }
 
+
+    /// \short Overload to write problem specific data into trace
+    /// file. Note: don't add any line endings and seperate data with the
+    /// Trace_seperator string.
+    virtual void write_additional_trace_data(std::ofstream& trace_file) const {}
+
+
     /// ??ds
     virtual void doc_solution_additional(std::ofstream& soln_file) const = 0;
     virtual void final_doc_additional() const {};
     virtual void initial_doc_additional() const {};
 
+
+    /// \short Outputs to be done at the start of a run (i.e. outputing
+    /// basic info on command line args etc, writing trace file headers,
+    /// outputting initial conditions).
     void initial_doc()
       {
 #ifdef PARANOID
@@ -241,11 +197,77 @@ namespace oomph
             dump_current_jacobian("at_start");
           }
 
-        write_initial_data();
+        // pvd file
+        // ============================================================
+        // Write start of .pvd XML file
+        std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+                               std::ios::out);
+        pvd_file << "<?xml version=\"1.0\"?>" << std::endl
+                 << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">"
+                 << std::endl
+                 << "<Collection>" << std::endl;
+        pvd_file.close();
+
+
+        // Trace file
+        // ============================================================
+
+        // Clear (by overwriting) and write headers
+        std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
+        trace_file
+          << "Doc_info number" << Trace_seperator // 0
+          << "time" << Trace_seperator // 1
+          << "dt" << Trace_seperator // 2
+          << "error norm" << Trace_seperator // 3
+
+          << "n newton iter" << Trace_seperator // 4
+          << "mean solver iter" << Trace_seperator // 5
+          << "std dev solver iter" << Trace_seperator // 6
+
+          << "mean solver time" << Trace_seperator // 7
+          << "std dev solver time" << Trace_seperator // 8
+          << "mean jacobian setup time" << Trace_seperator // 9
+          << "stddev jacobian setup time" << Trace_seperator // 10
+          << "mean preconditioner setup time" << Trace_seperator // 11
+          << "stddev preconditioner setup time" << Trace_seperator // 12
+
+          << "LTE norm" << Trace_seperator // 13
+          << "trace value" << Trace_seperator // 14
+
+          // Reserved slots in case I think of more things to add later
+          << "dummy" << Trace_seperator // 15
+          << "dummy" << Trace_seperator // 16
+          << "dummy" << Trace_seperator // 17
+          << "dummy" << Trace_seperator // 18
+          << "dummy" << Trace_seperator // 19
+          << "dummy" << Trace_seperator // 20
+
+          << std::endl;
+
+        trace_file.close();
+
+
+        // Info file
+        // ============================================================
+        std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
+        info_file
+          << "real_time " << real_date_time() << std::endl
+          << "unix_time " << time() << std::endl
+          << "git_version " << GitVersion::VERSION << std::endl
+          << "build_time " << GitVersion::BUILD_TIME <<std::endl
+          << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
+        Doc_info.Args_pt->dump_args(info_file);
+        info_file.close();
+
+
+        // Write initial solution and anything else problem specific
+        // (e.g. more trace file headers)
         this->doc_solution();
         initial_doc_additional();
       }
 
+    /// \short Outputs to be done at the end of a run (e.g. closing tags
+    /// for XML files).
     void final_doc()
       {
         // Output Jacobian if requested
@@ -255,23 +277,27 @@ namespace oomph
             dump_current_jacobian("at_end");
           }
 
+        // Write end of .pvd XML file
+        std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+                               std::ios::app);
+        pvd_file << "</Collection>" << std::endl
+                 << "</VTKFile>" << std::endl;
+        pvd_file.close();
+
+        // Write out anything requested from an inheriting class.
         final_doc_additional();
       }
 
-    /// \short ??ds
+    /// \short General output function: output to trace file. Maybe output
+    /// Jacobian depending on Doc_info.output_jacobian. Maybe output full
+    /// solution depending on should_doc_this_step(..) function. Extend by
+    /// overloading doc_solution_additional(...).
     void doc_solution()
       {
-
-        // Always output a trace file
+        // Always output trace file data
         write_trace();
 
-        // Output Jacobian if requested
-        if(to_lower(Doc_info.output_jacobian) == "always")
-          {
-            dump_current_jacobian(to_string(Doc_info.number()));
-          }
-
-        // Output full set of data if requested
+        // Output full set of data if requested for this timestep
         if(should_doc_this_step(time_pt()->dt(), time()))
           {
             std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
@@ -280,15 +306,29 @@ namespace oomph
             doc_solution_additional(soln_file);
             soln_file.close();
 
+            // Write the simulation time and filename to the pvd file
+            std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+                                   std::ios::app);
+            pvd_file << "<DataSet timestep=\"" << time()
+              << "\" group=\"\" part=\"0\" file=\"" << "soln"
+                     << Doc_info.number() << ".vtu"
+              << "\"/>" << std::endl;
+            pvd_file.close();
+
+            // Output Jacobian if requested
+            if(to_lower(Doc_info.output_jacobian) == "always")
+              {
+                dump_current_jacobian(to_string(Doc_info.number()));
+              }
+
             Doc_info.number()++;
           }
       }
 
+
     /// \short Dummy error norm calculator (overload in derived classes).
     virtual double get_error_norm() const
-    {
-      return -1;
-    }
+    {return Dummy_doc_data;}
 
     /// \short should the previous step be doc'ed? Check if we went past an
     /// entry of Doc_times in the last step. If no Doc_times have been set
@@ -367,6 +407,12 @@ namespace oomph
 
     std::string Trace_filename;
     std::string Info_filename;
+
+  protected:
+
+    /// \short String to insert between fields in trace file. Use "; " by
+    /// default (so that "," or " " can be used for lists if needed).
+    std::string Trace_seperator;
 
   private:
 
