@@ -198,8 +198,8 @@ namespace oomph
 
           solver_pt = cg_pt;
 #else // If no Hypre then give an error
-          throw OomphLibError("Don't have Hypre.",
-                              OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+          throw OomphLibError("Don't have Hypre.", OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
 #endif
         }
 

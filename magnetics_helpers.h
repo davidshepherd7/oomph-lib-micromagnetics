@@ -57,6 +57,14 @@ namespace HApp
     return h;
   }
 
+  Vector<double> z_oscillating_p20(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[0] = 0.1;
+    h[2] = 1.1 * std::sin((MathematicalConstants::Pi/20) * t);
+    return h;
+  }
+
   HAppFctPt h_app_factory(const std::string& field_name)
   {
     if(field_name == "zero")
@@ -82,6 +90,10 @@ namespace HApp
     else if(field_name == "all_directions")
       {
         return &HApp::all_directions;
+      }
+    else if(field_name == "z_oscillating_p20")
+      {
+        return &HApp::z_oscillating_p20;
       }
     else
       {
