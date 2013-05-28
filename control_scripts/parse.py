@@ -147,11 +147,18 @@ def parse_parameter_sweep(root_dir):
     contained in root_dir.
     """
 
+    # Recursively parse directories inside the root_dir
     results = []
     for root, dirs, filenames in os.walk(root_dir):
         for d in dirs:
             print("Parsing", pjoin(root, d))
             results.append(parse_run(pjoin(root, d)))
+
+    # Also parse the root directory if it contains results (i.e. at least
+    # an info file)
+    if os.path.isfile(pjoin(root, "info")):
+        print("Parsing", root)
+        results.append(parse_run(root))
 
     return results
 
