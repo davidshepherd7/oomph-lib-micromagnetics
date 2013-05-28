@@ -500,7 +500,8 @@ namespace oomph
 
         // Output the magnetostatic field (= - dphidx) at this point
         Vector<double> intp_dphidx = intp.dphidx();
-        for(unsigned i=0; i<dim(); i++) outfile << -intp_dphidx[i] << " ";
+        intp_dphidx.resize(3, 0.0); // make sure it has a 3rd entry
+        for(unsigned i=0; i<3; i++) outfile << -intp_dphidx[i] << " ";
 
         // Phi 1 at this point
         outfile << intp.phi() << " ";
