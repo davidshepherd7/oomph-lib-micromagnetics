@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   // ============================================================
   problem.initialise_dt(args.dt);
   problem.set_initial_condition(args.initial_m_fct_pt);
-  problem.set_doc_time_intervals(0.1, args.tmax);
+  problem.set_doc_times(args.doc_times);
 
   problem.initial_doc();
 
@@ -111,6 +111,8 @@ int main(int argc, char *argv[])
 
       // Output
       problem.doc_solution();
+
+      time_step_number++;
     }
 
 

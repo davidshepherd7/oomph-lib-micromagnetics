@@ -315,33 +315,10 @@ namespace oomph
         return false;
       }
 
-    /// \short Tell the problem to document the full solution at
-    /// n_doc_times points.
-    virtual void set_n_doc_times(const unsigned &n_doc_times,
-                                 const double &t_max)
+    /// \short Assign a vector of times to output the full solution at.
+    void set_doc_times(Vector<double> &doc_times)
       {
-        Doc_times.assign(n_doc_times, 0.0);
-        for(unsigned j=0; j<Doc_times.size(); j++)
-          {
-            Doc_times[j] = (j * t_max) / (n_doc_times - 1);
-          }
-      }
-
-    /// \short Set the time interval between points where we doc the full
-    /// solution.
-    virtual void set_doc_time_intervals(const double &doc_interval,
-                                        const double &t_max)
-      {
-        Doc_times.clear();
-
-        // Add an output time every "doc_interval" time units until we get
-        // to t_max.
-        double doc_t = 0.0;
-        while(doc_t < t_max)
-          {
-            Doc_times.push_back(doc_t);
-            doc_t += doc_interval;
-          }
+        Doc_times = doc_times;
       }
 
 

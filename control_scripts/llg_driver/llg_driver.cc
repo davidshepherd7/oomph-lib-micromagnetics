@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
   problem.Doc_info.set_directory(args.outdir);
   problem.Doc_info.Args_pt = &args;
   problem.Doc_info.output_jacobian = args.output_jacobian;
-  problem.set_doc_time_intervals(0.1, args.tmax);
+  problem.set_doc_times(args.doc_times);
 
   problem.initial_doc();
 

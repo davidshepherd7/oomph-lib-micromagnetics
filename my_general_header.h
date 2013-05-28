@@ -232,6 +232,35 @@ namespace oomph
       return solver_pt;
     }
 
+
+    Vector<double> doc_times_factory(std::string &label, const double &t_max)
+      {
+        Vector<double> doc_times;
+
+        if(label == "all")
+          {
+            // Do nothing: empty vector = output at every step.
+          }
+
+        // Otherwise we have a number giving the interval between doc
+        // times.
+        else
+          {
+            double doc_interval = std::strtod(label.c_str(), 0);
+
+            // Add an output time every "doc_interval" time units until we get
+            // to t_max.
+            double doc_t = 0.0;
+            while(doc_t < t_max)
+              {
+                doc_times.push_back(doc_t);
+                doc_t += doc_interval;
+              }
+          }
+
+        return doc_times;
+      }
+
   }
 
 
@@ -271,6 +300,9 @@ namespace oomph
 
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
+
+        specify_command_line_flag("-doc-interval", &doc_times_interval);
+        doc_times_interval = "0.1";
       }
 
     void parse(int argc, char *argv[])
@@ -295,6 +327,8 @@ namespace oomph
       time_stepper_pt = Factories::time_stepper_factory(time_stepper_name, tol);
       solver_pt = Factories::linear_solver_factory(solver_name);
       // etc. for precond?
+
+      doc_times = Factories::doc_times_factory(doc_times_interval, tmax);
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -310,7 +344,9 @@ namespace oomph
         << "output_jacobian " << output_jacobian << std::endl
 
         << "time_stepper " << time_stepper_name << std::endl
-        << "solver_name " << solver_name << std::endl;
+        << "solver_name " << solver_name << std::endl
+
+        << "doc_times_interval " << doc_times_interval << std::endl;
     }
 
     // Adaptive if a tolerance has been set
@@ -332,6 +368,9 @@ namespace oomph
     // Strings for input to factory functions
     std::string time_stepper_name;
     std::string solver_name;
+
+    std::string doc_times_interval;
+    Vector<double> doc_times;
 
   };
 
