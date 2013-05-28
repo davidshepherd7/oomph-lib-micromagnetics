@@ -261,6 +261,8 @@ namespace oomph
     /// \short ??ds
     void doc_solution()
       {
+
+        // Always output a trace file
         write_trace();
 
         // Output Jacobian if requested
@@ -269,13 +271,17 @@ namespace oomph
             dump_current_jacobian(to_string(Doc_info.number()));
           }
 
-        std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
-                                 to_string(Doc_info.number()) + ".dat").c_str(),
-                                std::ios::out);
-        doc_solution_additional(soln_file);
-        soln_file.close();
+        // Output full set of data if requested
+        if(should_doc_this_step(time_pt()->dt(), time()))
+          {
+            std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
+                                     to_string(Doc_info.number()) + ".dat").c_str(),
+                                    std::ios::out);
+            doc_solution_additional(soln_file);
+            soln_file.close();
 
-        Doc_info.number()++;
+            Doc_info.number()++;
+          }
       }
 
     /// \short Dummy error norm calculator (overload in derived classes).
@@ -283,6 +289,61 @@ namespace oomph
     {
       return -1;
     }
+
+    /// \short should the previous step be doc'ed? Check if we went past an
+    /// entry of Doc_times in the last step. If no Doc_times have been set
+    /// then always output.
+    virtual bool should_doc_this_step(const double &dt, const double &time) const
+      {
+        // I'm sure there should be a more efficient way to do this if we
+        // know that Doc_times is ordered, but it shouldn't really matter I
+        // guess--Jacobian calculation and solve times will always be far
+        // far larger than this brute force search.
+
+        // If no Doc_times have been set then always output.
+        if(Doc_times.empty()) return true;
+
+        // Loop over entries of Doc_times and check if they are in the
+        // range (t - dt, t].
+        for(unsigned j=0; j<Doc_times.size(); j++)
+          {
+            if(( time >= Doc_times[j]) && ((time - dt) < Doc_times[j]))
+              {
+                return true;
+              }
+          }
+        return false;
+      }
+
+    /// \short Tell the problem to document the full solution at
+    /// n_doc_times points.
+    virtual void set_n_doc_times(const unsigned &n_doc_times,
+                                 const double &t_max)
+      {
+        Doc_times.assign(n_doc_times, 0.0);
+        for(unsigned j=0; j<Doc_times.size(); j++)
+          {
+            Doc_times[j] = (j * t_max) / (n_doc_times - 1);
+          }
+      }
+
+    /// \short Set the time interval between points where we doc the full
+    /// solution.
+    virtual void set_doc_time_intervals(const double &doc_interval,
+                                        const double &t_max)
+      {
+        Doc_times.clear();
+
+        // Add an output time every "doc_interval" time units until we get
+        // to t_max.
+        double doc_t = 0.0;
+        while(doc_t < t_max)
+          {
+            Doc_times.push_back(doc_t);
+            doc_t += doc_interval;
+          }
+      }
+
 
     /// \short Calculate norm of timestepper's lte error estimate.
     double lte_norm() const
@@ -337,6 +398,9 @@ namespace oomph
     Vector<double> Solver_times;
     Vector<double> Solver_iterations;
     Vector<double> Preconditioner_setup_times;
+
+    /// Times at which we want to output the full solution.
+    Vector<double> Doc_times;
 
     /// Inaccessible copy constructor
     MyProblem(const MyProblem &dummy)

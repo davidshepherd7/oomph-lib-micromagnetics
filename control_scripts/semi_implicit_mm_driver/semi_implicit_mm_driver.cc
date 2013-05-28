@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
   // ============================================================
   problem.initialise_dt(args.dt);
   problem.set_initial_condition(args.initial_m_fct_pt);
+  problem.set_doc_time_intervals(0.1, args.tmax);
 
   problem.initial_doc();
 
@@ -92,12 +93,13 @@ int main(int argc, char *argv[])
   // All ready: step until completion
   // ============================================================
   double dt = args.dt;
+  unsigned time_step_number = 0;
   while(problem.time() < args.tmax)
     {
       std::cout
         << std::endl
         << std::endl
-        << "Time step " << problem.Doc_info.number() << std::endl
+        << "Time step " << time_step_number << std::endl
         << "==========================" << std::endl
         << "time = " << problem.time()
         << ", dt = " << dt

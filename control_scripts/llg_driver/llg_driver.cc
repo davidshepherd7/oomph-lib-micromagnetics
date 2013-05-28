@@ -62,17 +62,21 @@ int main(int argc, char *argv[])
   problem.Doc_info.set_directory(args.outdir);
   problem.Doc_info.Args_pt = &args;
   problem.Doc_info.output_jacobian = args.output_jacobian;
+  problem.set_doc_time_intervals(0.1, args.tmax);
 
   problem.initial_doc();
 
   // All ready: step until completion
   double dt = args.dt;
+  unsigned time_step_number = 0;
   while(problem.time() < args.tmax)
     {
+      time_step_number++;
+
       std::cout
         << std::endl
         << std::endl
-        << "Time step " << problem.Doc_info.number() << std::endl
+        << "Time step " << time_step_number << std::endl
         << "==========================" << std::endl
         << "time = " << problem.time()
         << ", dt = " << dt
