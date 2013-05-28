@@ -46,8 +46,8 @@ def execute_oomph_driver(args_dict, output_root):
 
     # Construct an output directory name based on inputs if not specified.
     if args_dict.get('outdir') is None:
-        # Create a has of the inputs and use it to label the folder
-        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.iteritems()]) )
+        # Create a hash of the inputs and use it to label the folder
+        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.iteritems()]))
         outdir = ("results_" + h.hexdigest())
     final_outdir = pjoin(output_root, outdir)
 

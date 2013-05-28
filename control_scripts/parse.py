@@ -74,11 +74,11 @@ def parse_trace_file(filename):
     # extraction into seperate vectors. If there aren't enough columns
     # ignore the magnetics stuff (it's probably unsteady heat)
     try:
-        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,13,14,21,22,23,24,25,26),
+        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,9,10,21,22,23,24,25,26),
                           unpack=True, ndmin=2, delimiter="; ")
 
     except IndexError:
-        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,13,14),
+        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,9,10),
                           unpack=True, ndmin=2, delimiter="; ")
 
 
@@ -405,9 +405,9 @@ def main():
     keys_to_split_on = ['mesh', 'refinement']
 
 
-    # Plot error norm vs time
-    plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
-    multi_plot(all_results, keys_to_split_on, plot_errors)
+    # # Plot error norm vs time
+    # plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
+    # multi_plot(all_results, keys_to_split_on, plot_errors)
 
 
     # Plots that require magnetisation data (if there is none then just

@@ -112,16 +112,6 @@ namespace oomph
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
 
-      //??ds rubbish fix..
-      if(Solver_iterations.empty())
-        {Solver_iterations.push_back(Dummy_doc_data);}
-      if(Solver_times.empty())
-        {Solver_times.push_back(Dummy_doc_data);}
-      if(Jacobian_setup_times.empty())
-        {Jacobian_setup_times.push_back(Dummy_doc_data);}
-      if(Preconditioner_setup_times.empty())
-        {Preconditioner_setup_times.push_back(Dummy_doc_data);}
-
       // Write out data that can be done for every problem
       trace_file
         << Doc_info.number() << Trace_seperator // 0
@@ -130,19 +120,19 @@ namespace oomph
         << get_error_norm() << Trace_seperator // 3
 
         << Nnewton_iter_taken << Trace_seperator // 4
+        << Solver_iterations << Trace_seperator // 5
 
-        << VectorOps::mean(Solver_iterations) << Trace_seperator // 5
-        << VectorOps::stddev(Solver_iterations) << Trace_seperator // 6
+        << Solver_times << Trace_seperator // 6
+        << Jacobian_setup_times << Trace_seperator // 7
+        << Preconditioner_setup_times << Trace_seperator // 8
 
-        << VectorOps::mean(Solver_times) << Trace_seperator // 7
-        << VectorOps::stddev(Solver_times) << Trace_seperator // 8
-        << VectorOps::mean(Jacobian_setup_times) << Trace_seperator // 9
-        << VectorOps::stddev(Jacobian_setup_times) << Trace_seperator // 10
-        << VectorOps::mean(Preconditioner_setup_times) << Trace_seperator // 11
-        << VectorOps::stddev(Preconditioner_setup_times) << Trace_seperator // 12
+        << lte_norm() << Trace_seperator // 9
+        << trace_value() << Trace_seperator  // 10
 
-        << lte_norm() << Trace_seperator // 13
-        << trace_value() << Trace_seperator  // 14
+        << Dummy_doc_data << Trace_seperator // 11
+        << Dummy_doc_data << Trace_seperator // 12
+        << Dummy_doc_data << Trace_seperator // 13
+        << Dummy_doc_data << Trace_seperator // 14
 
         // Reserved slots in case I think of more things to add later
         << Dummy_doc_data << Trace_seperator // 15
@@ -221,18 +211,19 @@ namespace oomph
           << "error norm" << Trace_seperator // 3
 
           << "n newton iter" << Trace_seperator // 4
-          << "mean solver iter" << Trace_seperator // 5
-          << "std dev solver iter" << Trace_seperator // 6
+          << "n solver iter" << Trace_seperator // 5
 
-          << "mean solver time" << Trace_seperator // 7
-          << "std dev solver time" << Trace_seperator // 8
-          << "mean jacobian setup time" << Trace_seperator // 9
-          << "stddev jacobian setup time" << Trace_seperator // 10
-          << "mean preconditioner setup time" << Trace_seperator // 11
-          << "stddev preconditioner setup time" << Trace_seperator // 12
+          << "solver times" << Trace_seperator // 6
+          << "jacobian setup times" << Trace_seperator // 7
+          << "preconditioner setup times" << Trace_seperator // 8
 
-          << "LTE norm" << Trace_seperator // 13
-          << "trace value" << Trace_seperator // 14
+          << "LTE norm" << Trace_seperator // 9
+          << "trace value" << Trace_seperator // 10
+
+          << "dummy" << Trace_seperator // 11
+          << "dummy" << Trace_seperator // 12
+          << "dummy" << Trace_seperator // 13
+          << "dummy" << Trace_seperator // 14
 
           // Reserved slots in case I think of more things to add later
           << "dummy" << Trace_seperator // 15
