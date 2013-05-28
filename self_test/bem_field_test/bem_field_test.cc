@@ -23,8 +23,11 @@ namespace Inputs
   }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+  // Start MPI if necessary
+  MPI_Helpers::init(argc,argv);
+
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
@@ -110,6 +113,11 @@ int main()
     }
 
   // Also check that y,z components are *all* close to zero (not average)
+
+
+
+  // Shut down oomph-lib's MPI
+  MPI_Helpers::finalize();
 
   // Also check that std-dev of x is not too high?
   return 0;

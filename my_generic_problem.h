@@ -72,7 +72,7 @@ namespace oomph
     {}
 
     /// Destructor
-    ~MyProblem() {}
+    virtual ~MyProblem() {}
 
     virtual void actions_after_newton_step()
       {

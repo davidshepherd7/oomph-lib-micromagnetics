@@ -17,6 +17,8 @@
 #include "./template_free_poisson.h"
 #include "./template_free_poisson_flux.h"
 
+#include "./my_general_header.h"
+
 using namespace oomph;
 
 namespace oomph
@@ -52,7 +54,7 @@ namespace oomph
       Poisson_dof_number(0), Source_fct_pt(0), Exact_solution_fct_pt(0)
     {}
 
-    /// Destructor (empty)
+    /// Destructor
     ~GenericPoissonProblem() {}
 
     /// Doc the solution.
@@ -408,6 +410,11 @@ namespace oomph
 
     // Combine the meshes into a global mesh
     build_global_mesh();
+
+    // Always use CG with amg w/ poisson settings (it's very good).
+    linear_solver_pt() = Factories::linear_solver_factory("cg");
+    checked_dynamic_cast<IterativeLinearSolver*>(linear_solver_pt())
+      ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
 
     // Set up equation numbering scheme
     std::cout << "Poisson number of equations: " << assign_eqn_numbers() << std::endl;

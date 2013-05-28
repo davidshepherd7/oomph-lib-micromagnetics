@@ -309,6 +309,14 @@ namespace oomph
     /// Constructor: Initialise pointers to null.
     MyCliArgs() : time_stepper_pt(0), solver_pt(0), prec_pt(0) {}
 
+    /// Destructor: clean up everything we made in the factories.
+    virtual ~MyCliArgs()
+      {
+        delete prec_pt; prec_pt = 0;
+        delete solver_pt; solver_pt = 0;
+        delete time_stepper_pt; time_stepper_pt = 0;
+      }
+
     virtual void set_flags()
       {
         specify_command_line_flag("-dt", &dt);
