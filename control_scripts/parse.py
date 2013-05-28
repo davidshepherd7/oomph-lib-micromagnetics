@@ -327,7 +327,7 @@ def multi_plot(data, keys_to_split_on, plot_function):
         # Make a title based on the keys which specify this data set (all
         # data in dataset have the same value for the keys in
         # keys_to_split_on so we just get it from the first one).
-        fig.suptitle(' '.join([dataset[0][k] for k in keys_to_split_on]))
+        fig.suptitle(' '.join([str(dataset[0][k]) for k in keys_to_split_on]))
 
     return
 
@@ -399,7 +399,7 @@ def main():
     #                 transparent=True, bbox_inches='tight')
 
 
-    keys_to_split_on = ['mesh']
+    keys_to_split_on = ['mesh', 'refinement']
 
 
     # Plot error norm vs time
