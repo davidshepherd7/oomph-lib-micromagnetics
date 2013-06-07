@@ -16,6 +16,8 @@
 
 #include <ostream>
 
+#include "generic.h"
+
 #include "./magnetics_helpers.h"
 
 // Timesteppers
@@ -173,9 +175,17 @@ namespace oomph
       if(solver_name == "superlu")
         { solver_pt = new SuperLUSolver; }
       else if(solver_name == "gmres")
-        { solver_pt = new GMRES<CRDoubleMatrix>; }
+        {
+          IterativeLinearSolver* its_pt = new GMRES<CRDoubleMatrix>;
+          its_pt->max_iter() = 200;
+          solver_pt = its_pt;
+        }
       else if(solver_name == "cg")
-        { solver_pt = new CG<CRDoubleMatrix>; }
+        {
+          IterativeLinearSolver* its_pt = new CG<CRDoubleMatrix>;
+          its_pt->max_iter() = 200;
+          solver_pt = its_pt;
+        }
       else if(solver_name == "fdlu")
         { solver_pt = new FD_LU; }
       else
