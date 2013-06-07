@@ -18,7 +18,6 @@ import hashlib
 import itertools as it
 import functools as ft
 import scipy as sp
-import matplotlib.pyplot as plt
 
 # Imports for specific functions
 from functools import partial as par
@@ -39,7 +38,7 @@ def execute_oomph_driver(args_dict, output_root):
 
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
-    for key, value in args_dict.iteritems():
+    for key, value in args_dict.items():
         if key not in ['mpi_ncores', 'driver', 'outdir']:
             processed_kwargs.append('-'+str(key))
             processed_kwargs.append(str(value))
@@ -47,7 +46,7 @@ def execute_oomph_driver(args_dict, output_root):
     # Construct an output directory name based on inputs if not specified.
     if args_dict.get('outdir') is None:
         # Create a hash of the inputs and use it to label the folder
-        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.iteritems()]))
+        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.items()]).encode())
         outdir = ("results_" + h.hexdigest())
     final_outdir = pjoin(output_root, outdir)
 
@@ -111,8 +110,8 @@ def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
     import multiprocessing
 
     # Generate a complete set of combinations of parameters
-    parameter_sets = [dict(it.izip(parameter_dictionary, x))
-                      for x in it.product(*parameter_dictionary.itervalues())]
+    parameter_sets = [dict(zip(parameter_dictionary, x))
+                      for x in it.product(*parameter_dictionary.values())]
 
     # multiprocessing doesn't include a "starmap", requires all functions
     # to take a single argument. Use a function wrapper to fix this. Also
