@@ -144,32 +144,24 @@ namespace InitialM
     return m;
   }
 
+  Vector<double> smoothly_varying_m_helper(double l, const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(3,0.0);
+
+    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
+    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
+    m[2] = 1.0 - m[0] - m[1];
+
+    normalise(m);
+    return m;
+  }
+
   Vector<double> smoothly_varying_5(const double& t, const Vector<double> &x)
-  {
-    Vector<double> m(3,0.0);
-
-    double l = 5.0;
-    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
-    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
-    m[2] = 1.0 - m[0] - m[1];
-
-    normalise(m);
-    return m;
-  }
-
-  // ??ds smoothly varying over long length scale (for larger meshes)
+  {return smoothly_varying_m_helper(5.0, t, x);}
+  Vector<double> smoothly_varying_50(const double& t, const Vector<double> &x)
+  {return smoothly_varying_m_helper(50.0, t, x);}
   Vector<double> smoothly_varying_500(const double& t, const Vector<double> &x)
-  {
-    Vector<double> m(3,0.0);
-
-    double l = 500;
-    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
-    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
-    m[2] = 1.0 - m[0] - m[1];
-
-    normalise(m);
-    return m;
-  }
+  {return smoothly_varying_m_helper(500.0, t, x);}
 
   InitialMFctPt initial_m_factory(const std::string& m_name)
   {
@@ -192,6 +184,10 @@ namespace InitialM
     else if(m_name == "smoothly_varying_5")
       {
         return &InitialM::smoothly_varying_5;
+      }
+    else if(m_name == "smoothly_varying_50")
+      {
+        return &InitialM::smoothly_varying_50;
       }
     else if(m_name == "smoothly_varying_500")
       {
