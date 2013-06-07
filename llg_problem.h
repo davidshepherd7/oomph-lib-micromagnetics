@@ -224,6 +224,17 @@ namespace oomph
       bulk_mesh_pt()->output(some_file, npts);
     }
 
+    void write_additional_trace_headers(std::ofstream& trace_file) const
+    {
+      trace_file
+        << Trace_seperator << "m_length_error_means" // 21
+        << Trace_seperator << "m_length_error_std_devs" // 22
+        << Trace_seperator << "max_angle_errors" // 23
+        << Trace_seperator << "mean_mxs" // 24
+        << Trace_seperator << "mean_mys" // 25
+        << Trace_seperator << "mean_mzs"; // 26
+    }
+
     void write_additional_trace_data(std::ofstream& trace_file) const
     {
 
@@ -235,13 +246,13 @@ namespace oomph
       Vector<double> mean_m = mean_magnetisation();
 
       trace_file
-        << m_error_avg << Trace_seperator // 21
-        << m_error_stddev << Trace_seperator // 22
-        << *std::max_element(angle_variations.begin(), angle_variations.end())
-        << Trace_seperator // 23
-        << mean_m[0] << Trace_seperator // 24
-        << mean_m[1] << Trace_seperator // 25
-        << mean_m[2] << Trace_seperator; // 26
+        << Trace_seperator << m_error_avg // 21
+        << Trace_seperator << m_error_stddev // 22
+        << Trace_seperator
+        << *std::max_element(angle_variations.begin(), angle_variations.end()) // 23
+        << Trace_seperator << mean_m[0] // 24
+        << Trace_seperator << mean_m[1] // 25
+        << Trace_seperator << mean_m[2]; // 26
     }
 
     /// Set up an initial M

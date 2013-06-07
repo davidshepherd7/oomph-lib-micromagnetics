@@ -13,6 +13,7 @@ import sys
 import argparse
 import os
 import os.path
+import ast
 
 import itertools as it
 import functools as ft
@@ -24,6 +25,8 @@ from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
 
+def identity(x):
+    return x
 
 # Parsing functions
 # ============================================================
@@ -67,20 +70,58 @@ def parse_trace_file(filename):
     # ??ds use structured arrays?
 
     # Convert to new deliminator with "find -name 'trace' | xargs sed -e
-    # 's/ /; /g' -i"
+    # 's/ /; /g' -i" might not work for very big files due to limitations
+    # in sed -i?
 
-    # Load from the file. don't read first line (titles), only load some
-    # columns (the ones I want..) and transpose the array for easy
-    # extraction into seperate vectors. If there aren't enough columns
-    # ignore the magnetics stuff (it's probably unsteady heat)
+    # # Load from the file. don't read first line (titles), only load some
+    # # columns (the ones I want..) and transpose the array for easy
+    # # extraction into seperate vectors. If there aren't enough columns
+    # # ignore the magnetics stuff (it's probably unsteady heat)
+    # try:
+    #     return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,6,9,10,21,22,23,24,25,26),
+    #                       unpack=True, ndmin=2, delimiter="; ")
+
+    # except IndexError:
+    #     return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,6,9,10),
+    #                       unpack=True, ndmin=2, delimiter="; ")
+
+
+    # Get the file data as a list of strings
+    with open(filename) as f:
+        lines = f.read().splitlines()
+
+    def mysplit(line):
+        # Split on '; ' and skip the last entry (because we have a final ';
+        # ' at the end of lines).
+        return line.split('; ')#[:-1]
+
+    # Split the raw strings into data fields (so we now have a list of strings)
+    headers = mysplit(lines[0])
+    body = [mysplit(l) for l in lines[1:]]
+
+    # Make an empty dict to store our data in
+    data = {}
+
+    # Read in data from body in columns and prepend the header for that
+    # column.
+    for header, col in zip(headers, zip(*body)):
+
+        # Convert the data in "col" from strings to python data types
+        # (e.g. floats, lists).
+        real_data = [ast.literal_eval(c) for c in col]
+
+        # Put it into our dict with the header of the column as the key and
+        # the rest as the data.
+        data[header] = real_data
+
+
+    # Remove 'dummy' columns if we had any (may have used them for padding)
     try:
-        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,9,10,21,22,23,24,25,26),
-                          unpack=True, ndmin=2, delimiter="; ")
+        del data['dummy1']
+    except KeyError:
+        pass
 
-    except IndexError:
-        return sp.loadtxt(filename, skiprows=1, usecols = (1,2,3,4,9,10),
-                          unpack=True, ndmin=2, delimiter="; ")
-
+    return data
 
 def parse_run(results_folder):
 
@@ -90,57 +131,19 @@ def parse_run(results_folder):
     except IOError:
         return None
 
-    temp = parse_trace_file(pjoin(results_folder, "trace"))
+    trace_dict = parse_trace_file(pjoin(results_folder, "trace"))
 
-    # Unpack, only get magnetics stuff if it's there...
-    try:
-        (times, dts, err_norms, newton_iters, lte_est_norms, trace_values,
-         mle_mean, mle_stddev,
-         max_angle_variation, mxs, mys, mzs) = temp
-        have_magnetics_data = True
-    except ValueError:
-        (times, dts, err_norms, newton_iters, lte_est_norms, trace_values) = temp
-        print("Not enough fields in trace to be a magnetics driver, assuming it's not")
-        have_magnetics_data = False
+    # Add the data from trace file into the dict (NOTE: if any fields have
+    # the same name then the trace file data will "win").
+    d.update(trace_dict)
 
     # If there's only one time point then this run failed immediately and
     # we can't calculate anything interesting.
-    if len(times) == 1:
+    if len(d['times']) == 1:
         return None
-
-    d['times'] = times
-    d['dts'] = dts
-    d['error_norms'] = err_norms
-
-    d['nsteps'] = len(times[1:])
-
-    d['mean_dt'] = sp.mean(dts[1:])
-    d['min_dt'] = min(dts[1:])
-    d['max_dt'] = max(dts[1:])
-    d['final_dt'] = float(dts[-1])
-
-    d['mean_err_norm'] = sp.mean(err_norms[1:])
-    d['max_err_norm'] = max(err_norms[1:])
-    d['final_err_norm'] = err_norms[-1]
-
-    d['mean_newton_iters'] = sp.mean(newton_iters[1:])
-    d['max_newton_iters'] = max(newton_iters[1:])
-
-    d['lte_est_norms'] = lte_est_norms
-    d['trace_values'] = trace_values
 
     # If there is a "FAILED" file then something didn't work
     d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
-
-
-    if have_magnetics_data:
-        d['m_length_error_means'] = mle_mean
-        d['max_angle_variation'] = max_angle_variation
-
-        # Magnetisations
-        d['mxs'] = mxs
-        d['mys'] = mys
-        d['mzs'] = mzs
 
     return d
 
@@ -315,6 +318,39 @@ def plot_vs_time(data, plot_values):
     return fig
 
 
+def plot_vs_step(data, plot_values, operations=None):
+    """Plot a list of things (plot_values) against timestep number on a
+    single figure with linked time axis. If operations is a list of
+    functions then call each function on the corresponding plot_value data
+    before plotting.
+    """
+
+    if operations is None:
+        operations = [identity] * len(plot_values)
+
+    fig, axesarray = plt.subplots(len(plot_values), 1, sharex = True)
+
+    for axes, p, f in zip(axesarray, plot_values, operations):
+
+        for d in data:
+            name = str(d['tol']) + " " + str(d['refinement']) + " " \
+              + str(d['time_stepper'])
+
+            axes.plot([f(y) for y in d[p]], label=name)
+
+            if f is not identity:
+                axes.set_ylabel(str(f) + " of " + p)
+            else:
+                axes.set_ylabel(p)
+
+        axesarray[-1].set_xlabel('time step')
+
+    # Add a single legend
+    axesarray[0].legend()
+
+    return fig
+
+
 def multi_plot(data, keys_to_split_on, plot_function):
     """Split data into sub-sets (based on keys_to_split_on) and plot each
     subset as specified by (partially evaluated) function given.
@@ -360,6 +396,37 @@ def nsteps_vs_tol(data):
     return
 
 
+def iterations_vs_dt(data):
+
+    # Split up into separate data sets for each preconditioner
+    split_data = split_up_stuff(data, ['preconditioner_name'])
+
+    # Create figure
+    fig, axarr = plt.subplots(1, 1)
+
+    symbols = iter(['x', 'o', '+', '^', '*'])
+    colours = iter(['r', 'g', 'b', 'k', 'c'])
+
+    # Plot as scatter vs dt
+    for data_prec in split_data:
+
+        iterations = [sp.mean([sp.mean(d2) for d2 in d['n_solver_iters'][1:]])
+                      for d in data_prec]
+        dts = [sp.mean(d['dts']) for d in data_prec]
+
+        axarr.scatter(dts, iterations, marker = symbols.next(), s = 50,
+                      c = colours.next(),
+                      label=data_prec[0]['preconditioner_name'].split('-')[3])
+
+        axarr.set_xlabel("dt")
+        axarr.set_ylabel("N solver iterations")
+
+
+    axarr.legend()
+
+    return fig
+
+
 def main():
     """
 
@@ -376,8 +443,11 @@ def main():
     parser.add_argument('parsedir',
                         help='Set the directory to look for data in.')
 
-    parser.add_argument('--print-data', '-d', action='store_true',
+    parser.add_argument('--print-data', action='store_true',
                         help='Pretty print data to stdout')
+
+    parser.add_argument('--plots', '-p', action='append',
+                        help='choose what to plot')
 
     args = parser.parse_args()
 
@@ -385,11 +455,17 @@ def main():
     # Main function
     # ============================================================
 
-    all_results = [d for d in parse_parameter_sweep(args.parsedir) if d is not None]
-    print(len(all_results), "data sets")
+    really_all_results = parse_parameter_sweep(args.parsedir)
+    all_results = [d for d in really_all_results if d is not None]
+
+    print(len(all_results), "data sets out of", len(really_all_results), "used")
 
     if args.print_data:
         pprint(all_results)
+
+    if args.plots is None:
+        print("No plots requested, so plotting magnetisations")
+        args.plots = ['m']
 
     # y_axis_data = 'mean_dt'
     # # Plot and save pdfs of interesting quantities
@@ -402,27 +478,32 @@ def main():
     #                 transparent=True, bbox_inches='tight')
 
 
-    keys_to_split_on = ['mesh', 'refinement']
+    keys_to_split_on = ['mesh', 'refinement', 'h_app', 'initial_m', 'mag_params']
 
 
-    # # Plot error norm vs time
-    # plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
-    # multi_plot(all_results, keys_to_split_on, plot_errors)
+    # Plot error norm vs time
+    if 'err' in args.plots:
+        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
+        multi_plot(all_results, keys_to_split_on, plot_errors)
 
-
-    # Plots that require magnetisation data (if there is none then just
-    # don't plot it).
-    try:
-        # Plot m averages vs time
-        plot_m_averages = par(plot_vs_time, plot_values=['mxs','mys','mzs','dts'])
+    # Plot m averages vs time
+    if 'm' in args.plots:
+        plot_m_averages = par(plot_vs_time, plot_values=['mean_mxs','mean_mys','mean_mzs','dts'])
         multi_plot(all_results, keys_to_split_on, plot_m_averages)
 
-        # Plot |m| error vs time
+    # Plot |m| error vs time
+    if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time, plot_values=['m_length_error_means', 'dts'])
         multi_plot(all_results, keys_to_split_on, plot_ml_error_vs_time)
 
-    except KeyError as e:
-        print("KeyError with key:", e, "ignored, not doing magnetisation plots")
+    # Plot solver iteration ??ds
+    if 'its' in args.plots:
+        multi_plot(all_results, keys_to_split_on, iterations_vs_dt)
+
+        plot_iters_step = par(plot_vs_step, plot_values=['dts', 'n_solver_iters'],
+                              operations=[identity, sp.mean])
+        multi_plot(all_results, keys_to_split_on, plot_iters_step)
+
 
 
     plt.show()

@@ -114,33 +114,32 @@ namespace oomph
 
       // Write out data that can be done for every problem
       trace_file
-        << Doc_info.number() << Trace_seperator // 0
-        << time() << Trace_seperator // 1
-        << time_pt()->dt() << Trace_seperator // 2
-        << get_error_norm() << Trace_seperator // 3
+        << Doc_info.number() // 0
+        << Trace_seperator << time() // 1
+        << Trace_seperator << time_pt()->dt() // 2
+        << Trace_seperator << get_error_norm() // 3
 
-        << Nnewton_iter_taken << Trace_seperator // 4
-        << Solver_iterations << Trace_seperator // 5
+        << Trace_seperator << Nnewton_iter_taken // 4
+        << Trace_seperator << Solver_iterations // 5
 
-        << Solver_times << Trace_seperator // 6
-        << Jacobian_setup_times << Trace_seperator // 7
-        << Preconditioner_setup_times << Trace_seperator // 8
+        << Trace_seperator << Solver_times // 6
+        << Trace_seperator << Jacobian_setup_times // 7
+        << Trace_seperator << Preconditioner_setup_times // 8
 
-        << lte_norm() << Trace_seperator // 9
-        << trace_value() << Trace_seperator  // 10
-
-        << Dummy_doc_data << Trace_seperator // 11
-        << Dummy_doc_data << Trace_seperator // 12
-        << Dummy_doc_data << Trace_seperator // 13
-        << Dummy_doc_data << Trace_seperator // 14
+        << Trace_seperator << lte_norm() // 9
+        << Trace_seperator  << trace_value() // 10
 
         // Reserved slots in case I think of more things to add later
-        << Dummy_doc_data << Trace_seperator // 15
-        << Dummy_doc_data << Trace_seperator // 16
-        << Dummy_doc_data << Trace_seperator // 17
-        << Dummy_doc_data << Trace_seperator // 18
-        << Dummy_doc_data << Trace_seperator // 19
-        << Dummy_doc_data << Trace_seperator; // 20
+        << Trace_seperator << Dummy_doc_data // 11
+        << Trace_seperator << Dummy_doc_data // 12
+        << Trace_seperator << Dummy_doc_data // 13
+        << Trace_seperator << Dummy_doc_data // 14
+        << Trace_seperator << Dummy_doc_data // 15
+        << Trace_seperator << Dummy_doc_data // 16
+        << Trace_seperator << Dummy_doc_data // 17
+        << Trace_seperator << Dummy_doc_data // 18
+        << Trace_seperator << Dummy_doc_data // 19
+        << Trace_seperator << Dummy_doc_data; // 20
 
       //??ds residuals?
       //??ds max values? Just list all values of vectors with ; as sep?
@@ -155,10 +154,15 @@ namespace oomph
 
 
     /// \short Overload to write problem specific data into trace
-    /// file. Note: don't add any line endings and seperate data with the
-    /// Trace_seperator string.
+    /// file. Note: don't add any line endings, seperate data with the
+    /// Trace_seperator string (BEFORE each data entry).
     virtual void write_additional_trace_data(std::ofstream& trace_file) const {}
 
+    /// \short Overload to write problem specific headers into trace
+    /// file. Note: don't add any line endings, seperate headers with the
+    /// Trace_seperator string (BEFORE each data entry).
+    virtual void write_additional_trace_headers(std::ofstream& trace_file)
+      const {}
 
     /// ??ds
     virtual void doc_solution_additional(std::ofstream& soln_file) const = 0;
@@ -205,36 +209,38 @@ namespace oomph
         // Clear (by overwriting) and write headers
         std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
         trace_file
-          << "Doc_info number" << Trace_seperator // 0
-          << "time" << Trace_seperator // 1
-          << "dt" << Trace_seperator // 2
-          << "error norm" << Trace_seperator // 3
+          << "DocInfo_numbers" // 0
+          << Trace_seperator << "times" // 1
+          << Trace_seperator << "dts" // 2
+          << Trace_seperator << "error_norms" // 3
 
-          << "n newton iter" << Trace_seperator // 4
-          << "n solver iter" << Trace_seperator // 5
+          << Trace_seperator << "n_newton_iters" // 4
+          << Trace_seperator << "n_solver_iters" // 5
 
-          << "solver times" << Trace_seperator // 6
-          << "jacobian setup times" << Trace_seperator // 7
-          << "preconditioner setup times" << Trace_seperator // 8
+          << Trace_seperator << "solver_times" // 6
+          << Trace_seperator << "jacobian_setup_times" // 7
+          << Trace_seperator << "preconditioner_setup_times" // 8
 
-          << "LTE norm" << Trace_seperator // 9
-          << "trace value" << Trace_seperator // 10
-
-          << "dummy" << Trace_seperator // 11
-          << "dummy" << Trace_seperator // 12
-          << "dummy" << Trace_seperator // 13
-          << "dummy" << Trace_seperator // 14
+          << Trace_seperator << "LTE_norms" // 9
+          << Trace_seperator << "trace_values" // 10
 
           // Reserved slots in case I think of more things to add later
-          << "dummy" << Trace_seperator // 15
-          << "dummy" << Trace_seperator // 16
-          << "dummy" << Trace_seperator // 17
-          << "dummy" << Trace_seperator // 18
-          << "dummy" << Trace_seperator // 19
-          << "dummy" << Trace_seperator // 20
+          << Trace_seperator << "dummy" // 11
+          << Trace_seperator << "dummy" // 12
+          << Trace_seperator << "dummy" // 13
+          << Trace_seperator << "dummy" // 14
+          << Trace_seperator << "dummy" // 15
+          << Trace_seperator << "dummy" // 16
+          << Trace_seperator << "dummy" // 17
+          << Trace_seperator << "dummy" // 18
+          << Trace_seperator << "dummy" // 19
+          << Trace_seperator << "dummy"; // 20
 
-          << std::endl;
+        // Other headers depending on the derived class
+        write_additional_trace_headers(trace_file);
 
+        // Finish the line and close
+        trace_file << std::endl;
         trace_file.close();
 
 
