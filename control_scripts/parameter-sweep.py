@@ -70,12 +70,9 @@ def execute_oomph_driver(args_dict, output_root):
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
-    # Compress the output data files (but not info or trace). Use find +
-    # xargs to avoid issues with limits on the number of command line input
-    # args. Use shell=True for easy pipe-ing.
-    subp.check_call('find ' + final_outdir + ' -name "*.dat" ' +
-                    '| xargs --max-args=1000 gzip',
-                    shell=True)
+    # Compress the output data files (but not info or trace).
+    for datfilename in glob(pjoin(final_outdir, "*.dat")):
+        subp.check_call(['gzip', datfilename])
 
     # Report result
     command = ' '.join(arglist)
@@ -193,6 +190,25 @@ def standard_sweep(parameter_set, serial_mode=False):
             'preconditioner' : ['amg']
             }
 
+    elif parameter_set == 'nmag_cubeoid_llg_prec':
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [5e-4],
+            'tmax' : [20.0],
+            'tol' : [1e-4],
+            'ref' : [4],
+            'ts' : ['bdf2'],
+            'initm' : ['xz'],
+            'happ' : ['zero'],
+            'mag-params' :["simple-llg"],
+            'mesh' : ['sq_cubeoid'],
+            'solver' : ['gmres'],
+            'preconditioner' : ['blockllg-uppertriangular-blockexact-xy-exact',
+                                'blockllg-uppertriangular-blockexact-xz-exact',
+                                'blockllg-uppertriangular-blockexact-yz-exact',
+                                ]
+            }
+
     elif parameter_set == 'script_test':
         args_dict = {
             'driver' : ["./llg_driver/llg_driver"],
@@ -237,6 +253,42 @@ def standard_sweep(parameter_set, serial_mode=False):
             'happ' : ['z_oscillating_p20'],
             'mesh' : ['sq_square'],
             'mag-params' :["simple-llg-max-damped"]
+            }
+
+
+    elif parameter_set == "prec_fast":
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [0.01],
+            'ref' : [2],
+            'tmax' : [1.0],
+            'ts' : ["bdf2"],
+            'initm' : ['smoothly_varying_50'],
+            'happ' : ['x', 'y', 'z'],
+            'mesh' : ['sq_square', 'ut_square'],
+            'solver' : ['gmres'],
+            'preconditioner': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
+                               'blockllg-uppertriangular-blockantidiagonal-xz-exact',
+                               'blockllg-uppertriangular-blockantidiagonal-yz-exact',
+                               ]
+
+            }
+
+    elif parameter_set == "prec":
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [0.1, 0.05, 0.01, 0.001],
+            'ref' : [1, 2, 3, 4],
+            'tmax' : [1.0],
+            'ts' : ["bdf2"],
+            'initm' : ['smoothly_varying_50'],
+            'happ' : ['x', 'y', 'z', 'all_directions'],
+            'mesh' : ['sq_square', 'ut_square', 'ut_sphere'],
+            'solver' : ['gmres'],
+            'preconditioner': ['blockllg-uppertriangular-blockexact-xy-exact',
+                               'blockllg-uppertriangular-blockexact-xz-exact',
+                               'blockllg-uppertriangular-blockexact-yz-exact',
+                               ]
             }
 
     else:
