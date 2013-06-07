@@ -20,9 +20,6 @@
 
 #include "./magnetics_helpers.h"
 
-// Timesteppers
-#include "./midpoint_method.h"
-
 // Meshes
 #include "meshes/simple_rectangular_quadmesh.h"
 #include "meshes/simple_rectangular_tri_mesh.h"

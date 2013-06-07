@@ -6,7 +6,6 @@
 
 #include "../../my_general_header.h"
 #include "../../llg_problem.h"
-#include "../../midpoint_method.h"
 #include "../../magnetics_helpers.h"
 
 // Floating point error checks

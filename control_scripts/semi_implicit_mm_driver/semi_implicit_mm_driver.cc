@@ -6,8 +6,6 @@
 
 #include "../../my_general_header.h"
 #include "../../semi_implicit_problem.h"
-#include "../../midpoint_method.h"
-#include "../../magnetics_helpers.h"
 
 #include "micromag.h"
 

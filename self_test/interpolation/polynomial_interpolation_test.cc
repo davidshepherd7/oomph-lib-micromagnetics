@@ -5,7 +5,6 @@
 #include "generic.h"
 #include <fenv.h>
 
-#include "../../poly_interp.h"
 #include "../../my_assert.h"
 #include "../../prettyprint98.hpp"
 
