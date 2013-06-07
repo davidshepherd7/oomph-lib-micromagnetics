@@ -31,7 +31,10 @@ namespace oomph
       Swap_solver_large_dt(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false)
-    {}
+    {
+      // Needed for if we want to switch solvers in runs
+      Super_LU_solver_pt = new SuperLUSolver;
+    }
 
     /// Function that does the real work of the constructors.
     void build()
@@ -101,14 +104,17 @@ namespace oomph
       // add_sub_mesh(surface_exchange_mesh_pt());
       this->build_global_mesh();
 
+      // Set up base class (at the moment just does meshes in block
+      // preconditioner).
+      MyProblem::build();
 
-      // ??ds For if we want to swap solver for large dt. For now swap if
-      // we are using any iterative solver.
-      if(dynamic_cast<IterativeLinearSolver*>(linear_solver_pt()) != 0)
-        {
-          Swap_solver_large_dt = true;
-        }
-      My_linear_solver_pt = linear_solver_pt();
+      // // ??ds For if we want to swap solver for large dt. For now swap if
+      // // we are using any iterative solver.
+      // if(dynamic_cast<IterativeLinearSolver*>(linear_solver_pt()) != 0)
+      //   {
+      //     Swap_solver_large_dt = true;
+      //   }
+      // My_linear_solver_pt = linear_solver_pt();
 
       // Do equation numbering
       oomph_info << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
@@ -152,7 +158,7 @@ namespace oomph
         {
           if(this->time_pt()->dt() > 1e-2)
             {
-              linear_solver_pt() = Default_linear_solver_pt;
+              linear_solver_pt() = Super_LU_solver_pt;
             }
           else
             {
@@ -606,6 +612,7 @@ namespace oomph
     /// \short Storage for initial linear solver: in case we want to swap
     /// to superlu for large dt.
     LinearSolver* My_linear_solver_pt;
+    LinearSolver* Super_LU_solver_pt;
 
     /// Pointer to the applied field.
     HApp::HAppFctPt Applied_field_fct_pt;
@@ -652,7 +659,8 @@ namespace oomph
 
     // Get M indicies
     Vector<unsigned> m_index_micromag(3,0);
-    MicromagEquations* elem_pt = dynamic_cast<MicromagEquations* >(this->mesh_pt()->element_pt(0));
+    MicromagEquations* elem_pt = dynamic_cast<MicromagEquations*>
+      (this->mesh_pt()->element_pt(0));
     for(unsigned i=0; i<3; i++)
       {
         m_index_micromag[i] = elem_pt->m_index_micromag(i);

@@ -399,6 +399,37 @@ namespace oomph
                               label);
     }
 
+
+    IterativeLinearSolver* iterative_linear_solver_pt() const
+    {
+      return dynamic_cast<IterativeLinearSolver*>
+        (this->linear_solver_pt());
+    }
+
+
+    /// \short Perform final set up of problem (requires mesh pointers to
+    /// be set).
+    virtual void build()
+      {
+        // If we have an iterative solver with a block preconditioner then
+        // add all the meshes to the block preconditioner.
+        IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
+        if(its_pt != 0)
+          {
+            BlockPreconditioner<CRDoubleMatrix>* bp_pt
+              = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>(its_pt->preconditioner_pt());
+            if(bp_pt != 0)
+              {
+                bp_pt->set_nmesh(nsub_mesh());
+                for(unsigned i=0; i< nsub_mesh(); i++)
+                  {
+                    bp_pt->set_mesh(i, mesh_pt(i));
+                  }
+              }
+          }
+
+      }
+
     unsigned Dim;
     MyDocInfo Doc_info;
 

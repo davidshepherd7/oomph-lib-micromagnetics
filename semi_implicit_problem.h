@@ -195,15 +195,7 @@ namespace oomph
 
 
       // Build the LLG part of the problem. ??ds
-      if(llg_sub_problem_pt() == this)
-        {
-          LLGProblem::build();
-        }
-      else
-        {
-          llg_sub_problem_pt()->build();
-        }
-
+      llg_sub_problem_pt()->build();
     };
 
     /// Destructor
