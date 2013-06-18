@@ -776,9 +776,68 @@ namespace oomph
              "./meshes/sphere." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+
+      // Nnode1d = 3
+      else if(mesh_name == "sq_square" && nnode1d == 3)
+        {
+          double lx = 1.0;
+          unsigned nx = 5 * std::pow(2, refinement_level);
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,3> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 3)
+        {
+          mesh_pt = new TriangleMesh<TMicromagElement<2, 3> >
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 3)
+        {
+          // nmag cubeoid
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = 2 * std::pow(2, refinement_level);
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 3> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 3)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 3> >
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 3)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 3> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 3)
+        {
+          double lx = 30, ly = lx, lz = 100;
+          unsigned nx = std::pow(2, refinement_level);
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 3> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 3)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 3> >
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+
+      // Otherwise fail
       else
         {
-          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+          throw OomphLibError("Unrecognised mesh name = " + mesh_name +
+                              " or nnode1d = " + to_string(nnode1d),
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
@@ -891,6 +950,9 @@ namespace oomph
 
       specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
+
+      specify_command_line_flag("-nnode1d", &nnode1d);
+      nnode1d = 2;
     }
 
 
@@ -898,10 +960,10 @@ namespace oomph
     {
       MMArgs::run_factories();
 
-      mesh_name = to_lower(mesh_name);
-
       // Do the mesh last of all because it can be slow
-      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt);
+      mesh_name = to_lower(mesh_name);
+      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement,
+                                           time_stepper_pt, nnode1d);
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -909,11 +971,13 @@ namespace oomph
     {
       MMArgs::dump_args(out_stream);
       out_stream << "mesh " << mesh_name << std::endl;
+      out_stream << "nnode1d " << nnode1d << std::endl;
     }
 
 
     Mesh* mesh_pt;
 
+    unsigned nnode1d;
 
     // Strings for input to factory functions
     std::string mesh_name;
