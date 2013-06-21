@@ -2,13 +2,13 @@
 #-----------------------
 
 # Define the sources
-sources = micromagnetics_element.cc micromagnetics_boundary_element.cc
+sources = micromagnetics_element.cc micromagnetics_boundary_element.cc energy_functions.cc template_free_poisson.cc magnetic_materials.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
 
 # Define the headers
-headers = micromagnetics_element.h micromagnetics_boundary_element.h micromagnetics_flux_element.h
+headers = micromagnetics_element.h micromagnetics_boundary_element.h micromagnetics_flux_element.h energy_functions.h template_free_poisson.h magnetic_materials.h
 
 # Define name of library
 libname = micromag

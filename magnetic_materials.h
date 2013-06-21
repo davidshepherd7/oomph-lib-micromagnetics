@@ -2,6 +2,8 @@
 #define OOMPH_MAGNETIC_MATERIALS_H
 
 #include "../../src/generic/Vector.h"
+#include "../../src/generic/oomph_utilities.h"
+#include "./vector_helpers.h"
 
 namespace mag_parameters
 {
@@ -11,8 +13,8 @@ namespace mag_parameters
       UNIAXIAL_CRYSTALLINE_ANISOTROPY
     };
 
-  // Magnetic constant (source: http://physics.nist.gov/)
-  double mu0 = 12.566370614e-7; // in N/(A^2) (SI)
+  // Magnetic constant
+  extern double mu0; // in N/(A^2) (SI)
 }
 
 using namespace mag_parameters;
@@ -35,6 +37,7 @@ namespace oomph
         Saturation_magnetisation(1.0),
         Exchange_constant(0.5 * mag_parameters::mu0), // gives exchange strength = 1
         K1(0.0),
+        Easy_axis(3,0),
         Distance_units(1e-9),
         Magnetostatic_debug_coeff(1.0),
         Exchange_debug_coeff(1.0),
@@ -42,7 +45,10 @@ namespace oomph
         Ca_debug_coeff(1.0),
         Crystalline_ansiotropy_type(mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY),
         Surface_anisotropy_enabled(0)
-    {}
+    {
+      // For now easy axis is always z
+      Easy_axis[2] = 1;
+    }
 
     // Standard copy/assign constructors and deconstructor are ok: no pointers and
     // should never be any pointers.
@@ -98,36 +104,60 @@ namespace oomph
     double time_normalisation_factor() const
     {return (1/gamma()) * field_normalisation_factor();}
 
+
+    /// \short get easy axis direction unit vector closest to m.
+    Vector<double> easy_axis(const Vector<double> &m) const
+      {
+        Vector<double> easy_axis(Easy_axis.size(), 0);
+
+        if(VectorOps::dot(m, Easy_axis) < 0)
+          {
+            for(unsigned j=0; j<Easy_axis.size(); j++)
+              {
+                easy_axis[j] = Easy_axis[j] * -1;
+              }
+          }
+        else
+          {
+            for(unsigned j=0; j<Easy_axis.size(); j++)
+              {
+                easy_axis[j] = Easy_axis[j];
+              }
+          }
+
+        return easy_axis;
+      }
+
+
     // Get h_ca function and derivative
     void crystalline_ansiotropy_field(const double& t, const Vector<double>& x,
                                       const Vector<double>& m, Vector<double>& h_ca)
       const
     {
 
-      switch (crystalline_ansiotropy_type())
+      if(crystalline_ansiotropy_type() ==
+         mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY)
         {
+          Vector<double> e = easy_axis(m);
 
-        case mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY:
+          // h_ca is easy direction multiplied by the magnitude
+          double magnitude = std::abs(VectorOps::dot(e, m));
 
-          Vector<double> easy_axis(3,0.0);
-          unsigned ax = 0;
-
-          // Find which direction along the axis we want
-          if(m[ax] < 0)
-            easy_axis[ax] = -1.0;
-          else
-            easy_axis[ax] = +1.0;
-          h_ca = easy_axis;
-
-          // Multiply by the magnitude
-          double magnitude = std::abs(VectorOps::dot(easy_axis,m));
-          for(unsigned i=0; i<h_ca.size(); i++)
-            h_ca[i] *= magnitude * normalised_hk();
-
-          break;
-
+          h_ca.assign(e.size(), 0.0);
+          for(unsigned i=0; i<e.size(); i++)
+            {
+              h_ca[i] = e[i] * magnitude * normalised_hk();
+            }
+        }
+      else
+        {
+              std::string error_msg
+                = "Crystalline anisotropy type not implemented";
+              throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
         }
     }
+
 
     // Get the appropriate exchange length for this material according the the
     // nmag user manual.
@@ -220,7 +250,10 @@ namespace oomph
     double& distance_units() {return Distance_units;}
 
     void set_cubic_anisotropy()
-    {Crystalline_ansiotropy_type = mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY;}
+    {
+      Crystalline_ansiotropy_type =
+        mag_parameters::UNIAXIAL_CRYSTALLINE_ANISOTROPY;
+    }
 
   private:
     double Gamma;
@@ -229,6 +262,7 @@ namespace oomph
     double Saturation_magnetisation;
     double Exchange_constant;
     double K1;
+    Vector<double> Easy_axis;
 
     double Distance_units;
 
@@ -248,7 +282,7 @@ namespace oomph
   {
 
     /// \short Create a MagneticsParameters object.
-    MagneticParameters* magnetic_parameters_factory(const std::string & parameters_name)
+    inline MagneticParameters* magnetic_parameters_factory(const std::string & parameters_name)
     {
       MagneticParameters* parameters_pt = 0;
 

@@ -8,13 +8,20 @@
 #include <functional>
 #include <set>
 
+#include "../../src/generic/Vector.h"
+#include "../../src/generic/oomph_utilities.h"
+#include "../../src/generic/matrices.h"
+
 using namespace oomph;
 using namespace StringConversion;
+
+// Note: all functions must be declared inline so that the compiler doesn't
+// die! Stupid compiler...
 
 namespace VectorOps
 {
 
-  void check_lengths_match(const Vector<double> &a, const Vector<double> &b)
+  inline void check_lengths_match(const Vector<double> &a, const Vector<double> &b)
   {
 #ifdef PARANOID
     if (a.size() != b.size())
@@ -42,7 +49,7 @@ namespace VectorOps
 
   /// Cross product using "proper" output (move semantics means this is ok
   /// nowadays).
-  Vector<double> cross(const Vector<double>& A, const Vector<double>& B)
+  inline Vector<double> cross(const Vector<double>& A, const Vector<double>& B)
   {
 #ifdef PARANOID
     if((A.size() != 3) || (B.size() != 3))
@@ -62,22 +69,23 @@ namespace VectorOps
 
   // Collection of cross product functions: get a single row of the cross
   // product. Can use double* or vectors for compatability.
-  double opt_cross(unsigned i, const double* A, const double* B)
+  inline double opt_cross(unsigned i, const double* A, const double* B)
   {
     unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
     return A[ia]*B[ib] - A[ib]*B[ia];
   }
-  double opt_cross(unsigned i, const Vector<double>& A, const double* B)
+  inline double opt_cross(unsigned i, const Vector<double>& A, const double* B)
   {
     unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
     return A[ia]*B[ib] - A[ib]*B[ia];
   }
-  double opt_cross(unsigned i, const double* A, const Vector<double>& B)
+  inline double opt_cross(unsigned i, const double* A, const Vector<double>& B)
   {
     unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
     return A[ia]*B[ib] - A[ib]*B[ia];
   }
-  double opt_cross(unsigned i, const Vector<double>& A, const Vector<double>& B)
+  inline double opt_cross(unsigned i, const Vector<double>& A,
+                          const Vector<double>& B)
   {
     unsigned ia = ((i + 1) % 3), ib = ((i + 2) % 3);
     return A[ia]*B[ib] - A[ib]*B[ia];
@@ -90,7 +98,7 @@ namespace VectorOps
   /// Calculate the cross product of vectors A and B, store the result in
   /// vector output. NOTE: the cross product is only valid for 3-dimensional
   /// vectors
-  void cross(const Vector<double>& A, const Vector<double>& B, Vector<double>& output)
+  inline void cross(const Vector<double>& A, const Vector<double>& B, Vector<double>& output)
   {output = cross(A, B);}
 
   inline double two_norm(const Vector<double>& a)
@@ -112,7 +120,7 @@ namespace VectorOps
 
 
   /// \short Get the (smallest) angle between two vectors.
-  double angle_diff(const Vector<double> &a, const Vector<double> &b)
+  inline double angle_diff(const Vector<double> &a, const Vector<double> &b)
     {
       // Use the dot product formula:
       double temp = dot(a, b) / (two_norm(a) * two_norm(b));
@@ -200,7 +208,8 @@ namespace VectorOps
 
   // Equivalent to std::find but for floating point values. Return -1 if
   // not found.
-  int fp_find(double search_value, const Vector<double> &vec, double tol=1e-12)
+  inline int fp_find(double search_value, const Vector<double> &vec,
+                     double tol=1e-12)
     {
 
       int found_location = -1;
@@ -218,7 +227,8 @@ namespace VectorOps
 
 
 
-  void rowstart2rowindex(const Vector<int>& row_start, Vector<int>& row_index)
+  inline void rowstart2rowindex(const Vector<int>& row_start,
+                                Vector<int>& row_index)
   {
     // Initialise
     int nrow = row_start.back();
@@ -238,7 +248,8 @@ namespace VectorOps
   }
 
   // Warning: must be sorted
-  void rowindex2rowstart(const Vector<int>& row_index, Vector<int>& row_start)
+  inline void rowindex2rowstart(const Vector<int>& row_index,
+                                Vector<int>& row_start)
   {
     row_start.clear();
     row_start.reserve(row_index.back()+1);
@@ -270,8 +281,8 @@ namespace VectorOps
 
   }
 
-  void diag_cr_matrix(CRDoubleMatrix& cr_matrix, const unsigned& n,
-                      const double& value)
+  inline void diag_cr_matrix(CRDoubleMatrix& cr_matrix, const unsigned& n,
+                             const double& value)
   {
     Vector<int> row_index(n), col_index(n), row_start;
     Vector<double> values(n,value);
@@ -286,7 +297,7 @@ namespace VectorOps
     cr_matrix.build(n, values, col_index, row_start);
   }
 
-  Vector<double> random_vector(unsigned length, double max_value=100)
+  inline Vector<double> random_vector(unsigned length, double max_value=100)
     {
       Vector<double> a(length);
 
@@ -298,10 +309,9 @@ namespace VectorOps
     }
 
 
-  void random_single_element_per_row_cr_matrix(CRDoubleMatrix& cr_matrix,
-                                               const unsigned& n,
-                                               const unsigned& nnz,
-                                               const double& max_value=100)
+  inline void random_single_element_per_row_cr_matrix
+  (CRDoubleMatrix& cr_matrix, const unsigned& n,
+   const unsigned& nnz, const double& max_value=100)
   {
     Vector<int> row_index(nnz), col_index(nnz), row_start;
     Vector<double> values(nnz);
@@ -326,10 +336,10 @@ namespace VectorOps
     cr_matrix.build(n, values, col_index, row_start);
   }
 
-  void get_as_indicies(DoubleMatrixBase &matrix,
-                       Vector<double> &values,
-                       Vector<int> &col_index,
-                       Vector<int> &row_index)
+  inline void get_as_indicies(DoubleMatrixBase &matrix,
+                              Vector<double> &values,
+                              Vector<int> &col_index,
+                              Vector<int> &row_index)
   {
     for(unsigned i=0; i< matrix.nrow(); i++)
       {
@@ -345,7 +355,8 @@ namespace VectorOps
       }
   }
 
-  double rel_dense_matrix_diff(DenseMatrix<double> &mat1, DenseMatrix<double> &mat2)
+  inline double rel_dense_matrix_diff(DenseMatrix<double> &mat1,
+                                      DenseMatrix<double> &mat2)
   {
     if((mat1.nrow() != mat2.nrow())
        || (mat1.ncol() != mat2.ncol()))
@@ -371,27 +382,27 @@ namespace VectorOps
   }
 
 
-  bool numerically_close(const Vector<double> &x1,
-                         const Vector<double> &x2,
-                         const double& tol=1e-10)
+  inline bool numerically_close(const Vector<double> &x1,
+                                const Vector<double> &x2,
+                                const double& tol=1e-10)
   {
     return numerical_zero(two_norm_diff(x1,x2));
   }
 
   template <typename T>
-  T mean(const Vector<T> &vec)
+  inline T mean(const Vector<T> &vec)
   {
     return std::accumulate(vec.begin(), vec.end(), 0.0) / double(vec.size());
   }
 
   template <typename T>
-  T max(const Vector<T> &vec)
+  inline T max(const Vector<T> &vec)
   {
     return *std::max_element(vec.begin(), vec.end());
   }
 
   template <typename T>
-  double stddev(const Vector<T> &vec)
+  inline double stddev(const Vector<T> &vec)
   {
     double vec_mean = mean(vec);
     double sum_square_deviations = 0.0;
@@ -406,7 +417,8 @@ namespace VectorOps
 
 
   /// Check if a vector contains any duplicate values
-  template <typename T> bool contains_duplicates(const std::vector<T> &v)
+  template <typename T>
+  inline bool contains_duplicates(const std::vector<T> &v)
   {
     // Construct a set (which has no duplicates by definition) and compare
     // sizes.

@@ -9,6 +9,6 @@ simple_rigorous_exchange_test_SOURCES = simple_rigorous_exchange_test.cc
 
 # Required libraries:
 # $(FLIBS) is included in case the solver involves fortran sources.
-simple_rigorous_exchange_test_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
+simple_rigorous_exchange_test_LDADD = -L@libdir@ -lgeneric -lmicromag $(EXTERNAL_LIBS) $(FLIBS)
 
 INCLUDES = -isystem @includedir@
