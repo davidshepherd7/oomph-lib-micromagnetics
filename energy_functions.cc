@@ -30,21 +30,10 @@ namespace oomph
   }
 
 
-  /// \short Calculate energy due to external applied field. ??ds
-  /// Implementation details mean that this is WRONG for semi implicit
-  /// methods! :(
+  /// \short Calculate energy due to external applied field.
   double ZeemanEnergyFunction::
   call(const GeneralisedElement* ele_pt, const Vector<double> &s) const
   {
-#ifdef PARANOID
-    if(dynamic_cast<const SemiImplicitMicromagEquations*>(ele_pt) != 0)
-      {
-        std::string error_msg = "Doesn't work with semi implicit!";
-        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
@@ -87,22 +76,10 @@ namespace oomph
   }
 
 
-  /// \short Calculate energy due to external applied field. ??ds
-  /// Implementation details mean that this is WRONG for semi implicit
-  /// methods! :(
+  /// \short Calculate energy due to external applied field.
   double MagnetostaticEnergyFunction::call(const GeneralisedElement* ele_pt,
                                            const Vector<double> &s) const
   {
-#ifdef PARANOID
-    if(dynamic_cast<const SemiImplicitMicromagEquations*>(ele_pt) != 0)
-      {
-        std::string error_msg = "Doesn't work with semi implicit!";
-        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
@@ -110,12 +87,8 @@ namespace oomph
     MMInterpolator intp(m_ele_pt, s);
 
     // Get the field
-    Vector<double> h_ms(3, 0.0);
-    for(unsigned j=0; j<m_ele_pt->nodal_dimension(); j++)
-      {
-        h_ms[j] = -1 * intp.dphidx()[j] *
-          m_ele_pt->magnetic_parameters_pt()->magnetostatic_debug_coeff();
-      }
+    Vector<double> h_ms;
+    m_ele_pt->get_magnetostatic_field(s, h_ms);
 
     // Get "re-normalisation" parameters
     double M_s = m_ele_pt->magnetic_parameters_pt()->saturation_magnetisation();

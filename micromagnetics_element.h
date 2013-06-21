@@ -35,6 +35,7 @@ namespace oomph
   template <class ELEMENT> class MicromagFluxElement;
 
   class MMInterpolator;
+  template<unsigned VAL> class MMArrayInterpolator;
 
   //==============================================================================
   /// A class for the maths used in solving the Landau-Lifshitz-Gilbert equations.
@@ -198,6 +199,17 @@ namespace oomph
     //   else (*Llg_source_pt)(t,x,source);
     // }
 
+    /// \short Calculation of magnetostatic field (overload for semi-implicit
+    /// calculations).
+    virtual void get_magnetostatic_field(const Vector<double> &s,
+                                         Vector<double> &h_magnetostatic) const;
+
+    /// \short Calculation of magnetostatic field (overload for
+    /// semi-implicit calculations). Optimised version for calculations
+    /// when we aleady have an interpolator (e.g. during residual
+    /// calculations).
+    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+                                         Vector<double> &h_magnetostatic) const;
 
     // APPLIED FIELD
     /// Access function: Pointer to applied field function
@@ -863,6 +875,8 @@ namespace oomph
           // Normalise
           hms[j] *= Micromag_element_pt->magnetostatic_coeff();
         }
+
+      std::cout << hms << std::endl;
     }
 
     /// For micromagnetics the source function is the divergence of the
@@ -1104,63 +1118,8 @@ namespace oomph
 
     /// For micromagnetics the source function is the divergence of the
     /// magnetisation.
-      void get_applied_field(const double& t, const Vector<double> &x,
-                             const Vector<double> &s,
-                             Vector<double> &H_app) const
-    {
-      // Lots of checks because this is stupid really...
-#ifdef PARANOID
-      if(this->nnode() != magnetostatic_field_element_pt()->nnode())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      if(this->dim() != magnetostatic_field_element_pt()->dim())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must be the same geometry for this to "
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
-        {
-          std::ostringstream error_msg;
-          error_msg << "Elements must have the same integration scheme for this to"
-                    << "work... sorry for the hackyness. Maybe you can fix it.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-
-      // Get contribution from field element
-      Vector<double> h_ms;
-      magnetostatic_field_element_pt()->magnetostatic_field(s, h_ms);
-
-      if(magnetostatic_field_element_pt() == 0)
-        {
-          throw OomphLibError("No magnetostatic ele pt.", OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      // Get contribution from any real applied field functions.
-      H_app.assign(3, 0.0);
-      MicromagEquations::get_applied_field(t, x, s, H_app);
-
-      //Add them up
-      for(unsigned j=0; j<3; j++) H_app[j] += h_ms[j];
-    }
-
-    // Access functions:
-    // ============================================================
+    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+                                 Vector<double> &H_ms) const;
 
     /// \short Non-const access function for Magnetostatic_field_element_pt.
     MagnetostaticFieldEquations*& magnetostatic_field_element_pt()
@@ -1200,26 +1159,6 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {SemiImplicitMicromagEquations::output(outfile,n_plot);}
 
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {SemiImplicitMicromagEquations::output(file_pt,n_plot);}
-
-    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    // inline double dshape_dtest(const Vector<double> &s,
-    //                            Shape &psi, DShape &dpsidx,
-    //                            Shape &test, DShape &dtestdx) const
-    // {
-    //   // Call the geometrical shape functions and derivatives
-    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-    //   // Set the test functions equal to the shape functions
-    //   test = psi;
-    //   dtestdx= dpsidx;
-
-    //   // Return the jacobian
-    //   return J;
-    // }
-
     //??ds
     void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const;
@@ -1240,32 +1179,15 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {SemiImplicitMicromagEquations::output(outfile,n_plot);}
 
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {SemiImplicitMicromagEquations::output(file_pt,n_plot);}
-
-    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    // inline double dshape_dtest(const Vector<double> &s,
-    //                            Shape &psi, DShape &dpsidx,
-    //                            Shape &test, DShape &dtestdx) const
-    // {
-    //   // Call the geometrical shape functions and derivatives
-    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-    //   // Set the test functions equal to the shape functions
-    //   test = psi;
-    //   dtestdx= dpsidx;
-
-    //   // Return the jacobian
-    //   return J;
-    // }
-
     //??ds
     void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const;
   };
 
 
+
+  /// \short Simpler (but slower) implementation of micromagnetics
+  /// interpolator class.
   class MMInterpolator : public GeneralInterpolator
   {
     // Assumption: m_index_micromag(0 - 3) are consecutive.

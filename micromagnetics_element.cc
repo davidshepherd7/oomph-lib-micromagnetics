@@ -182,22 +182,11 @@ namespace oomph
         const double phi_1_source = get_phi_1_source(intp.time(),xvec);
 
         // Fields at integration point
-        Vector<double> h_applied, h_cryst_anis;
+        Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
         get_applied_field(intp.time(), xvec, s, h_applied);
         get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
+        get_magnetostatic_field(&intp, h_magnetostatic);
 
-
-        // Cross product for magnetostatic contribution
-        Vector<double> h_magnetostatic(3,0.0);
-        for(unsigned j=0; j<ndim; j++)
-          {
-            h_magnetostatic[j] = -1 * magstatic_c * intp.dphidx()[j];
-          }
-
-        // if(two_norm(h_magnetostatic) != 0.0)
-        //   {
-        //     std::cerr <<  "non-zero hms from built in phis!" << std::endl;
-        //   }
 
         //======================================================================
         /// Use the above values to calculate the residuals
@@ -569,6 +558,80 @@ namespace oomph
     write_tecplot_zone_footer(outfile,n_plot);
   }
 
+  void MicromagEquations::
+  get_magnetostatic_field(const Vector<double> &s,
+                          Vector<double> &h_magnetostatic) const
+  {
+    // Construct an interpolator and call the underlying function.
+    MMArrayInterpolator<5> intp(this, s);
+    get_magnetostatic_field(&intp, h_magnetostatic);
+  }
+
+  void MicromagEquations::
+  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+                          Vector<double> &h_magnetostatic) const
+  {
+    #ifdef PARANOID
+    if(intp_pt == 0)
+      {
+        std::string error_msg = "Null interpolator!";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    const double magstatic_c = magnetostatic_coeff();
+
+    h_magnetostatic.assign(3, 0.0);
+    for(unsigned j=0; j<nodal_dimension(); j++)
+      {
+        h_magnetostatic[j] = -1 * magstatic_c * intp_pt->dphidx()[j];
+      }
+  }
+
+  /// For micromagnetics the source function is the divergence of the
+  /// magnetisation.
+  void SemiImplicitMicromagEquations::
+  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+                          Vector<double> &h_ms) const
+  {
+    // Lots of checks because this is stupid really...
+#ifdef PARANOID
+    if(this->nnode() != magnetostatic_field_element_pt()->nnode())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must be the same geometry for this to "
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+
+    if(this->dim() != magnetostatic_field_element_pt()->dim())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must be the same geometry for this to "
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+
+    if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must have the same integration scheme for this to"
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    // Get magnetostatic field from field element
+    magnetostatic_field_element_pt()->magnetostatic_field(intp_pt->s(), h_ms);
+  }
+
 
   //======================================================================
   /// Validate computed M against exact solution.
@@ -653,48 +716,6 @@ namespace oomph
   }
 
 
-  // /// Return FE representation of M at local coordinate s and current time.
-  // void MicromagEquations::interpolated_dmdx_micromag(const Vector<double> &s,
-  //                                                    Vector<Vector<double> >& itp_dmdx) const
-  // {
-  //   MMInterpolator intp(this, s);
-  //   itp_dmdx = intp.dmdx();
-  // }
-
-
-  // //======================================================================
-  // /// C-style output function:
-  // ///
-  // ///   x,y,u   or    x,y,z,u
-  // ///
-  // /// nplot points in each coordinate direction
-  // //======================================================================
-  // void  MicromagEquations::output(FILE* file_pt,
-  //                                  const unsigned &nplot)
-  // {
-  //   //Vector of local coordinates
-  //   Vector<double> s(nodal_dimension());
-
-  //   // Tecplot header info
-  //   fprintf(file_pt,"%s",tecplot_zone_string(nplot).c_str());
-
-  //   // Loop over plot points
-  //   unsigned num_plot_points=nplot_points(nplot);
-  //   for (unsigned iplot=0;iplot<num_plot_points;iplot++)
-  //     {
-  //       // Get local coordinates of plot point
-  //       get_s_plot(iplot,nplot,s);
-
-  //       for(unsigned i=0;i<nodal_dimension();i++)
-  //     {
-  //       fprintf(file_pt,"%g ",interpolated_x(s,i));
-  //     }
-  //       fprintf(file_pt,"%g \n",itp_phi_micromag(s));
-  //     }
-
-  //   // Write tecplot footer (e.g. FE connectivity lists)
-  //   write_tecplot_zone_footer(file_pt,nplot);
-  // }
 
   template <unsigned DIM, unsigned NNODE_1D>
   void QMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
