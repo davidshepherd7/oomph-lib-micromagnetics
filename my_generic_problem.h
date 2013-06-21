@@ -249,7 +249,7 @@ namespace oomph
         std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
         info_file
           << "real_time " << real_date_time() << std::endl
-          << "unix_time " << time() << std::endl
+          << "unix_time " << std::time(0) << std::endl
           << "git_version " << GitVersion::VERSION << std::endl
           << "build_time " << GitVersion::BUILD_TIME <<std::endl
           << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
