@@ -70,3 +70,4 @@ self_test/node_global_lookups/node_lookup_test
 self_test/simple_rigorous_exchange/simple_rigorous_exchange_test
 self_test/sum_of_matrices/sum_of_matrices_test
 self_test/vector_helpers/vector_helpers_test
+self_test/micromag_energy/micromag_energy_test

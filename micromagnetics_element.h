@@ -20,6 +20,7 @@
 // Magnetostatic elements are based on Poisson
 #include "./template_free_poisson.h"
 
+#include "./energy_functions.h"
 #include "./interpolator.h"
 #include "./array_interpolator.h"
 
@@ -28,6 +29,7 @@ using namespace oomph;
 
 namespace oomph
 {
+
 
   // Forward declaration of flux element
   template <class ELEMENT> class MicromagFluxElement;
@@ -594,6 +596,78 @@ namespace oomph
     /// determined by the boundary element method part of the hybrid method
     /// (until it can be filled in at the problem level).
     static const double DummyBEMControlledEntry;
+
+
+    // Energy calculations
+    // ============================================================
+
+    /// \short Integrate a function given by func_pt over the element using
+    /// the given integral_pt(). Because C++ sucks we have to do this with
+    /// weird function objects...
+    double integrate_over_element(const ElementalFunction* func_pt) const
+      {
+        double result = 0;
+
+        // Loop over knots and sum
+        for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
+          {
+            // Get position in element
+            Vector<double> s(this->dim());
+            for(unsigned j=0; j<this->dim(); j++)
+              {s[j] = integral_pt()->knot(ipt,j);}
+
+
+            //??ds avoid recalculation of Jacobians?
+            Shape dummy(nnode());
+            DShape dummy_deriv(nnode(), this->dim());
+            double J = this->dshape_eulerian(s, dummy, dummy_deriv);
+            double w = integral_pt()->weight(ipt);
+
+            // Add contribution
+            result += func_pt->call(this, s) * w * J;
+          }
+
+        return result;
+      }
+
+    /// \short Calculate the total energy due to micromagnetic effects.
+    double micromag_energy() const
+      {
+        // Just sum up other energies
+        return micromag_exchange_energy()
+          + micromag_zeeman_energy()
+          + micromag_crystalline_anisotropy_energy()
+          + micromag_magnetostatic_energy();
+      }
+
+    double micromag_exchange_energy() const
+      {
+        ExchangeEnergyFunction f;
+        return this->integrate_over_element(&f);
+      }
+
+
+    /// \short Caluclate Zeeman energy: integral( mu0 * M.H_app)
+    double micromag_zeeman_energy() const
+    {
+      ZeemanEnergyFunction f;
+      return this->integrate_over_element(&f);
+    }
+
+
+    double micromag_crystalline_anisotropy_energy() const
+    {
+      CrystallineAnisotropyEnergyFunction f;
+      return this->integrate_over_element(&f);
+    }
+
+
+    double micromag_magnetostatic_energy() const
+    {
+      MagnetostaticEnergyFunction f;
+      return this->integrate_over_element(&f);
+    }
+
 
   protected:
 

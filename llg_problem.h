@@ -220,6 +220,95 @@ namespace oomph
       MyProblem::actions_after_newton_step();
     }
 
+
+    double energy() const
+    {
+      double energy = 0;
+      for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt
+                = checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(j)->element_pt(e));
+              energy += ele_pt->micromag_energy();
+            }
+        }
+
+      return energy;
+    }
+
+
+    double exchange_energy() const
+    {
+      double energy = 0;
+      for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt
+                = checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(j)->element_pt(e));
+              energy += ele_pt->micromag_exchange_energy();
+            }
+        }
+
+      return energy;
+    }
+
+
+    double zeeman_energy() const
+    {
+      double energy = 0;
+      for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt
+                = checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(j)->element_pt(e));
+              energy += ele_pt->micromag_zeeman_energy();
+            }
+        }
+
+      return energy;
+    }
+
+    double crystalline_anisotropy_energy() const
+    {
+      double energy = 0;
+      for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt
+                = checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(j)->element_pt(e));
+              energy += ele_pt->micromag_crystalline_anisotropy_energy();
+            }
+        }
+
+      return energy;
+    }
+
+
+    double magnetostatic_energy() const
+    {
+      double energy = 0;
+      for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt
+                = checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(j)->element_pt(e));
+              energy += ele_pt->micromag_magnetostatic_energy();
+            }
+        }
+
+      return energy;
+    }
+
     /// Output solution
     void doc_solution_additional(std::ofstream &some_file) const
     {
@@ -238,7 +327,11 @@ namespace oomph
         << Trace_seperator << "max_angle_errors" // 23
         << Trace_seperator << "mean_mxs" // 24
         << Trace_seperator << "mean_mys" // 25
-        << Trace_seperator << "mean_mzs"; // 26
+        << Trace_seperator << "mean_mzs" // 26
+        << Trace_seperator << "exchange_energy" // 27
+        << Trace_seperator << "zeeman_energy" // 28
+        << Trace_seperator << "crystalline_anisotropy_energy" // 29
+        << Trace_seperator << "magnetostatic_energy"; // 30
     }
 
     void write_additional_trace_data(std::ofstream& trace_file) const
@@ -258,7 +351,12 @@ namespace oomph
         << *std::max_element(angle_variations.begin(), angle_variations.end()) // 23
         << Trace_seperator << mean_m[0] // 24
         << Trace_seperator << mean_m[1] // 25
-        << Trace_seperator << mean_m[2]; // 26
+        << Trace_seperator << mean_m[2] // 26
+
+        << Trace_seperator << exchange_energy() // 27
+        << Trace_seperator << zeeman_energy() // 28
+        << Trace_seperator << crystalline_anisotropy_energy() // 29
+        << Trace_seperator << magnetostatic_energy(); // 30
     }
 
     /// Set up an initial M

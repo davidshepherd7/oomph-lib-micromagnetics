@@ -441,10 +441,10 @@ namespace oomph
     /// \short String to insert between fields in trace file. Use "; " by
     /// default (so that "," or " " can be used for lists if needed).
     std::string Trace_seperator;
+    double Dummy_doc_data;
 
   private:
 
-    double Dummy_doc_data;
     Vector<double> Jacobian_setup_times;
     Vector<double> Solver_times;
     Vector<double> Solver_iterations;
