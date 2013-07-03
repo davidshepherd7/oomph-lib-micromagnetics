@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 
   problem.initial_doc();
 
+
   // All ready: step until completion
   double dt = args.dt;
   unsigned time_step_number = 0;
@@ -80,6 +81,7 @@ int main(int argc, char *argv[])
         << "time = " << problem.time()
         << ", dt = " << dt
         << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
+        << ", energy = " << problem.micromagnetic_energy()
         << std::endl;
 
       // The Newton step itself, adaptive if requested

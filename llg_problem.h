@@ -211,7 +211,8 @@ namespace oomph
         }
 #endif
 
-
+      // Calculate and store the energy (ready to be output)
+      calculate_energies();
     }
 
     void actions_after_newton_step()
@@ -249,16 +250,26 @@ namespace oomph
         return result;
       }
 
+    /// \short Calculate energies and store them for easy reference
+    /// (e.g. for output).
+    void calculate_energies()
+      {
+        // If you want to turn off energy calculations (e.g. for speed)
+        // this is the place to do it. Replace values with
+        // MyProblem::Dummy_doc_data.
+        Exchange_energy = exchange_energy();
+        Zeeman_energy = zeeman_energy();
+        Crystalline_anisotropy_energy = crystalline_anisotropy_energy();
+        Magnetostatic_energy = magnetostatic_energy();
+      }
+
 
     /// \short Calculate the total (micromagnetic) energy for all meshes in
     /// the problem.
-    double energy() const
+    double micromagnetic_energy() const
     {
-      // Could possibly optimise by writing a total energy function and
-      // integrating that. However this is only calculated once per
-      // timestep at most so we probably don't need to care.
-      return exchange_energy() + zeeman_energy()
-        + crystalline_anisotropy_energy() + magnetostatic_energy();
+      return Exchange_energy + Zeeman_energy +
+        Crystalline_anisotropy_energy + Magnetostatic_energy;
     }
 
 
@@ -359,10 +370,10 @@ namespace oomph
         << Trace_seperator << mean_m[1] // 25
         << Trace_seperator << mean_m[2] // 26
 
-        << Trace_seperator << exchange_energy() // 27
-        << Trace_seperator << zeeman_energy() // 28
-        << Trace_seperator << crystalline_anisotropy_energy() // 29
-        << Trace_seperator << magnetostatic_energy(); // 30
+        << Trace_seperator << Exchange_energy // 27
+        << Trace_seperator << Zeeman_energy // 28
+        << Trace_seperator << Crystalline_anisotropy_energy // 29
+        << Trace_seperator << Magnetostatic_energy; // 30
     }
 
     /// Set up an initial M
@@ -730,12 +741,20 @@ namespace oomph
     /// Pointer to bulk mesh (i.e. the magnetic material).
     Mesh* Bulk_mesh_pt;
 
-    // /// Pointer to the mesh of face elements for dealing with boundary
-    // /// conditions caused by reducing order of differentiation in exchange
-    // /// term.
-    // Mesh* Surface_exchange_mesh_pt;
+    /// \short Exchange_energy, computed after previous Newton solve.
+    double Exchange_energy;
 
-    /// Create
+    /// \short Zeeman energy, computed after previous Newton solve.
+    double Zeeman_energy;
+
+    /// \short Crystalline anisotropy energy, computed after previous Newton
+    /// solve.
+    double Crystalline_anisotropy_energy;
+
+    /// \short Magnetostatic energy, computed after previous Newton solve.
+    double Magnetostatic_energy;
+
+    /// \short ??ds
     void create_surface_exchange_elements(const unsigned& b);
 
     /// Inaccessible copy constructor
@@ -806,6 +825,9 @@ namespace oomph
 
     // Reset backed up time for global timestepper
     this->time_pt()->time()=backed_up_time;
+
+    // Do the energy calculations
+    calculate_energies();
   }
 
 
