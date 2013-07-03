@@ -54,6 +54,19 @@ namespace oomph
 
     std::string output_jacobian;
     const MyCliArgs* Args_pt;
+
+    void dump_args(std::ostream& out_stream) const
+    {
+#ifdef PARANOID
+      if(Args_pt == 0)
+        {
+          std::string error_msg = "Null argument pointer.";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      Args_pt->dump_args(out_stream);
+    }
   };
 
 
@@ -112,11 +125,20 @@ namespace oomph
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
 
+      // Get the time if this problem is time dependant, otherwise use
+      // dummy value.
+      double time = Dummy_doc_data, dt = Dummy_doc_data;
+      if(time_pt() != 0)
+        {
+          time = this->time();
+          dt = this->time_pt()->dt();
+        }
+
       // Write out data that can be done for every problem
       trace_file
         << Doc_info.number() // 0
-        << Trace_seperator << time() // 1
-        << Trace_seperator << time_pt()->dt() // 2
+        << Trace_seperator << time // 1
+        << Trace_seperator << dt // 2
         << Trace_seperator << get_error_norm() // 3
 
         << Trace_seperator << Nnewton_iter_taken // 4
@@ -142,7 +164,6 @@ namespace oomph
         << Trace_seperator << Dummy_doc_data; // 20
 
       //??ds residuals?
-      //??ds max values? Just list all values of vectors with ; as sep?
 
       // Add problem specific data
       write_additional_trace_data(trace_file);
@@ -164,10 +185,13 @@ namespace oomph
     virtual void write_additional_trace_headers(std::ofstream& trace_file)
       const {}
 
-    /// ??ds
+    /// \short Output function that should be overloaded for a specific
+    /// problem.
     virtual void doc_solution_additional(std::ofstream& soln_file) const = 0;
-    virtual void final_doc_additional() const {};
+
+    /// \short Hooks for anything extra that needs to be output
     virtual void initial_doc_additional() const {};
+    virtual void final_doc_additional() const {};
 
 
     /// \short Outputs to be done at the start of a run (i.e. outputing
@@ -253,7 +277,7 @@ namespace oomph
           << "git_version " << GitVersion::VERSION << std::endl
           << "build_time " << GitVersion::BUILD_TIME <<std::endl
           << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
-        Doc_info.Args_pt->dump_args(info_file);
+        Doc_info.dump_args(info_file);
         info_file.close();
 
 
@@ -294,31 +318,47 @@ namespace oomph
         // Always output trace file data
         write_trace();
 
-        // Output full set of data if requested for this timestep
-        if(should_doc_this_step(time_pt()->dt(), time()))
+        // If there is time dependence then do fancy things
+        if(time_pt() != 0)
           {
-            std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
-                                     to_string(Doc_info.number()) + ".dat").c_str(),
-                                    std::ios::out);
-            doc_solution_additional(soln_file);
-            soln_file.close();
-
-            // Write the simulation time and filename to the pvd file
-            std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
-                                   std::ios::app);
-            pvd_file << "<DataSet timestep=\"" << time()
-              << "\" group=\"\" part=\"0\" file=\"" << "soln"
-                     << Doc_info.number() << ".vtu"
-              << "\"/>" << std::endl;
-            pvd_file.close();
-
-            // Output Jacobian if requested
-            if(to_lower(Doc_info.output_jacobian) == "always")
+            // Output full set of data if requested for this timestep
+            if(should_doc_this_step(time_pt()->dt(), time()))
               {
-                dump_current_jacobian(to_string(Doc_info.number()));
-              }
+                // Main output as determined by doc_solution_additional(...)
+                std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
+                                         to_string(Doc_info.number()) + ".dat").c_str(),
+                                        std::ios::out);
+                doc_solution_additional(soln_file);
+                soln_file.close();
 
-            Doc_info.number()++;
+                // Write the simulation time and filename to the pvd file
+                std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+                                       std::ios::app);
+                pvd_file << "<DataSet timestep=\"" << time()
+                         << "\" group=\"\" part=\"0\" file=\"" << "soln"
+                         << Doc_info.number() << ".vtu"
+                         << "\"/>" << std::endl;
+                pvd_file.close();
+
+                // Output Jacobian if requested
+                if(to_lower(Doc_info.output_jacobian) == "always")
+                  {
+                    dump_current_jacobian(to_string(Doc_info.number()));
+                  }
+
+                Doc_info.number()++;
+              }
+          }
+
+        // Otherwise just dump the data
+        else
+          {
+              // Main output as determined by doc_solution_additional(...)
+                std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
+                                         to_string(Doc_info.number()) + ".dat").c_str(),
+                                        std::ios::out);
+                doc_solution_additional(soln_file);
+                soln_file.close();
           }
       }
 
@@ -362,7 +402,7 @@ namespace oomph
     /// \short Calculate norm of timestepper's lte error estimate.
     double lte_norm() const
     {
-      if(time_stepper_pt()->adaptive_flag())
+      if((time_pt() != 0) && (time_stepper_pt()->adaptive_flag()))
         {
           double e = 0;
           for(unsigned nd=0, nnode=mesh_pt()->nnode(); nd<nnode; nd++)

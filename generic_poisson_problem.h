@@ -18,13 +18,14 @@
 #include "./template_free_poisson_flux.h"
 
 #include "./my_general_header.h"
+#include "./my_generic_problem.h"
 
 using namespace oomph;
 
 namespace oomph
 {
 
-  class GenericPoissonProblem : public Problem
+  class GenericPoissonProblem : public MyProblem
   {
 
   public:
@@ -58,7 +59,7 @@ namespace oomph
     ~GenericPoissonProblem() {}
 
     /// Doc the solution.
-    virtual void doc_solution(DocInfo& doc_info) const;
+    virtual void doc_solution_additional(std::ofstream& soln_file) const;
 
     /// \short Create flux mesh on boundaries of bulk mesh, with the flux
     /// given by the output of the function pointer pointer.
@@ -430,8 +431,7 @@ namespace oomph
   // =================================================================
   /// Doc the solution.
   // =================================================================
-  void GenericPoissonProblem::doc_solution(DocInfo& doc_info)
-    const
+  void GenericPoissonProblem::doc_solution_additional(std::ofstream& soln_file) const
   {
 
     using namespace StringConversion;
@@ -441,26 +441,22 @@ namespace oomph
     npts=5;
 
     // Output solution
-    std::ofstream soln_file((doc_info.directory() + "/soln"
-                             + to_string(doc_info.number()) + ".dat").c_str());
     bulk_mesh_pt()->output(soln_file,npts);
-    soln_file.close();
 
     // If we have an exact solution then use it:
     if(exact_solution_fct_pt() != 0)
       {
-
         // Output exact solution
-        std::ofstream exact_file((doc_info.directory() + "/exact_soln"
-                                  + to_string(doc_info.number()) + ".dat").c_str());
+        std::ofstream exact_file((Doc_info.directory() + "/exact_soln"
+                                  + to_string(Doc_info.number()) + ".dat").c_str());
         bulk_mesh_pt()->output_fct(exact_file, npts, exact_solution_fct_pt());
         exact_file.close();
 
 
         // Doc error and return of the square of the L2 error
         double error,norm;
-        std::ofstream error_file((doc_info.directory() + "/error"
-                                  + to_string(doc_info.number()) + ".dat").c_str());
+        std::ofstream error_file((Doc_info.directory() + "/error"
+                                  + to_string(Doc_info.number()) + ".dat").c_str());
         bulk_mesh_pt()->compute_error(error_file, exact_solution_fct_pt(),
                                       error, norm);
         error_file.close();
@@ -472,7 +468,7 @@ namespace oomph
       }
     else
       {
-        std::cout << "No exact soution pointer given." << std::endl;
+        std::cout << "No exact solution pointer given." << std::endl;
       }
   }
 
@@ -492,9 +488,7 @@ namespace oomph
       }
     else
       {
-        throw OomphLibError("No exact solution set.",
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
+        return Dummy_doc_data;
       }
     return sqrt(error);
   }
