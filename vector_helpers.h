@@ -110,8 +110,9 @@ namespace VectorOps
   inline Vector<double> vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
     check_lengths_match(a,b);
-    Vector<double> diff(a.size(), 0.0);
-    for(unsigned i=0; i<a.size(); i++) {diff[i] = a[i] - b[i];}
+    unsigned ni = a.size();
+    Vector<double> diff(ni, 0.0);
+    for(unsigned i=0; i<ni; i++) {diff[i] = a[i] - b[i];}
     return diff;
   }
   inline void vector_diff(const Vector<double>& a, const Vector<double>& b,
@@ -147,8 +148,9 @@ namespace VectorOps
   inline Vector<double> abs_vector_diff(const Vector<double>& a, const Vector<double>& b)
   {
     check_lengths_match(a,b);
-    Vector<double> diff(a.size(), 0.0);
-    for(unsigned i=0; i<a.size(); i++) {diff[i] = std::abs(a[i] - b[i]);}
+    unsigned ni = a.size();
+    Vector<double> diff(ni, 0.0);
+    for(unsigned i=0; i<ni; i++) {diff[i] = std::abs(a[i] - b[i]);}
     return diff;
   }
   inline void abs_vector_diff(const Vector<double>& a, const Vector<double>& b,
@@ -165,8 +167,9 @@ namespace VectorOps
                                                  const Vector<double>& b)
   {
     check_lengths_match(a,b);
-    Vector<double> diff(a.size(), 0.0);
-    for(unsigned i=0; i<a.size(); i++)
+    unsigned ni = a.size();
+    Vector<double> diff(ni, 0.0);
+    for(unsigned i=0; i<ni; i++)
       {
         // if a[i] is not zero then just do it normally
         if( !(numerical_zero(a[i])))
@@ -191,7 +194,7 @@ namespace VectorOps
 
   inline double two_norm_diff(const Vector<double>& a, const Vector<double>& b)
   {
-    Vector<double> diff(a.size(),0.0);
+    Vector<double> diff;
     vector_diff(a,b,diff);
     return two_norm(diff);
   }
@@ -199,7 +202,7 @@ namespace VectorOps
   inline void normalise(Vector<double>& a)
   {
     double length = two_norm(a);
-    for(unsigned i=0; i<a.size(); i++)
+    for(unsigned i=0, ni=a.size(); i<ni; i++)
       {
         a[i] /= length;
       }
@@ -406,13 +409,14 @@ namespace VectorOps
   {
     double vec_mean = mean(vec);
     double sum_square_deviations = 0.0;
-    for(unsigned i=0; i<vec.size(); i++)
+    unsigned vec_size = vec.size();
+    for(unsigned i=0; i<vec_size; i++)
       {
         sum_square_deviations +=
           std::pow(vec[i] - vec_mean,2);
       }
 
-    return std::sqrt(sum_square_deviations / double(vec.size()));
+    return std::sqrt(sum_square_deviations / double(vec_size));
   }
 
 
