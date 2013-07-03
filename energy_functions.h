@@ -14,40 +14,47 @@ using namespace oomph;
 namespace oomph
 {
 
-/// \short Function class for functions to integrate over elements.
-class ElementalFunction
-{
-public:
-virtual double call(const GeneralisedElement* ele_pt,
-                      const Vector<double> &s) const = 0;
-};
+  /// \short Function class for functions to integrate over elements.
+  class ElementalFunction
+  {
+  public:
+    virtual double call(const GeneralisedElement* ele_pt,
+                        const Vector<double> &s) const = 0;
+  };
 
 
-class ExchangeEnergyFunction : public ElementalFunction
-{
-double call(const GeneralisedElement* ele_pt,
-              const Vector<double> &s) const;
-};
+  class ExchangeEnergyFunction : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt,
+                const Vector<double> &s) const;
+  };
 
 
-class ZeemanEnergyFunction : public ElementalFunction
-{
-double call(const GeneralisedElement* ele_pt,
-              const Vector<double> &s) const;
-};
+  class ZeemanEnergyFunction : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt,
+                const Vector<double> &s) const;
+  };
 
 
-class CrystallineAnisotropyEnergyFunction  : public ElementalFunction
-{
-double call(const GeneralisedElement* ele_pt,
-              const Vector<double> &s) const;
-};
+  class CrystallineAnisotropyEnergyFunction  : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt,
+                const Vector<double> &s) const;
+  };
 
-class MagnetostaticEnergyFunction : public ElementalFunction
-{
-double call(const GeneralisedElement* ele_pt,
-              const Vector<double> &s) const;
-};
+  class MagnetostaticEnergyFunction : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt,
+                const Vector<double> &s) const;
+  };
+
+
+  class DmdtSquaredFunction : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt,
+                const Vector<double> &s) const;
+  };
 
 
 

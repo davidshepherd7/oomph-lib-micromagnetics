@@ -325,6 +325,22 @@ namespace oomph
         }
 
       // Set parameters to remove all coefficients except gilbert damping
+      // and K1 from the llg. Set gilbert damping to 0.5, set K1, e_hat
+      // s.t. anisotropy field = 1 and is along z.
+      else if(to_lower(parameters_name) == "simple-llg-anisotropy")
+        {
+          parameters_pt = new MagneticParameters;
+          parameters_pt->saturation_magnetisation() = 1.0; // normalised units
+          parameters_pt->exchange_constant() = 0.5 * mag_parameters::mu0; // this gives hex = 1
+          parameters_pt->k1() = 0.5 * mag_parameters::mu0; //gives hk = 1
+          parameters_pt->distance_units() = 1;
+          // z easy axis is default
+
+          parameters_pt->gamma() = 1;
+          parameters_pt->gilbert_damping() = 0.5;
+        }
+
+      // Set parameters to remove all coefficients except gilbert damping
       // from the llg. Set gilbert damping to 0.5.
       else if(to_lower(parameters_name) == "simple-llg-max-damped")
         {

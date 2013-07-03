@@ -135,6 +135,13 @@ namespace InitialM
     return m;
   }
 
+  Vector<double> exactly_z(const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(3, 0.0);
+    m[2] = 1.0;
+    return m;
+  }
+
   Vector<double> xz(const double& t, const Vector<double> &x)
   {
     Vector<double> m(3, 0.0);
@@ -180,6 +187,10 @@ namespace InitialM
     else if(m_name == "xz")
       {
         return &InitialM::xz;
+      }
+    else if(m_name == "exactly_z")
+      {
+        return &InitialM::exactly_z;
       }
     else if(m_name == "smoothly_varying_5")
       {

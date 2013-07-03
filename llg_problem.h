@@ -220,94 +220,100 @@ namespace oomph
       MyProblem::actions_after_newton_step();
     }
 
+    /// Integrate a function given by func_pt over every element in a mesh
+    /// and return the total. This should probably be in the mesh class but
+    /// that's core oomph-lib so I'll leave it here.
+    double integrate_over_mesh(const ElementalFunction* func_pt,
+                               const Mesh* const mesh_pt) const
+    {
+      double result = 0;
+      for(unsigned e=0, ne=mesh_pt->nelement(); e < ne; e++)
+        {
+          MicromagEquations* ele_pt
+            = checked_dynamic_cast<MicromagEquations*>
+            (mesh_pt->element_pt(e));
+          result += ele_pt->integrate_over_element(func_pt);
+        }
+      return result;
+    }
 
+    /// \short Integrate a function given by func_pt over every element
+    /// in every mesh in this problem.
+    double integrate_over_problem(const ElementalFunction* func_pt) const
+      {
+        double result = 0;
+        for(unsigned j=0; j<this->nsub_mesh(); j++)
+        {
+          result += integrate_over_mesh(func_pt, mesh_pt(j));
+        }
+        return result;
+      }
+
+
+    /// \short Calculate the total (micromagnetic) energy for all meshes in
+    /// the problem.
     double energy() const
     {
-      double energy = 0;
-      for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt
-                = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt(j)->element_pt(e));
-              energy += ele_pt->micromag_energy();
-            }
-        }
-
-      return energy;
+      // Could possibly optimise by writing a total energy function and
+      // integrating that. However this is only calculated once per
+      // timestep at most so we probably don't need to care.
+      return exchange_energy() + zeeman_energy()
+        + crystalline_anisotropy_energy() + magnetostatic_energy();
     }
 
 
     double exchange_energy() const
     {
-      double energy = 0;
-      for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt
-                = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt(j)->element_pt(e));
-              energy += ele_pt->micromag_exchange_energy();
-            }
-        }
-
-      return energy;
+      ExchangeEnergyFunction f;
+      return integrate_over_problem(&f);
     }
 
 
     double zeeman_energy() const
     {
-      double energy = 0;
-      for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt
-                = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt(j)->element_pt(e));
-              energy += ele_pt->micromag_zeeman_energy();
-            }
-        }
-
-      return energy;
+      ZeemanEnergyFunction f;
+      return integrate_over_problem(&f);
     }
 
     double crystalline_anisotropy_energy() const
     {
-      double energy = 0;
-      for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt
-                = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt(j)->element_pt(e));
-              energy += ele_pt->micromag_crystalline_anisotropy_energy();
-            }
-        }
-
-      return energy;
+      CrystallineAnisotropyEnergyFunction f;
+      return integrate_over_problem(&f);
     }
 
 
     double magnetostatic_energy() const
     {
-      double energy = 0;
-      for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          for(unsigned e=0, ne=mesh_pt(j)->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt
-                = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt(j)->element_pt(e));
-              energy += ele_pt->micromag_magnetostatic_energy();
-            }
-        }
-
-      return energy;
+      MagnetostaticEnergyFunction f;
+      return integrate_over_problem(&f);
     }
+
+    double integral_of_dmdt_squared() const
+      {
+        DmdtSquaredFunction f;
+        return integrate_over_problem(&f);
+      }
+
+    // /// \short Compute the effective damping constant (alpha) for the
+    // /// previous time step (see Albuquerque2001).
+    // double effective_damping_used() const
+    //   {
+    //     // Energy change since last time step
+    //     //??ds need way to check it was calculated last step!
+    //     double dEnergy = this->energy() - Previous_energy;
+
+    //     // Previous dt
+    //     double dt = micromag_element_pt()->time_stepper_pt()->dt();
+
+    //     // Integral over all space of (dm/dt)^2 used in last step
+    //     double integral_of_dmdt_squared = integral_of_dmdt_squared();
+
+    //     // Forumla from Albuquerque2001
+    //     double effective_alpha =
+    //       - (1/std::pow(Ms, 2)) * (dEnergy / dt) * integral_of_dmdt_squared;
+
+    //     return effective_alpha;
+    //   }
 
     /// Output solution
     void doc_solution_additional(std::ofstream &some_file) const

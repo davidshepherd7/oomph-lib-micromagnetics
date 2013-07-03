@@ -3,13 +3,12 @@
 #include "../../src/generic/oomph_utilities.h"
 #include "./micromagnetics_element.h"
 
-using namespace oomph;
-
 namespace oomph
 {
 
 
-  /// \short Calculate the energy due to exchange at a point.
+  /// \short Calculate the energy due to exchange at a point at a single
+  /// integration point.
   double ExchangeEnergyFunction::call(const GeneralisedElement* ele_pt,
                                       const Vector<double> &s) const
   {
@@ -30,7 +29,8 @@ namespace oomph
   }
 
 
-  /// \short Calculate energy due to external applied field.
+  /// \short Calculate energy due to external applied field at a single
+  /// integration point.
   double ZeemanEnergyFunction::
   call(const GeneralisedElement* ele_pt, const Vector<double> &s) const
   {
@@ -54,8 +54,8 @@ namespace oomph
   }
 
 
-  /// \short Calculate energy at a point s due to magnetocrystalline
-  /// anisotropy. Source: my writeup (david).
+  /// \short Calculate energy due to magnetocrystalline
+  /// anisotropy at a single integration point.
   double CrystallineAnisotropyEnergyFunction::
   call(const GeneralisedElement* ele_pt, const Vector<double> &s) const
   {
@@ -68,15 +68,16 @@ namespace oomph
     // Get dimensional parameters
     double M_s = m_ele_pt->magnetic_parameters_pt()->saturation_magnetisation();
     double k1 = m_ele_pt->magnetic_parameters_pt()->k1();
-    double mu0 = mag_parameters::mu0;
     Vector<double> e = m_ele_pt->magnetic_parameters_pt()->easy_axis(intp.m());
 
     // Return energy
-    return k1 * (1 - (VectorOps::dot(intp.m(), e)/ ( mu0*mu0*M_s )));
+    double temp = (VectorOps::dot(intp.m(), e) / M_s);
+    return k1 * temp * temp;
   }
 
 
-  /// \short Calculate energy due to external applied field.
+  /// \short Calculate energy due to external applied field at a single
+  /// integration point.
   double MagnetostaticEnergyFunction::call(const GeneralisedElement* ele_pt,
                                            const Vector<double> &s) const
   {
@@ -90,7 +91,7 @@ namespace oomph
     Vector<double> h_ms;
     m_ele_pt->get_magnetostatic_field(s, h_ms);
 
-    // Get "re-normalisation" parameters
+    // Get dimensional parameters
     double M_s = m_ele_pt->magnetic_parameters_pt()->saturation_magnetisation();
     double H_magnitude =   // ??ds slightly nasty..
       1/(m_ele_pt->magnetic_parameters_pt()->field_normalisation_factor());
@@ -100,5 +101,15 @@ namespace oomph
   }
 
 
+  /// \short Calculate (dm/dt)^2 for the previous time step at a single
+  /// integration point.
+  double DmdtSquaredFunction::call(const GeneralisedElement* ele_pt,
+                                   const Vector<double> &s) const
+  {
+    const MicromagEquations* m_ele_pt
+      = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
+    MMInterpolator intp(m_ele_pt, s);
+    return VectorOps::dot(intp.dmdt(), intp.dmdt());
+  }
 
 }

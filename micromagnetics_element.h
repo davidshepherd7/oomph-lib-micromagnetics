@@ -615,7 +615,7 @@ namespace oomph
 
     /// \short Integrate a function given by func_pt over the element using
     /// the given integral_pt(). Because C++ sucks we have to do this with
-    /// weird function objects...
+    /// weird function objects.
     double integrate_over_element(const ElementalFunction* func_pt) const
       {
         double result = 0;
@@ -629,7 +629,9 @@ namespace oomph
               {s[j] = integral_pt()->knot(ipt,j);}
 
 
-            //??ds avoid recalculation of Jacobians?
+            // ??ds Can we avoid recalculation of Jacobians + shape
+            // functions (they are used for interpolation lower down)?
+            // Pass down interpolator w/ J and shape?
             Shape dummy(nnode());
             DShape dummy_deriv(nnode(), this->dim());
             double J = this->dshape_eulerian(s, dummy, dummy_deriv);
@@ -641,44 +643,6 @@ namespace oomph
 
         return result;
       }
-
-    /// \short Calculate the total energy due to micromagnetic effects.
-    double micromag_energy() const
-      {
-        // Just sum up other energies
-        return micromag_exchange_energy()
-          + micromag_zeeman_energy()
-          + micromag_crystalline_anisotropy_energy()
-          + micromag_magnetostatic_energy();
-      }
-
-    double micromag_exchange_energy() const
-      {
-        ExchangeEnergyFunction f;
-        return this->integrate_over_element(&f);
-      }
-
-
-    /// \short Caluclate Zeeman energy: integral( mu0 * M.H_app)
-    double micromag_zeeman_energy() const
-    {
-      ZeemanEnergyFunction f;
-      return this->integrate_over_element(&f);
-    }
-
-
-    double micromag_crystalline_anisotropy_energy() const
-    {
-      CrystallineAnisotropyEnergyFunction f;
-      return this->integrate_over_element(&f);
-    }
-
-
-    double micromag_magnetostatic_energy() const
-    {
-      MagnetostaticEnergyFunction f;
-      return this->integrate_over_element(&f);
-    }
 
 
   protected:
@@ -875,8 +839,6 @@ namespace oomph
           // Normalise
           hms[j] *= Micromag_element_pt->magnetostatic_coeff();
         }
-
-      std::cout << hms << std::endl;
     }
 
     /// For micromagnetics the source function is the divergence of the
