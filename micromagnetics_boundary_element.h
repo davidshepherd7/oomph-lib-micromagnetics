@@ -196,6 +196,15 @@ namespace oomph
                                    const Vector<double>& y,
                                    const Vector<double>& n) const;
 
+    /// \short Function giving the normal derivative of the Green's
+    /// function.  The parameters x and y are the positions of source and
+    /// point of interest (interchangable), n is the normal unit vector out
+    /// of the surface. Optimised but harder to read and potentially less
+    /// safe version.
+    double green_normal_derivative_opt(const Vector<double>& x,
+                                   const Vector<double>& y,
+                                   const Vector<double>& n) const;
+
     /// Const access function for mesh pointer
     const Mesh* boundary_mesh_pt() const {return Boundary_mesh_pt;}
 
@@ -396,7 +405,7 @@ namespace oomph
             for(unsigned kn=0;kn<n_knot;kn++)
               {
                 double dgreendn =
-                  green_normal_derivative(source_node_x, x_kn[i_order][kn],
+                  green_normal_derivative_opt(source_node_x, x_kn[i_order][kn],
                                           normal[i_order][kn]);
 
                 // Loop over test functions, i.e. local/target nodes, adding contributions
@@ -448,7 +457,7 @@ namespace oomph
     Vector< Vector<double> > s_kn(x_kn.size());
     for(unsigned kn=0; kn<x_kn.size(); kn++)
       {
-        gnd[kn] = green_normal_derivative(source_node_x, x_kn[kn], normal[kn]);
+        gnd[kn] = green_normal_derivative_opt(source_node_x, x_kn[kn], normal[kn]);
       }
 
     // // Output
@@ -516,8 +525,77 @@ namespace oomph
     double ndotr = VectorOps::dot(n,unit_r);
 
     // See write up for details of calculation.
-    double mdm1 = - (double(node_dim) - 1);
+    int mdm1 = - (int(node_dim) - 1);
     return (-1.0/Pi) * ndotr * std::pow((2.0*norm_r), mdm1); //??ds had *2 here for some reason...
+  }
+
+  double MicromagBEMElementEquations::
+  green_normal_derivative_opt(const Vector<double>& x,
+                              const Vector<double>& y,
+                              const Vector<double>& n) const
+  {
+    // Get dimensions
+    const unsigned node_dim = nodal_dimension();
+
+#ifdef PARANOID
+    // Check that n is a unit vector
+    if(std::abs(two_norm(n) - 1.0) > 1e-10)
+      {
+        throw OomphLibError("n is not a unit vector",
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    // Calculate the distance r from x to y.
+    double norm_r = 0;
+    double r[3]; // max possible DIM is 3 right?
+    for(unsigned j=0; j<node_dim; j++)
+      {
+        r[j] = y[j] - x[j];
+        norm_r += std::pow(r[j], 2);
+      }
+    norm_r = std::sqrt(norm_r);
+
+    //??ds if x is a potentially singular point CHEAT
+    //??ds could go horribly wrong, probably fine so long as not actually singular
+    //??ds only works in 2d anyway
+
+    // This is approximately true because the r and n unit vectors
+    // become perpendicular as x approaches y. Hence n.r = 0 and
+    // the whole function is zero.
+    if(norm_r < 1e-6) return 0;
+
+    double ndotr = 0;
+    for(unsigned j=0; j<node_dim; j++)
+      {
+        // Calculate dot product of n with the unit vector in direction r.
+        double rj_unit = r[j] / norm_r;
+        ndotr += (n[j] * rj_unit);
+      }
+
+    // See write up for details of calculation.
+    int mdm1 = - (int(node_dim) - 1);
+    double result = (-1.0/Pi) * ndotr * std::pow((2.0*norm_r), mdm1);
+
+
+    // ??ds if we had c++11 we could do a really nice optimisation here
+    // which according to cachegrind would ~double speed of building the
+    // BEM. Set node_dim to a const_expr and the calls to std::pow(...)
+    // optimise out to either x*x or just x. Alternatively we could
+    // template these elements, but then we lose some nice high level
+    // stuff.
+
+#ifdef PARANOID
+    if(green_normal_derivative(x,y,n) != result)
+      {
+        std::string error_msg = "Optimised version gave different value to normal version!";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    return result;
   }
 
   /*
