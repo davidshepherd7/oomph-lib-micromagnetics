@@ -9,6 +9,7 @@
 #include "../../src/generic/Telements.h"
 #include "../../src/generic/oomph_utilities.h"
 #include "../../src/generic/oomph_definitions.h"
+#include "../../src/generic/interpolator.h"
 
 // Print vectors nicely
 #include "./prettyprint98.hpp"
@@ -21,7 +22,6 @@
 #include "./template_free_poisson.h"
 
 #include "./energy_functions.h"
-#include "./interpolator.h"
 #include "./array_interpolator.h"
 
 
