@@ -5,10 +5,7 @@
   description of file goes here
 */
 
-#include "generic.h"
 #include "./template_free_poisson_flux.h"
-
-using namespace oomph;
 
 namespace oomph
 {

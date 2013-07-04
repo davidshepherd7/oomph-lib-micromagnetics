@@ -16,31 +16,30 @@
 
 #include <ostream>
 
-#include "generic.h"
+#include "../../src/generic/Vector.h"
+#include "../../src/generic/mesh.h"
+#include "../../src/generic/timesteppers.h"
+#include "../../src/generic/midpoint_method.h"
+
+// Solvers for solver factory
+#include "../../src/generic/linear_solver.h"
+#include "../../src/generic/iterative_linear_solver.h"
+#include "../../src/generic/hypre_solver.h"
+
+// Preconditioners for factory
+#include "../../src/generic/general_purpose_block_preconditioners.h"
+
+
 
 #include "./magnetics_helpers.h"
-
-// Meshes
-#include "meshes/simple_rectangular_quadmesh.h"
-#include "meshes/simple_rectangular_tri_mesh.h"
-#include "meshes/simple_cubic_tet_mesh.h"
-#include "meshes/simple_cubic_mesh.h"
-#include "meshes/tetgen_mesh.h"
-#include "meshes/triangle_mesh.h"
-
-// Variable order integrators
-#include "./variable_order_quadrature.h"
-
-using namespace oomph;
-using namespace CommandLineArgs;
-using namespace StringConversion;
-
 
 namespace oomph
 {
 
+  using namespace CommandLineArgs;
+  using namespace StringConversion;
 
-  bool small(const double& test_double)
+  inline bool small(const double& test_double)
   {
     return std::abs(test_double) < 1e-5;
   }
@@ -72,7 +71,7 @@ namespace oomph
     /// \short Make a timestepper from an input argument. Assumption: this will be
     /// passed into a problem, which will delete the pointer when it's
     /// done.
-    TimeStepper* time_stepper_factory(const std::string& ts_name,
+    inline TimeStepper* time_stepper_factory(const std::string& ts_name,
                                       double tol)
     {
       bool adaptive_flag = (tol != 0.0);
@@ -98,40 +97,8 @@ namespace oomph
         }
     }
 
-
-
-    /// \short Create a variable order quadrature object based on the
-    /// dimension and shape of the element. Only works for
-    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
-    {
-      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
-        {
-          return new TVariableOrderGaussLegendre<1>;
-        }
-      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
-        {
-          return new QVariableOrderGaussLegendre<1>;
-        }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
-        {
-          return new TVariableOrderGaussLegendre<2>;
-        }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
-        {
-          return new QVariableOrderGaussLegendre<2>;
-        }
-      else
-        {
-          std::string err("Cannot determine element type.\n");
-          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
-          err += "Variable order quadratures are not supported for this case.";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-    }
-
     template<class ELEMENT>
-    Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,
+    inline Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,
                                const Vector<unsigned> &boundaries)
     {
       Mesh* flux_mesh_pt = new Mesh;
@@ -163,7 +130,7 @@ namespace oomph
     }
 
 
-    LinearSolver* linear_solver_factory(const std::string& _solver_name)
+    inline LinearSolver* linear_solver_factory(const std::string& _solver_name)
     {
       const std::string solver_name = to_lower(_solver_name);
 
@@ -198,7 +165,7 @@ namespace oomph
 
 
 
-    Preconditioner* block_llg_factory(const std::string &_prec_name)
+    inline Preconditioner* block_llg_factory(const std::string &_prec_name)
     {
       // Parse the parameter string
       Vector<std::string> parameters = split_string(to_lower(_prec_name), '-');
@@ -359,7 +326,7 @@ namespace oomph
     }
 
 
-    Preconditioner* preconditioner_factory(const std::string &_prec_name)
+    inline Preconditioner* preconditioner_factory(const std::string &_prec_name)
     {
       const std::string prec_name = to_lower(_prec_name);
       Preconditioner* prec_pt = 0;
@@ -435,7 +402,7 @@ namespace oomph
 
     /// \short Construct a list of times to output the full solution at
     /// based on command line input in label.
-    Vector<double> doc_times_factory(std::string &label, const double &t_max)
+    inline Vector<double> doc_times_factory(std::string &label, const double &t_max)
       {
         Vector<double> doc_times;
 

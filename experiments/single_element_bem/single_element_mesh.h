@@ -17,8 +17,6 @@
 #include "generic/quad_mesh.h"
 
 
-using namespace oomph;
-
 namespace oomph
 {
 

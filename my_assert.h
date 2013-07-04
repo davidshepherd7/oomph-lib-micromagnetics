@@ -3,7 +3,8 @@
 // // Shamelessly stolen from boost!
 
 #include <string>
-#include "generic.h"
+#include "../../src/generic/oomph_utilities.h"
+#include "../../src/generic/oomph_definitions.h"
 
 // Make sure the macros don't exist already
 #if defined(my_assert) || defined(my_assert_msg)

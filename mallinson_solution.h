@@ -5,13 +5,11 @@
   description of file goes here
 */
 
-#include "generic.h"
-
-using namespace oomph;
+#include "../../src/generic/Vector.h"
 
 namespace oomph
 {
-
+  using namespace MathematicalConstants;
 
   // Calculations for the switching time and phi value for switching between
   // two angles in the very simple case when:
@@ -21,13 +19,13 @@ namespace oomph
   namespace CompareSolutions
   {
 
-    double cart2theta(const Vector<double> &m)
+    inline double cart2theta(const Vector<double> &m)
     {
       double r = VectorOps::two_norm(m);
       return std::acos(m[2]/r);
     }
 
-    double cart2phi(const Vector<double> &m)
+    inline double cart2phi(const Vector<double> &m)
     {
       double result_in_mpi_pi = std::atan2(m[1],m[0]);
       if (result_in_mpi_pi > 0)
@@ -36,7 +34,7 @@ namespace oomph
         return result_in_mpi_pi;
     }
 
-    double switching_time(const double &alpha,
+    inline double switching_time(const double &alpha,
                           const double &gamma,
                           const double &H,
                           const double &H_k,
@@ -56,8 +54,8 @@ namespace oomph
                         / sin(theta_start)));
     }
 
-    double switching_time_wrapper(const MagneticParameters* const parameters_pt,
-                                  const Vector<double> &m)
+    inline double switching_time_wrapper(const MagneticParameters* const parameters_pt,
+                                         const Vector<double> &m)
     {
       Vector<double> x; //dummy
       Vector<double> H = HApp::minus_z(0, x);
@@ -75,17 +73,17 @@ namespace oomph
       return analytical_time;
     }
 
-    double analytic_phi(const double &alpha,
-                        const double &theta_start,
-                        const double &theta_now)
+    inline double analytic_phi(const double &alpha,
+                               const double &theta_start,
+                               const double &theta_now)
     {
       double phi = (-1/alpha) * std::log((std::tan(theta_now/2))
                                          /(std::tan(theta_start/2)));
       return std::fmod(phi,2*Pi); // map into range 0:2pi
     }
 
-    double analytic_phi_wrapper(const MagneticParameters* const parameters_pt,
-                                const Vector<double> &m)
+    inline double analytic_phi_wrapper(const MagneticParameters* const parameters_pt,
+                                       const Vector<double> &m)
     {
       Vector<double> x; // dummy!
       double theta_start = cart2theta(InitialM::z(0,x));
@@ -96,8 +94,8 @@ namespace oomph
                           theta_now);
     }
 
-    double phi_error(const MagneticParameters* const parameters_pt,
-                     const Vector<double> &m)
+    inline double phi_error(const MagneticParameters* const parameters_pt,
+                            const Vector<double> &m)
     {
       double phi_now = cart2phi(m);
       double analytical_phi = analytic_phi_wrapper(parameters_pt,m);

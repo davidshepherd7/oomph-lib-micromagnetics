@@ -39,6 +39,9 @@
 #include "../../my_general_header.h"
 
 
+// mesh
+#include "../../src/meshes/simple_cubic_tet_mesh.h"
+
 using namespace oomph;
 
 

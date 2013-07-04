@@ -9,8 +9,6 @@
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/elements.h"
 
-using namespace oomph;
-
 namespace oomph
 {
 

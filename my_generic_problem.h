@@ -10,6 +10,14 @@
 #include "../../src/generic/problem.h"
 #include "../../src/generic/oomph_utilities.h"
 
+#include "../../src/generic/linear_solver.h"
+#include "../../src/generic/iterative_linear_solver.h"
+#include "../../src/generic/general_purpose_block_preconditioners.h"
+#include "../../src/generic/hypre_solver.h"
+
+
+
+
 #include "./my_general_header.h"
 #include "./git_version.h"
 
@@ -17,12 +25,10 @@
 #include <ostream>
 #include <string>
 
-using namespace oomph;
-
 namespace oomph
 {
 
-  std::string real_date_time()
+  inline std::string real_date_time()
   {
     time_t rawtime;
     struct tm * timeinfo;

@@ -15,13 +15,8 @@
 */
 
 
-//??ds
-#include <iomanip>
-
 // class MicromagEquations;
 #include "./micromagnetics_element.h"
-
-using namespace oomph;
 
 namespace oomph
 {

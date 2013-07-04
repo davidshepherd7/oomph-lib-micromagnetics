@@ -12,14 +12,13 @@
 #include "../../src/generic/oomph_utilities.h"
 #include "../../src/generic/matrices.h"
 
-using namespace oomph;
-using namespace StringConversion;
-
 // Note: all functions must be declared inline so that the compiler doesn't
 // die! Stupid compiler...
 
 namespace VectorOps
 {
+  using namespace oomph;
+  using namespace StringConversion;
 
   inline void check_lengths_match(const Vector<double> &a, const Vector<double> &b)
   {

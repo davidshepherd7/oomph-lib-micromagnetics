@@ -12,11 +12,10 @@
 
 #include "./boundary_element_handler.h"
 
-using namespace oomph;
-using namespace StringConversion;
-
 namespace oomph
 {
+
+  using namespace StringConversion;
 
   template<class BULK_ELEMENT,
            template<class BULK_ELEMENT,unsigned DIM> class BEM_ELEMENT,

@@ -1,5 +1,3 @@
-#ifndef OOMPH_MICROMAGNETICS_ELEMENT_CC
-#define OOMPH_MICROMAGNETICS_ELEMENT_CC
 
 #include "micromagnetics_element.h"
 #include "micromagnetics_flux_element.h"
@@ -14,7 +12,7 @@ using namespace VectorOps;
 namespace oomph
 {
 
-  /// ??ds
+  /// ??ds Magic number, probably bad...
   const double MicromagEquations::DummyBEMControlledEntry = 10;
 
   void MicromagEquations::check_interpolation(MMInterpolator& intp) const
@@ -774,6 +772,26 @@ namespace oomph
       }
   }
 
-}
+  //====================================================================
+  // Force building of templates
+  //====================================================================
+  template class QMicromagElement<2,2>;
+  template class QMicromagElement<2,3>;
+  template class QMicromagElement<3,2>;
+  template class QMicromagElement<3,3>;
 
-#endif
+  template class TMicromagElement<2,2>;
+  template class TMicromagElement<2,3>;
+  template class TMicromagElement<3,2>;
+  template class TMicromagElement<3,3>;
+
+  template class QSemiImplicitMicromagElement<2,2>;
+  template class QSemiImplicitMicromagElement<2,3>;
+  template class QSemiImplicitMicromagElement<3,2>;
+  template class QSemiImplicitMicromagElement<3,3>;
+
+  template class TSemiImplicitMicromagElement<2,2>;
+  template class TSemiImplicitMicromagElement<2,3>;
+  template class TSemiImplicitMicromagElement<3,2>;
+  template class TSemiImplicitMicromagElement<3,3>;
+}

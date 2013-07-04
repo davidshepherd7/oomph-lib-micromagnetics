@@ -17,8 +17,6 @@
 
 #include "generic.h"
 
-using namespace oomph;
-
 namespace oomph
 {
 

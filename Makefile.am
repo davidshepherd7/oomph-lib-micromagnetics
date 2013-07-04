@@ -2,13 +2,45 @@
 #-----------------------
 
 # Define the sources
-sources = micromagnetics_element.cc micromagnetics_boundary_element.cc energy_functions.cc template_free_poisson.cc magnetic_materials.cc
+sources = micromagnetics_element.cc \
+	micromagnetics_boundary_element.cc \
+	energy_functions.cc \
+	template_free_poisson.cc \
+	magnetic_materials.cc \
+	llg_problem.cc \
+	variable_order_quadrature.cc \
+	generic_poisson_problem.cc \
+	semi_implicit_problem.cc \
+	boundary_element_handler.cc \
+	template_free_poisson_flux.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
 
 # Define the headers
-headers = micromagnetics_element.h micromagnetics_boundary_element.h micromagnetics_flux_element.h energy_functions.h template_free_poisson.h magnetic_materials.h
+headers = array_interpolator.h \
+	micromagnetics_boundary_element.h \
+	energy_functions.h \
+	micromagnetics_element.h \
+	generic_poisson_problem.h \
+	micromagnetics_flux_element.h \
+	git_version.h \
+	my_assert.h \
+	my_general_header.h \
+	my_generic_problem.h \
+	llg_problem.h \
+	magnetic_materials.h \
+	template_free_poisson_flux.h \
+	magnetics_helpers.h \
+	template_free_poisson.h \
+	magnetostatic_field_flux_element.h \
+	magpar_requirements.h \
+	mallinson_solution.h \
+	variable_order_quadrature.h \
+	vector_helpers.h \
+	semi_implicit_problem.h \
+	boundary_element_handler.h \
+	prettyprint98.hpp
 
 # Define name of library
 libname = micromag
@@ -32,7 +64,7 @@ libmicromag_la_SOURCES = $(headers_and_sources)
 include_HEADERS = $(libname).h
 
 #Here's the subdirectory where the actual header files are placed
-library_includedir=$(includedir)
+library_includedir=$(includedir)/$(libname)
 
 #These are the header files that are to be placed in subdirectory
 library_include_HEADERS=$(headers) $(incl_cc_files)
@@ -44,7 +76,7 @@ library_include_HEADERS=$(headers) $(incl_cc_files)
 $(libname).h: dummy_$(libname).h
 
 dummy_$(libname).h:  $(headers)
-	echo  "." $(headers) > all_$(libname).aux
+	echo  "./$(libname)/" $(headers) > all_$(libname).aux
 	$(AWK) -f $(top_srcdir)/bin/headers.awk < \
 		all_$(libname).aux > $(libname).h
 	sed -e 's/</ "/g' -e 's/>/"/g' -i $(libname).h

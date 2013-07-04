@@ -3,10 +3,7 @@
 */
 
 #include "generic.h"
-
-#include "../../my_general_header.h"
-#include "../../llg_problem.h"
-#include "../../magnetics_helpers.h"
+#include "micromag.h"
 
 // Floating point error checks
 #include <fenv.h>

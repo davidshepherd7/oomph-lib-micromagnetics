@@ -2,7 +2,9 @@
 // Floating point debugging
 #include <fenv.h>
 
-#include "../../micromag.h"
+#include "micromag.h"
+
+// meshes
 
 using namespace oomph;
 

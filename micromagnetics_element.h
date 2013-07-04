@@ -25,8 +25,6 @@
 #include "./array_interpolator.h"
 
 
-using namespace oomph;
-
 namespace oomph
 {
 

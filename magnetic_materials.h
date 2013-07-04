@@ -17,12 +17,12 @@ namespace mag_parameters
   extern double mu0; // in N/(A^2) (SI)
 }
 
-using namespace mag_parameters;
-using namespace StringConversion;
-
 
 namespace oomph
 {
+
+  using namespace mag_parameters;
+  using namespace StringConversion;
 
   // ============================================================
   /// A class to store magnetic material parameters.

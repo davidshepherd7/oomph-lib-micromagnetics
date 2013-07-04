@@ -90,7 +90,6 @@ namespace TanhSolnForPoisson
 
 } // end of namespace
 
-using namespace oomph;
 
 namespace oomph
 {

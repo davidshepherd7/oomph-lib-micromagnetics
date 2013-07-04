@@ -1,36 +1,12 @@
 #ifndef OOMPH_ARRAY_INTERPOLATOR_H
 #define OOMPH_ARRAY_INTERPOLATOR_H
 
-/*
-  description of file goes here
-*/
-
-
-using namespace oomph;
+#include "../../src/generic/Vector.h"
+#include "../../src/generic/elements.h"
+#include "../../src/generic/shape.h"
 
 namespace oomph
 {
-
-  // Forward decl.
-  class FiniteElement;
-  class Time;
-
-  // class InterpolatorBase
-  // {
-  // public:
-  //  virtual double time() = 0;
-
-  //  virtual double x(const unsigned &i) = 0;
-  //  virtual const Vector<double>& x() = 0;
-
-  //  virtual double value(const unsigned &i) = 0;
-  //  virtual double dvaluedt(const unsigned &i) = 0;
-  //  virtual double dvaluedx(const unsigned &direction, const unsigned &i) = 0;
-  //  virtual const Vector<double>& dvaluedx(const unsigned &i_val) = 0;
-
-  //  //??ds shape + test + J
-  //  virtual double J() = 0;
-  // };
 
 
   /* Implementation notes:

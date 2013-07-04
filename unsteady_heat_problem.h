@@ -1,3 +1,5 @@
+#ifndef OOMPH_UNSTEADY_HEAT_PROBLEM_H
+#define OOMPH_UNSTEADY_HEAT_PROBLEM_H
 //LIC// ====================================================================
 //LIC// This file forms part of oomph-lib, the object-oriented,
 //LIC// multi-physics finite-element library, available
@@ -32,10 +34,6 @@
 
 // The unsteady heat equations
 #include "unsteady_heat.h"
-
-
-using namespace oomph;
-using namespace MathematicalConstants;
 
 #include "my_generic_problem.h"
 #include "vector_helpers.h"
@@ -382,3 +380,5 @@ public:
   UnsteadyHeatEquationsBase::UnsteadyHeatSourceFctPt source_fct_pt;
   UnsteadyHeatProblem::UnsteadyExactSolutionFctPt exact_fct_pt;
 };
+
+#endif
