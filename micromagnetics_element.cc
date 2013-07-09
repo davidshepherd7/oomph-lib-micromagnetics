@@ -140,6 +140,73 @@ namespace oomph
 #endif
   }
 
+
+  void MicromagEquations::check_interpolation2(const Vector<double> &s) const
+  {
+#ifdef PARANOID
+    // Track whether any errors have been found
+    bool failed = false;
+
+    //??ds move to an option somewhere higher up?
+    bool throw_on_fail = false;
+
+    // Tolerence for differences in interpolation
+    double tol = 5e-10;
+
+    MMInterpolator intp(this, s);
+    MMArrayInterpolator<5> a_intp(this, s);
+
+    std::cerr << std::setprecision(12);
+
+    // Get arrays as vectors for easy comparison
+    Vector<double> itp_x, itp_m, itp_dmdt;
+    itp_x.assign(a_intp.x(), a_intp.x() + nodal_dimension());
+    itp_m.assign(a_intp.m(), a_intp.m() + 3);
+    itp_dmdt.assign(a_intp.dmdt(), a_intp.dmdt() + 3);
+
+    if(two_norm_diff(intp.x(), itp_x) > tol)
+      {
+        std::cerr << "Error in x interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.x(), itp_x) << std::endl;
+        std::cerr << itp_x << std::endl;
+        std::cerr << intp.x() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    if(two_norm_diff(intp.m(), itp_m) > tol)
+      {
+        std::cerr << "Error in m interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.m(), itp_m) << std::endl;
+        std::cerr << itp_m << std::endl;
+        std::cerr << intp.m() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    if(two_norm_diff(intp.dmdt(), itp_dmdt) > tol)
+      {
+        std::cerr << "Error in dmdt interpolation (order is: twonorm, old, new)"
+                  << two_norm_diff(intp.dmdt(), itp_dmdt) << std::endl;
+        std::cerr << itp_dmdt << std::endl;
+        std::cerr << intp.dmdt() << std::endl;
+        std::cerr << std::endl;
+        failed = true;
+      }
+
+    //??ds dmdx?
+
+    //??ds phis?
+
+    if(failed && throw_on_fail)
+      {
+        std::string error_msg = "Error: difference between old interpolation and new";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+  }
+
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
   ///
