@@ -15,7 +15,7 @@ new_clean_dir()
 
 final_energy()
 {
-    tail < $1 -1 | cut -d';' -f28-32 | tr -d ';'
+    (head -1 < $1; tail -1 < $1) | cut -d';' -f28-31 | tr -d ';'
 }
 
 # An fpdiff wrapper that always puts the output in the right place and
@@ -55,16 +55,16 @@ cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
 
 # Extract + check energies
 final_energy $SPHERE_DIR/trace > $SPHERE_DIR/energies
-wrapped_fpdiff $SPHERE_DIR/energies $TPWD/validata/sphere_energies 15 1e-10
+wrapped_fpdiff $SPHERE_DIR/energies $TPWD/validata/sphere_energies 15 1e-4
 
 
 # If M_s=1, r=1, H_app=[0,0,-1.1] (numbers from copying formula into python)
-# E_ms = -0.5 * mu0 * 1 * (-0.33333 * 1) * (4.0/3) * pi = 8.772893960040309e-07
-# E_zee = -mu0 * 1 * -1.1 * (4.0/3) * pi = 5.790167915305757e-06
+# E_ms = -0.5 * 1 * (-0.33333 * 1) * (4.0/3) * pi = 0.6981247194807239
+# E_zee = -1 * -1.1 * (4.0/3) * pi = 4.60766922526503
 # E_ca = 0 (because the magnetics is aligned with easy axis)
 
 # Unfortunately good approximations to a sphere are EXPENSIVE.... so it's
-# only roughly right :(
+# only roughly right :( Hence 1e-4 as numerical zero and 15% error allowed.
 
 
 
