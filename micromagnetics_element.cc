@@ -15,6 +15,32 @@ namespace oomph
   /// ??ds Magic number, probably bad...
   const double MicromagEquations::DummyBEMControlledEntry = 10;
 
+  /// \short Integrate a function given by func_pt over the element using
+  /// the given integral_pt(). Because C++ sucks we have to do this with
+  /// weird function objects.
+  double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt) const
+  {
+    double result = 0;
+
+    // Loop over knots and sum
+    for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
+      {
+        // Get position in element
+        Vector<double> s(this->dim());
+        for(unsigned j=0; j<this->dim(); j++)
+          {s[j] = integral_pt()->knot(ipt,j);}
+
+        MMInterpolator intp(this, s);
+        double J = intp.j();
+        double w = integral_pt()->weight(ipt);
+
+        // Add contribution
+        result += func_pt->call(this, &intp) * w * J;
+      }
+
+    return result;
+  }
+
   void MicromagEquations::check_interpolation(MMInterpolator& intp) const
   {
 #ifdef PARANOID

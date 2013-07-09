@@ -614,33 +614,7 @@ namespace oomph
     /// \short Integrate a function given by func_pt over the element using
     /// the given integral_pt(). Because C++ sucks we have to do this with
     /// weird function objects.
-    double integrate_over_element(const ElementalFunction* func_pt) const
-      {
-        double result = 0;
-
-        // Loop over knots and sum
-        for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
-          {
-            // Get position in element
-            Vector<double> s(this->dim());
-            for(unsigned j=0; j<this->dim(); j++)
-              {s[j] = integral_pt()->knot(ipt,j);}
-
-
-            // ??ds Can we avoid recalculation of Jacobians + shape
-            // functions (they are used for interpolation lower down)?
-            // Pass down interpolator w/ J and shape?
-            Shape dummy(nnode());
-            DShape dummy_deriv(nnode(), this->dim());
-            double J = this->dshape_eulerian(s, dummy, dummy_deriv);
-            double w = integral_pt()->weight(ipt);
-
-            // Add contribution
-            result += func_pt->call(this, s) * w * J;
-          }
-
-        return result;
-      }
+    double integrate_over_element(const ElementalFunction* func_pt) const;
 
 
   protected:
@@ -1202,6 +1176,11 @@ namespace oomph
     const Vector<double>& dmdx(const unsigned &i_val)
     {
       return this->dvaluedx(This_element->m_index_micromag(i_val));
+    }
+
+    const Vector<double>& d2mdxdt(const unsigned &i_val)
+    {
+      return this->d2valuedxdt(This_element->m_index_micromag(i_val));
     }
 
     double div_m()
