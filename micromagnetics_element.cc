@@ -199,7 +199,7 @@ namespace oomph
         for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
 
         Vector<double> mvec(3, 0.0);
-        for(unsigned i=0; i<ndim; i++) {mvec[i] = intp.m()[i];}
+        for(unsigned i=0; i<3; i++) {mvec[i] = intp.m()[i];}
 
         // Source functions (for debugging, normally zero)
         const double phi_source = get_phi_source(intp.time(),xvec);
