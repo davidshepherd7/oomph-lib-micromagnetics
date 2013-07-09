@@ -33,6 +33,13 @@ namespace oomph
     {
       // Needed for if we want to switch solvers in runs
       Super_LU_solver_pt = new SuperLUSolver;
+
+      // Initialise storage for energies etc.
+      Exchange_energy = MyProblem::Dummy_doc_data;
+      Zeeman_energy = MyProblem::Dummy_doc_data;
+      Crystalline_anisotropy_energy = MyProblem::Dummy_doc_data;
+      Magnetostatic_energy = MyProblem::Dummy_doc_data;
+      Effective_damping_constant = MyProblem::Dummy_doc_data;
     }
 
     /// Function that does the real work of the constructors.
@@ -169,15 +176,23 @@ namespace oomph
 
     /// \short Calculate energies and store them for easy reference
     /// (e.g. for output).
-    void calculate_energies()
+    void calculate_energies(bool calculate_effective_damping=true)
       {
         // If you want to turn off energy calculations (e.g. for speed)
         // this is the place to do it. Replace values with
         // MyProblem::Dummy_doc_data.
+
+        // Calculate and store new values
         Exchange_energy = exchange_energy();
         Zeeman_energy = zeeman_energy();
         Crystalline_anisotropy_energy = crystalline_anisotropy_energy();
         Magnetostatic_energy = magnetostatic_energy();
+
+        // Calculate and store effective damping if not disabled.
+        if(calculate_effective_damping)
+          {
+            Effective_damping_constant = effective_damping_used();
+          }
       }
 
 
@@ -222,26 +237,40 @@ namespace oomph
         return integrate_over_problem(&f);
       }
 
-    // /// \short Compute the effective damping constant (alpha) for the
-    // /// previous time step (see Albuquerque2001).
-    // double effective_damping_used() const
-    //   {
-    //     // Energy change since last time step
-    //     //??ds need way to check it was calculated last step!
-    //     double dEnergy = this->energy() - Previous_energy;
+    double dEnergydt() const
+      {
+        dExchangeEnergydtFunction de_exdt;
+        double I_de_exdt = integrate_over_problem(&de_exdt);
 
-    //     // Previous dt
-    //     double dt = micromag_element_pt()->time_stepper_pt()->dt();
+        dZeemanEnergydtFunction de_zeedt;
+        double I_de_zeedt = integrate_over_problem(&de_zeedt);
 
-    //     // Integral over all space of (dm/dt)^2 used in last step
-    //     double integral_of_dmdt_squared = integral_of_dmdt_squared();
+        dCrystallineAnisotropydtEnergyFunction de_cadt;
+        double I_de_cadt = integrate_over_problem(&de_cadt);
 
-    //     // Forumla from Albuquerque2001
-    //     double effective_alpha =
-    //       - (1/std::pow(Ms, 2)) * (dEnergy / dt) * integral_of_dmdt_squared;
+        return I_de_exdt + I_de_zeedt + I_de_cadt;
+      }
 
-    //     return effective_alpha;
-    //   }
+    /// \short Compute the effective damping constant (alpha) for the
+    /// previous time step (see Albuquerque2001).
+    double effective_damping_used() const
+      {
+        // Ms (assuming constant over whole problem)
+        double Ms = ele_pt()->magnetic_parameters_pt()->saturation_magnetisation();
+
+        // Integral over all space of (dm/dt)^2 used in last step
+        double dmdt_squared = integral_of_dmdt_squared();
+
+        // If no change then damping is undefined
+        if(dmdt_squared  == 0) return nan("");
+
+        // Forumla from Albuquerque2001
+        double dEdt = dEnergydt();
+        double effective_alpha = - ((1/std::pow(Ms, 2)) * dEdt) / dmdt_squared;
+
+        return effective_alpha;
+      }
+
 
     /// Output solution
     void doc_solution_additional(std::ofstream &some_file) const
@@ -265,7 +294,8 @@ namespace oomph
         << Trace_seperator << "exchange_energy" // 27
         << Trace_seperator << "zeeman_energy" // 28
         << Trace_seperator << "crystalline_anisotropy_energy" // 29
-        << Trace_seperator << "magnetostatic_energy"; // 30
+        << Trace_seperator << "magnetostatic_energy" // 30
+        << Trace_seperator << "effective_damping"; //31
     }
 
     void write_additional_trace_data(std::ofstream& trace_file) const
@@ -290,7 +320,8 @@ namespace oomph
         << Trace_seperator << Exchange_energy // 27
         << Trace_seperator << Zeeman_energy // 28
         << Trace_seperator << Crystalline_anisotropy_energy // 29
-        << Trace_seperator << Magnetostatic_energy; // 30
+        << Trace_seperator << Magnetostatic_energy // 30
+        << Trace_seperator << Effective_damping_constant; //31
     }
 
     /// Set up an initial M
@@ -549,6 +580,13 @@ namespace oomph
     /// \short Magnetostatic energy, computed after previous Newton solve.
     double Magnetostatic_energy;
 
+public:
+    /// \short Recomputed effective damping constant for the last time step
+    /// (based on actual change in energy).
+    double Effective_damping_constant;
+
+  private:
+
     /// \short ??ds
     void create_surface_exchange_elements(const unsigned& b);
 
@@ -561,7 +599,6 @@ namespace oomph
     {BrokenCopy::broken_assign("LLGProblem");}
 
   };
-
 
 
   /// \short Functions for constructing things needed for LLG problems

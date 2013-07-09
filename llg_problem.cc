@@ -310,8 +310,8 @@ namespace oomph
     // Reset backed up time for global timestepper
     this->time_pt()->time()=backed_up_time;
 
-    // Do the energy calculations
-    calculate_energies();
+    // Do the energy calculations, don't try to calculate an effective damping
+    calculate_energies(false);
   }
 
 
