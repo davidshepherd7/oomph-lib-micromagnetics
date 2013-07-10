@@ -62,7 +62,8 @@ void BoundaryElementHandler::build_bem_matrix()
       DenseMatrix<double> element_boundary_matrix(n_element_node,n_node,0.0);
 
       // Fill the matrix
-      elem_pt->fill_in_contribution_to_boundary_matrix(element_boundary_matrix);
+      elem_pt->fill_in_contribution_to_boundary_matrix(element_boundary_matrix,
+                                                       Use_numerical_integration);
 
       // Loop over the nodes in this element (to copy results into final matrix)
       for(unsigned l=0;l<n_element_node;l++)

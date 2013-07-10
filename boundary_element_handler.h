@@ -253,6 +253,10 @@ namespace oomph
       // add a flag to mesh?
 
       Bem_mesh_pt = new Mesh;
+
+      // By default evaluate BEM integrals using numerical integration.
+      Use_numerical_integration = true;
+
     }
 
     /// Destructor
@@ -280,6 +284,16 @@ namespace oomph
     /// Build the mesh, lookup schemes and matrix in that order.
     void build()
     {
+      // Force use of numerical integration if needed (if nodal dimension
+      // of meshes is not 3).
+      if((!Use_numerical_integration) && (dimension() != 3))
+        {
+          OomphLibWarning("Problem appears to not be 3 dimensional. I'm forcing the use of numerical integration for boundary element calculations (analytical calculations only work for 3d).",
+                          OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+          Use_numerical_integration = true;
+        }
+
       // Construct the mesh using on boundaries specified in Bem_boundaries
       build_bem_mesh();
 
@@ -319,6 +333,14 @@ namespace oomph
         {
           set_bem_boundary(b, mesh_pt);
         }
+    }
+
+    /// \short Get the (nodal) dimension of the boundary meshes
+    unsigned dimension()
+    {
+      // Use mesh pointer of the first boundary presumably all boundaries
+      // must have the same nodal dimension.
+      return Bem_boundaries[0].second->node_pt(0)->ndim();
     }
 
     // Access functions:
@@ -396,6 +418,10 @@ namespace oomph
 
 
     BEMElementFactoryFctPt Bem_element_factory;
+
+    /// \short Integrate BEM integrals by adaptive numerical integration or
+    /// analytical integration.
+    bool Use_numerical_integration;
 
   private:
 

@@ -277,12 +277,18 @@ namespace oomph
 
       specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
+
+      specify_command_line_flag("-numerical-BEM");
+      // automatically defaults to false
     }
 
 
     void run_factories()
     {
       MMArgs::run_factories();
+
+      // Store inside class
+      use_numerical_integration = Specified_command_line_flag["-numerical-BEM"];
 
       to_lower(mesh_name);
 
@@ -315,6 +321,8 @@ namespace oomph
     {
       MMArgs::dump_args(out_stream);
       out_stream << "mesh " << mesh_name << std::endl;
+      out_stream << "numerical-BEM " << use_numerical_integration
+                 << std::endl;
     }
 
 
@@ -327,6 +335,8 @@ namespace oomph
 
     // Strings for input to factory functions
     std::string mesh_name;
+
+    bool use_numerical_integration;
   };
 
 

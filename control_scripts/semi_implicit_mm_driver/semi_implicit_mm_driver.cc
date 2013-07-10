@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
   BoundaryElementHandler bem_handler;
   problem.bem_handler_pt() = &bem_handler;
   problem.bem_handler_pt()->Bem_element_factory = args.bem_element_factory_fct_pt;
+  problem.bem_handler_pt()->Use_numerical_integration = args.use_numerical_integration;
 
 
   // Do the rest of the set up

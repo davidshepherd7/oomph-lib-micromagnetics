@@ -59,15 +59,20 @@ namespace oomph
       return 0;
     }
 
-    /// \short Add the element's contribution to its residual vector and its
-    /// Jacobian matrix
-    void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix) const
+    /// \short Add the element's contribution to its residual vector and
+    /// its Jacobian matrix. Use numerical or analytical integration as
+    /// decided by second argument.
+    void fill_in_contribution_to_boundary_matrix(DenseMatrix<double> &boundary_matrix,
+                                                 bool use_numerical_integration) const
     {
-#warning using numerical integration in BEM
-      fill_in_be_contribution_adaptive(boundary_matrix);
-
-      // #warning using analytic integration in BEM
-      // fill_in_be_contribution_analytic(boundary_matrix);
+      if(use_numerical_integration)
+        {
+          fill_in_be_contribution_adaptive(boundary_matrix);
+        }
+      else
+        {
+          fill_in_be_contribution_analytic(boundary_matrix);
+        }
     }
 
     /// Function determining how to block the Jacobian. Just move boundary
