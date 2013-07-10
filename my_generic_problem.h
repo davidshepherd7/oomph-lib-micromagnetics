@@ -257,7 +257,6 @@ namespace oomph
           << "real_time " << real_date_time() << std::endl
           << "unix_time " << std::time(0) << std::endl
           << "git_version " << GitVersion::VERSION << std::endl
-          << "build_time " << GitVersion::BUILD_TIME <<std::endl
           << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
         Doc_info.Args_pt->dump_args(info_file);
         info_file.close();
