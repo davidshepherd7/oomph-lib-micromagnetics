@@ -317,6 +317,7 @@ namespace oomph
           parameters_pt->saturation_magnetisation() = 8.0e5; // A/m (800 emu/cc)
           parameters_pt->k1() = 0.0;
 
+          parameters_pt->mu0() = 12.566370614e-7;
           parameters_pt->gilbert_damping() = 0.02;
           parameters_pt->gamma() = 2.211e5; // m/(As)
         }
@@ -329,6 +330,7 @@ namespace oomph
           parameters_pt->exchange_constant() = 13.0e-12; // J/m
           parameters_pt->k1() = 0.0;
 
+          parameters_pt->mu0() = 12.566370614e-7;
           parameters_pt->gilbert_damping() = 0.5;
           parameters_pt->gamma() = 2.210173e5; // m/(As)
         }
