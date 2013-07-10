@@ -101,9 +101,11 @@ int main(int argc, char *argv[])
         << "time = " << problem.time()
         << ", dt = " << dt
         << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
+        << ", energy = " << problem.micromagnetic_energy() << std::endl
+        << ", previous step effective damping = " << problem.Effective_damping_constant
         << std::endl;
 
-      // Take a step (adaptive if args.tol != 0.0)
+      // Take a step (automatically adaptive if args.tol != 0.0)
       dt = problem.semi_implicit_step(dt, args.tol);
 
       // Output

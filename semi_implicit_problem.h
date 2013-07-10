@@ -121,6 +121,10 @@ namespace oomph
       std::cout << "solving BEM" << std::endl;
       Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
 
+      // push old phi values back in time (so that we can use them later to
+      // get time derivatives of the field).
+      phi_problem_pt()->shift_time_values(false);
+
       // solve for phi
       std::cout << "solving phi" << std::endl;
       phi_problem_pt()->newton_solve();

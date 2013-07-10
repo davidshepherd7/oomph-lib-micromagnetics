@@ -723,6 +723,49 @@ namespace oomph
     magnetostatic_field_element_pt()->magnetostatic_field(intp_pt->s(), h_ms);
   }
 
+  /// For micromagnetics the source function is the divergence of the
+  /// magnetisation.
+  void SemiImplicitMicromagEquations::
+  get_magnetostatic_field_time_derivative(const Vector<double> &s,
+                                          Vector<double> &h_ms) const
+  {
+    // Lots of checks because this is stupid really...
+#ifdef PARANOID
+    if(this->nnode() != magnetostatic_field_element_pt()->nnode())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must be the same geometry for this to "
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+
+    if(this->dim() != magnetostatic_field_element_pt()->dim())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must be the same geometry for this to "
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+
+    if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Elements must have the same integration scheme for this to"
+                  << "work... sorry for the hackyness. Maybe you can fix it.";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    // Get magnetostatic field from field element
+    magnetostatic_field_element_pt()->magnetostatic_field_time_derivative(s, h_ms);
+  }
+
 
   //======================================================================
   /// Validate computed M against exact solution.

@@ -248,7 +248,10 @@ namespace oomph
         dCrystallineAnisotropydtEnergyFunction de_cadt;
         double I_de_cadt = integrate_over_problem(&de_cadt);
 
-        return I_de_exdt + I_de_zeedt + I_de_cadt;
+        dMagnetostaticEnergydtFunction de_ms;
+        double I_de_ms = integrate_over_problem(&de_ms);
+
+        return I_de_exdt + I_de_zeedt + I_de_cadt + I_de_ms;
       }
 
     /// \short Compute the effective damping constant (alpha) for the

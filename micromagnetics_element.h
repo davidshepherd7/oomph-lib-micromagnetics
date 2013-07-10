@@ -197,10 +197,10 @@ namespace oomph
     //   else (*Llg_source_pt)(t,x,source);
     // }
 
-    /// \short Calculation of magnetostatic field (overload for semi-implicit
-    /// calculations).
-    virtual void get_magnetostatic_field(const Vector<double> &s,
-                                         Vector<double> &h_magnetostatic) const;
+    /// \short Helper function for calculation of magnetostatic field
+    /// (overload other function for semi-implicit calculations).
+    void get_magnetostatic_field(const Vector<double> &s,
+                                 Vector<double> &h_magnetostatic) const;
 
     /// \short Calculation of magnetostatic field (overload for
     /// semi-implicit calculations). Optimised version for calculations
@@ -208,6 +208,40 @@ namespace oomph
     /// calculations).
     virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                                          Vector<double> &h_magnetostatic) const;
+
+    /// Get the time derivative of the magnetostatic field at local
+    /// coordinate point s in the element.
+    virtual void get_magnetostatic_field_time_derivative(const Vector<double> &s,
+                                                         Vector<double> &dh_ms_dt) const
+    {
+      // Get values
+      const unsigned n_node = this->nnode();
+      const unsigned u_nodal_index = this->phi_index_micromag();
+      Shape psi(n_node); DShape dpsidx(n_node, nodal_dimension());
+      this->dshape_eulerian(s,psi,dpsidx);
+
+      const DenseMatrix<double>* ts_weights_pt =
+        node_pt(0)->time_stepper_pt()->weights_pt();
+      const unsigned nprev_value_derivative =
+        node_pt(0)->time_stepper_pt()->ntstorage();
+
+      // Interpolate
+      dh_ms_dt.assign(3,0.0);
+      for(unsigned j=0; j<nodal_dimension(); j++)
+        {
+          for(unsigned l=0; l<n_node; l++)
+            {
+              for(unsigned i_tm=0; i_tm<nprev_value_derivative; i_tm++)
+                {
+                  dh_ms_dt[j] -= this->nodal_value(i_tm, l, u_nodal_index)
+                    * dpsidx(l, j)
+                    * (*ts_weights_pt)(1, i_tm);
+                }
+            }
+          // Normalise
+          dh_ms_dt[j] *= magnetostatic_coeff();
+        }
+    }
 
     // APPLIED FIELD
     /// Access function: Pointer to applied field function
@@ -818,6 +852,50 @@ namespace oomph
         }
     }
 
+    /// Get the time derivative of the magnetostatic field at local
+    /// coordinate point s in the element.
+    void magnetostatic_field_time_derivative(const Vector<double> &s,
+                                             Vector<double> &dh_ms_dt) const
+    {
+#ifdef PARANOID
+      if(node_pt(0)->time_stepper_pt() == 0)
+        {
+          std::string error_msg = "No timestepper in poisson elements, need to assign one in mesh construction to evaluate time derivatives.";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Get values
+      const unsigned n_node = this->nnode();
+      const unsigned u_nodal_index = this->u_index_poisson();
+      Shape psi(n_node); DShape dpsidx(n_node, nodal_dimension());
+      this->dshape_eulerian(s,psi,dpsidx);
+
+      const DenseMatrix<double>* ts_weights_pt =
+        node_pt(0)->time_stepper_pt()->weights_pt();
+      const unsigned nprev_value_derivative =
+        node_pt(0)->time_stepper_pt()->ntstorage();
+
+      // Interpolate
+      dh_ms_dt.assign(3,0.0);
+      for(unsigned j=0; j<nodal_dimension(); j++)
+        {
+          for(unsigned l=0; l<n_node; l++)
+            {
+              for(unsigned i_tm=0; i_tm<nprev_value_derivative; i_tm++)
+                {
+                  dh_ms_dt[j] -= this->nodal_value(i_tm, l,u_nodal_index)
+                    * dpsidx(l, j)
+                    * (*ts_weights_pt)(1, i_tm);
+                }
+            }
+
+          // Normalise
+          dh_ms_dt[j] *= Micromag_element_pt->magnetostatic_coeff();
+        }
+    }
+
     /// For micromagnetics the source function is the divergence of the
     /// magnetisation.
     void get_source_poisson(const unsigned& ipt,
@@ -1055,10 +1133,11 @@ namespace oomph
   {
   public:
 
-    /// For micromagnetics the source function is the divergence of the
-    /// magnetisation.
     void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                                  Vector<double> &H_ms) const;
+
+    void get_magnetostatic_field_time_derivative
+    (const Vector<double> &s, Vector<double> &H_ms) const;
 
     /// \short Non-const access function for Magnetostatic_field_element_pt.
     MagnetostaticFieldEquations*& magnetostatic_field_element_pt()
