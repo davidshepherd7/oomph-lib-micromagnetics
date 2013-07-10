@@ -24,7 +24,7 @@ namespace oomph
 
     /// \short Function to integrate over the element.
     virtual double call(const GeneralisedElement* ele_pt,
-                        MMInterpolator* intp) const = 0;
+                        MMInterpolator* intp_pt) const = 0;
 
     /// \short Helper function to automatically create an interpolator
     /// object for call.
@@ -35,47 +35,52 @@ namespace oomph
 
   class ExchangeEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class dExchangeEnergydtFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class ZeemanEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class dZeemanEnergydtFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class CrystallineAnisotropyEnergyFunction  : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class dCrystallineAnisotropydtEnergyFunction  : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class MagnetostaticEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+  };
+
+  class dMagnetostaticEnergydtFunction : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class DmdtSquaredFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
   class UnitFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const;
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
 

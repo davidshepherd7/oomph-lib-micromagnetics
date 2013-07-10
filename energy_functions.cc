@@ -21,7 +21,7 @@ namespace oomph
   /// \short Calculate the energy due to exchange at a point at a single
   /// integration point.
   double ExchangeEnergyFunction::call(const GeneralisedElement* ele_pt,
-                                      MMInterpolator* intp) const
+                                      MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
@@ -29,16 +29,16 @@ namespace oomph
     // Get parameters
     double A = m_ele_pt->magnetic_parameters_pt()->normalised_hex()/2;
 
-    return A * (VectorOps::dot(intp->dmdx(0), intp->dmdx(0)) +
-                VectorOps::dot(intp->dmdx(1), intp->dmdx(1)) +
-                VectorOps::dot(intp->dmdx(2), intp->dmdx(2)));
+    return A * (VectorOps::dot(intp_pt->dmdx(0), intp_pt->dmdx(0)) +
+                VectorOps::dot(intp_pt->dmdx(1), intp_pt->dmdx(1)) +
+                VectorOps::dot(intp_pt->dmdx(2), intp_pt->dmdx(2)));
   }
 
 
   /// \short Calculate the time derivative of energy due to exchange at a
   /// point at a single integration point.
   double dExchangeEnergydtFunction::call(const GeneralisedElement* ele_pt,
-                                      MMInterpolator* intp) const
+                                      MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
@@ -46,47 +46,47 @@ namespace oomph
     // Get parameters
     double A = m_ele_pt->magnetic_parameters_pt()->normalised_hex()/2;
 
-    return 2 *A * (VectorOps::dot(intp->dmdx(0), intp->d2mdxdt(0)) +
-                   VectorOps::dot(intp->dmdx(1), intp->d2mdxdt(1)) +
-                   VectorOps::dot(intp->dmdx(2), intp->d2mdxdt(2)));
+    return 2 *A * (VectorOps::dot(intp_pt->dmdx(0), intp_pt->d2mdxdt(0)) +
+                   VectorOps::dot(intp_pt->dmdx(1), intp_pt->d2mdxdt(1)) +
+                   VectorOps::dot(intp_pt->dmdx(2), intp_pt->d2mdxdt(2)));
   }
 
 
   /// \short Calculate energy due to external applied field at a single
   /// integration point.
   double ZeemanEnergyFunction::call(const GeneralisedElement* ele_pt,
-                                    MMInterpolator* intp) const
+                                    MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get the field
     Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp->time(), intp->x(), intp->s(), h_applied);
+    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(), intp_pt->s(), h_applied);
 
-    return - VectorOps::dot(intp->m(), h_applied);
+    return - VectorOps::dot(intp_pt->m(), h_applied);
   }
 
   /// \short Calculate time derivative of energy due to external applied
   /// field at a single integration point.
   double dZeemanEnergydtFunction::call(const GeneralisedElement* ele_pt,
-                                       MMInterpolator* intp) const
+                                       MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get the field
     Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp->time(), intp->x(), intp->s(), h_applied);
+    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(), intp_pt->s(), h_applied);
 
-    return - VectorOps::dot(intp->dmdt(), h_applied);
+    return - VectorOps::dot(intp_pt->dmdt(), h_applied);
   }
 
 
   /// \short Calculate energy due to magnetocrystalline
   /// anisotropy at a single integration point.
   double CrystallineAnisotropyEnergyFunction::
-  call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const
+  call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
@@ -95,53 +95,53 @@ namespace oomph
     double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk()/2;
     Vector<double> e = m_ele_pt->magnetic_parameters_pt()->easy_axis();
 
-    return k1 * (1 - std::pow(VectorOps::dot(intp->m(), e), 2));
+    return k1 * (1 - std::pow(VectorOps::dot(intp_pt->m(), e), 2));
   }
 
 
   /// \short Calculate time derivateive of energy due to magnetocrystalline
   /// anisotropy at a single integration point.
   double dCrystallineAnisotropydtEnergyFunction::
-  call(const GeneralisedElement* ele_pt, MMInterpolator* intp) const
+  call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get parameters
     double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk()/2;
-    Vector<double> e = m_ele_pt->magnetic_parameters_pt()->nearest_easy_axis(intp->m());
+    Vector<double> e = m_ele_pt->magnetic_parameters_pt()->nearest_easy_axis(intp_pt->m());
 
-    return - 2 * k1 * VectorOps::dot(intp->m(), e) * VectorOps::dot(intp->dmdt(), e);
+    return - 2 * k1 * VectorOps::dot(intp_pt->m(), e) * VectorOps::dot(intp_pt->dmdt(), e);
   }
 
   /// \short Calculate energy due to external applied field at a single
   /// integration point.
   double MagnetostaticEnergyFunction::call(const GeneralisedElement* ele_pt,
-                                           MMInterpolator* intp) const
+                                           MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get the field
     Vector<double> h_ms;
-    m_ele_pt->get_magnetostatic_field(intp->s(), h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
 
-    return -0.5 * VectorOps::dot(intp->m(), h_ms);
+    return -0.5 * VectorOps::dot(intp_pt->m(), h_ms);
   }
 
 
   /// \short Calculate (dm/dt)^2 for the previous time step at a single
   /// integration point.
   double DmdtSquaredFunction::call(const GeneralisedElement* ele_pt,
-                                   MMInterpolator* intp) const
+                                   MMInterpolator* intp_pt) const
   {
-    return VectorOps::dot(intp->dmdt(), intp->dmdt());
+    return VectorOps::dot(intp_pt->dmdt(), intp_pt->dmdt());
   }
 
   /// \short Function for checking if integration is working ok, should
   /// give the area.
   double UnitFunction::call(const GeneralisedElement* ele_pt,
-                            MMInterpolator* intp) const
+                            MMInterpolator* intp_pt) const
   {
     return 1.0;
   }
