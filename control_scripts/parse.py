@@ -350,6 +350,42 @@ def plot_vs_step(data, plot_values, operations=None):
     return fig
 
 
+def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean):
+    """Plot a scatter plot at point (x_value, y_value) for each dataset in
+    data. Perform operations on data before plotting (by default take
+    mean).
+    """
+
+    fig, ax = plt.subplots()
+
+    symbols = iter(['x', 'o', '+', '^', '*'])
+    colours = iter(['r', 'g', 'b', 'k', 'c'])
+
+    # Plot each time stepper
+    for ts in set([d['time_stepper'] for d in data]):
+
+        fdata = [d for d in data if d['time_stepper'] == ts]
+
+        xs = [x_operation(d[x_value]) for d in fdata]
+        ys = [y_operation(d[y_value]) for d in fdata]
+
+        print(ts, xs, ys)
+
+        # Plot
+        ax.scatter(xs, ys, s=80, marker=symbols.next(), c=colours.next(),
+                   label=str(ts))
+
+    # Label
+    ax.set_xlabel(str(x_operation) + " of " + x_value)
+    ax.set_ylabel(str(y_operation) + " of " + y_value)
+    # ax.legend(-1)
+
+    # log?
+    ax.set_yscale('log')
+
+    return fig
+
+
 def multi_plot(data, keys_to_split_on, plot_function):
     """Split data into sub-sets (based on keys_to_split_on) and plot each
     subset as specified by (partially evaluated) function given.
@@ -460,7 +496,8 @@ def main():
     # Get the results that aren't just empty
     really_all_results = parse_parameter_sweep(args.parsedir)
     all_results = [d for d in really_all_results if d is not None]
-    print(len(all_results), "data sets out of", len(really_all_results), "used")
+    print(len(all_results), "data sets out of", len(really_all_results), "used",
+          "(any others didn't have enough time steps finished).")
 
     # Print if needed
     if args.print_data:
@@ -473,10 +510,12 @@ def main():
     # Do actual plots
     # ============================================================
 
+
     # Plot error norm vs time
     if 'err' in args.plots:
         plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
         multi_plot(all_results, keys_to_split_on, plot_errors)
+
 
     # Plot m averages vs time
     if 'm' in args.plots:
@@ -484,11 +523,13 @@ def main():
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts'])
         multi_plot(all_results, keys_to_split_on, plot_m_averages)
 
+
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['m_length_error_means', 'dts'])
         multi_plot(all_results, keys_to_split_on, plot_ml_error_vs_time)
+
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
@@ -498,17 +539,37 @@ def main():
                               operations=[identity, sp.mean])
         multi_plot(all_results, keys_to_split_on, plot_iters_step)
 
-    # Plot each energy vs time
-    if 'energy' in args.plots:
-        plot_energy_vs_time = par
-        (plot_vs_time,
-         plot_values=['exchange_energy',
-                      'zeeman_energy',
-                      'crystalline_anisotropy_energy',
-                      'magnetostatic_energy',
-                      ])
 
-        multi_plot(all_results, keys_to_split_on, plot_energy_vs_time)
+    # Plot error in effective damping vs step size
+    if 'damp' in args.plots:
+
+        def damping_error_mean(effective_dampings):
+            # Drop first few steps: they are wrong
+            effective_dampings = effective_dampings[5:]
+
+            exact_damping = 0.5 #??ds not sure how to do this
+
+            # relative error
+            e = abs(sp.array(effective_dampings) - exact_damping)/exact_damping
+
+            # take mean
+            return sp.mean(e)
+
+        plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
+                                  y_operation=damping_error_mean)
+        multi_plot(all_results, keys_to_split_on, plot_damping_errors)
+
+    # # Plot each energy vs time
+    # if 'energy' in args.plots:
+    #     plot_energy_vs_time = par
+    #     (plot_vs_time,
+    #      plot_values=['exchange_energy',
+    #                   'zeeman_energy',
+    #                   'crystalline_anisotropy_energy',
+    #                   'magnetostatic_energy',
+    #                   ])
+
+    #     multi_plot(all_results, keys_to_split_on, plot_energy_vs_time)
 
 
     plt.show()

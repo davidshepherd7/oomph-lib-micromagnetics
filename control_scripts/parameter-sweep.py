@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Future proofing
 from __future__ import print_function
@@ -291,11 +291,46 @@ def standard_sweep(parameter_set, serial_mode=False):
                                ]
             }
 
+    elif parameter_set == "adaptive-midpoint-conservation":
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-5],
+            'tol' : [1e-2, 1e-3, 1e-4],
+            'ref' : [3, 4, 5],
+            'tmax' : [10.0],
+            'ts' : ["bdf2", "midpoint"],
+            'initm' : ['smoothly_varying_50'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_square'],
+            'renorm_m' : [0]
+            }
+
+    elif parameter_set == "fixed-step-midpoint-conservation":
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'dt' : [1e-2, 1e-3, 1e-4],
+            'ref' : [3, 4, 5],
+            'tmax' : [1.0],
+            'ts' : ["bdf2", "midpoint"],
+            'initm' : ['xz', 'smoothly_varying_50'],
+            'happ' : ['minus_z'],
+            'mesh' : ['ut_square'],
+            'renorm_m' : [0]
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
     output_root = pjoin('../experiments/parameter_sweeps',
                         '_'.join(parameter_set.split()))
+
+    # Make sure micromag library is up to date
+    library_folder = os.path.abspath("../")
+    print("Building and installing libraries from", library_folder)
+    subp.check_call(['make', '--silent', '--keep-going',
+                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
+    subp.check_call(['make', 'install', '--silent', '--keep-going',
+                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
     # Make sure the driver binaries are up to date
     driver_folder = os.path.dirname(args_dict['driver'][0])
