@@ -68,6 +68,22 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> non_uniform_z_helper
+  (const double& t, const Vector<double> &x, double l)
+  {
+    Vector<double> h(3, 0.0);
+    h[0] = 0.1;
+    h[2] = 1.1 * std::sin(MathematicalConstants::Pi * x[0] / l);
+    return h;
+  }
+
+  inline Vector<double> non_uniform_z_5(const double& t, const Vector<double> &x)
+  {return non_uniform_z_helper(t, x, 5);}
+  inline Vector<double> non_uniform_z_50(const double& t, const Vector<double> &x)
+  {return non_uniform_z_helper(t, x, 5);}
+  inline Vector<double> non_uniform_z_500(const double& t, const Vector<double> &x)
+  {return non_uniform_z_helper(t, x, 5);}
+
   inline HAppFctPt h_app_factory(const std::string& field_name)
   {
     if(field_name == "zero")
@@ -97,6 +113,18 @@ namespace HApp
     else if(field_name == "z_oscillating_p20")
       {
         return &HApp::z_oscillating_p20;
+      }
+    else if(field_name == "non_uniform_z_5")
+      {
+        return &HApp::non_uniform_z_5;
+      }
+    else if(field_name == "non_uniform_z_50")
+      {
+        return &HApp::non_uniform_z_50;
+      }
+    else if(field_name == "non_uniform_z_500")
+      {
+        return &HApp::non_uniform_z_500;
       }
     else
       {
@@ -179,6 +207,9 @@ namespace InitialM
   {return smoothly_varying_m_helper(50.0, t, x);}
   inline Vector<double> smoothly_varying_500(const double& t, const Vector<double> &x)
   {return smoothly_varying_m_helper(500.0, t, x);}
+    inline Vector<double> smoothly_varying_5000(const double& t, const Vector<double> &x)
+  {return smoothly_varying_m_helper(5000.0, t, x);}
+
 
   inline InitialMFctPt initial_m_factory(const std::string& m_name)
   {
@@ -213,6 +244,10 @@ namespace InitialM
     else if(m_name == "smoothly_varying_500")
       {
         return &InitialM::smoothly_varying_500;
+      }
+    else if(m_name == "smoothly_varying_5000")
+      {
+        return &InitialM::smoothly_varying_5000;
       }
     else
       {
