@@ -75,7 +75,9 @@ namespace oomph
       Info_filename("info"),
       Trace_seperator("; "),
       Dummy_doc_data(-1)
-    {}
+    {
+      Output_precision = 8;
+    }
 
     /// Destructor
     virtual ~MyProblem() {}
@@ -117,6 +119,7 @@ namespace oomph
     {
       std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                                std::ios::app);
+      trace_file.precision(Output_precision);
 
       // Write out data that can be done for every problem
       trace_file
@@ -305,12 +308,14 @@ namespace oomph
             std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
                                      to_string(Doc_info.number()) + ".dat").c_str(),
                                     std::ios::out);
+            soln_file.precision(Output_precision);
             doc_solution_additional(soln_file);
             soln_file.close();
 
             // Write the simulation time and filename to the pvd file
             std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
                                    std::ios::app);
+            pvd_file.precision(Output_precision);
             pvd_file << "<DataSet timestep=\"" << time()
               << "\" group=\"\" part=\"0\" file=\"" << "soln"
                      << Doc_info.number() << ".vtu"
@@ -437,6 +442,7 @@ namespace oomph
 
     unsigned Dim;
     MyDocInfo Doc_info;
+    unsigned Output_precision;
 
     std::string Trace_filename;
     std::string Info_filename;
