@@ -9,13 +9,13 @@
 namespace oomph
 {
 
-  double ElementalFunction::call(const GeneralisedElement* ele_pt,
-                                 const Vector<double> &s) const
-  {
-    MMInterpolator intp(checked_dynamic_cast<const MicromagEquations*>(ele_pt),
-                        s);
-    return call(ele_pt, &intp);
-  }
+  // double ElementalFunction::call(const GeneralisedElement* ele_pt,
+  //                                const Vector<double> &s) const
+  // {
+  //   MMInterpolator intp(checked_dynamic_cast<const MicromagEquations*>(ele_pt),
+  //                       s);
+  //   return call(ele_pt, &intp);
+  // }
 
 
   /// \short Calculate the energy due to exchange at a point at a single
@@ -124,7 +124,7 @@ namespace oomph
 
     // Get the field
     Vector<double> h_ms;
-    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
 
     return -0.5 * VectorOps::dot(intp_pt->m(), h_ms);
   }
@@ -141,11 +141,11 @@ namespace oomph
 
     // Get the field
     Vector<double> h_ms;
-    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
 
     // Get the time derivative of the field
     Vector<double> dh_ms_dt;
-    m_ele_pt->get_magnetostatic_field_time_derivative(intp_pt->s(), dh_ms_dt);
+    m_ele_pt->get_magnetostatic_field_time_derivative(intp_pt, dh_ms_dt);
 
     return -0.5 * ( VectorOps::dot(intp_pt->dmdt(), h_ms) +
                     VectorOps::dot(intp_pt->m(), dh_ms_dt) );

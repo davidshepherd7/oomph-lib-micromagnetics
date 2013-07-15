@@ -20,6 +20,40 @@ namespace oomph
   /// weird function objects.
   double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt) const
   {
+     // Always do time derivative interpolation using BDF2 timestepper
+     // to increase accuracy (midpoint is lower order for time
+     // derivatives and implementing optional timestepper function
+     // argument everywhere would be awful because C++ sucks).
+
+     //??ds increase order of BDF? would require implementing it myself...
+
+     // Create bdf time stepper, check some things and set it up
+     BDF<2> bdf;
+     TimeStepper* node_ts_pt = node_pt(0)->time_stepper_pt();
+ #ifdef PARANOID
+     // Check we have enough stored time steps
+     if(bdf.ndt() > node_ts_pt->time_pt()->ndt())
+       {
+         std::string error_msg = "Not enough time steps in node's time stepper to use BDF2 for time derivative calculations.";
+         throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                             OOMPH_EXCEPTION_LOCATION);
+       }
+
+     // Try to check if time steppers are compatible... ??ds
+ #warning No check for compatability of time stepper with bdf2 used for integrals!
+     if(0)
+       {
+         std::string error_msg = "";
+         throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                             OOMPH_EXCEPTION_LOCATION);
+       }
+ #endif
+
+     // Finish off time stepper construction
+     bdf.time_pt() = node_ts_pt->time_pt();
+     bdf.set_weights();
+
+
     double result = 0;
 
     // Loop over knots and sum
@@ -30,7 +64,7 @@ namespace oomph
         for(unsigned j=0; j<this->dim(); j++)
           {s[j] = integral_pt()->knot(ipt,j);}
 
-        MMInterpolator intp(this, s);
+        MMInterpolator intp(this, s, &bdf);
         double J = intp.j();
         double w = integral_pt()->weight(ipt);
 
@@ -276,7 +310,7 @@ namespace oomph
         Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
         get_applied_field(intp.time(), xvec, s, h_applied);
         get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
-        get_magnetostatic_field(&intp, h_magnetostatic);
+        get_magnetostatic_field(s, h_magnetostatic);
 
 
         //======================================================================
@@ -654,15 +688,15 @@ namespace oomph
                           Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    MMArrayInterpolator<5> intp(this, s);
+    MMInterpolator intp(this, s);
     get_magnetostatic_field(&intp, h_magnetostatic);
   }
 
   void MicromagEquations::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
-                          Vector<double> &h_magnetostatic) const
+  get_magnetostatic_field(MMInterpolator* intp_pt,
+                          Vector<double> &hms) const
   {
-    #ifdef PARANOID
+#ifdef PARANOID
     if(intp_pt == 0)
       {
         std::string error_msg = "Null interpolator!";
@@ -671,19 +705,25 @@ namespace oomph
       }
 #endif
 
-    const double magstatic_c = magnetostatic_coeff();
+    // Copy the derivative elements into the field vector (it only has
+    // [nodal dimension] entries).
+    hms = intp_pt->dvaluedx(this->phi_index_micromag());
 
-    h_magnetostatic.assign(3, 0.0);
-    for(unsigned j=0; j<nodal_dimension(); j++)
+    // Make sure the field has 3 dimensions (even if there are only two
+    // spatial dimensions).
+    hms.resize(3, 0.0);
+
+    // Multiply by -1 and normalise
+    for(unsigned j=0; j<3; j++)
       {
-        h_magnetostatic[j] = -1 * magstatic_c * intp_pt->dphidx()[j];
+        hms[j] *= -1 * magnetostatic_coeff();
       }
   }
 
   /// For micromagnetics the source function is the divergence of the
   /// magnetisation.
   void SemiImplicitMicromagEquations::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+  get_magnetostatic_field(MMInterpolator* intp_pt,
                           Vector<double> &h_ms) const
   {
     // Lots of checks because this is stupid really...
@@ -720,14 +760,42 @@ namespace oomph
 #endif
 
     // Get magnetostatic field from field element
-    magnetostatic_field_element_pt()->magnetostatic_field(intp_pt->s(), h_ms);
+    magnetostatic_field_element_pt()->magnetostatic_field(intp_pt->s(),
+                                                          intp_pt->ts_pt(),
+                                                          h_ms);
   }
 
-  /// For micromagnetics the source function is the divergence of the
-  /// magnetisation.
+  void MicromagEquations::
+  get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
+                                          Vector<double> &dh_ms_dt) const
+  {
+#ifdef PARANOID
+    if(intp_pt == 0)
+      {
+        std::string error_msg = "Null interpolator!";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    // Copy the derivative elements into the field vector (it only has
+    // [nodal dimension] entries).
+    dh_ms_dt = intp_pt->d2valuedxdt(this->phi_index_micromag());
+
+    // Make sure the field has 3 dimensions (even if there are only two
+    // spatial dimensions).
+    dh_ms_dt.resize(3, 0.0);
+
+    // Multiply by -1 and normalise
+    for(unsigned j=0; j<3; j++)
+      {
+        dh_ms_dt[j] *= -1 * magnetostatic_coeff();
+      }
+  }
+
   void SemiImplicitMicromagEquations::
-  get_magnetostatic_field_time_derivative(const Vector<double> &s,
-                                          Vector<double> &h_ms) const
+  get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
+                                          Vector<double> &dh_ms_dt) const
   {
     // Lots of checks because this is stupid really...
 #ifdef PARANOID
@@ -762,8 +830,10 @@ namespace oomph
       }
 #endif
 
-    // Get magnetostatic field from field element
-    magnetostatic_field_element_pt()->magnetostatic_field_time_derivative(s, h_ms);
+    // Get magnetostatic field derivative from field element
+    magnetostatic_field_element_pt()->magnetostatic_field_time_derivative(intp_pt->s(),
+                                                                          intp_pt->ts_pt(),
+                                                                          dh_ms_dt);
   }
 
 

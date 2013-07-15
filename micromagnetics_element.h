@@ -11,6 +11,10 @@
 #include "../../src/generic/oomph_definitions.h"
 #include "../../src/generic/interpolator.h"
 
+// This is only used for casting for an error check, get rid of it? Put in
+// .cc?
+#include "../../src/generic/midpoint_method.h"
+
 // Print vectors nicely
 #include "./prettyprint98.hpp"
 
@@ -198,7 +202,8 @@ namespace oomph
     // }
 
     /// \short Helper function for calculation of magnetostatic field
-    /// (overload other function for semi-implicit calculations).
+    /// (overload the other version of this function for semi-implicit
+    /// calculations).
     void get_magnetostatic_field(const Vector<double> &s,
                                  Vector<double> &h_magnetostatic) const;
 
@@ -206,42 +211,12 @@ namespace oomph
     /// semi-implicit calculations). Optimised version for calculations
     /// when we aleady have an interpolator (e.g. during residual
     /// calculations).
-    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    virtual void get_magnetostatic_field(MMInterpolator* intp_pt,
                                          Vector<double> &h_magnetostatic) const;
 
-    /// Get the time derivative of the magnetostatic field at local
-    /// coordinate point s in the element.
-    virtual void get_magnetostatic_field_time_derivative(const Vector<double> &s,
-                                                         Vector<double> &dh_ms_dt) const
-    {
-      // Get values
-      const unsigned n_node = this->nnode();
-      const unsigned u_nodal_index = this->phi_index_micromag();
-      Shape psi(n_node); DShape dpsidx(n_node, nodal_dimension());
-      this->dshape_eulerian(s,psi,dpsidx);
-
-      const DenseMatrix<double>* ts_weights_pt =
-        node_pt(0)->time_stepper_pt()->weights_pt();
-      const unsigned nprev_value_derivative =
-        node_pt(0)->time_stepper_pt()->ntstorage();
-
-      // Interpolate
-      dh_ms_dt.assign(3,0.0);
-      for(unsigned j=0; j<nodal_dimension(); j++)
-        {
-          for(unsigned l=0; l<n_node; l++)
-            {
-              for(unsigned i_tm=0; i_tm<nprev_value_derivative; i_tm++)
-                {
-                  dh_ms_dt[j] -= this->nodal_value(i_tm, l, u_nodal_index)
-                    * dpsidx(l, j)
-                    * (*ts_weights_pt)(1, i_tm);
-                }
-            }
-          // Normalise
-          dh_ms_dt[j] *= magnetostatic_coeff();
-        }
-    }
+    /// Get the time derivative of the magnetostatic field at a point.
+    virtual void get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
+                                                         Vector<double> &dh_ms_dt) const;
 
     // APPLIED FIELD
     /// Access function: Pointer to applied field function
@@ -830,31 +805,28 @@ namespace oomph
     ~MagnetostaticFieldEquations() {}
 
     /// Get the magnetostatic field at local coordinate point s in the element.
-    void magnetostatic_field(const Vector<double> &s, Vector<double> &hms) const
+    void magnetostatic_field(const Vector<double> &s,
+                             const TimeStepper* ts_pt,
+                             Vector<double> &hms) const
     {
-      // Get values
-      const unsigned n_node = this->nnode();
-      const unsigned u_nodal_index = this->u_index_poisson();
-      Shape psi(n_node); DShape dpsidx(n_node, nodal_dimension());
-      this->dshape_eulerian(s,psi,dpsidx);
+      GeneralInterpolator intp(this, s, ts_pt);
+      hms = intp.dvaluedx(this->u_index_poisson());
 
-      // Interpolate
-      hms.assign(3,0.0);
-      for(unsigned j=0; j<nodal_dimension(); j++)
+      // Make sure the field has 3 dimensions (even if there are only two
+      // spatial dimensions).
+      hms.resize(3, 0.0);
+
+      // Multiply by -1 and normalise
+      for(unsigned j=0; j<3; j++)
         {
-          for(unsigned l=0; l<n_node; l++)
-            {
-              hms[j] -= this->nodal_value(l,u_nodal_index)*dpsidx(l,j);
-            }
-
-          // Normalise
-          hms[j] *= Micromag_element_pt->magnetostatic_coeff();
+          hms[j] *= -1 * Micromag_element_pt->magnetostatic_coeff();
         }
     }
 
     /// Get the time derivative of the magnetostatic field at local
     /// coordinate point s in the element.
     void magnetostatic_field_time_derivative(const Vector<double> &s,
+                                             const TimeStepper* ts_pt,
                                              Vector<double> &dh_ms_dt) const
     {
 #ifdef PARANOID
@@ -864,35 +836,25 @@ namespace oomph
           throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+      if(dynamic_cast<const MidpointMethod*>(ts_pt) != 0)
+        {
+          std::string error_msg = "Probably shouldn't be using midpoint method for time derivatives of things (unless you know what you're doing?)";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
 #endif
 
-      // Get values
-      const unsigned n_node = this->nnode();
-      const unsigned u_nodal_index = this->u_index_poisson();
-      Shape psi(n_node); DShape dpsidx(n_node, nodal_dimension());
-      this->dshape_eulerian(s,psi,dpsidx);
+      GeneralInterpolator intp(this, s, ts_pt);
+      dh_ms_dt = intp.d2valuedxdt(this->u_index_poisson());
 
-      const DenseMatrix<double>* ts_weights_pt =
-        node_pt(0)->time_stepper_pt()->weights_pt();
-      const unsigned nprev_value_derivative =
-        node_pt(0)->time_stepper_pt()->ntstorage();
+      // Make sure the field has 3 dimensions (even if there are only two
+      // spatial dimensions).
+      dh_ms_dt.resize(3, 0.0);
 
-      // Interpolate
-      dh_ms_dt.assign(3,0.0);
-      for(unsigned j=0; j<nodal_dimension(); j++)
+      // Multiply by -1 and normalise
+      for(unsigned j=0; j<3; j++)
         {
-          for(unsigned l=0; l<n_node; l++)
-            {
-              for(unsigned i_tm=0; i_tm<nprev_value_derivative; i_tm++)
-                {
-                  dh_ms_dt[j] -= this->nodal_value(i_tm, l,u_nodal_index)
-                    * dpsidx(l, j)
-                    * (*ts_weights_pt)(1, i_tm);
-                }
-            }
-
-          // Normalise
-          dh_ms_dt[j] *= Micromag_element_pt->magnetostatic_coeff();
+          dh_ms_dt[j] *= -1 * Micromag_element_pt->magnetostatic_coeff();
         }
     }
 
@@ -1133,11 +1095,11 @@ namespace oomph
   {
   public:
 
-    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    void get_magnetostatic_field(MMInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
-    (const Vector<double> &s, Vector<double> &H_ms) const;
+    (MMInterpolator* intp_pt, Vector<double> &H_ms) const;
 
     /// \short Non-const access function for Magnetostatic_field_element_pt.
     MagnetostaticFieldEquations*& magnetostatic_field_element_pt()
@@ -1228,6 +1190,15 @@ namespace oomph
       : GeneralInterpolator(this_element, s),
         Div_m(this->NotYetCalculatedValue)
     {}
+
+    /// Set different timestepper constructor
+    MMInterpolator(const FiniteElement* const this_element,
+                   const Vector<double> &s,
+                   const TimeStepper* ts_pt)
+      : GeneralInterpolator(this_element, s, ts_pt),
+        Div_m(this->NotYetCalculatedValue)
+    {}
+
 
     double phi() {return this->value(This_element->phi_index_micromag());}
     const Vector<double> & dphidx()

@@ -34,7 +34,10 @@ wrapped_fpdiff()
 
 TPWD=$(pwd)
 CONTROL_SCRIPTS="../../control_scripts"
+MM_LIB_DIR="../../"
 
+# Make sure everything we need is freshly built (just in case)
+make -k -s -C $MM_LIB_DIR
 make -k -s -C $CONTROL_SCRIPTS/semi_implicit_mm_driver/
 new_clean_dir $TPWD/Validation
 
@@ -66,6 +69,23 @@ wrapped_fpdiff $SPHERE_DIR/energies $TPWD/validata/sphere_energies 15 1e-4
 # Unfortunately good approximations to a sphere are EXPENSIVE.... so it's
 # only roughly right :( Hence 1e-4 as numerical zero and 15% error allowed.
 
+
+# Midpoint test
+# ============================================================
+
+# Re-run the sphere test above with a midpoint time stepper, results should be (mostly) unaffected.
+
+MIDPOINT_DIR=$TPWD/Validation/midpoint
+new_clean_dir $MIDPOINT_DIR
+
+# Run simulation
+cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
+./semi_implicit_mm_driver -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere -solver superlu -happ minus_z -initm exactly_z -ts midpoint -doc-interval all -outdir $MIDPOINT_DIR -mag-params 'simple-llg' \
+    > $MIDPOINT_DIR/stdout
+
+# Extract + check energies
+final_energy $MIDPOINT_DIR/trace > $MIDPOINT_DIR/energies
+wrapped_fpdiff $MIDPOINT_DIR/energies $TPWD/validata/sphere_energies 15 1e-4
 
 
 # Cubeoid test

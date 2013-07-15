@@ -4,6 +4,10 @@
 /*
   Functions that can be integrated over an element. Mostly for
   micromagnetics energy calculations so far.
+
+  Anything derived from ElementalFunction can be integrated by the function
+  integrate_over_element(..) currently in MicromagEquations (hopefully will
+  be moved to Element or Finite Element).
 */
 
 #include "../../src/generic/Vector.h"
@@ -26,9 +30,9 @@ namespace oomph
     virtual double call(const GeneralisedElement* ele_pt,
                         MMInterpolator* intp_pt) const = 0;
 
-    /// \short Helper function to automatically create an interpolator
-    /// object for call.
-    double call(const GeneralisedElement* ele_pt, const Vector<double> &s) const;
+    // /// \short Helper function to automatically create an interpolator
+    // /// object for call.
+    // double call(const GeneralisedElement* ele_pt, const Vector<double> &s) const;
   };
 
   // Boilerplate junk...
