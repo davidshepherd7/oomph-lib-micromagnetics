@@ -466,6 +466,9 @@ namespace oomph
         specify_command_line_flag("-ref", &refinement);
         refinement = 1;
 
+        specify_command_line_flag("-newton-tol", &newton_tol);
+        newton_tol = 1e-8;
+
         specify_command_line_flag("-outdir", &outdir);
         outdir = "results";
 
@@ -540,6 +543,7 @@ namespace oomph
         << "tmax " << tmax << std::endl
         << "tol " << tol << std::endl
         << "refinement " << refinement << std::endl
+        << "newton-tol " << newton_tol << std::endl
 
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
@@ -560,6 +564,7 @@ namespace oomph
     double tmax;
     double tol;
     int refinement;
+    double newton_tol;
 
     std::string outdir;
     std::string output_jacobian;

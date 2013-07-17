@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
   problem.llg_sub_problem_pt()->linear_solver_pt() = args.solver_pt;
   problem.llg_sub_problem_pt()->renormalise_each_time_step() = args.renormalise_flag();
   problem.llg_sub_problem_pt()->set_mag_parameters_pt(args.magnetic_parameters_pt);
+  problem.llg_sub_problem_pt()->newton_solver_tolerance() = args.newton_tol;
   problem.Doc_info.Args_pt = &args;
 
   // Create and set phi_1 sub problem
@@ -48,10 +49,13 @@ int main(int argc, char *argv[])
   phi_1_problem.set_bulk_mesh(args.phi_1_mesh_pt);
   phi_1_problem.set_flux_mesh_factory(args.phi_1_flux_mesh_factory_fct_pt);
   problem.set_phi_1_problem_pt(&phi_1_problem);
+  phi_1_problem.newton_solver_tolerance() = args.newton_tol;
+
 
   // Create and set phi sub problem
   GenericPoissonProblem phi_problem;
   phi_problem.set_bulk_mesh(args.phi_mesh_pt);
+  phi_problem.newton_solver_tolerance() = args.newton_tol;
   problem.set_phi_problem_pt(&phi_problem);
 
   // Create and set the BEM handler

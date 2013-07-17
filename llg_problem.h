@@ -642,6 +642,9 @@ public:
 
       specify_command_line_flag("-renorm_m", &Renormalise);
       Renormalise = -1;
+
+      specify_command_line_flag("-dampc", &dampc);
+      dampc = -10;
     }
 
 
@@ -657,6 +660,11 @@ public:
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       magnetic_parameters_pt =
         Factories::magnetic_parameters_factory(magnetic_parameters_name);
+
+      if(command_line_flag_has_been_set("-dampc"))
+        {
+          magnetic_parameters_pt->gilbert_damping() = dampc;
+        }
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -667,7 +675,8 @@ public:
       out_stream
         << "initial_m " << initial_m_name << std::endl
         << "h_app " << h_app_name << std::endl
-        << "mag_params " << magnetic_parameters_name << std::endl;
+        << "mag_params " << magnetic_parameters_name << std::endl
+        << "damping_parameter_override " << dampc << std::endl;
     }
 
 
@@ -699,6 +708,8 @@ public:
     /// Flag to control renormalisation of |m| after each step. -1 =
     /// default for timestepper, 0 = off, 1 = on.
     int Renormalise;
+
+    double dampc;
   };
 
 

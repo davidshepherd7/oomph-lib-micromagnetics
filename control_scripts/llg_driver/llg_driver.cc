@@ -32,12 +32,13 @@ int main(int argc, char *argv[])
   // Tell it if we want renormalisation or not
   problem.renormalise_each_time_step() = args.renormalise_flag();
 
-  // Assign timestepper and mesh from input arguments.
+  // Assign stuff from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.set_bulk_mesh_pt(args.mesh_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
   problem.linear_solver_pt() = args.solver_pt;
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
+  problem.newton_solver_tolerance() = args.newton_tol;
 
   // Set applied field
   problem.applied_field_fct_pt() = args.h_app_fct_pt;
