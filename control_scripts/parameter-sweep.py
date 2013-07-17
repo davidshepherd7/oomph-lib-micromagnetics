@@ -63,6 +63,14 @@ def execute_oomph_driver(args_dict, output_root):
                 '-outdir', final_outdir]
                + processed_kwargs)
 
+    # Write the command used to a file
+    with open(pjoin(final_outdir, "run_script.sh"), 'w') as script_file:
+        script_file.write("#!/bin/sh\n")
+        script_file.write("# Command used in run\n")
+        script_file.write(' '.join(arglist))
+        script_file.write("\n")
+
+
     # Run with specified args in the driver directory, put output (stdout
     # and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
