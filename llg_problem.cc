@@ -132,7 +132,7 @@ namespace oomph
 
 
   /// \short Loop over all nodes in bulk mesh and get magnetisations
-  Vector<Vector<double> > LLGProblem::get_nodal_magnetisations() const
+  Vector<Vector<double> > LLGProblem::get_nodal_magnetisations(unsigned i_time) const
   {
     unsigned nnode = bulk_mesh_pt()->nnode();
     Vector< Vector<double> > m_list(nnode, Vector<double>(3, 0.0));
@@ -141,7 +141,7 @@ namespace oomph
       {
         for(unsigned j=0; j<3; j++)
           {
-            m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(m_index(j));
+            m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(i_time, m_index(j));
           }
       }
 

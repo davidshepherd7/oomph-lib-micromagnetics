@@ -167,4 +167,51 @@ namespace oomph
     return 1.0;
   }
 
+  double DmdtDotHeff::call(const GeneralisedElement* ele_pt,
+                           MMInterpolator* intp_pt) const
+  {
+    const MicromagEquations* m_ele_pt
+      = dynamic_cast<const MicromagEquations*>(ele_pt);
+
+    // Some storage
+    Vector<double> gradmi_dot_gradtest(3, 0.0);
+    double val = 0.0;
+
+    // Get fields, coeffs at this point
+    Vector<double> h_ms, h_app, h_ca;
+    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
+    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(),
+                                intp_pt->s(), h_app);
+    m_ele_pt->get_H_cryst_anis_field(intp_pt->time(), intp_pt->x(),
+                                     intp_pt->m(), h_ca);
+    double exch_c = m_ele_pt->exchange_coeff();
+
+    //??ds should probably have something with gamma in it in here?
+    if(m_ele_pt->llg_precession_coeff() != 1)
+      {
+            std::string error_msg = "precession coeff != 1, don't know if this will work!";
+            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+      }
+
+    // For each node in the element:
+    for(unsigned l=0, nl=m_ele_pt->nnode(); l<nl; l++)
+      {
+        // Get the weird exchange term after integration by parts
+        for(unsigned i=0; i<3; i++)
+          for(unsigned j=0; j<m_ele_pt->nodal_dimension(); j++)
+            gradmi_dot_gradtest[i] += intp_pt->dtestdx(l,j) * intp_pt->dmdx(i)[j];
+
+        // Add contributions from this node
+        val += (VectorOps::dot(intp_pt->dmdt(), h_ms)
+                + VectorOps::dot(intp_pt->dmdt(), h_app)
+                + VectorOps::dot(intp_pt->dmdt(), h_ca) ) * intp_pt->test(l)
+          - exch_c * VectorOps::dot(intp_pt->dmdt(), gradmi_dot_gradtest);
+      }
+
+    return val;
+  }
+
+
+
 }

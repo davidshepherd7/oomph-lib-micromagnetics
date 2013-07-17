@@ -188,10 +188,18 @@ namespace oomph
         Crystalline_anisotropy_energy = crystalline_anisotropy_energy();
         Magnetostatic_energy = magnetostatic_energy();
 
+        // Store energy for damping calculations
+        Previous_energies.push_front(micromagnetic_energy());
+
+        // Keep the lsit of previous energies reasonably small (we only
+        // need N for any bdf<N> calculation).
+        if(Previous_energies.size() > 5) Previous_energies.pop_back();
+
         // Calculate and store effective damping if not disabled.
         if(calculate_effective_damping)
           {
             Effective_damping_constant = effective_damping_used();
+            Alt_eff_damp = alt_effective_damping_used();
           }
       }
 
@@ -232,44 +240,79 @@ namespace oomph
     }
 
     double integral_of_dmdt_squared() const
-      {
-        DmdtSquaredFunction f;
-        return integrate_over_problem(&f);
-      }
+    {
+      DmdtSquaredFunction f;
+      return integrate_over_problem(&f);
+    }
 
     double dEnergydt() const
+    {
+      dExchangeEnergydtFunction de_exdt;
+      double I_de_exdt = integrate_over_problem(&de_exdt);
+
+      dZeemanEnergydtFunction de_zeedt;
+      double I_de_zeedt = integrate_over_problem(&de_zeedt);
+
+      dCrystallineAnisotropydtEnergyFunction de_cadt;
+      double I_de_cadt = integrate_over_problem(&de_cadt);
+
+      dMagnetostaticEnergydtFunction de_ms;
+      double I_de_ms = integrate_over_problem(&de_ms);
+
+      return I_de_exdt + I_de_zeedt + I_de_cadt + I_de_ms;
+    }
+
+    double alt_dEnergydt() const
+    {
+      // Make a BDF2 time stepper to look up weights from (because I'm
+      // lazy...)
+      BDF<2> bdf;
+      TimeStepper* node_ts_pt = mesh_pt()->finite_element_pt(0)->node_pt(0)
+        ->time_stepper_pt();
+      bdf.time_pt() = node_ts_pt->time_pt();
+      bdf.set_weights();
+
+      // Calculate first derivative
+      double deriv = 0.0;
+      for(unsigned t=0;t<bdf.ntstorage();t++)
+        {
+          deriv += bdf.weight(1,t) * Previous_energies[t];
+        }
+
+      return deriv;
+    }
+
+    /// \short Compute the effective damping constant (alpha) for the
+    /// previous time step (see Albuquerque2001).
+    double alt_effective_damping_used() const
       {
-        dExchangeEnergydtFunction de_exdt;
-        double I_de_exdt = integrate_over_problem(&de_exdt);
+        // Integral over all space of (dm/dt)^2 used in last step
+        double dmdt_squared = integral_of_dmdt_squared(); //??ds
 
-        dZeemanEnergydtFunction de_zeedt;
-        double I_de_zeedt = integrate_over_problem(&de_zeedt);
+        // If no change then damping is undefined
+        if(dmdt_squared  == 0) return nan("");
 
-        dCrystallineAnisotropydtEnergyFunction de_cadt;
-        double I_de_cadt = integrate_over_problem(&de_cadt);
+        // Forumla from Albuquerque2001 & dAquino2005
+        double dEdt = alt_dEnergydt();
+        double effective_alpha = - dEdt / dmdt_squared;
 
-        dMagnetostaticEnergydtFunction de_ms;
-        double I_de_ms = integrate_over_problem(&de_ms);
-
-        return I_de_exdt + I_de_zeedt + I_de_cadt + I_de_ms;
+        return effective_alpha;
       }
+
 
     /// \short Compute the effective damping constant (alpha) for the
     /// previous time step (see Albuquerque2001).
     double effective_damping_used() const
       {
-        // Ms (assuming constant over whole problem)
-        double Ms = ele_pt()->magnetic_parameters_pt()->saturation_magnetisation();
-
         // Integral over all space of (dm/dt)^2 used in last step
         double dmdt_squared = integral_of_dmdt_squared();
 
         // If no change then damping is undefined
         if(dmdt_squared  == 0) return nan("");
 
-        // Forumla from Albuquerque2001
+        // Forumla from Albuquerque2001 & dAquino2005
         double dEdt = dEnergydt();
-        double effective_alpha = - ((1/std::pow(Ms, 2)) * dEdt) / dmdt_squared;
+        double effective_alpha = - dEdt / dmdt_squared;
 
         return effective_alpha;
       }
@@ -288,17 +331,20 @@ namespace oomph
     void write_additional_trace_headers(std::ofstream& trace_file) const
     {
       trace_file
-        << Trace_seperator << "m_length_error_means" // 21
-        << Trace_seperator << "m_length_error_std_devs" // 22
-        << Trace_seperator << "max_angle_errors" // 23
-        << Trace_seperator << "mean_mxs" // 24
-        << Trace_seperator << "mean_mys" // 25
-        << Trace_seperator << "mean_mzs" // 26
-        << Trace_seperator << "exchange_energy" // 27
-        << Trace_seperator << "zeeman_energy" // 28
-        << Trace_seperator << "crystalline_anisotropy_energy" // 29
-        << Trace_seperator << "magnetostatic_energy" // 30
-        << Trace_seperator << "effective_damping"; //31
+        << Trace_seperator << "m_length_error_means"
+        << Trace_seperator << "m_length_error_std_devs"
+        << Trace_seperator << "max_angle_errors"
+        << Trace_seperator << "mean_mxs"
+        << Trace_seperator << "mean_mys"
+        << Trace_seperator << "mean_mzs"
+        << Trace_seperator << "exchange_energy"
+        << Trace_seperator << "zeeman_energy"
+        << Trace_seperator << "crystalline_anisotropy_energy"
+        << Trace_seperator << "magnetostatic_energy"
+        << Trace_seperator << "total_energy"
+        << Trace_seperator << "effective_damping"
+        << Trace_seperator << "alt_effective_damping";
+
     }
 
     void write_additional_trace_data(std::ofstream& trace_file) const
@@ -312,19 +358,22 @@ namespace oomph
       Vector<double> mean_m = mean_magnetisation();
 
       trace_file
-        << Trace_seperator << m_error_avg // 21
-        << Trace_seperator << m_error_stddev // 22
+        << Trace_seperator << m_error_avg
+        << Trace_seperator << m_error_stddev
         << Trace_seperator
-        << *std::max_element(angle_variations.begin(), angle_variations.end()) // 23
-        << Trace_seperator << mean_m[0] // 24
-        << Trace_seperator << mean_m[1] // 25
-        << Trace_seperator << mean_m[2] // 26
+        << *std::max_element(angle_variations.begin(), angle_variations.end())
+        << Trace_seperator << mean_m[0]
+        << Trace_seperator << mean_m[1]
+        << Trace_seperator << mean_m[2]
 
-        << Trace_seperator << Exchange_energy // 27
-        << Trace_seperator << Zeeman_energy // 28
-        << Trace_seperator << Crystalline_anisotropy_energy // 29
-        << Trace_seperator << Magnetostatic_energy // 30
-        << Trace_seperator << Effective_damping_constant; //31
+        << Trace_seperator << Exchange_energy
+        << Trace_seperator << Zeeman_energy
+        << Trace_seperator << Crystalline_anisotropy_energy
+        << Trace_seperator << Magnetostatic_energy
+        << Trace_seperator << micromagnetic_energy()
+        << Trace_seperator << Effective_damping_constant
+        << Trace_seperator << Alt_eff_damp;
+
     }
 
     /// Set up an initial M
@@ -354,7 +403,7 @@ namespace oomph
     // ============================================================
 
     /// \short Loop over all nodes in bulk mesh and get magnetisations
-    Vector<Vector<double> > get_nodal_magnetisations() const;
+    Vector<Vector<double> > get_nodal_magnetisations(unsigned i_time=0) const;
 
     /// \short Abs of mean difference of actual m and m given by a function
     /// at the middle of each element.
@@ -587,6 +636,8 @@ public:
     /// \short Recomputed effective damping constant for the last time step
     /// (based on actual change in energy).
     double Effective_damping_constant;
+    double Alt_eff_damp;
+    std::deque<double> Previous_energies;
 
   private:
 

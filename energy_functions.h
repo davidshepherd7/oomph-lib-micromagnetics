@@ -87,6 +87,11 @@ namespace oomph
     double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 
+  class DmdtDotHeff : public ElementalFunction
+  {
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+  };
+
 
 
 } // End of oomph namespace

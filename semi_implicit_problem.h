@@ -122,8 +122,11 @@ namespace oomph
       Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
 
       // push old phi values back in time (so that we can use them later to
-      // get time derivatives of the field).
-      phi_problem_pt()->shift_time_values(false);
+      // get time derivatives of the field). Note that we don't use the
+      // problem's shift time values function because we don't want to
+      // shift the timestepper (that has been done by the llg problem
+      // already) and we don't have any external data to shift.
+      phi_problem_pt()->mesh_pt()->shift_time_values();
 
       // solve for phi
       std::cout << "solving phi" << std::endl;

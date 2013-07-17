@@ -81,7 +81,10 @@ int main(int argc, char *argv[])
         << ", dt = " << dt
         << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
         << ", energy = " << problem.micromagnetic_energy() << std::endl
+        << std::setprecision(8)
         << ", previous step effective damping = " << problem.Effective_damping_constant
+        << ", alt damping calc = " << problem.Alt_eff_damp
+        << std::setprecision(4)
         << std::endl;
 
       // The Newton step itself, adaptive if requested
