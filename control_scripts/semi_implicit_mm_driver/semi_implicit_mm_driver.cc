@@ -69,7 +69,9 @@ int main(int argc, char *argv[])
   // ============================================================
 
   // Set exact solution if we have one
-  if((args.h_app_name == "minus_z") && (args.initial_m_name == "z"))
+  if((args.h_app_name == "minus_z")
+     && (args.initial_m_name == "z")
+     && problem.mag_parameters_pt()->gilbert_damping() != 0.0)
     {
       problem.Compare_with_mallinson = true;
     }
