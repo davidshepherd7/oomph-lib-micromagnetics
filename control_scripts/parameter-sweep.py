@@ -315,15 +315,27 @@ def standard_sweep(parameter_set, serial_mode=False):
 
     elif parameter_set == "fixed-step-midpoint-conservation":
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-2, 1e-3, 1e-4],
-            'ref' : [3, 4, 5],
-            'tmax' : [1.0],
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
+            'ref' : [3],
+            'tmax' : [5.0],
             'ts' : ["bdf2", "midpoint"],
-            'initm' : ['xz', 'smoothly_varying_50'],
+            'initm' : ['z'],
             'happ' : ['minus_z'],
-            'mesh' : ['ut_square'],
-            'renorm_m' : [0]
+            'mesh' : ['ut_sphere'],
+            'renorm_m' : [1]
+            }
+
+    elif parameter_set == "zero-damping":
+        args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
+            'ref' : [3],
+            'tmax' : [5.0],
+            'ts' : ["bdf2", "midpoint"],
+            'mesh' : ['sq_square'],
+            'renorm_m' : [1],
+            'dampc' : [0]
             }
 
     else:

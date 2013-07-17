@@ -151,9 +151,9 @@ def parse_parameter_sweep(root_dir):
 
     # Also parse the root directory if it contains results (i.e. at least
     # an info file)
-    if os.path.isfile(pjoin(root, "info")):
-        print("Parsing", root)
-        results.append(parse_run(root))
+    if os.path.isfile(pjoin(root_dir, "info")):
+        print("Parsing", root_dir)
+        results.append(parse_run(root_dir))
 
     return results
 
@@ -369,8 +369,6 @@ def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean)
         xs = [x_operation(d[x_value]) for d in fdata]
         ys = [y_operation(d[y_value]) for d in fdata]
 
-        print(ts, xs, ys)
-
         # Plot
         ax.scatter(xs, ys, s=80, marker=symbols.next(), c=colours.next(),
                    label=str(ts))
@@ -378,10 +376,27 @@ def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean)
     # Label
     ax.set_xlabel(str(x_operation) + " of " + x_value)
     ax.set_ylabel(str(y_operation) + " of " + y_value)
-    # ax.legend(-1)
 
-    # log?
-    ax.set_yscale('log')
+    try:
+        # log?
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+    except:
+        return None
+
+    # Pick the right axis scales
+    ax.axis('auto')
+
+    lims = ax.xaxis.get_data_interval()
+    xs = sp.linspace(lims[0], lims[1])
+    ax.plot(xs, map(lambda x: x, xs),'-', label="x")
+    ax.plot(xs, map(lambda x: x**2, xs),'k-', label="x^2")
+    ax.plot(xs, map(lambda x: x**3, xs),'r-', label="x^3")
+    ax.plot(xs, map(lambda x: x**4, xs),'b-', label="x^3")
+
+    ax.legend()
+
+
 
     return fig
 
@@ -543,14 +558,15 @@ def main():
     # Plot error in effective damping vs step size
     if 'damp' in args.plots:
 
-        def damping_error_mean(effective_dampings):
+        def damping_error_mean(effective_dampings, exact_damping=0.0):
             # Drop first few steps: they are wrong
-            effective_dampings = effective_dampings[5:]
-
-            exact_damping = 0.5 #??ds not sure how to do this
+            effective_dampings = effective_dampings[6:]
 
             # relative error
-            e = abs(sp.array(effective_dampings) - exact_damping)/exact_damping
+            if exact_damping != 0.0:
+                e = abs(sp.array(effective_dampings) - exact_damping)/exact_damping
+            else:
+                e = abs(sp.array(effective_dampings))
 
             # take mean
             return sp.mean(e)
@@ -558,18 +574,6 @@ def main():
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
                                   y_operation=damping_error_mean)
         multi_plot(all_results, keys_to_split_on, plot_damping_errors)
-
-    # # Plot each energy vs time
-    # if 'energy' in args.plots:
-    #     plot_energy_vs_time = par
-    #     (plot_vs_time,
-    #      plot_values=['exchange_energy',
-    #                   'zeeman_energy',
-    #                   'crystalline_anisotropy_energy',
-    #                   'magnetostatic_energy',
-    #                   ])
-
-    #     multi_plot(all_results, keys_to_split_on, plot_energy_vs_time)
 
 
     plt.show()
