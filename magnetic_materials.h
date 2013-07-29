@@ -23,7 +23,7 @@ namespace oomph
   // ============================================================
   /// A class to store magnetic material parameters.
   // ============================================================
-  // TODO: normalisation, multiple mesh normalisation - divide by static mean values?
+  // TODO: multiple mesh normalisation - divide by static mean values?
   class MagneticParameters
   {
 
@@ -33,10 +33,9 @@ namespace oomph
         Mu0(12.566370614e-7),  // in N/(A^2) (SI)
         Gilbert_damping(0.05),
         Saturation_magnetisation(1.0),
-        Exchange_constant(0.5 * mu0()), // gives exchange strength = 1
+        Exchange_constant(0.5 * mu0()), // gives lex = 1
         K1(0.0),
         Easy_axis(3,0),
-        Distance_units(1e-9),
         Magnetostatic_debug_coeff(1.0),
         Exchange_debug_coeff(1.0),
         Boundary_exchange_debug_coeff(1.0),
@@ -60,7 +59,7 @@ namespace oomph
     double exchange_debug_coeff() const {return Exchange_debug_coeff;}
     double boundary_exchange_debug_coeff() const {return Boundary_exchange_debug_coeff;}
     double ca_debug_coeff() const {return Ca_debug_coeff;}
-    double distance_units() const {return Distance_units;}
+    double distance_units() const {return magnetostatic_exchange_length();}
     bool surface_anisotropy_enabled() const {return Surface_anisotropy_enabled;}
     double mu0() const {return Mu0;}
 
@@ -74,7 +73,8 @@ namespace oomph
     double hms() const
     {return saturation_magnetisation();}
 
-    mag_parameters::enum_crystalline_anisotropy_type crystalline_ansiotropy_type() const
+    mag_parameters::enum_crystalline_anisotropy_type
+    crystalline_ansiotropy_type() const
     {return Crystalline_ansiotropy_type;}
 
     // Normalised get functions
@@ -96,12 +96,7 @@ namespace oomph
     }
 
     double normalised_hex() const
-    {
-      return (2 * exchange_constant() / (mu0() *
-                                     std::pow(saturation_magnetisation(), 2) *
-                                     std::pow(distance_units(), 2)))
-        * exchange_debug_coeff();
-    }
+    {return 1.0 * exchange_debug_coeff();}
 
     double normalised_hk() const
     {
@@ -178,22 +173,31 @@ namespace oomph
     }
 
 
-    // Get the appropriate exchange length for this material according the the
-    // nmag user manual.
+    // Get the appropriate exchange length for this material according to
+    // the nmag user manual.
     double exchange_length() const
     {
-      double l1 = std::sqrt( (2* exchange_constant() )
-                             / (mu0() * saturation_magnetisation()
-                                * saturation_magnetisation()));
-      double l2;
-      if (k1() > 0)
-        l2 = std::sqrt( exchange_constant() / k1() );
-      else
-        l2 = 1e30; // infinite (e30 instead of higher in case we ever use floats
-      // not doubles).
-
+      double l1 = magnetostatic_exchange_length();
+      double l2 = magnetocrystalline_anisotropy_exchange_length();
       return std::min(l1,l2);
     }
+
+    double magnetostatic_exchange_length() const
+      {
+        return std::sqrt( (2* exchange_constant() )
+                          / (mu0() * saturation_magnetisation()
+                             * saturation_magnetisation()));
+      }
+
+    double magnetocrystalline_anisotropy_exchange_length() const
+      {
+        if (k1() > 0)
+          return std::sqrt( exchange_constant() / k1() );
+        else
+          return 1e30; // "infinity" (e30 instead of higher in case we ever
+                       // use floats not doubles).
+        //??ds throw error instead?
+      }
 
     // "shape_fn_l2_at_x" is the shape function of the value we are differentiating
     // with respect to at the point x.
@@ -268,7 +272,6 @@ namespace oomph
     double& exchange_debug_coeff() {return Exchange_debug_coeff;}
     double& boundary_exchange_debug_coeff() {return Boundary_exchange_debug_coeff;}
     double& ca_debug_coeff() {return Ca_debug_coeff;}
-    double& distance_units() {return Distance_units;}
     double& mu0() {return Mu0;}
 
     void set_cubic_anisotropy()
@@ -286,8 +289,6 @@ namespace oomph
     double Exchange_constant;
     double K1;
     Vector<double> Easy_axis;
-
-    double Distance_units;
 
     /// Debug coefficients
     double Magnetostatic_debug_coeff;
@@ -336,21 +337,20 @@ namespace oomph
         }
 
       // Set parameters as many coefficients as possible from the LLG. Set
-      // damping = 0.5, hex = 1, hk = 0.
+      // damping = 0.5, lex = 1, hk = 0.
       else if(to_lower(parameters_name) == "simple-llg")
         {
           parameters_pt = new MagneticParameters;
           parameters_pt->saturation_magnetisation() = 1.0; // normalised units
-          parameters_pt->exchange_constant() = 0.5; // this gives hex = 1
+          parameters_pt->exchange_constant() = 0.5; // this gives lex = 1
           parameters_pt->k1() = 0.0;
-          parameters_pt->distance_units() = 1;
           parameters_pt->mu0() = 1;
           parameters_pt->gamma() = 1;
           parameters_pt->gilbert_damping() = 0.5;
         }
 
       // Set parameters as many coefficients as possible from the LLG. Set
-      // damping = 0.5, hex = 1, hk = 1.
+      // damping = 0.5, lex = 1, hk = 1.
       else if(to_lower(parameters_name) == "simple-llg-anisotropy")
         {
           parameters_pt = magnetic_parameters_factory("simple-llg");
@@ -358,7 +358,7 @@ namespace oomph
         }
 
       // Set parameters as many coefficients as possible from the LLG. Set
-      // damping = 1, hex = 1, hk = 0.
+      // damping = 1, lex = 1, hk = 0.
       else if(to_lower(parameters_name) == "simple-llg-max-damped")
         {
           parameters_pt = magnetic_parameters_factory("simple-llg");

@@ -23,15 +23,9 @@ namespace oomph
   double ExchangeEnergyFunction::call(const GeneralisedElement* ele_pt,
                                       MMInterpolator* intp_pt) const
   {
-    const MicromagEquations* m_ele_pt
-      = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
-
-    // Get parameters
-    double A = m_ele_pt->magnetic_parameters_pt()->normalised_hex()/2;
-
-    return A * (VectorOps::dot(intp_pt->dmdx(0), intp_pt->dmdx(0)) +
-                VectorOps::dot(intp_pt->dmdx(1), intp_pt->dmdx(1)) +
-                VectorOps::dot(intp_pt->dmdx(2), intp_pt->dmdx(2)));
+    return 0.5 * (VectorOps::dot(intp_pt->dmdx(0), intp_pt->dmdx(0)) +
+                  VectorOps::dot(intp_pt->dmdx(1), intp_pt->dmdx(1)) +
+                  VectorOps::dot(intp_pt->dmdx(2), intp_pt->dmdx(2)));
   }
 
 
@@ -40,15 +34,9 @@ namespace oomph
   double dExchangeEnergydtFunction::call(const GeneralisedElement* ele_pt,
                                       MMInterpolator* intp_pt) const
   {
-    const MicromagEquations* m_ele_pt
-      = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
-
-    // Get parameters
-    double A = m_ele_pt->magnetic_parameters_pt()->normalised_hex()/2;
-
-    return 2 *A * (VectorOps::dot(intp_pt->dmdx(0), intp_pt->d2mdxdt(0)) +
-                   VectorOps::dot(intp_pt->dmdx(1), intp_pt->d2mdxdt(1)) +
-                   VectorOps::dot(intp_pt->dmdx(2), intp_pt->d2mdxdt(2)));
+    return (VectorOps::dot(intp_pt->dmdx(0), intp_pt->d2mdxdt(0)) +
+            VectorOps::dot(intp_pt->dmdx(1), intp_pt->d2mdxdt(1)) +
+            VectorOps::dot(intp_pt->dmdx(2), intp_pt->d2mdxdt(2)));
   }
 
 
@@ -62,13 +50,14 @@ namespace oomph
 
     // Get the field
     Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(), intp_pt->s(), h_applied);
+    m_ele_pt->get_applied_field(intp_pt->time(),
+                                intp_pt->x(), intp_pt->s(), h_applied);
 
     return - VectorOps::dot(intp_pt->m(), h_applied);
   }
 
   /// \short Calculate time derivative of energy due to external applied
-  /// field at a single integration point.
+  /// field at a single integration point assuming constant external field.
   double dZeemanEnergydtFunction::call(const GeneralisedElement* ele_pt,
                                        MMInterpolator* intp_pt) const
   {
@@ -77,14 +66,15 @@ namespace oomph
 
     // Get the field
     Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(), intp_pt->s(), h_applied);
+    m_ele_pt->get_applied_field(intp_pt->time(),
+                                intp_pt->x(), intp_pt->s(), h_applied);
 
     return - VectorOps::dot(intp_pt->dmdt(), h_applied);
   }
 
 
-  /// \short Calculate energy due to magnetocrystalline
-  /// anisotropy at a single integration point.
+  /// \short Calculate energy due to magnetocrystalline anisotropy at a
+  /// single integration point.
   double CrystallineAnisotropyEnergyFunction::
   call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
   {
@@ -92,14 +82,14 @@ namespace oomph
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get parameters
-    double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk()/2;
+    double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk();
     Vector<double> e = m_ele_pt->magnetic_parameters_pt()->easy_axis();
 
     return k1 * (1 - std::pow(VectorOps::dot(intp_pt->m(), e), 2));
   }
 
 
-  /// \short Calculate time derivateive of energy due to magnetocrystalline
+  /// \short Calculate time derivative of energy due to magnetocrystalline
   /// anisotropy at a single integration point.
   double dCrystallineAnisotropydtEnergyFunction::
   call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
@@ -108,10 +98,12 @@ namespace oomph
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get parameters
-    double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk()/2;
-    Vector<double> e = m_ele_pt->magnetic_parameters_pt()->nearest_easy_axis(intp_pt->m());
+    double k1 = m_ele_pt->magnetic_parameters_pt()->normalised_hk();
+    Vector<double> e = m_ele_pt->magnetic_parameters_pt()->
+      nearest_easy_axis(intp_pt->m());
 
-    return - 2 * k1 * VectorOps::dot(intp_pt->m(), e) * VectorOps::dot(intp_pt->dmdt(), e);
+    return - k1 * VectorOps::dot(intp_pt->m(), e)
+      * VectorOps::dot(intp_pt->dmdt(), e);
   }
 
   /// \short Calculate energy due to external applied field at a single
