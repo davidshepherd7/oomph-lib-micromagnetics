@@ -80,9 +80,9 @@ namespace HApp
   inline Vector<double> non_uniform_z_5(const double& t, const Vector<double> &x)
   {return non_uniform_z_helper(t, x, 5);}
   inline Vector<double> non_uniform_z_50(const double& t, const Vector<double> &x)
-  {return non_uniform_z_helper(t, x, 5);}
+  {return non_uniform_z_helper(t, x, 50);}
   inline Vector<double> non_uniform_z_500(const double& t, const Vector<double> &x)
-  {return non_uniform_z_helper(t, x, 5);}
+  {return non_uniform_z_helper(t, x, 500);}
 
   inline HAppFctPt h_app_factory(const std::string& field_name)
   {
