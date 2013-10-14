@@ -33,6 +33,20 @@ namespace VectorOps
 #endif
   }
 
+  inline void check_lengths_match(const Vector<double>& a, const unsigned& len)
+  {
+#ifdef PARANOID
+    if (a.size() != len)
+      {
+        std::string err = "Vectors must be the same length. ";
+        err += "len(a) = " + to_string(a.size()) + ", array len = "
+          + to_string(len);
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+  }
+
   // Probably not always best/fastest because not optimised for dimension but
   // useful...
   inline double dot(const Vector<double>& a, const Vector<double>& b)
@@ -40,6 +54,38 @@ namespace VectorOps
     check_lengths_match(a,b);
     double temp = 0;
     for(unsigned i=0, ni=a.size(); i<ni; i++)
+      {
+        temp += a[i] * b[i];
+      }
+    return temp;
+  }
+  inline double dot(const double* const a, const double* const b,
+                    const unsigned& len)
+  {
+    double temp = 0;
+    for(unsigned i=0, ni=len; i<ni; i++)
+      {
+        temp += a[i] * b[i];
+      }
+    return temp;
+  }
+  inline double dot(const Vector<double>& a, const double* const b,
+                    const unsigned& len)
+  {
+    check_lengths_match(a, len);
+    double temp = 0;
+    for(unsigned i=0, ni=len; i<ni; i++)
+      {
+        temp += a[i] * b[i];
+      }
+    return temp;
+  }
+  inline double dot(const double* const a, const Vector<double>& b,
+                    const unsigned& len)
+  {
+    check_lengths_match(b, len);
+    double temp = 0;
+    for(unsigned i=0, ni=len; i<ni; i++)
       {
         temp += a[i] * b[i];
       }
@@ -90,6 +136,54 @@ namespace VectorOps
     return A[ia]*B[ib] - A[ib]*B[ia];
   }
 
+  inline double opt_double_cross(unsigned i,
+                                 const Vector<double>& A,
+                                 const Vector<double>& B,
+                                 const Vector<double>& C)
+  {
+    if(i==0)
+      {
+        return A[1]*(B[0]*C[1] - B[1]*C[0]) - A[2]*(B[2]*C[0] - C[2]*B[0]);
+      }
+    else if(i==1)
+      {
+        return A[2]*(B[1]*C[2] - B[2]*C[1]) - A[0]*(B[0]*C[1] - C[0]*B[1]);
+      }
+    else if(i==2)
+      {
+        return A[0]*(B[2]*C[0] - B[0]*C[2]) - A[1]*(B[1]*C[2] - C[1]*B[2]);
+      }
+    else
+      {
+        throw OomphLibError("i index out of range", OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+  }
+
+  inline double opt_double_cross(unsigned i,
+                                 const double* A,
+                                 const double* B,
+                                 const Vector<double>& C)
+  {
+    if(i==0)
+      {
+        return A[1]*(B[0]*C[1] - B[1]*C[0]) - A[2]*(B[2]*C[0] - C[2]*B[0]);
+      }
+    else if(i==1)
+      {
+        return A[2]*(B[1]*C[2] - B[2]*C[1]) - A[0]*(B[0]*C[1] - C[0]*B[1]);
+      }
+    else if(i==2)
+      {
+        return A[0]*(B[2]*C[0] - B[0]*C[2]) - A[1]*(B[1]*C[2] - C[1]*B[2]);
+      }
+    else
+      {
+        throw OomphLibError("i index out of range", OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+  }
+
 
 
 
@@ -117,6 +211,20 @@ namespace VectorOps
   inline void vector_diff(const Vector<double>& a, const Vector<double>& b,
                           Vector<double>& diff)
   {diff = vector_diff(a, b);}
+
+
+  inline double max_vector_diff(const Vector<double> &a,
+                                const Vector<double> &b)
+    {
+      VectorOps::check_lengths_match(a, b);
+      double diff = 0;
+      for(unsigned i=0, ni=a.size(); i<ni; i++)
+        {
+          double this_diff = std::abs(a[i] - b[i]);
+          if(this_diff > diff) diff = this_diff;
+        }
+      return diff;
+    }
 
 
   /// \short Get the (smallest) angle between two vectors.

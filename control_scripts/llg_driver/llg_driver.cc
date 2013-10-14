@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
   problem.linear_solver_pt() = args.solver_pt;
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.newton_solver_tolerance() = args.newton_tol;
+  problem.Use_fd_jacobian = args.use_fd_jacobian;
+  problem.Residual_calculator_pt = args.residual_calculator_pt;
 
   // Set applied field
   problem.applied_field_fct_pt() = args.h_app_fct_pt;

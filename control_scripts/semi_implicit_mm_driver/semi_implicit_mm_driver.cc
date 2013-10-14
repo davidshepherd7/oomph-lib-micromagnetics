@@ -42,6 +42,9 @@ int main(int argc, char *argv[])
   problem.llg_sub_problem_pt()->renormalise_each_time_step() = args.renormalise_flag();
   problem.llg_sub_problem_pt()->set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.llg_sub_problem_pt()->newton_solver_tolerance() = args.newton_tol;
+  problem.llg_sub_problem_pt()->Use_fd_jacobian = args.use_fd_jacobian;
+  problem.llg_sub_problem_pt()->Residual_calculator_pt = args.residual_calculator_pt;
+
   problem.Doc_info.Args_pt = &args;
 
   // Create and set phi_1 sub problem

@@ -88,9 +88,12 @@ namespace oomph
 
     // Default constructor, who knows what will happen here... ??ds
     SemiImplicitHybridMicromagneticsProblem() :
-      Bem_handler_pt(0), Phi_1_problem_pt(), Phi_problem_pt(),
       Phi_boundary_values_pts()
-    {}
+    {
+      Bem_handler_pt = 0;
+      Phi_1_problem_pt = 0;
+      Phi_problem_pt = 0;
+    }
 
     /// \short Function to do the real work of the constructor.
     void build(bool pin_phi1 = true);

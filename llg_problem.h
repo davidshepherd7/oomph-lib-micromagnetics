@@ -11,11 +11,13 @@
 #include "magnetics_helpers.h"
 #include "my_generic_problem.h"
 #include "mallinson_solution.h"
-
+#include "residual_calculator.h"
 
 
 namespace oomph
 {
+
+  class ResidualCalculator;
 
   // ============================================================
   ///
@@ -28,11 +30,15 @@ namespace oomph
     LLGProblem() :
       Compare_with_mallinson(false),
       Swap_solver_large_dt(false),
+      Use_fd_jacobian(false),
       Applied_field_fct_pt(0),
-      Renormalise_each_time_step(false)
+      Renormalise_each_time_step(false),
     {
       // Needed for if we want to switch solvers in runs
       Super_LU_solver_pt = new SuperLUSolver;
+
+      // Storage for residual calculator
+      Residual_calculator_pt = 0;
 
       // Initialise storage for energies etc.
       Exchange_energy = MyProblem::Dummy_doc_data;
@@ -51,6 +57,7 @@ namespace oomph
       // mesh is cleaned up by problem base class
       // timestepper is cleaned up by problem base class
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
+      delete Residual_calculator_pt; Residual_calculator_pt = 0;
     }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
@@ -600,6 +607,10 @@ namespace oomph
     /// \short Should we swap to superlu for large dt solves?
     bool Swap_solver_large_dt;
 
+    bool Use_fd_jacobian;
+
+    ResidualCalculator* Residual_calculator_pt;
+
   private:
 
     /// \short Storage for initial linear solver: in case we want to swap
@@ -666,6 +677,8 @@ public:
                        int refinement_level,
                        TimeStepper* time_stepper_pt,
                        unsigned nnode1d = 2);
+
+    ResidualCalculator* residual_calculator_factory(const std::string& residual);
   }
 
 
@@ -676,7 +689,8 @@ public:
   public:
     /// Constructor: Initialise pointers to null.
     MMArgs() : initial_m_fct_pt(0), h_app_fct_pt(0),
-               magnetic_parameters_pt(0) {}
+               magnetic_parameters_pt(0),
+               residual_calculator_pt(0) {}
 
     virtual void set_flags()
     {
@@ -696,6 +710,9 @@ public:
 
       specify_command_line_flag("-dampc", &dampc);
       dampc = -10;
+
+      specify_command_line_flag("-resi", &residual_to_use);
+      residual_to_use = "llg";
     }
 
 
@@ -716,6 +733,9 @@ public:
         {
           magnetic_parameters_pt->gilbert_damping() = dampc;
         }
+
+      residual_calculator_pt = LLGFactories::
+        residual_calculator_factory(residual_to_use);
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -749,11 +769,15 @@ public:
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* magnetic_parameters_pt;
+    ResidualCalculator* residual_calculator_pt;
 
     // Strings for input to factory functions
     std::string initial_m_name;
     std::string h_app_name;
     std::string magnetic_parameters_name;
+    std::string residual_to_use;
+
+    bool use_fd_jacobian;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =
@@ -761,6 +785,7 @@ public:
     int Renormalise;
 
     double dampc;
+
   };
 
 

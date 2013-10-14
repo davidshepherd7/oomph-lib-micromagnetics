@@ -18,17 +18,19 @@ namespace oomph
   void LLGProblem::build()
   {
 #ifdef PARANOID
-    if((bulk_mesh_pt() == 0) || (applied_field_fct_pt() == 0)
-       || (this->time_stepper_pt() == 0))
+    if((bulk_mesh_pt() == 0)
+       || (applied_field_fct_pt() == 0)
+       || (this->time_stepper_pt() == 0)
+       || (Residual_calculator_pt == 0))
       {
         std::ostringstream error_msg;
-        error_msg << "Must assign mesh, timestepper and applied "
-                  << "field pointers to non-null values "
-                  << "before calling build().\n"
-                  << "bulk_mesh_pt() = " << bulk_mesh_pt() << "\n"
-                  << "applied_field_fct_pt() = " << applied_field_fct_pt() << "\n"
-                  << "this->time_stepper_pt() = " << this->time_stepper_pt()
-                  << std::endl;
+        error_msg
+          << "Must the following pointers to non-null values before calling build():\n"
+          << "bulk_mesh_pt() (= " << bulk_mesh_pt() << ")\n"
+          << "applied_field_fct_pt() (= " << applied_field_fct_pt() << ")\n"
+          << "this->time_stepper_pt() (= " << this->time_stepper_pt() << ")\n"
+          << "Residual_calculator_pt (= " << Residual_calculator_pt << ")"
+          << std::endl;
 
         throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
@@ -53,17 +55,33 @@ namespace oomph
     //     create_surface_exchange_elements(b);
     //   }
 
+    // // Figure out which residual function to use
+    // if(use_llg_residual)
+    //   {
+    //     Residual_calculator_pt = new LLResidualCalculator;
+    //   }
+    // else
+    //   {
+    //     Residual_calculator_pt = new LLGResidualCalculator;
+    //   }
+
     // Finish off elements
     for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
       {
         MicromagEquations* elem_pt = checked_dynamic_cast<MicromagEquations*>
           (bulk_mesh_pt()->element_pt(i));
 
+        // Set whether the Jacobian should be finite differenced
+        elem_pt->Use_fd_jacobian = Use_fd_jacobian;
+
         // Set values for magnetic parameters
         elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
 
         // Set pointer for an applied field
         elem_pt->applied_field_pt() = applied_field_fct_pt();
+
+        // Set the residual calculation function
+        elem_pt->Residual_calculator_pt = Residual_calculator_pt;
       }
 
     // Pin all phi dofs...??ds remove them from element?
@@ -458,6 +476,19 @@ namespace oomph
       // Done: pass out the mesh pointer
       return mesh_pt;
     }
-  }
 
+  /// Pick and create a residual calculator to use
+  ResidualCalculator* residual_calculator_factory(const std::string& residual)
+    {
+      if(residual == "llg")
+        return new LLGResidualCalculator;
+      else if(residual == "ll")
+        return new LLResidualCalculator;
+      else
+        throw OomphLibError("Unrecognised residual "+residual,
+                            OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+    }
+
+  }
 }

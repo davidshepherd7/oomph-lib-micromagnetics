@@ -469,6 +469,8 @@ namespace oomph
         specify_command_line_flag("-newton-tol", &newton_tol);
         newton_tol = 1e-8;
 
+        specify_command_line_flag("-fd-jac");
+
         specify_command_line_flag("-outdir", &outdir);
         outdir = "results";
 
@@ -533,6 +535,8 @@ namespace oomph
         }
 
       doc_times = Factories::doc_times_factory(doc_times_interval, tmax);
+
+      use_fd_jacobian = command_line_flag_has_been_set("-fd-jac");
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -565,6 +569,7 @@ namespace oomph
     double tol;
     int refinement;
     double newton_tol;
+    bool use_fd_jacobian;
 
     std::string outdir;
     std::string output_jacobian;

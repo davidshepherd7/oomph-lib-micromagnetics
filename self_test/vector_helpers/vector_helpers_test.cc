@@ -88,7 +88,7 @@ int main()
   // Optimised cross product
   // ============================================================
   {
-    std::cout << "Checking Optimised cross product." << std::endl;
+    std::cout << "Checking optimised cross product." << std::endl;
     Vector<Vector<double> > a, b;
 
     // Do for some random vectors
@@ -117,6 +117,55 @@ int main()
             std::cerr << "Error:"
                       << "opt_cross("
                       << a[i] << ", " << b[i] << ") == " << cross(a[i], b[i]) <<std::endl
+                      << "Got: " << v << std::endl;
+            return_value++;
+          }
+      }
+  }
+
+
+  // Optimised double cross product
+  // ============================================================
+  {
+    std::cout << "Checking optimised double cross product." << std::endl;
+    Vector<Vector<double> > a, b, c;
+
+    // Do for some random vectors
+    for(unsigned i=0; i<30; i++)
+      {
+        Vector<double> tempa = random_vector(3);
+        Vector<double> tempb = random_vector(3);
+        Vector<double> tempc = random_vector(3);
+
+        a.push_back(tempa);
+        b.push_back(tempb);
+        c.push_back(tempc);
+      }
+
+    // Run tests
+    for(unsigned i=0; i< a.size(); i++)
+      {
+        Vector<double> v(3);
+        v[0] = opt_double_cross(0, a[i], b[i], c[i]);
+        v[1] = opt_double_cross(1, a[i], b[i], c[i]);
+        v[2] = opt_double_cross(2, a[i], b[i], c[i]);
+
+        // Compare with the dot product identity
+        Vector<double> altv(3);
+        double p = dot(a[i], c[i]);
+        double q = dot(a[i], b[i]);
+        for(unsigned j=0; j<3; j++)
+          {
+            altv[j] = p*b[i][j] - q*c[i][j];
+          }
+
+        double error = two_norm_diff(v, altv);
+        if(!numerical_zero(error, 1e-9))
+          {
+            std::cerr << "Error:"
+                      << "opt_double_cross("
+                      << a[i] << ", " << b[i] << ", " << c[i] << ") == "
+                      << altv <<std::endl
                       << "Got: " << v << std::endl;
             return_value++;
           }

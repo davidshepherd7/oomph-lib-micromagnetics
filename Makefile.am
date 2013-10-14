@@ -12,7 +12,8 @@ sources = micromagnetics_element.cc \
 	generic_poisson_problem.cc \
 	semi_implicit_problem.cc \
 	boundary_element_handler.cc \
-	template_free_poisson_flux.cc
+	template_free_poisson_flux.cc \
+	residual_calculator.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
@@ -40,7 +41,9 @@ headers = array_interpolator.h \
 	vector_helpers.h \
 	semi_implicit_problem.h \
 	boundary_element_handler.h \
-	prettyprint98.hpp
+	prettyprint98.hpp \
+	residual_calculator.h
+
 
 # Define name of library
 libname = micromag
@@ -76,7 +79,7 @@ library_include_HEADERS=$(headers) $(incl_cc_files)
 $(libname).h: dummy_$(libname).h
 
 dummy_$(libname).h:  $(headers)
-	echo  "./$(libname)/" $(headers) > all_$(libname).aux
+	echo  "./$(libname)" $(headers) > all_$(libname).aux
 	$(AWK) -f $(top_srcdir)/bin/headers.awk < \
 		all_$(libname).aux > $(libname).h
 	sed -e 's/</ "/g' -e 's/>/"/g' -i $(libname).h

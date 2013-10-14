@@ -28,6 +28,8 @@
 #include "./energy_functions.h"
 #include "./array_interpolator.h"
 
+#include "./residual_calculator.h"
+
 
 namespace oomph
 {
@@ -48,7 +50,9 @@ namespace oomph
 
     // CONSTRUCTORS ETC.
     /// Constructor (initialises the various function pointers to null).
-    MicromagEquations() : Phi_source_pt(0), Phi_1_source_pt(0),
+    MicromagEquations() : Use_fd_jacobian(false),
+                          Residual_calculator_pt(0),
+                          Phi_source_pt(0), Phi_1_source_pt(0),
                           Magnetic_parameters_pt(0),
                           Applied_field_pt(0)
     {}
@@ -150,6 +154,8 @@ namespace oomph
     // typedef void (*TimeSpaceMagToDoubleVectFctPt)
     // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
+    bool Use_fd_jacobian;
+    ResidualCalculator* Residual_calculator_pt;
 
     const MagneticParameters* magnetic_parameters_pt() const
     {return Magnetic_parameters_pt;}
@@ -529,14 +535,18 @@ namespace oomph
     void fill_in_contribution_to_jacobian(Vector<double> &residuals,
                                           DenseMatrix<double> &jacobian)
     {
-      // Call the generic routine with the flag set to 1
-
-      //??ds debug code
-      //FiniteElement::fill_in_contribution_to_jacobian(residuals,jacobian);
-
-      fill_in_face_element_contribution_to_jacobian(jacobian);
-
-      fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+      if(Use_fd_jacobian)
+        {
+          // Generalised element version is by FD
+          FiniteElement::fill_in_contribution_to_jacobian(residuals,
+                                                          jacobian);
+        }
+      else
+        {
+          // Call the generic routine with the flag set to 1
+          fill_in_face_element_contribution_to_jacobian(jacobian);
+          fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
+        }
     }
 
     virtual void fill_in_face_element_contribution_to_jacobian

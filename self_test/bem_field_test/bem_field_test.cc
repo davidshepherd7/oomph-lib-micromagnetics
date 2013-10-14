@@ -43,6 +43,8 @@ int main(int argc, char *argv[])
   problem.add_time_stepper_pt(fake_args.time_stepper_pt);
   problem.llg_sub_problem_pt()->set_bulk_mesh_pt(fake_args.llg_mesh_pt);
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = fake_args.h_app_fct_pt;
+  problem.llg_sub_problem_pt()->Use_fd_jacobian = fake_args.use_fd_jacobian;
+  problem.llg_sub_problem_pt()->Residual_calculator_pt = fake_args.residual_calculator_pt;
   problem.Doc_info.Args_pt = &fake_args;
 
   // Create and set phi_1 sub problem
