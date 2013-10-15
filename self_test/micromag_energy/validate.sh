@@ -38,6 +38,7 @@ MM_LIB_DIR="../../"
 
 # Make sure everything we need is freshly built (just in case)
 make -k -s -C $MM_LIB_DIR
+make -k -s -C $MM_LIB_DIR install
 make -k -s -C $CONTROL_SCRIPTS/semi_implicit_mm_driver/
 new_clean_dir $TPWD/Validation
 
@@ -99,9 +100,31 @@ new_clean_dir $CUBEOID_DIR
 
 # Run simulation
 cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
-./semi_implicit_mm_driver -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 -solver superlu -happ zero -initm xz -outdir $CUBEOID_DIR -mag-params 'simple-llg' \
+./semi_implicit_mm_driver -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
+    -solver superlu -happ zero -initm xz -outdir $CUBEOID_DIR \
+    -mag-params 'simple-llg' \
     > $CUBEOID_DIR/stdout
 
 # Extract + check energies
 final_energy $CUBEOID_DIR/trace > $CUBEOID_DIR/energies
 wrapped_fpdiff $CUBEOID_DIR/energies $TPWD/validata/cubeoid_energies
+
+# # Landau-Lifshitz residual cubeoid test
+# # ============================================================
+
+# # This gives us some finite exchange and magnetostatic energies to check
+# # against previous runs. Should be the same as for llg.
+
+# LL_CUBEOID_DIR=$TPWD/Validation/ll_cubeoid
+# new_clean_dir $LL_CUBEOID_DIR
+
+# # Run simulation
+# cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
+# ./semi_implicit_mm_driver -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
+#     -solver superlu -happ zero -initm xz -outdir $LL_CUBEOID_DIR \
+#     -mag-params 'simple-llg' -resi "ll" -fd-jac \
+#     > $LL_CUBEOID_DIR/stdout
+
+# # Extract + check energies
+# final_energy $LL_CUBEOID_DIR/trace > $LL_CUBEOID_DIR/energies
+# wrapped_fpdiff $LL_CUBEOID_DIR/energies $TPWD/validata/cubeoid_energies
