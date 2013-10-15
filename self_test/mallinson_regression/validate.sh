@@ -41,3 +41,5 @@ new_clean_dir Validation
 
 # Check
 wrapped_fpdiff validata/mallinson_dynamics Validation/mallinson_dynamics
+
+exit 0

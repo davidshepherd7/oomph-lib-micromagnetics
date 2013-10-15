@@ -36,10 +36,6 @@ TPWD=$(pwd)
 CONTROL_SCRIPTS="../../control_scripts"
 MM_LIB_DIR="../../"
 
-# Make sure everything we need is freshly built (just in case)
-make -k -s -C $MM_LIB_DIR
-make -k -s -C $MM_LIB_DIR install
-make -k -s -C $CONTROL_SCRIPTS/semi_implicit_mm_driver/
 new_clean_dir $TPWD/Validation
 
 

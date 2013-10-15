@@ -33,8 +33,6 @@ CONTROL_SCRIPTS="../../control_scripts"
 MM_LIB_DIR="../../"
 
 # Make sure it's all ready
-make -k -s -C $MM_LIB_DIR
-make -k -s -C $MM_LIB_DIR install
 new_clean_dir Validation
 
 
@@ -74,3 +72,5 @@ cd $CONTROL_SCRIPTS/llg_driver/
 cd $TPWD
 cut -d\; -f 4 < $ll_dir/trace > $ll_dir/time_error_norms
 wrapped_fpdiff $ll_dir/time_error_norms validata/zeros 0 1e-5
+
+exit 0
