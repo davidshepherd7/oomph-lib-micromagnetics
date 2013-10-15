@@ -24,16 +24,10 @@ namespace oomph
 
     // Get coefficients
     const double llg_damp_c = e_pt->llg_damping_coeff();
-#ifdef PARANOID
-    if(llg_damp_c > 0.5)
-      {
-        throw OomphLibError("Can't handle high damping in Landau-Lifshitz yet",
-                            OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-#endif
-    const double ll_damp_c = -(std::sqrt(-4*llg_damp_c*llg_damp_c + 1) - 1)
-      /(2*llg_damp_c);
+
+    // Factor to rescale time s.t. it matches with Gilbert form of llg
+    const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
+
 
     // Cache time stepper weights needed in Jacobian (??ds write some
     // documentation on this? needs proper maths really...)
@@ -91,7 +85,7 @@ namespace oomph
         //======================================================================
 
         // Loop over the test functions/nodes adding contributions to residuals
-        for(unsigned l=0;l<n_node;l++)
+        for(unsigned l=0; l<n_node; l++)
           {
 
             // Cache test function derivative in a vector for easier access
@@ -129,10 +123,7 @@ namespace oomph
             Vector<double> gradmdotgradtest(3, 0.0);
             for(unsigned j=0; j<3; j++)
               {
-                for(unsigned i=0; i<ndim; i++)
-                  {
-                    gradmdotgradtest[j] += intp.dmdx(j)[i] * intp.dtestdx(l, i);
-                  }
+                gradmdotgradtest[j] = dot(intp.dmdx(j), dtestdxl, ndim);
               }
 
 
@@ -143,36 +134,37 @@ namespace oomph
                 if(m_eqn >= 0)  // If it's not a boundary condition
                   {
                     // dmdt
-                    residuals[m_eqn] += intp.dmdt()[i] * intp.test(l) * W;
+                    residuals[m_eqn] += ll_conversion_factor *intp.dmdt()[i]
+                      * intp.test(l) * W;
 
-                    // mxh for non-exchange fields
+                    // mxh for non-exchange fields (precession)
                     residuals[m_eqn] += opt_cross(i, intp.m(), h_simple)
                       * intp.test(l) * W;
 
-                    // mxmxh for non-exchange fields
-                    residuals[m_eqn] += ll_damp_c *
+                    // mxmxh for non-exchange fields (damping)
+                    residuals[m_eqn] += llg_damp_c *
                       opt_double_cross(i, intp.m(), intp.m(), h_simple)
                       * intp.test(l) * W;
 
-                    // mxex term
+                    // mxex term (precession)
                     residuals[m_eqn] -= opt_cross(i, intp.m(), gradmdotgradtest)
                       * W;
 
-                    // term 1 of mxmxex
-                    residuals[m_eqn] += gradmdotgradtest[i] * W;
+                    // term 1 of mxmxex (damping)
+                    residuals[m_eqn] += llg_damp_c * gradmdotgradtest[i] * W;
 
-                    // term 2 of mxmxmex
-                    double total = 0;
+                    // term 2 of mxmxex (damping)
+                    double sum = 0;
                     for(unsigned j=0; j<3; j++)
                       {
-                        total += intp.m()[j] *
+                        sum += intp.m()[j] *
                           (intp.m()[i]*dot(dtestdxl, intp.dmdx(j), ndim)
                            + intp.test(l)*dot(intp.dmdx(i), intp.dmdx(j), ndim))
 
                           + intp.test(l) * intp.m()[i]
                           * dot(intp.dmdx(j), intp.dmdx(j), ndim);
                       }
-                    residuals[m_eqn] -= ll_damp_c * total * W;
+                    residuals[m_eqn] -= llg_damp_c * sum * W;
                   }
                 else
                   {
@@ -233,14 +225,10 @@ namespace oomph
 
         double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
-        // Calculate other things:
-
-        // Divergence of m
+        // Copy some things into vectors ready for use in function calls
         const double itp_divm = intp.div_m();
-
         Vector<double> xvec(ndim, 0.0);
         for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
-
         Vector<double> mvec(3, 0.0);
         for(unsigned i=0; i<3; i++) {mvec[i] = intp.m()[i];}
 
