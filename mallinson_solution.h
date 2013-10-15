@@ -6,6 +6,8 @@
 */
 
 #include "../../src/generic/Vector.h"
+#include "magnetic_materials.h"
+#include "magnetics_helpers.h"
 
 namespace oomph
 {
