@@ -17,7 +17,7 @@ using namespace StringConversion;
 
 
 /// Exception for interrupt signals
-class MyInterrupt : public exception
+class MyInterrupt : public std::exception
 {
 public:
   MyInterrupt(int s) : S(s) {}
