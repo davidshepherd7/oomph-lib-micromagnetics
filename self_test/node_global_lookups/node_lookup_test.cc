@@ -2,7 +2,8 @@
 // Floating point debugging
 #include <fenv.h>
 
-#include "../poisson_test_problem.h"
+#include "generic.h"
+#include "../../poisson_test_problem.h"
 
 #include "../../boundary_element_handler.h"
 

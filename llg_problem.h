@@ -33,6 +33,7 @@ namespace oomph
       Use_fd_jacobian(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false),
+      Previous_energies(5, 0.0)
     {
       // Needed for if we want to switch solvers in runs
       Super_LU_solver_pt = new SuperLUSolver;

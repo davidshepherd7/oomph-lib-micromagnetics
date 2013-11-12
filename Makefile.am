@@ -42,7 +42,8 @@ headers = array_interpolator.h \
 	semi_implicit_problem.h \
 	boundary_element_handler.h \
 	prettyprint98.hpp \
-	residual_calculator.h
+	residual_calculator.h \
+	poisson_test_problem.h
 
 
 # Define name of library

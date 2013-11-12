@@ -2,7 +2,7 @@
 // Floating point debugging
 #include <fenv.h>
 
-#include "../poisson_test_problem.h"
+#include "../../poisson_test_problem.h"
 
 using namespace oomph;
 
