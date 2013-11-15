@@ -136,10 +136,11 @@ namespace oomph
         << Trace_seperator << Preconditioner_setup_times
 
         << Trace_seperator << lte_norm()
-        << Trace_seperator  << trace_value()
+        << Trace_seperator << trace_value()
+
+        << Trace_seperator << std::time(0)
 
         // Reserved slots in case I think of more things to add later
-        << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
@@ -233,8 +234,9 @@ namespace oomph
           << Trace_seperator << "LTE_norms"
           << Trace_seperator << "trace_values"
 
+          << Trace_seperator << "unix_timestamp"
+
           // Reserved slots in case I think of more things to add later
-          << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
