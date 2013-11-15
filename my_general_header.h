@@ -20,6 +20,7 @@
 #include "../../src/generic/mesh.h"
 #include "../../src/generic/timesteppers.h"
 #include "../../src/generic/midpoint_method.h"
+#include "../../src/generic/explicit_timesteppers.h"
 
 // Solvers for solver factory
 #include "../../src/generic/linear_solver.h"
@@ -89,8 +90,26 @@ namespace oomph
         }
       else if(ts_name == "midpoint")
         {
-          return new MidpointMethod(adaptive_flag, 2, 0.1);
-          //??ds add access to interp points, fudge factor?
+          MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
+          if(adaptive_flag)
+            {
+              if(mp_pred_name == "rk4")
+                {
+                  mp_pt->set_predictor_pt(new RungeKutta<4>);
+                }
+              else if (mp_pred_name == "ebdf3")
+                {
+                  mp_pt->set_predictor_pt(new EBDF3);
+                }
+              else
+                {
+                  throw OomphLibError("Unrecognised predictor name "
+                                      + mp_pred_name,
+                                      OOMPH_CURRENT_FUNCTION,
+                                      OOMPH_EXCEPTION_LOCATION);
+                }
+            }
+          return mp_pt;
         }
       else
         {
@@ -483,6 +502,9 @@ namespace oomph
         specify_command_line_flag("-ts", &time_stepper_name);
         time_stepper_name = "bdf2";
 
+        specify_command_line_flag("-mp-pred", &mp_pred_name);
+        mp_pred_name = "rk4";
+
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
 
@@ -510,9 +532,11 @@ namespace oomph
     {
       // Make sure all strings are lower case
       time_stepper_name = to_lower(time_stepper_name);
+      mp_pred_name = to_lower(mp_pred_name);
 
       // Build all the pointers to stuff
-      time_stepper_pt = Factories::time_stepper_factory(time_stepper_name, tol);
+      time_stepper_pt = Factories::time_stepper_factory(time_stepper_name,
+                                                        mp_pred_name);
       solver_pt = Factories::linear_solver_factory(solver_name);
 
       // Create and set preconditioner pointer if our solver is iterative.
@@ -583,6 +607,7 @@ namespace oomph
 
     // Strings for input to factory functions
     std::string time_stepper_name;
+    std::string mp_pred_name;
     std::string solver_name;
     std::string prec_name;
 

@@ -549,6 +549,56 @@ namespace oomph
         }
     }
 
+    /// This might go better inside generic get jacobian etc. once I write
+    /// it.
+    void fill_in_contribution_to_mass_matrix(Vector<double> &residuals,
+                                             DenseMatrix<double> &mmatrix)
+    {
+
+      const unsigned n_node = this->nnode();
+      const unsigned ndim = this->nodal_dimension();
+      const unsigned eldim = this->dim();
+      const unsigned n_unknowns = ndof_types();
+
+      Shape psi(n_node), test(n_node);
+      DShape dpsi(n_node, ndim); // Needed for J calculation
+      Vector<double> s(eldim);
+
+      //Loop over the integration points
+      for(unsigned ipt=0, nipt=this->integral_pt()->nweight(); ipt<nipt; ipt++)
+        {
+          // Get position
+          for(unsigned j=0; j<eldim; j++)
+            {s[j] = this->integral_pt()->knot(ipt,j);}
+
+          // Get shape/test/coord transform Jacobian
+          double J = dshape_eulerian(s, psi, dpsi);
+          test = psi;
+          double W = this->integral_pt()->weight(ipt) * J;
+
+          for(unsigned l=0;l<n_node;l++)
+            {
+              //Loop over the unknowns
+              for(unsigned i=0;i<n_unknowns;i++)
+                {
+                  int local_eqn = this->nodal_local_eqn(l,i);
+                  if(local_eqn < 0) continue;
+
+                  for(unsigned l2=0;l2<n_node;l2++)
+                    {
+                      int local_unknown = this->nodal_local_eqn(l2,i);
+                      if(local_unknown < 0) continue;
+
+                      //??ds do we need to multiply by
+                      //d_valuederivative_evaltime_by_dvalue_np1?
+                      mmatrix(local_eqn, local_unknown) +=
+                        psi(l2)*test(l)*W;
+                    }
+                }
+            }
+        }
+    }
+
     virtual void fill_in_face_element_contribution_to_jacobian
     (DenseMatrix<double> &jacobian) const =0;
 
