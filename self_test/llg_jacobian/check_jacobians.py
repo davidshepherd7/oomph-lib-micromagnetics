@@ -101,7 +101,7 @@ def check_jacobians(argsdict):
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Compare the info file and all Jacobians using fpdiff
-    compare_files = ([pjoin(validatadir, 'info.gz')]
+    compare_files = ([pjoin(validatadir, 'info')]
                      + glob.glob(pjoin(validatadir, 'jacobian*')))
 
     success = True
@@ -201,14 +201,17 @@ def main():
 
         # Zip up all the files
         subp.check_call('gzip validata/*/*', shell=True)
+
+        # unzip info files
+        subp.check_call('gunzip validata/*/info.gz', shell=True)
+
         return 0
 
     elif args.update_info:
         list(Pool().map(generate_jacobians, jacobian_params))
 
         print("Copying info files from Validation to validata.")
-        subp.check_call('gzip Validation/*/info', shell=True)
-        subp.check_call('cp --parents */info.gz ../validata', shell=True,
+        subp.check_call('cp --parents */info ../validata', shell=True,
                         cwd='Validation')
 
         return 0

@@ -1,0 +1,16 @@
+tmax 0.0002
+tol 0
+refinement 2
+newton-tol 1e-08
+outdir Validation/J2
+output_jacobian always
+time_stepper bdf2
+solver_name gmres
+preconditioner_name amg
+doc_times_interval all
+initial_m smoothly_varying_500
+h_app minus_z
+mag_params simple-llg
+damping_parameter_override -10
+mesh sq_cubeoid
+nnode1d 2
