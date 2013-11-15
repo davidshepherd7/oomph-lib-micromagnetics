@@ -251,11 +251,20 @@ namespace oomph
   //======================================================================
   void MicromagEquations::fill_in_generic_residual_contribution_micromag
   (Vector<double> &residuals, DenseMatrix<double> &jacobian,
-   const unsigned& flag) const
+   const unsigned& flag)
   {
-    // Just run the function stored in the residual calculator slot
-    Residual_calculator_pt->fill_in_generic_residual_contribution
-      (this, residuals, jacobian, flag);
+    if(flag && Use_fd_jacobian)
+      {
+        // Generalised element version is by FD
+        FiniteElement::fill_in_contribution_to_jacobian(residuals,
+                                                        jacobian);
+      }
+    else
+      {
+        // Just run the function stored in the residual calculator slot
+        Residual_calculator_pt->fill_in_generic_residual_contribution
+          (this, residuals, jacobian, flag);
+      }
   }
 
 

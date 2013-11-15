@@ -174,7 +174,14 @@ namespace oomph
           } // End of loop over test functions, end of residual calculations
 
         // Don't do Jacobian calculations yet
+        if(flag)
+          {
+            throw OomphLibError("Jacobian calculation not yet implemented.",
+                                OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
       }
+
   }
 
 

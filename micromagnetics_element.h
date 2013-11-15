@@ -642,7 +642,7 @@ namespace oomph
     /// these equations (compatible with multiphysics)
     void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
                                                         DenseMatrix<double> &jacobian,
-                                                        const unsigned& flag) const;
+                                                        const unsigned& flag);
 
     /// In PARANOID compare new and old interpolation functions to check
     /// they are the same, else do nothing.
