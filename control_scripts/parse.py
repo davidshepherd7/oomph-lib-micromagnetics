@@ -189,7 +189,7 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     """
 
     if keys_to_split_on is None:
-       keys_to_split_on = ['initial_m', 'mesh', 'h_app', 'time_stepper', 'tmax']
+       keys_to_split_on = []
 
     parameter_sets = [{k: bigdict[k] for k in keys_to_split_on}
                       for bigdict in big_dict_list]
@@ -291,6 +291,14 @@ def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
     return fig
 
 
+def latex_safe(string):
+    """Strip out characters that will interfere with latex.
+    * _ -> space
+    * ??
+    """
+    return string.replace("_", " ")
+
+
 def plot_vs_time(data, plot_values):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
@@ -305,7 +313,7 @@ def plot_vs_time(data, plot_values):
         for d in data:
             name = str(d['tol']) + " " + str(d['refinement']) + " " + str(d['time_stepper'])
             axes.plot(d['times'], d[p], label=name)
-            axes.set_ylabel(p)
+            axes.set_ylabel(latex_safe(p))
 
         axesarray[-1].set_xlabel('time')
 
@@ -338,9 +346,9 @@ def plot_vs_step(data, plot_values, operations=None):
             axes.plot([f(y) for y in d[p]], label=name)
 
             if f is not identity:
-                axes.set_ylabel(str(f) + " of " + p)
+                axes.set_ylabel(str(f) + " of " + latex_safe(p))
             else:
-                axes.set_ylabel(p)
+                axes.set_ylabel(latex_safe(p))
 
         axesarray[-1].set_xlabel('time step')
 
@@ -528,7 +536,7 @@ def main():
 
     # Plot error norm vs time
     if 'err' in args.plots:
-        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts'])
+        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'])
         multi_plot(all_results, keys_to_split_on, plot_errors)
 
 
