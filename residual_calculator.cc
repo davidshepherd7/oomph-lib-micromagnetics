@@ -345,6 +345,9 @@ namespace oomph
         int m_eqn[3], m_unknown[3];
         double dhcadm[3][3];
 
+        // Need to initialise because the 3rd entry is used in 2d so needs
+        // to be a zero.
+        for(unsigned j=0; j<3; j++) {gradpsil2[j] = 0.0;}
 
 
         // Double loop over nodes for the jacobian
