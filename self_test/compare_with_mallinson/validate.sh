@@ -65,7 +65,7 @@ new_clean_dir $ll_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi ll -dt 1e-2 -tmax 0.3 -solver superlu -happ minus_z \
     -ts midpoint \
-    -initm z -outdir $ll_dir -mag-params 'simple-llg' \
+    -initm z -outdir $ll_dir -mag-params 'simple-llg' -fd-jac \
     > $ll_dir/stdout
 
 # Check the errors are small
