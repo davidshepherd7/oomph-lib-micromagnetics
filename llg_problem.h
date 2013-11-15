@@ -181,6 +181,10 @@ namespace oomph
       {
         if(Use_implicit_ms)
           {
+            throw OomphLibError("Not yet implemented.",
+                                OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+
             Bem_handler_pt->get_bem_values_and_copy_into_values(phi_index());
           }
       }
