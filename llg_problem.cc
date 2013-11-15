@@ -37,11 +37,18 @@ namespace oomph
       }
 #endif
 
+    // // Get some constants
+    // MicromagEquations* mm_ele_pt = checked_dynamic_cast<MicromagEquations*>
+    //   (bulk_mesh_pt()->element_pt(0));
+    // const int phi_1_index = mm_ele_pt->phi_1_index_micromag();
+    // const int phi_index = mm_ele_pt->phi_index_micromag();
+
+    this->Dim = this->ele_pt()->nodal_dimension();
+
+
     // Write out parameters data.
     mag_parameters_pt()->output(std::cout);
 
-    // Cache the problem dimension
-    this->Dim = this->ele_pt()->nodal_dimension();
 
     // Boundary conditions - our finite element discretisation requires
     // residual addition of m x dm/dn along the boundary (due to need to
@@ -55,15 +62,6 @@ namespace oomph
     //     create_surface_exchange_elements(b);
     //   }
 
-    // // Figure out which residual function to use
-    // if(use_llg_residual)
-    //   {
-    //     Residual_calculator_pt = new LLResidualCalculator;
-    //   }
-    // else
-    //   {
-    //     Residual_calculator_pt = new LLGResidualCalculator;
-    //   }
 
     // Finish off elements
     for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
@@ -84,20 +82,80 @@ namespace oomph
         elem_pt->Residual_calculator_pt = Residual_calculator_pt;
       }
 
-    // Pin all phi dofs...??ds remove them from element?
-    for(unsigned nd=0, nnode=bulk_mesh_pt()->nnode(); nd<nnode; nd++)
-      {
-        Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
 
-        nd_pt->pin(phi_index());
-        nd_pt->pin(phi_1_index());
-        nd_pt->set_value(phi_index(),0.0);
-        nd_pt->set_value(phi_1_index(),0.0);
+    // Put bulk mesh into global mesh first
+    this->add_sub_mesh(bulk_mesh_pt());
+
+
+    // Set up bem stuff if we are doing it
+    if(Use_implicit_ms)
+      {
+
+        Vector<unsigned> boundaries;
+        for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
+          {boundaries.push_back(b);}
+
+
+        for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
+          {
+            for(unsigned nd=0; nd<bulk_mesh_pt()->nboundary_node(b); nd++)
+              {
+                Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b, nd);
+                std::cout << nd_pt->eqn_number(phi_index())
+                          << " "
+                          << nd_pt->eqn_number(phi_1_index())
+                          << std::endl;
+              }
+          }
+
+
+        // Set up neumann condition on phi_1 boundary values (using flux mesh)
+        Flux_mesh_factory_pt = LLGFactories::mm_flux_mesh_factory_factory
+          (bulk_mesh_pt()->finite_element_pt(0));
+        Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pt(), boundaries);
+
+        // Add to global mesh
+        this->add_sub_mesh(Flux_mesh_pt);
+
+
+        // Pin a phi_1 value which isn't involved in the boundary element
+        // method (we have to pin something to avoid a singular Jacobian,
+        // can't be a boundary node or things will go wrong with BEM).
+        Node* pinned_phi_1_node_pt = bulk_mesh_pt()->get_some_non_boundary_node();
+        pinned_phi_1_node_pt->pin(phi_1_index());
+        pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
+
+
+        // I don't think phi should be pinned: needs to be in Jacobian
+        // // Set up pinning of phi boundary values
+        // for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
+        //   {
+        //     for(unsigned nd=0; nd<bulk_mesh_pt()->nboundary_node(b); nd++)
+        //       {
+        //         Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b, nd);
+        //         nd_pt->pin(phi_index());
+        //         nd_pt->set_value(phi_index(), 0.0);
+        //       }
+        //   }
+
+      }
+    // Otherwise pin all phi and phi_1 dofs to zero
+    else
+      {
+        for(unsigned nd=0, nnode=bulk_mesh_pt()->nnode(); nd<nnode; nd++)
+          {
+            Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+
+            nd_pt->pin(phi_index());
+            nd_pt->pin(phi_1_index());
+            nd_pt->set_value(phi_index(),0.0);
+            nd_pt->set_value(phi_1_index(),0.0);
+          }
       }
 
+
+
     // Build the global mesh
-    this->add_sub_mesh(bulk_mesh_pt());
-    // add_sub_mesh(surface_exchange_mesh_pt());
     this->build_global_mesh();
 
     // Set up base class (at the moment just does meshes in block
@@ -115,6 +173,40 @@ namespace oomph
     // Do equation numbering
     oomph_info << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
     oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
+
+
+
+    // Create bem_handler if we are doing fully implicit magnetostatics
+    // ============================================================
+    if(Use_implicit_ms)
+      {
+        Bem_handler_pt = new BoundaryElementHandler;
+
+        // set mesh and index data
+        Bem_handler_pt->set_bem_all_boundaries(bulk_mesh_pt());
+        Bem_handler_pt->set_input_index(phi_1_index());
+        Bem_handler_pt->set_output_index(phi_1_index()); //??ds might work
+
+        // Figure out which element type we should use in the bem mesh
+        // (based on the element type used in the bulk mesh) and store the
+        // function needed to create them.
+        Bem_handler_pt->Bem_element_factory = LLGFactories::
+          bem_element_factory_factory(bulk_mesh_pt()->finite_element_pt(0));
+
+        // Create an integration scheme ??ds move this outside somewhere...
+        Bem_handler_pt->integration_scheme_pt() = LLGFactories::
+          variable_order_integrator_factory(bulk_mesh_pt()->finite_element_pt(0));
+
+        Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
+
+        Bem_handler_pt->build();
+      }
+
+
+    // // Calculate the (initial) bem boundary conditions on phi
+    // // ??ds might not need this? ok to wait until after a step?
+    // maybe_update_bem_boundary_conditions();
+
   }
 
 
@@ -488,6 +580,107 @@ namespace oomph
         throw OomphLibError("Unrecognised residual "+residual,
                             OOMPH_EXCEPTION_LOCATION,
                             OOMPH_CURRENT_FUNCTION);
+    }
+
+
+    /// \short Create a variable order quadrature object based on the
+    /// dimension and shape of the element. Only works for
+    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
+    {
+      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
+        {
+          return new TVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
+        {
+          return new QVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
+        {
+          return new TVariableOrderGaussLegendre<2>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
+        {
+          return new QVariableOrderGaussLegendre<2>;
+        }
+      else
+        {
+          std::string err("Cannot determine element type.\n");
+          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
+          err += "Variable order quadratures are not supported for this case.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
+
+
+    /// \short Return a function which will create the appropriate BEM face
+    /// element for the bulk element pointer given (should work for a
+    /// pointer to any bulk element type i.e., field or llg).
+    BEMElementFactoryFctPt bem_element_factory_factory
+    (const FiniteElement* bulk_ele_pt)
+    {
+      if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const TElement<3, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<3,2> >;
+        }
+
+      else if(dynamic_cast<const QElement<2,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const QElement<3,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<3,2> >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
+    /// \short Return a factory function which will create the appropriate
+    /// "flux mesh" for the bulk element pointer given.
+    FluxMeshFactoryFctPt
+    mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt)
+    {
+      if(dynamic_cast<const TMicromagElement<2, 2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<TMicromagElement<2, 2> > >;
+        }
+      else if(dynamic_cast<const TMicromagElement<3, 2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<TMicromagElement<3, 2> > >;
+        }
+
+      else if(dynamic_cast<const QMicromagElement<2,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<2,2> > >;
+        }
+      else if(dynamic_cast<const QMicromagElement<3,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<3,2> > >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
     }
 
   }

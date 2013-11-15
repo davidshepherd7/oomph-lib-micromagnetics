@@ -10,6 +10,13 @@
 
   * Fix for non-rectangle boundaries!!
 
+  * Output_index doesn't do what it seems like it should do: it corresponds
+  * to the index used for the node lookup (because it can't use the actual
+  * output index because they are pinned, by definition since bem is being
+  * used to determine those values). Probably I should use input_index for
+  * all lookups.
+
+
   */
 
 #include "../../src/generic/sum_of_matrices.h"
@@ -281,6 +288,11 @@ namespace oomph
     /// per boundary).
     void get_bem_values(const Vector<DoubleVector*> &bem_output_values) const;
 
+    /// Put the (output) values of the bem directly into the values of the
+    /// boundary nodes (with the value index as specified as an argument).
+    void get_bem_values_and_copy_into_values(const unsigned& output_value_index)
+      const;
+
     /// Build the mesh, lookup schemes and matrix in that order.
     void build()
     {
@@ -311,18 +323,21 @@ namespace oomph
       // generalise?
       else
         {
-          std::cout << "No input corner list, assuming rectangular..." << std::endl;
+          oomph_info << "No input corner list, assuming rectangular..."
+                     << std::endl;
           corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
         }
 
       // Construct the (dense) matrix
+      oomph_info << "Building dense BEM matrix, this may take some time"
+                 << std::endl;
       build_bem_matrix();
     }
 
     /// Use BEM on boundary b of the mesh.
     void set_bem_boundary(const unsigned& b, const Mesh* const mesh_pt)
     {
-      std::pair<unsigned, const Mesh*> bound = std::make_pair(b,mesh_pt);
+      std::pair<unsigned, const Mesh*> bound = std::make_pair(b, mesh_pt);
       Bem_boundaries.push_back(bound);
     }
 
@@ -416,6 +431,20 @@ namespace oomph
     Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt()
     {return Input_corner_data_pt;}
 
+
+    MicromagBEMElementEquations* bem_element_factory(FiniteElement* const fe_pt,
+                                                     const int& face) const
+    {
+#ifdef PARANOID
+      if(Bem_element_factory == 0)
+        {
+          throw OomphLibError("No BEM factory function has been specified! Can't create BEM elements.",
+                              OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      return Bem_element_factory(fe_pt, face);
+    }
 
     BEMElementFactoryFctPt Bem_element_factory;
 

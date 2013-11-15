@@ -99,7 +99,6 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(e_pt->node_pt(l)->is_on_boundary())))
               {
-                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
                 for(unsigned k=0;k<ndim;k++)                       // Poisson
@@ -110,7 +109,6 @@ namespace oomph
             const int phi_1_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
-                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
                 for(unsigned k=0;k<ndim;k++)
@@ -257,7 +255,6 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(e_pt->node_pt(l)->is_on_boundary())))
               {
-                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
                 residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
                 for(unsigned k=0;k<ndim;k++)                       // Poisson
@@ -268,7 +265,6 @@ namespace oomph
             const int phi_1_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
-                std::cerr <<  "unpinned phis!" << std::endl;
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
                 residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
                 for(unsigned k=0;k<ndim;k++)

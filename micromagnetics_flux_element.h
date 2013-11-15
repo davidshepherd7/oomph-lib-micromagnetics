@@ -228,34 +228,30 @@ namespace oomph
    DenseMatrix<double> &jacobian,
    const unsigned& flag)
   {
-    // If no surface anisotropy then nothing to do here
-    if(!bulk_element_pt()->magnetic_parameters_pt()->surface_anisotropy_enabled())
+    // If there is some surface anisotropy then throw an error: not
+    // implemented.
+    if(bulk_element_pt()->magnetic_parameters_pt()->surface_anisotropy_enabled())
       {
-        return;
+        std::ostringstream error_msg;
+        error_msg << "Surface anisotropy is not implemented";
+        throw OomphLibError(error_msg.str(),
+                            OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
       }
-
-    std::ostringstream error_msg;
-    error_msg << "Surface anisotropy is not implemented";
-    throw OomphLibError(error_msg.str(),
-                        OOMPH_CURRENT_FUNCTION,
-                        OOMPH_EXCEPTION_LOCATION);
 
     const unsigned n_node = nnode();
     const unsigned n_intpt = integral_pt()->nweight();
 
     Shape psi(n_node), test(n_node);
 
-    //const unsigned phi_1_index = bulk_element_pt()->phi_1_index_micromag();
-    Vector<unsigned> m_index(3);
-    for(unsigned i=0; i<3; i++)
-      m_index[i] = bulk_element_pt()->m_index_micromag(i);
+    // indicies:
+    unsigned phi1_index = bulk_element_pt()->phi_1_index_micromag();
+    Vector<unsigned> m_index(3, 0);
+    for(unsigned j=0; j<3; j++)
+      {
+        m_index[j] = bulk_element_pt()->m_index_micromag(j);
+      }
 
-    // Get coefficients
-    const double exch_c = bulk_element_pt()->exchange_coeff();
-    const double llg_precess_c = bulk_element_pt()->llg_precession_coeff();
-
-    const double boundary_exch_debug = bulk_element_pt()->magnetic_parameters_pt()
-      ->boundary_exchange_debug_coeff();
 
     //Loop over the integration points
     //--------------------------------
@@ -278,97 +274,51 @@ namespace oomph
             for(unsigned j=0; j<Nodal_dim; j++)
               itp_x[j] += nodal_position(l,j)*psi(l);
             for(unsigned j=0; j<3; j++)
-              itp_m[j] += nodal_value(l,m_index[j])*psi(l);
+              itp_m[j] += nodal_value(l, m_index[j])*psi(l);
           }
 
-        // We have to ask the bulk element to calculate dmdx for us because the
-        // derivatives of shape functions for nodes in the bulk but not in the
-        // face could be non-zero on the boundary.
-        Vector<double> s_bulk(3,0.0);
-        get_local_coordinate_in_bulk(s,s_bulk);
-        Vector<Vector<double> > itp_dmdx;
-        bulk_element_pt()->interpolated_dmdx_micromag(s_bulk,itp_dmdx);
+        Vector<double> low_dim_normal(Nodal_dim,0.0), normal(3,0.0);
+        outer_unit_normal(s, low_dim_normal);
+        for(unsigned j=0; j<Nodal_dim; j++) {normal[j] = low_dim_normal[j];}
 
-        // Vector<double> low_dim_normal(Nodal_dim,0.0), normal(3,0.0);
-        Vector<double> normal(Nodal_dim,0.0);
-        outer_unit_normal(s,normal);
-        // for(unsigned j=0; j<Nodal_dim; j++) normal[j] = low_dim_normal[j];
-
-        // Some pre-calculations:
-        Vector<double> dmdn(3,0.0);
-        for(unsigned i=0; i<3; i++)
-          for(unsigned j=0; j<Nodal_dim; j++)
-            dmdn[i] += normal[j] * itp_dmdx[i][j];
-
-        // std::cout << "from residual dmdn at x = " << itp_x << " is " << dmdn << std::endl
-        //           << "       m is " << itp_m << std::endl;
-
-        Vector<double> mxdmdn(3,0.0);
-        VectorOps::cross(itp_m,dmdn,mxdmdn);
-        //double mdotn = VectorOps::dot(normal,itp_m);
-
+        double mdotn = VectorOps::dot(normal, itp_m);
 
         // Loop over the test functions doing residual and Jacobian
         // contributions.
         for(unsigned l=0;l<n_node;l++)
           {
-            // Get indicies for phi_1 and m equations
-            // int phi_1_eqn = nodal_local_eqn (l,phi_1_index);
-            Vector<int> m_eqn(3,0);
+            // Get indicies for phi_1 equation
+            int phi_1_eqn = nodal_local_eqn (l, phi1_index);
 
-            //??ds
-            // // Phi contribution (if not a dirichlet b.c.)
-            // if(phi_1_eqn >= 0)
-            //   residuals[phi_1_eqn] += mdotn*test(l)*W;
+            // Phi contribution (if not a dirichlet b.c.)
+            if(phi_1_eqn >= 0)
+              residuals[phi_1_eqn] += mdotn*test(l)*W;
 
-            // Exchange contribution: (m x (dm/dn)) * test
-            for(unsigned i=0; i<3; i++)
+            // Jacobian (phi_1 w.r.t m_i)
+            if(!flag) continue;
+            for(unsigned l2=0; l2<n_node; l2++)
               {
-                m_eqn[i] = nodal_local_eqn(l,m_index[i]);
-                if(m_eqn[i] >=0)
+                // Loop over which m we are differentiating w.r.t
+                Vector<unsigned> m_unknown(3,0.0);
+                for(unsigned j=0; j<3; j++)
                   {
-                    residuals[m_eqn[i]] += llg_precess_c * exch_c
-                      * boundary_exch_debug
-                      * mxdmdn[i] * test(l) * W;
+                    m_unknown[j] = nodal_local_eqn(l2, m_index[j]);
+                    if(m_unknown[j] < 0) continue;
+
+                    // phi_1 residual w.r.t m_j
+                    if(phi_1_eqn >= 0)
+                      {
+                        jacobian(phi_1_eqn, m_unknown[j])
+                          += psi(l2) * test(l) * normal[j] * W;
+                      }
+
                   }
               }
-
-            //??ds still need to deal with surface anisotropy...
-
-
-            // // Jacobian (phi_1 w.r.t m_i)
-            // if(!flag) continue;
-            // for(unsigned l2=0; l2<n_node; l2++)
-            //   {
-            //     // Loop over which m we are differentiating w.r.t
-            //     Vector<unsigned> m_unknown(3,0.0);
-            //     for(unsigned j=0; j<3; j++)
-            //       {
-            //         m_unknown[j] = nodal_local_eqn(l2,m_index[j]);
-            //         if(!(m_unknown[j] >= 0)) continue;
-
-            //         // phi_1 residual w.r.t m_j
-            //         if(phi_1_eqn >= 0)
-            //           {
-            //             jacobian(phi_1_eqn,m_unknown[j])
-            //               += psi(l2) * test(l) * normal[j] * W;
-            //           }
-
-            //         // m residuals w.r.t m_j due to exchange boundary
-            //         // effects has to be handled by bulk element since it
-            //         // involves derivatives of m. So it is affected by
-            //         // nodes which are not in the face element.
-
-
-            //       }
-            //   }
           }
 
-        // std::cout <<  normal << std::endl;
 
       }
 
-    // std::cout << "residuals are:" <<  residuals << std::endl;
   }
 
   template<class ELEMENT>

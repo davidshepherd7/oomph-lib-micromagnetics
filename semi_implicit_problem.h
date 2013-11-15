@@ -30,11 +30,6 @@ namespace oomph
   /// responsibility to make sure the objects are deleted.
   namespace SemiImplicitFactories
   {
-
-    /// \short Create a variable order quadrature object based on the
-    /// dimension and shape of the element. Only works for
-    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt);
-
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
@@ -52,32 +47,11 @@ namespace oomph
                            TimeStepper* time_stepper_pt,
                            unsigned nnode1d = 2);
 
-    /// \short Function pointer type for function which returns a BEM
-    /// element.
-    typedef MicromagBEMElementEquations*
-    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
-
-    /// \short very simple function: create a new face element of type
-    /// ELEMENT.
-    template<class ELEMENT>
-    MicromagBEMElementEquations* bem_element_factory(FiniteElement* ele,
-                                                     const int& face)
-    {
-      return new ELEMENT(ele, face);
-    }
 
     /// \short Return a factory function which will create the appropriate
     /// "flux mesh" for the bulk element pointer given.
     GenericPoissonProblem::FluxMeshFactoryFctPt
     phi_1_flux_mesh_factory_factory(const FiniteElement* bulk_phi_1_ele_pt);
-
-    /// \short Return a function which will create the appropriate BEM face
-    /// element for the bulk element pointer given (should work for a
-    /// pointer to any bulk element type i.e., field or llg).
-    BEMElementFactoryFctPt bem_element_factory_factory
-    (const FiniteElement* bulk_ele_pt);
-
-
   }
 
 
@@ -322,7 +296,7 @@ namespace oomph
 
       // Pick the factory function for creating the BEM elements
       bem_element_factory_fct_pt =
-        SemiImplicitFactories::bem_element_factory_factory
+        LLGFactories::bem_element_factory_factory
         (llg_mesh_pt->finite_element_pt(0));
     }
 
@@ -341,7 +315,7 @@ namespace oomph
     Mesh* phi_mesh_pt;
 
     GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
-    SemiImplicitFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;
+    LLGFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;
 
     // Strings for input to factory functions
     std::string mesh_name;

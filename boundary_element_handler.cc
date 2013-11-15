@@ -69,15 +69,39 @@ void BoundaryElementHandler::build_bem_matrix()
       for(unsigned l=0;l<n_element_node;l++)
         {
           // Get the node number (in the bem mesh) from the global equation number.
-          unsigned global_l_number = elem_pt->node_pt(l)->eqn_number(input_index());
-          unsigned l_number = input_lookup_pt()->global_to_node(global_l_number);
+          int global_l_number = elem_pt->node_pt(l)->eqn_number(input_index());
+          int l_number = input_lookup_pt()->global_to_node(global_l_number);
+
+#ifdef PARANOID
+          if(l_number == -1)
+            {
+              std::string err = "global equation number ";
+              err += to_string(global_l_number);
+              err += " was not found in the global to input node lookup scheme.";
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
+#endif
 
           // Loop over all nodes in the mesh and add contributions from this element
           for(unsigned long s_nd=0; s_nd<n_node; s_nd++)
             {
-              unsigned global_s_number
+              int global_s_number
                 = bem_mesh_pt()->node_pt(s_nd)->eqn_number(input_index());
-              unsigned s_number = output_lookup_pt()->global_to_node(global_s_number);
+              int s_number = output_lookup_pt()->global_to_node(global_s_number);
+
+#ifdef PARANOID
+              if(s_number == -1)
+                {
+                  std::cout << *output_lookup_pt()->global_to_node_mapping_pt() << std::endl;
+
+                  std::string err = "global equation number ";
+                  err += to_string(global_s_number);
+                  err += " was not found in the global to output node lookup scheme.";
+                  throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                      OOMPH_CURRENT_FUNCTION);
+                }
+#endif
 
               // Rows are indexed by output (source node) number, columns
               // are indexed by input (l) number.
@@ -131,10 +155,12 @@ void BoundaryElementHandler::build_bem_mesh()
       // Loop over the elements on boundary b creating bem elements
       for(unsigned e=0, ne=mesh_pt->nboundary_element(b); e<ne;e++)
         {
+          int face_index = mesh_pt->face_index_at_boundary(b,e);
+
           // Create the corresponding BEM Element
           MicromagBEMElementEquations* bem_element_pt =
-            Bem_element_factory(mesh_pt->boundary_element_pt(b,e),
-                                mesh_pt->face_index_at_boundary(b,e));
+            bem_element_factory(mesh_pt->boundary_element_pt(b,e),
+                                face_index);
 
           // Add the new BEM element to the BEM mesh
           Bem_mesh_pt->add_element_pt(bem_element_pt);
@@ -264,5 +290,34 @@ get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
     }
 
 }
+
+void BoundaryElementHandler::
+get_bem_values_and_copy_into_values(const unsigned& output_value_index) const
+  {
+    // Get as one big vector
+    DoubleVector full_vector;
+    get_bem_values(full_vector);
+
+
+    // Now split it up into vectors on each boundary
+    for(unsigned i=0, ni=Bem_boundaries.size(); i < ni; i++)
+      {
+        // Get info on this boundary
+        unsigned b = Bem_boundaries[i].first;
+        const Mesh* m_pt = Bem_boundaries[i].second;
+        unsigned nnode = m_pt->nboundary_node(b);
+
+        // Set the entry corresponding to output_value_index in this node
+        // to the corresponding value from the doublevector.
+        for(unsigned nd=0; nd<nnode; nd++)
+          {
+            unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
+            unsigned out_eqn = output_lookup_pt()->global_to_node(g_eqn);
+
+            m_pt->boundary_node_pt(b, nd)->set_value(output_value_index,
+                                                     full_vector[out_eqn]);
+          }
+      }
+  }
 
 } // End of oomph namespace

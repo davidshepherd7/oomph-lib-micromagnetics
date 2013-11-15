@@ -12,6 +12,9 @@
 #include "my_generic_problem.h"
 #include "mallinson_solution.h"
 #include "residual_calculator.h"
+#include "boundary_element_handler.h"
+
+#include "micromagnetics_flux_element.h"
 
 
 namespace oomph
@@ -26,11 +29,17 @@ namespace oomph
   {
   public:
 
+
+    /// Function type which creates flux meshes
+    typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
+                                          const Vector<unsigned> &boundaries);
+
     /// Default constructor - do nothing except nulling pointers.
     LLGProblem() :
       Compare_with_mallinson(false),
       Swap_solver_large_dt(false),
       Use_fd_jacobian(false),
+      Use_implicit_ms(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false),
       Previous_energies(5, 0.0)
@@ -47,6 +56,11 @@ namespace oomph
       Crystalline_anisotropy_energy = MyProblem::Dummy_doc_data;
       Magnetostatic_energy = MyProblem::Dummy_doc_data;
       Effective_damping_constant = MyProblem::Dummy_doc_data;
+
+      // Bem stuff
+      Bem_handler_pt = 0;
+      Flux_mesh_pt = 0;
+      Flux_mesh_factory_pt = 0;
     }
 
     /// Function that does the real work of the constructors.
@@ -59,6 +73,7 @@ namespace oomph
       // timestepper is cleaned up by problem base class
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
       delete Residual_calculator_pt; Residual_calculator_pt = 0;
+      delete Bem_handler_pt; Bem_handler_pt = 0;
     }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
@@ -99,10 +114,15 @@ namespace oomph
         }
     }
 
-    void actions_before_newton_solve()
+
+    virtual void actions_before_newton_solve()
     {
-      // Call lower level actions function
-      MyProblem::actions_before_newton_solve();
+      // Call base class version
+      MyProblem::actions_after_newton_solve();
+
+      // Update BEM magnetostatics boundary conditions (if we are doing
+      // them fully implicitly).
+      maybe_update_bem_boundary_conditions();
     }
 
     void actions_after_newton_solve()
@@ -147,11 +167,23 @@ namespace oomph
       calculate_energies();
     }
 
-    void actions_after_newton_step()
+    virtual void actions_after_newton_step()
     {
-      // Call lower level actions function
+      // Call base class actions function
       MyProblem::actions_after_newton_step();
+
+      // Update BEM magnetostatics boundary conditions (if we are doing them
+      // fully implicitly).
+      maybe_update_bem_boundary_conditions();
     }
+
+    void maybe_update_bem_boundary_conditions()
+      {
+        if(Use_implicit_ms)
+          {
+            Bem_handler_pt->get_bem_values_and_copy_into_values(phi_index());
+          }
+      }
 
     /// Integrate a function given by func_pt over every element in a mesh
     /// and return the total. This should probably be in the mesh class but
@@ -601,6 +633,20 @@ namespace oomph
         (bulk_mesh_pt()->element_pt(0));
     }
 
+    Mesh* flux_mesh_factory(Mesh* mesh_pt,
+                            Vector<unsigned>& boundaries) const
+    {
+#ifdef PARANOID
+      if(Flux_mesh_factory_pt == 0)
+        {
+          throw OomphLibError("No flux mesh factory set!",
+                              OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      return Flux_mesh_factory_pt(mesh_pt, boundaries);
+    }
+
     /// Can we check the solution using Mallinson's exact time + phi
     /// solutions?
     bool Compare_with_mallinson;
@@ -609,6 +655,7 @@ namespace oomph
     bool Swap_solver_large_dt;
 
     bool Use_fd_jacobian;
+    bool Use_implicit_ms;
 
     ResidualCalculator* Residual_calculator_pt;
 
@@ -643,6 +690,17 @@ namespace oomph
 
     /// \short Magnetostatic energy, computed after previous Newton solve.
     double Magnetostatic_energy;
+
+    /// \short Pointer to class for handling BEM
+    BoundaryElementHandler* Bem_handler_pt;
+
+    /// \short Mesh for flux elements to impose boundary condition on phi1.
+    Mesh* Flux_mesh_pt;
+
+    /// \short Pointer to function for creating the flux mesh (can't be
+    /// hard coded becuase it depends on the element type, which depends on
+    /// dimension etc.)
+    FluxMeshFactoryFctPt Flux_mesh_factory_pt;
 
 public:
     /// \short Recomputed effective damping constant for the last time step
@@ -680,6 +738,40 @@ public:
                        unsigned nnode1d = 2);
 
     ResidualCalculator* residual_calculator_factory(const std::string& residual);
+
+
+    /// \short Create a variable order quadrature object based on the
+    /// dimension and shape of the element. Only works for some element
+    /// types.
+    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt);
+
+
+    /// \short Function pointer type for function which returns a BEM
+    /// element.
+    typedef MicromagBEMElementEquations*
+    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
+
+    typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
+                                          const Vector<unsigned> &boundaries);
+
+
+    /// \short very simple function: create a new face element of type
+    /// ELEMENT.
+    template<class ELEMENT>
+    MicromagBEMElementEquations* bem_element_factory(FiniteElement* ele,
+                                                     const int& face)
+    {
+      return new ELEMENT(ele, face);
+    }
+
+
+    /// \short Create a function to create bem elements based on the
+    /// elements used in the bulk mesh.
+    BEMElementFactoryFctPt bem_element_factory_factory
+    (const FiniteElement* bulk_ele_pt);
+
+    FluxMeshFactoryFctPt
+    mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
   }
 
 
@@ -806,6 +898,8 @@ public:
 
       specify_command_line_flag("-nnode1d", &nnode1d);
       nnode1d = 2;
+
+      specify_command_line_flag("-implicit-ms");
     }
 
 
@@ -817,6 +911,8 @@ public:
       mesh_name = to_lower(mesh_name);
       mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement,
                                            time_stepper_pt, nnode1d);
+
+      use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -825,12 +921,15 @@ public:
       MMArgs::dump_args(out_stream);
       out_stream << "mesh " << mesh_name << std::endl;
       out_stream << "nnode1d " << nnode1d << std::endl;
+      out_stream << "use_implicit_ms " << use_implicit_ms << std::endl;
     }
 
 
     Mesh* mesh_pt;
 
     unsigned nnode1d;
+
+    bool use_implicit_ms;
 
     // Strings for input to factory functions
     std::string mesh_name;

@@ -26,37 +26,6 @@ namespace oomph
   namespace SemiImplicitFactories
   {
 
-    /// \short Create a variable order quadrature object based on the
-    /// dimension and shape of the element. Only works for
-    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
-    {
-      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
-        {
-          return new TVariableOrderGaussLegendre<1>;
-        }
-      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
-        {
-          return new QVariableOrderGaussLegendre<1>;
-        }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
-        {
-          return new TVariableOrderGaussLegendre<2>;
-        }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
-        {
-          return new QVariableOrderGaussLegendre<2>;
-        }
-      else
-        {
-          std::string err("Cannot determine element type.\n");
-          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
-          err += "Variable order quadratures are not supported for this case.";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-    }
-
-
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
@@ -253,38 +222,6 @@ namespace oomph
     }
 
 
-    /// \short Return a function which will create the appropriate BEM face
-    /// element for the bulk element pointer given (should work for a
-    /// pointer to any bulk element type i.e., field or llg).
-    BEMElementFactoryFctPt bem_element_factory_factory
-    (const FiniteElement* bulk_ele_pt)
-    {
-      if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
-        {
-          return &bem_element_factory<TMicromagBEMElement<2,2> >;
-        }
-      else if(dynamic_cast<const TElement<3, 2>*>(bulk_ele_pt) != 0)
-        {
-          return &bem_element_factory<TMicromagBEMElement<3,2> >;
-        }
-
-      else if(dynamic_cast<const QElement<2,2>*>(bulk_ele_pt) != 0)
-        {
-          return &bem_element_factory<QMicromagBEMElement<2,2> >;
-        }
-      else if(dynamic_cast<const QElement<3,2>*>(bulk_ele_pt) != 0)
-        {
-          return &bem_element_factory<QMicromagBEMElement<3,2> >;
-        }
-
-      else
-        {
-          throw OomphLibError("Unrecognised element type",
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-    }
-
   }
 
   /// \short Function to do the real work of the constructor.
@@ -382,9 +319,9 @@ namespace oomph
       bem_handler_pt()->set_input_index(0);
       bem_handler_pt()->set_output_index(0);
 
-      // Create an integration scheme
+      // Create an integration scheme ??ds move this outside somewhere...
       bem_handler_pt()->integration_scheme_pt() =
-        SemiImplicitFactories::
+        LLGFactories::
         variable_order_integrator_factory(phi_1_mesh_pt()->finite_element_pt(0));
 
       bem_handler_pt()->input_corner_data_pt() = 0; //??Ds
