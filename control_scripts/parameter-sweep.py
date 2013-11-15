@@ -338,6 +338,28 @@ def standard_sweep(parameter_set, serial_mode=False):
             'dampc' : [0]
             }
 
+    elif parameter_set == "adaptive-midpoint":
+        args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'tol' : [1e-2, 1e-3, 1e-4],
+            'ref' : [1],
+            'tmax' : [4.0],
+            'ts' : ["bdf2", "midpoint"],
+            'mesh' : ['sq_square'],
+            'renorm_m' : [1],
+            'dampc' : [0.5],
+            'resi' : ["ll"]
+            }
+
+    elif parameter_set == "ode-test":
+         args_dict = {
+            'driver' : ["./ode_problem/ode_problem"],
+            'tol' : [1e-2, 1e-3],
+            'tmax' : [10.0],
+            'ts' : ["bdf2", "midpoint"],
+            'mp-pred' : ["edbdf3", "rk4"]
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
