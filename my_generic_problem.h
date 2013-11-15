@@ -398,11 +398,20 @@ namespace oomph
     }
 
     virtual double trace_value() const
-      {
-        // Just use an element somewhere in the middle...
-        unsigned nele = mesh_pt()->nelement();
-        Node* trace_nd_pt = mesh_pt()->finite_element_pt(nele/2)->node_pt(0);
-        return trace_nd_pt->value(0);
+    {
+      unsigned nele = mesh_pt()->nelement();
+      unsigned e = nele/2;
+      if(dynamic_cast<FiniteElement*>(mesh_pt()->element_pt(e)))
+        {
+          // Just use an element somewhere in the middle...
+          Node* trace_nd_pt = mesh_pt()->finite_element_pt(e)->node_pt(0);
+          return trace_nd_pt->value(0);
+        }
+      else
+        {
+          // Not finite elements so no idea what to use
+          return Dummy_doc_data;
+        }
       }
 
     void dump_current_jacobian(const std::string& label)
