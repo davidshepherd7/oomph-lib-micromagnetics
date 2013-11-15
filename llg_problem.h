@@ -203,13 +203,16 @@ namespace oomph
     }
 
     /// \short Integrate a function given by func_pt over every element
-    /// in every mesh in this problem.
+    /// in every bulk mesh in this problem.
     double integrate_over_problem(const ElementalFunction* func_pt) const
       {
         double result = 0;
         for(unsigned j=0; j<this->nsub_mesh(); j++)
         {
-          result += integrate_over_mesh(func_pt, mesh_pt(j));
+          if(mesh_pt(j)->finite_element_pt(0)->dim() == this->dim())
+            {
+              result += integrate_over_mesh(func_pt, mesh_pt(j));
+            }
         }
         return result;
       }
