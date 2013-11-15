@@ -186,6 +186,7 @@ public:
     return Derivative_function_pt(t, u);
   }
 
+
 private:
 
   FunctionOfTimePt Exact_solution_pt;
@@ -246,7 +247,7 @@ public:
   {
     // Error estimate for zero-th value in internal data:
     Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
-    return abs(dat_pt->time_stepper_pt()->temporal_error_in_value(dat_pt,0));
+    return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
   }
 
   // Output solution
@@ -263,6 +264,11 @@ public:
   double trace_value() const
   {
     return mesh_pt()->element_pt(0)->internal_data_pt(0)->value(0);
+  }
+
+  TimeStepper* ts_pt() const
+  {
+    return mesh_pt()->element_pt(0)->internal_data_pt(0)->time_stepper_pt();
   }
 
 };
