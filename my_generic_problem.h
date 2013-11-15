@@ -374,22 +374,11 @@ namespace oomph
     /// \short Calculate 2-norm of timestepper's lte error estimate
     /// (include all data values in each node, don't include any global
     /// data).
-    double lte_norm() const
+    double lte_norm()
     {
       if(time_stepper_pt()->adaptive_flag())
         {
-          double e = 0;
-          for(unsigned nd=0, nnode=mesh_pt()->nnode(); nd<nnode; nd++)
-            {
-              Node* nd_pt = mesh_pt()->node_pt(nd);
-              unsigned nvalue = nd_pt->nvalue();
-              for(unsigned i=0; i<nvalue; i++)
-                {
-                  e += std::pow(nd_pt->time_stepper_pt()->
-                                temporal_error_in_value(nd_pt, i), 2);
-                }
-            }
-          return std::sqrt(e);
+          return global_temporal_error_norm();
         }
       else
         {
