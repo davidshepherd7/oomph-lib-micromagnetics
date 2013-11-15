@@ -778,8 +778,6 @@ public:
     std::string magnetic_parameters_name;
     std::string residual_to_use;
 
-    bool use_fd_jacobian;
-
 
     /// Flag to control renormalisation of |m| after each step. -1 =
     /// default for timestepper, 0 = off, 1 = on.
