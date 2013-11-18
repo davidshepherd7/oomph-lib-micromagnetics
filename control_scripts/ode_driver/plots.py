@@ -57,11 +57,15 @@ def parse_info_file(filename):
 
 def main():
 
-    ts, ys, lte_est = parse_oomph_data("results/trace")
+    ts, ys, exacts, lte_est = parse_oomph_data("results/trace")
 
     info_dict = parse_info_file("results/info")
-    exact = sympy.lambdify(sympy.var('t'), sympy.sympify(info_dict['exact_name']+ "(t)"))
-    exacts = map(exact, ts)
+
+    # Try to guess the exact function from its name using sympy
+    try:
+        exact = sympy.lambdify(sympy.var('t'), sympy.sympify(info_dict['exact_name']+ "(t)"))
+    except NameError:
+        exact = None
 
     fig, axes = subplots(3, 1)
 
@@ -100,9 +104,10 @@ def parse_oomph_data(filename):
 
     ts = [float(l.split(";")[1]) for l in lines]
     ys = [float(l.split(";")[10]) for l in lines]
+    exacts = [float(l.split(";")[10]) for l in lines]
     lte_est = [float(l.split(";")[9]) for l in lines]
 
-    return ts, ys, lte_est
+    return ts, ys, exacts, lte_est
 
 
 # If this script is run from a shell then run main() and return the result.

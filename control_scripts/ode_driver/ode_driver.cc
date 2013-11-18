@@ -247,7 +247,17 @@ public:
       }
   }
 
-  double exact_solution(const double& time)
+  void write_additional_trace_headers(std::ofstream& trace_file) const
+  {
+    trace_file << Trace_seperator << "exact";
+  }
+
+  void write_additional_trace_data(std::ofstream& trace_file) const
+  {
+    trace_file << Trace_seperator << exact_solution(time());
+  }
+
+  double exact_solution(const double& time) const
   {
     ODEElement* el_pt = checked_dynamic_cast<ODEElement*>
       (mesh_pt()->element_pt(0));
