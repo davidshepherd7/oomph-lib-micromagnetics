@@ -166,6 +166,7 @@ public:
   void fill_in_contribution_to_mass_matrix(Vector<double>& residuals,
                                            DenseMatrix<double>& mm)
   {
+    fill_in_contribution_to_residuals(residuals);
     mm(0,0) = 1;
   }
 
