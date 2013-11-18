@@ -26,6 +26,14 @@ namespace deriv_functions
   inline double dcos(double t, double u) {return -1*std::sin(t);}
   inline double dsin(double t, double u) {return std::cos(t);}
   inline double dexp(double t, double u) {return u;}
+
+  double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
+  inline double poly3(double t) {return a3*t*t*t + a2*t*t + a1*t +a0;}
+  inline double dpoly3(double t, double u) {return 3*t*t*a3 + 2*t*a2 + a1;}
+
+  double b0 = 0.5, b1 = 0, b2 = 1;
+  inline double poly2(double t) {return b2*t*t + b1*t +b0;}
+  inline double dpoly2(double t, double u) {return 2*t*b2 + b1;}
 }
 
 namespace ODEFactories
@@ -37,6 +45,8 @@ namespace ODEFactories
     if(exact_name == "sin") return &std::sin;
     else if(exact_name == "cos") return &std::cos;
     else if(exact_name == "exp") return &std::exp;
+    else if(exact_name == "poly3") return &deriv_functions::poly3;
+    else if(exact_name == "poly2") return &deriv_functions::poly2;
     else
       {
         throw OomphLibError("Unrecognised exact solution " + exact_name,
@@ -51,6 +61,8 @@ namespace ODEFactories
     if(exact_name == "sin") return &deriv_functions::dsin;
     else if(exact_name == "cos") return &deriv_functions::dcos;
     else if(exact_name == "exp") return &deriv_functions::dexp;
+    else if(exact_name == "poly3") return &deriv_functions::dpoly3;
+    else if(exact_name == "poly2") return &deriv_functions::dpoly2;
     else
       {
         throw OomphLibError("Unrecognised exact solution " + exact_name,
