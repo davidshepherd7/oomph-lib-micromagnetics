@@ -317,6 +317,7 @@ int main(int argc, char* argv[])
   problem.linear_solver_pt() = args.solver_pt;
   problem.newton_solver_tolerance() = args.newton_tol;
   // problem.Use_fd_jacobian = args.use_fd_jacobian;
+  problem.Use_time_adaptive_newton = args.adaptive_flag();
 
 
   // Initialise problem and output
@@ -334,30 +335,30 @@ int main(int argc, char* argv[])
   unsigned time_step_number = 0;
   while (problem.time() < args.tmax)
     {
-  time_step_number++;
+      time_step_number++;
 
-  std::cout
-    << std::endl
-    << std::endl
-    << "Time step " << time_step_number << std::endl
-    << "==========================" << std::endl
-    << "time = " << problem.time()
-    << ", dt = " << dt
-    << std::endl;
+      std::cout
+        << std::endl
+        << std::endl
+        << "Time step " << time_step_number << std::endl
+        << "==========================" << std::endl
+        << "time = " << problem.time()
+        << ", dt = " << dt
+        << std::endl;
 
-  // The Newton step itself, adaptive if requested
-  if(args.adaptive_flag())
-    {
-      dt = problem.adaptive_unsteady_newton_solve(dt, args.tol);
+      // The Newton step itself, adaptive if requested
+      if(problem.Use_time_adaptive_newton)
+        {
+          dt = problem.adaptive_unsteady_newton_solve(dt, args.tol);
+        }
+      else
+        {
+          problem.unsteady_newton_solve(dt);
+        }
+
+      // Output
+      problem.doc_solution();
     }
-  else
-    {
-  problem.unsteady_newton_solve(dt);
-}
-
-  // Output
-  problem.doc_solution();
-}
 
 
 } // end_of_main

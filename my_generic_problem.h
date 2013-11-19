@@ -71,6 +71,7 @@ namespace oomph
       Problem(),
       Dim(0),
       Doc_info("results", 0),
+      Use_time_adaptive_newton(false),
       Trace_filename("trace"),
       Info_filename("info"),
       Trace_seperator("; "),
@@ -446,6 +447,8 @@ namespace oomph
     unsigned Dim;
     MyDocInfo Doc_info;
     unsigned Output_precision;
+
+    bool Use_time_adaptive_newton;
 
     std::string Trace_filename;
     std::string Info_filename;

@@ -91,23 +91,28 @@ namespace oomph
       else if(ts_name == "midpoint")
         {
           MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
-          if(adaptive_flag)
+
+          std::cout << mp_pred_name << std::endl;
+          std::cout << (mp_pred_name == "rk4") << std::endl;
+
+          if(mp_pred_name == "rk4")
             {
-              if(mp_pred_name == "rk4")
-                {
-                  mp_pt->set_predictor_pt(new RungeKutta<4>);
-                }
-              else if (mp_pred_name == "ebdf3")
-                {
-                  mp_pt->set_predictor_pt(new EBDF3);
-                }
-              else
-                {
-                  throw OomphLibError("Unrecognised predictor name "
-                                      + mp_pred_name,
-                                      OOMPH_CURRENT_FUNCTION,
-                                      OOMPH_EXCEPTION_LOCATION);
-                }
+              mp_pt->set_predictor_pt(new RungeKutta<4>);
+            }
+          else if(mp_pred_name == "lrk4")
+            {
+              mp_pt->set_predictor_pt(new LowStorageRungeKutta<4>);
+            }
+          else if (mp_pred_name == "ebdf3")
+            {
+              mp_pt->set_predictor_pt(new EBDF3);
+            }
+          else
+            {
+              throw OomphLibError("Unrecognised predictor name "
+                                  + mp_pred_name,
+                                  OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
             }
           return mp_pt;
         }

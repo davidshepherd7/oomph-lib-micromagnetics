@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
 
   // Assign stuff from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
+  problem.Use_time_adaptive_newton = args.adaptive_flag();
   problem.set_bulk_mesh_pt(args.mesh_pt);
   problem.bulk_mesh_pt()->setup_boundary_element_info();
   problem.linear_solver_pt() = args.solver_pt;
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
             << std::endl;
 
           // The Newton step itself, adaptive if requested
-          if(args.adaptive_flag())
+          if(problem.Use_time_adaptive_newton)
             {
               dt = problem.adaptive_unsteady_newton_solve(dt, args.tol);
             }
