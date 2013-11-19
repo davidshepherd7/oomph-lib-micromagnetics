@@ -372,13 +372,13 @@ namespace oomph
       }
 
 
-    /// \short Calculate 2-norm of timestepper's lte error estimate
-    /// (include all data values in each node, don't include any global
-    /// data).
+    /// Get an lte error norm using the same norm and values as the
+    /// adaptive time stepper used.
     double lte_norm()
     {
       if(time_stepper_pt()->adaptive_flag())
         {
+          // Just return the error that would be used for adaptivity.
           return global_temporal_error_norm();
         }
       else

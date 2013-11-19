@@ -69,9 +69,9 @@ namespace oomph
   namespace Factories
   {
 
-    /// \short Make a timestepper from an input argument. Assumption: this will be
-    /// passed into a problem, which will delete the pointer when it's
-    /// done.
+    /// \short Make a timestepper from an input argument. Assumption: this
+    /// will be passed into a problem, which will delete the pointer when
+    /// it's done.
     inline TimeStepper* time_stepper_factory
     (const std::string& ts_name, const std::string& mp_pred_name="rk4")
     {

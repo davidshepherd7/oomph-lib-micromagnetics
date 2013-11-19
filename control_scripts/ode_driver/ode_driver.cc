@@ -161,6 +161,12 @@ public:
     // Use FD for jacobian
     GeneralisedElement::fill_in_jacobian_from_internal_by_fd
       (residuals, jacobian, true);
+
+    // // Or we can use this for problems where f(t, u) = f(t), if better
+    // // convergence is needed
+// #warning "jacobian assume no direct u dependence in residual"
+//     jacobian(0, 0) = internal_data_pt(0)->time_stepper_pt()->weight(1, 0);
+
   }
 
   void fill_in_contribution_to_mass_matrix(Vector<double>& residuals,
@@ -265,11 +271,15 @@ public:
     return el_pt->exact_solution(time);
   }
 
-  /// Error norm
+  /// Error norm: use abs(error in data).
   double global_temporal_error_norm()
   {
-    // Error estimate for zero-th value in internal data:
     Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
+
+    std::cout << "corrector: " << dat_pt->value(0, 0)
+              << " predictor: " << dat_pt->value(4, 0)
+              << std::endl;
+
     return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
   }
 
