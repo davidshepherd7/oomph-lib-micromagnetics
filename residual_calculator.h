@@ -31,24 +31,50 @@ namespace oomph
      const unsigned& flag) const = 0;
   };
 
-  class LLResidualCalculator : public ResidualCalculator
-  {
-  public:
-    /// The residual function
-    void fill_in_generic_residual_contribution
-    (const MicromagEquations* const ele_pt,
-     Vector<double> &residuals, DenseMatrix<double> &jacobian,
-     const unsigned& flag) const;
-  };
-
   class LLGResidualCalculator : public ResidualCalculator
   {
   public:
-    /// The residual function
+
+    LLGResidualCalculator(bool _use_gilbert_form)
+    {
+      Use_gilbert_form = _use_gilbert_form;
+    }
+
+    /// The residual function. Pick which form to use based on the flag.
     void fill_in_generic_residual_contribution
     (const MicromagEquations* const ele_pt,
      Vector<double> &residuals, DenseMatrix<double> &jacobian,
-     const unsigned& flag) const;
+     const unsigned& flag) const
+      {
+        if(use_gilbert_form())
+          {
+            llg_residual(ele_pt, residuals, jacobian, flag);
+          }
+        else
+          {
+            ll_residual(ele_pt, residuals, jacobian, flag);
+          }
+      }
+
+    bool use_gilbert_form() const {return Use_gilbert_form;}
+
+    void set_use_gilbert_form() {Use_gilbert_form = true;}
+    void set_use_ll_form() {Use_gilbert_form = false;}
+
+    private:
+
+    /// Calculate residual using gilbert form
+    void llg_residual(const MicromagEquations* const e_pt,
+                 Vector<double> &residuals, DenseMatrix<double> &jacobian,
+                 const unsigned& flag) const;
+
+    /// Calculate residual using ll form
+    void ll_residual(const MicromagEquations* const e_pt,
+                     Vector<double> &residuals, DenseMatrix<double> &jacobian,
+                     const unsigned& flag) const;
+
+    bool Use_gilbert_form;
+
   };
 
 } // End of oomph namespace

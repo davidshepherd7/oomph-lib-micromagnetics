@@ -31,7 +31,6 @@
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 
 
-
 #include "./magnetics_helpers.h"
 
 namespace oomph

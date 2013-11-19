@@ -8,7 +8,7 @@ using namespace VectorOps;
 namespace oomph
 {
 
-  void LLResidualCalculator::fill_in_generic_residual_contribution
+  void LLGResidualCalculator::ll_residual
   (const MicromagEquations* const e_pt,
    Vector<double> &residuals, DenseMatrix<double> &jacobian,
    const unsigned& flag) const
@@ -185,7 +185,7 @@ namespace oomph
   }
 
 
-  void LLGResidualCalculator::fill_in_generic_residual_contribution
+  void LLGResidualCalculator::llg_residual
   (const MicromagEquations* const e_pt,
    Vector<double> &residuals, DenseMatrix<double> &jacobian,
    const unsigned& flag) const

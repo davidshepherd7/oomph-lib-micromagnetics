@@ -13,8 +13,8 @@
 #include "mallinson_solution.h"
 #include "residual_calculator.h"
 #include "boundary_element_handler.h"
-
 #include "micromagnetics_flux_element.h"
+#include "residual_swapping_explicit_timestepper.h"
 
 
 namespace oomph
@@ -836,6 +836,26 @@ public:
 
       residual_calculator_pt = LLGFactories::
         residual_calculator_factory(residual_to_use);
+
+      // If we are using llg residual with midpoint method then we need to
+      // swap residuals over in the explicit predictor time steps. Put in
+      // the class to do this here.
+      if(residual_to_use == "llg" && time_stepper_name == "midpoint")
+        {
+          MidpointMethod* mp_pt = checked_dynamic_cast<MidpointMethod*>
+            (time_stepper_pt);
+
+          // We've already run the base classes factories so we have the
+          // timestepper ready to play with. Create and set up our rs
+          // timestepper.
+          ResidualSwappingExplicitTimestepper* rsts_pt
+            = new ResidualSwappingExplicitTimestepper;
+          rsts_pt->underlying_time_stepper_pt = mp_pt->predictor_pt();
+          rsts_pt->residual_pt = checked_dynamic_cast<LLGResidualCalculator*>
+            (residual_calculator_pt);
+
+          mp_pt->set_predictor_pt(rsts_pt);
+        }
     }
 
     /// Write out all args (in a parseable format) to a stream.

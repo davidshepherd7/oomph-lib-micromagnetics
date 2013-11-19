@@ -16,8 +16,6 @@
 #include "../../src/generic/hypre_solver.h"
 
 
-
-
 #include "./my_general_header.h"
 #include "./git_version.h"
 

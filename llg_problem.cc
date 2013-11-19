@@ -11,6 +11,7 @@
 #include "../../src/meshes/tetgen_mesh.h"
 #include "../../src/meshes/triangle_mesh.h"
 
+
 namespace oomph
 {
 
@@ -573,9 +574,9 @@ namespace oomph
   ResidualCalculator* residual_calculator_factory(const std::string& residual)
     {
       if(residual == "llg")
-        return new LLGResidualCalculator;
+        return new LLGResidualCalculator(true);
       else if(residual == "ll")
-        return new LLResidualCalculator;
+        return new LLGResidualCalculator(false);
       else
         throw OomphLibError("Unrecognised residual "+residual,
                             OOMPH_EXCEPTION_LOCATION,
