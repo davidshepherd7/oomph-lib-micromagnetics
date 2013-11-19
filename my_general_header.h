@@ -92,9 +92,6 @@ namespace oomph
         {
           MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
 
-          std::cout << mp_pred_name << std::endl;
-          std::cout << (mp_pred_name == "rk4") << std::endl;
-
           if(mp_pred_name == "rk4")
             {
               mp_pt->set_predictor_pt(new RungeKutta<4>);
@@ -508,7 +505,7 @@ namespace oomph
         time_stepper_name = "bdf2";
 
         specify_command_line_flag("-mp-pred", &mp_pred_name);
-        mp_pred_name = "rk4";
+        mp_pred_name = "ebdf3";
 
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
