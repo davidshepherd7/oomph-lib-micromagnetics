@@ -149,7 +149,7 @@ public:
 
     // Residual is difference between the exact derivative and our
     // timestepper's derivative estimate.
-    residuals[0] = dudt - derivative_function(t, u);
+    residuals[0] = derivative_function(t, u) - dudt;
   }
 
   void fill_in_contribution_to_jacobian(Vector<double>& residuals,
