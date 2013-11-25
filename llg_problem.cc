@@ -71,7 +71,9 @@ namespace oomph
     if(Use_implicit_ms)
       {
 
-
+        // Vector<unsigned> boundaries;
+        // for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
+        //   {boundaries.push_back(b);}
 
         // for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
         //   {
@@ -84,6 +86,40 @@ namespace oomph
         //                   << std::endl;
         //       }
         //   }
+
+
+        // // Set up neumann condition on phi_1 boundary values (using flux mesh)
+        // Flux_mesh_factory_pt = LLGFactories::mm_flux_mesh_factory_factory
+        //   (bulk_mesh_pt()->finite_element_pt(0));
+        // Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pt(), boundaries);
+
+        // // Add to global mesh
+        // this->add_sub_mesh(Flux_mesh_pt);
+
+
+        // // Pin a phi_1 value which isn't involved in the boundary element
+        // // method (we have to pin something to avoid a singular Jacobian,
+        // // can't be a boundary node or things will go wrong with BEM).
+        // Node* pinned_phi_1_node_pt = bulk_mesh_pt()->get_some_non_boundary_node();
+        // pinned_phi_1_node_pt->pin(phi_1_index());
+        // pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
+
+
+        // // I don't think phi should be pinned: needs to be in Jacobian
+        // // // Set up pinning of phi boundary values
+        // // for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
+        // //   {
+        // //     for(unsigned nd=0; nd<bulk_mesh_pt()->nboundary_node(b); nd++)
+        // //       {
+        // //         Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b, nd);
+        // //         nd_pt->pin(phi_index());
+        // //         nd_pt->set_value(phi_index(), 0.0);
+        // //       }
+        // //   }
+
+        std::string err = "Not implemented";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
 
       }
     // Otherwise pin all phi and phi_1 dofs to zero
@@ -151,12 +187,11 @@ namespace oomph
         // Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
 
         // Bem_handler_pt->build();
+
+        // // // Calculate the (initial) bem boundary conditions on phi
+        // // // ??ds might not need this? ok to wait until after a step?
+        // // maybe_update_bem_boundary_conditions();
       }
-
-
-    // // Calculate the (initial) bem boundary conditions on phi
-    // // ??ds might not need this? ok to wait until after a step?
-    // maybe_update_bem_boundary_conditions();
 
   }
 
