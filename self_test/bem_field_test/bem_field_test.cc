@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
   // Create main semi implicit problem
   SemiImplicitHybridMicromagneticsProblem problem;
   problem.add_time_stepper_pt(fake_args.time_stepper_pt);
-  problem.llg_sub_problem_pt()->set_bulk_mesh_pt(fake_args.llg_mesh_pt);
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = fake_args.h_app_fct_pt;
   problem.llg_sub_problem_pt()->Use_fd_jacobian = fake_args.use_fd_jacobian;
   problem.llg_sub_problem_pt()->Residual_calculator_pt = fake_args.residual_calculator_pt;
@@ -49,13 +48,11 @@ int main(int argc, char *argv[])
 
   // Create and set phi_1 sub problem
   GenericPoissonProblem phi_1_problem;
-  phi_1_problem.set_bulk_mesh(fake_args.phi_1_mesh_pt);
   phi_1_problem.set_flux_mesh_factory(fake_args.phi_1_flux_mesh_factory_fct_pt);
   problem.set_phi_1_problem_pt(&phi_1_problem);
 
   // Create and set phi sub problem
   GenericPoissonProblem phi_problem;
-  phi_problem.set_bulk_mesh(fake_args.phi_mesh_pt);
   problem.set_phi_problem_pt(&phi_problem);
 
   // Create and set the BEM handler
@@ -71,7 +68,9 @@ int main(int argc, char *argv[])
   problem.Doc_info.output_jacobian = fake_args.output_jacobian;
 
   // Finished customising the problem, now we can build it.
-  problem.build();
+  problem.build(fake_args.llg_mesh_pts,
+                fake_args.phi_mesh_pts,
+                fake_args.phi_1_mesh_pts);
 
 
   // Initialise problem and output initial conditions

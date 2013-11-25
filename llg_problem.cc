@@ -16,18 +16,16 @@ namespace oomph
 {
 
   /// Function that does the real work of the constructors.
-  void LLGProblem::build()
+  void LLGProblem::build(Vector<Mesh*>& bulk_mesh_pts)
   {
 #ifdef PARANOID
-    if((bulk_mesh_pt() == 0)
-       || (applied_field_fct_pt() == 0)
+    if((applied_field_fct_pt() == 0)
        || (this->time_stepper_pt() == 0)
        || (Residual_calculator_pt == 0))
       {
         std::ostringstream error_msg;
         error_msg
           << "Must the following pointers to non-null values before calling build():\n"
-          << "bulk_mesh_pt() (= " << bulk_mesh_pt() << ")\n"
           << "applied_field_fct_pt() (= " << applied_field_fct_pt() << ")\n"
           << "this->time_stepper_pt() (= " << this->time_stepper_pt() << ")\n"
           << "Residual_calculator_pt (= " << Residual_calculator_pt << ")"
@@ -38,104 +36,51 @@ namespace oomph
       }
 #endif
 
-    // // Get some constants
-    // MicromagEquations* mm_ele_pt = checked_dynamic_cast<MicromagEquations*>
-    //   (bulk_mesh_pt()->element_pt(0));
-    // const int phi_1_index = mm_ele_pt->phi_1_index_micromag();
-    // const int phi_index = mm_ele_pt->phi_index_micromag();
+    // Call the underlying build to deal with adding meshes
+    MyProblem::build(bulk_mesh_pts);
 
+    // Get the problem dimension
     this->Dim = this->ele_pt()->nodal_dimension();
 
-
-    // Write out parameters data.
-    mag_parameters_pt()->output(std::cout);
-
-
-    // Boundary conditions - our finite element discretisation requires
-    // residual addition of m x dm/dn along the boundary (due to need to
-    // reduce the order of the laplacian on m in exchange field).
-
-    // // Create mesh of MicromagFluxElement<MicromagEquations> to add boundary
-    // // contribution (if any).
-    // surface_exchange_mesh_pt() = new Mesh;
-    // for(unsigned b=0, nb=bulk_mesh_pt()->nboundary(); b < nb; b++)
-    //   {
-    //     create_surface_exchange_elements(b);
-    //   }
-
-
-    // Finish off elements
-    for(unsigned i=0; i< bulk_mesh_pt()->nelement(); i++)
+    // Finish off element build, at this point we should have only micromag
+    // elements in the meshes (so we can loop over all meshes) but we don't
+    // have a global mesh yet.
+    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
       {
-        MicromagEquations* elem_pt = checked_dynamic_cast<MicromagEquations*>
-          (bulk_mesh_pt()->element_pt(i));
+        for(unsigned i=0; i<mesh_pt(msh)->nelement(); i++)
+          {
+            MicromagEquations* elem_pt =checked_dynamic_cast<MicromagEquations*>
+              (mesh_pt(msh)->element_pt(i));
 
-        // Set whether the Jacobian should be finite differenced
-        elem_pt->Use_fd_jacobian = Use_fd_jacobian;
+            // Set whether the Jacobian should be finite differenced
+            elem_pt->Use_fd_jacobian = Use_fd_jacobian;
 
-        // Set values for magnetic parameters
-        elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
+            // Set values for magnetic parameters
+            elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
 
-        // Set pointer for an applied field
-        elem_pt->applied_field_pt() = applied_field_fct_pt();
+            // Set pointer for an applied field
+            elem_pt->applied_field_pt() = applied_field_fct_pt();
 
-        // Set the residual calculation function
-        elem_pt->Residual_calculator_pt = Residual_calculator_pt;
+            // Set the residual calculation function
+            elem_pt->Residual_calculator_pt = Residual_calculator_pt;
+          }
       }
-
-
-    // Put bulk mesh into global mesh first
-    this->add_sub_mesh(bulk_mesh_pt());
-
 
     // Set up bem stuff if we are doing it
     if(Use_implicit_ms)
       {
 
-        Vector<unsigned> boundaries;
-        for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
-          {boundaries.push_back(b);}
 
 
-        for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
-          {
-            for(unsigned nd=0; nd<bulk_mesh_pt()->nboundary_node(b); nd++)
-              {
-                Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b, nd);
-                std::cout << nd_pt->eqn_number(phi_index())
-                          << " "
-                          << nd_pt->eqn_number(phi_1_index())
-                          << std::endl;
-              }
-          }
-
-
-        // Set up neumann condition on phi_1 boundary values (using flux mesh)
-        Flux_mesh_factory_pt = LLGFactories::mm_flux_mesh_factory_factory
-          (bulk_mesh_pt()->finite_element_pt(0));
-        Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pt(), boundaries);
-
-        // Add to global mesh
-        this->add_sub_mesh(Flux_mesh_pt);
-
-
-        // Pin a phi_1 value which isn't involved in the boundary element
-        // method (we have to pin something to avoid a singular Jacobian,
-        // can't be a boundary node or things will go wrong with BEM).
-        Node* pinned_phi_1_node_pt = bulk_mesh_pt()->get_some_non_boundary_node();
-        pinned_phi_1_node_pt->pin(phi_1_index());
-        pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
-
-
-        // I don't think phi should be pinned: needs to be in Jacobian
-        // // Set up pinning of phi boundary values
         // for(unsigned b=0; b<bulk_mesh_pt()->nboundary(); b++)
         //   {
         //     for(unsigned nd=0; nd<bulk_mesh_pt()->nboundary_node(b); nd++)
         //       {
         //         Node* nd_pt = bulk_mesh_pt()->boundary_node_pt(b, nd);
-        //         nd_pt->pin(phi_index());
-        //         nd_pt->set_value(phi_index(), 0.0);
+        //         std::cout << nd_pt->eqn_number(phi_index())
+        //                   << " "
+        //                   << nd_pt->eqn_number(phi_1_index())
+        //                   << std::endl;
         //       }
         //   }
 
@@ -143,14 +88,18 @@ namespace oomph
     // Otherwise pin all phi and phi_1 dofs to zero
     else
       {
-        for(unsigned nd=0, nnode=bulk_mesh_pt()->nnode(); nd<nnode; nd++)
+        // Loop over all meshes in problem
+        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
           {
-            Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+            for(unsigned nd=0, nnode=mesh_pt(msh)->nnode(); nd<nnode; nd++)
+              {
+                Node* nd_pt = mesh_pt(msh)->node_pt(nd);
 
-            nd_pt->pin(phi_index());
-            nd_pt->pin(phi_1_index());
-            nd_pt->set_value(phi_index(),0.0);
-            nd_pt->set_value(phi_1_index(),0.0);
+                nd_pt->pin(phi_index());
+                nd_pt->pin(phi_1_index());
+                nd_pt->set_value(phi_index(),0.0);
+                nd_pt->set_value(phi_1_index(),0.0);
+              }
           }
       }
 
@@ -159,9 +108,8 @@ namespace oomph
     // Build the global mesh
     this->build_global_mesh();
 
-    // Set up base class (at the moment just does meshes in block
-    // preconditioner).
-    MyProblem::build();
+    // Number the equations
+    this->assign_eqn_numbers();
 
     // // ??ds For if we want to swap solver for large dt. For now swap if
     // // we are using any iterative solver.
@@ -171,8 +119,9 @@ namespace oomph
     //   }
     // My_linear_solver_pt = linear_solver_pt();
 
-    // Do equation numbering
-    oomph_info << "LLG Number of equations: " << this->assign_eqn_numbers() << std::endl;
+    // Write out some stuff
+    mag_parameters_pt()->output(std::cout);
+    oomph_info << "LLG Number of equations: " << ndof() << std::endl;
     oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
 
 
@@ -181,26 +130,26 @@ namespace oomph
     // ============================================================
     if(Use_implicit_ms)
       {
-        Bem_handler_pt = new BoundaryElementHandler;
+        // Bem_handler_pt = new BoundaryElementHandler;
 
-        // set mesh and index data
-        Bem_handler_pt->set_bem_all_boundaries(bulk_mesh_pt());
-        Bem_handler_pt->set_input_index(phi_1_index());
-        Bem_handler_pt->set_output_index(phi_1_index()); //??ds might work
+        // // set mesh and index data
+        // Bem_handler_pt->set_bem_all_boundaries(bulk_mesh_pt());
+        // Bem_handler_pt->set_input_index(phi_1_index());
+        // Bem_handler_pt->set_output_index(phi_1_index()); //??ds might work
 
-        // Figure out which element type we should use in the bem mesh
-        // (based on the element type used in the bulk mesh) and store the
-        // function needed to create them.
-        Bem_handler_pt->Bem_element_factory = LLGFactories::
-          bem_element_factory_factory(bulk_mesh_pt()->finite_element_pt(0));
+        // // Figure out which element type we should use in the bem mesh
+        // // (based on the element type used in the bulk mesh) and store the
+        // // function needed to create them.
+        // Bem_handler_pt->Bem_element_factory = LLGFactories::
+        //   bem_element_factory_factory(bulk_mesh_pt()->finite_element_pt(0));
 
-        // Create an integration scheme ??ds move this outside somewhere...
-        Bem_handler_pt->integration_scheme_pt() = LLGFactories::
-          variable_order_integrator_factory(bulk_mesh_pt()->finite_element_pt(0));
+        // // Create an integration scheme ??ds move this outside somewhere...
+        // Bem_handler_pt->integration_scheme_pt() = LLGFactories::
+        //   variable_order_integrator_factory(bulk_mesh_pt()->finite_element_pt(0));
 
-        Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
+        // Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
 
-        Bem_handler_pt->build();
+        // Bem_handler_pt->build();
       }
 
 
@@ -217,18 +166,16 @@ namespace oomph
   {
     double global_error = 0.0;
 
-    //Find out how many nodes there are in the problem
-    unsigned n_node = bulk_mesh_pt()->nnode();
-
-    //Loop over the nodes and calculate the estimated error in the values
-    for(unsigned i=0;i<n_node;i++)
+    // Loop over the nodes
+    for(unsigned i=0, ni=mesh_pt()->nnode(); i<ni; i++)
       {
+        Node* nd_pt = mesh_pt()->node_pt(i);
         for(unsigned j=0; j<3; j++)
           {
             // Get timestepper's error estimate for this direction of m
             // at this point.
-            double error = bulk_mesh_pt()->node_pt(i)->time_stepper_pt()->
-              temporal_error_in_value(bulk_mesh_pt()->node_pt(i), m_index(j));
+            double error = nd_pt->time_stepper_pt()->
+              temporal_error_in_value(nd_pt, m_index(j));
 
             //Add the square of the individual error to the global error
             global_error += error*error;
@@ -236,7 +183,7 @@ namespace oomph
       }
 
     // Divide by the number of data points
-    global_error /= 3*double(n_node);
+    global_error /= 3*double(mesh_pt()->nnode());
 
     return std::sqrt(global_error);
   }
@@ -245,14 +192,16 @@ namespace oomph
   /// \short Loop over all nodes in bulk mesh and get magnetisations
   Vector<Vector<double> > LLGProblem::get_nodal_magnetisations(unsigned i_time) const
   {
-    unsigned nnode = bulk_mesh_pt()->nnode();
+    // Get the space needed
+    unsigned nnode = mesh_pt()->nnode();
     Vector< Vector<double> > m_list(nnode, Vector<double>(3, 0.0));
 
-    for(unsigned nd=0; nd<nnode; nd++)
+    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
       {
         for(unsigned j=0; j<3; j++)
           {
-            m_list[nd][j] = bulk_mesh_pt()->node_pt(nd)->value(i_time, m_index(j));
+            m_list[nd][j] =
+              mesh_pt()->node_pt(nd)->value(i_time, m_index(j));
           }
       }
 
@@ -270,28 +219,33 @@ namespace oomph
     Vector<double> s(3,0.0);
     for(unsigned j=0; j<dim(); j++) s[j] = 0.5;
 
-    // Sum the difference over all elements
-    for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
+    // Sum the difference over all bulk elements in problem
+    unsigned bulk_ele_count = 0;
+    for(unsigned e=0, ne=mesh_pt()->nelement(); e < ne; e++)
       {
-        MicromagEquations* ele_pt = dynamic_cast<MicromagEquations* >
-          (bulk_mesh_pt()->element_pt(e));
+        // Skip non-bulk elements
+        if(mesh_pt()->finite_element_pt(e)->nodal_dimension() != Dim) continue;
+
+        MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
+          (mesh_pt()->element_pt(e));
 
         Vector<double> numerical_m(3,0.0);
-        ele_pt->interpolated_m_micromag(s,numerical_m);
+        ele_pt->interpolated_m_micromag(s, numerical_m);
 
         Vector<double> x(dim(),0.0);
         ele_pt->interpolated_x(s,x);
-        double t = this->time();
-        Vector<double> exact_m = fct_pt(t, x);
+        Vector<double> exact_m = fct_pt(time(), x);
 
         for(unsigned j=0; j<3; j++)
           {
             diff += std::abs(numerical_m[j] - exact_m[j]);
           }
+
+        bulk_ele_count++;
       }
 
     // Divide to get the mean
-    diff /= (3 * bulk_mesh_pt()->nelement());
+    diff /= (3.0 * double(bulk_ele_count));
 
     return diff;
   }
@@ -301,19 +255,18 @@ namespace oomph
   {
     double temp_error = 0;
 
-    unsigned nnode = bulk_mesh_pt()->nnode();
-    for(unsigned nd=0; nd<nnode; nd++)
+    // Loop over all nodes in problem
+    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
       {
-        Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
-        Vector<double> m_values(3,0.0);
+        Node* nd_pt = mesh_pt()->node_pt(nd);
+        Vector<double> m_values(3, 0.0);
         for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
 
         double m_2norm = VectorOps::two_norm(m_values);
         temp_error += std::abs(m_2norm - 1);
-        // std::cout << std::abs(m_2norm - 1) << std::endl;
       }
 
-    return temp_error/double(nnode);
+    return temp_error/double(mesh_pt()->nnode());
   }
 
   /// \short ??ds
@@ -344,11 +297,11 @@ namespace oomph
     m_error_avg = mean_norm_m_error();
 
     // Calculate std deviation
+    // ============================================================
     double temp_stddev = 0.0;
-    unsigned nnode=bulk_mesh_pt()->nnode();
-    for(unsigned nd=0; nd<nnode; nd++)
+    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
       {
-        Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+        Node* nd_pt = mesh_pt()->node_pt(nd);
         Vector<double> m_values(3,0.0);
         for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
 
@@ -356,7 +309,7 @@ namespace oomph
         temp_stddev += std::pow( m_2norm - 1 - m_error_avg, 2);
       }
 
-    temp_stddev /= nnode;
+    temp_stddev /= double(mesh_pt()->nnode());
     m_error_stddev = std::sqrt(temp_stddev);
   }
 
@@ -384,9 +337,6 @@ namespace oomph
         m_index_micromag[i] = elem_pt->m_index_micromag(i);
       }
 
-    // Find number of nodes in mesh
-    unsigned num_nod = this->mesh_pt()->nnode();
-
     // Set continuous times at previous timesteps:
     int nprev_steps=this->time_stepper_pt()->nprev_values();
     Vector<double> prev_time(nprev_steps+1);
@@ -403,18 +353,19 @@ namespace oomph
         std::cout << "setting IC at time =" << time << std::endl;
 
         // Loop over the nodes to set initial values everywhere
-        for (unsigned n=0;n<num_nod;n++)
+        for(unsigned n=0, nnd=mesh_pt()->nnode(); n<nnd; n++)
           {
-            unsigned dim = this->mesh_pt()->node_pt(n)->ndim();
-
             // Get initial value of m from inputs
-            Vector<double> x(dim,0.0);
-            this->mesh_pt()->node_pt(n)->position(t,x);
+            Vector<double> x(Dim, 0.0);
+            mesh_pt()->node_pt(n)->position(t,x);
             Vector<double> m = initial_m_pt(time,x);
 
             // Set initial condition on m
             for(unsigned i=0; i<3; i++)
-              this->mesh_pt()->node_pt(n)->set_value(t,m_index_micromag[i],m[i]);
+              {
+                mesh_pt()->node_pt(n)->set_value
+                  (t,m_index_micromag[i],m[i]);
+              }
           }
       }
 

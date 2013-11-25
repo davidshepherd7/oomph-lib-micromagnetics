@@ -70,7 +70,8 @@ namespace oomph
     }
 
     /// \short Function to do the real work of the constructor.
-    void build(bool pin_phi1 = true);
+    void build(Vector<Mesh*>& llg_mesh_pts, Vector<Mesh*>& phi_mesh_pts,
+               Vector<Mesh*>& phi_1_mesh_pts, bool pin_phi1=true);
 
     /// Destructor
     ~SemiImplicitHybridMicromagneticsProblem()
@@ -151,7 +152,7 @@ namespace oomph
     /// will fail so this should be safe.
     MicromagEquations* llg_element_pt() const
     {return checked_dynamic_cast<MicromagEquations*>
-        (llg_sub_problem_pt()->bulk_mesh_pt()->element_pt(0));}
+        (llg_mesh_pt()->element_pt(0));}
 
     /// Get access to magnetic parameters - only relevant in LLG problem so
     /// return the pointer from that problem.
@@ -169,19 +170,11 @@ namespace oomph
 
     const Mesh* llg_mesh_pt() const
     {
-#ifdef PARANOID
-      if(llg_sub_problem_pt()->bulk_mesh_pt() == 0)
-        {
-          std::string error_msg = "LLG mesh pointer is null!";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return llg_sub_problem_pt()->bulk_mesh_pt();
+      return llg_sub_problem_pt()->mesh_pt();
     }
 
-    const Mesh* phi_1_mesh_pt() const {return phi_1_problem_pt()->bulk_mesh_pt();}
-    const Mesh* phi_mesh_pt() const {return phi_problem_pt()->bulk_mesh_pt();}
+    const Mesh* phi_1_mesh_pt() const {return phi_1_problem_pt()->mesh_pt();}
+    const Mesh* phi_mesh_pt() const {return phi_problem_pt()->mesh_pt();}
 
     const DenseMatrix<double>* bem_matrix_pt() const {return Bem_handler_pt->bem_matrix_pt();}
 
@@ -253,7 +246,7 @@ namespace oomph
   {
 
   public:
-    SemiImplicitMMArgs() : llg_mesh_pt(0), phi_1_mesh_pt(0), phi_mesh_pt(0) {}
+    SemiImplicitMMArgs() {}
 
     virtual void set_flags()
     {
@@ -280,24 +273,24 @@ namespace oomph
       // done before factory mesh function selection...
 
       // LLG (magnetism) mesh
-      llg_mesh_pt = SemiImplicitFactories::llg_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
+      llg_mesh_pts.push_back(SemiImplicitFactories::llg_mesh_factory
+        (mesh_name, refinement, time_stepper_pt));
 
       // Make the two phi meshes
-      phi_mesh_pt = SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
-      phi_1_mesh_pt = SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
+      phi_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt));
+      phi_1_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt));
 
       // Pick the factory function for creating the phi 1 surface mesh
       phi_1_flux_mesh_factory_fct_pt =
         SemiImplicitFactories::phi_1_flux_mesh_factory_factory
-        (phi_1_mesh_pt->finite_element_pt(0));
+        (phi_1_mesh_pts[0]->finite_element_pt(0));
 
       // Pick the factory function for creating the BEM elements
       bem_element_factory_fct_pt =
         LLGFactories::bem_element_factory_factory
-        (llg_mesh_pt->finite_element_pt(0));
+        (llg_mesh_pts[0]->finite_element_pt(0));
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -310,9 +303,9 @@ namespace oomph
     }
 
 
-    Mesh* llg_mesh_pt;
-    Mesh* phi_1_mesh_pt;
-    Mesh* phi_mesh_pt;
+    Vector<Mesh*> llg_mesh_pts;
+    Vector<Mesh*> phi_1_mesh_pts;
+    Vector<Mesh*> phi_mesh_pts;
 
     GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
     LLGFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;

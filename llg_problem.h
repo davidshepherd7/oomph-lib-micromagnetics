@@ -64,7 +64,7 @@ namespace oomph
     }
 
     /// Function that does the real work of the constructors.
-    void build();
+    void build(Vector<Mesh*>& bulk_mesh_pts);
 
     /// Destructor
     virtual ~LLGProblem()
@@ -79,9 +79,10 @@ namespace oomph
     /// Renormalise magnetisation to 1 (needed with BDF2)
     void renormalise_magnetisation()
     {
-      for(unsigned nd=0; nd<bulk_mesh_pt()->nnode(); nd++)
+      // Loop over meshes and renormalise m at each node
+      for(unsigned nd=0; nd<mesh_pt()->nnode(); nd++)
         {
-          Node* nd_pt = bulk_mesh_pt()->node_pt(nd);
+          Node* nd_pt = mesh_pt()->node_pt(nd);
 
           // Get m vector
           Vector<double> m_values(3,0.0);
@@ -372,7 +373,7 @@ namespace oomph
       unsigned npts = 2;
 
       // Output solution with specified number of plot points per element
-      bulk_mesh_pt()->output(some_file, npts);
+      mesh_pt()->output(some_file, npts);
     }
 
     void write_additional_trace_headers(std::ofstream& trace_file) const
@@ -432,11 +433,20 @@ namespace oomph
     Vector<double> elemental_max_m_angle_variations() const
     {
       Vector<double> angles;
-      for(unsigned e=0, ne=bulk_mesh_pt()->nelement(); e < ne; e++)
+
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
         {
-          MicromagEquations* ele_pt = dynamic_cast<MicromagEquations*>
-            (bulk_mesh_pt()->element_pt(e));
-          angles.push_back(ele_pt->max_m_angle_variation());
+          // Skip non-bulk meshes
+          if(mesh_pt(msh)->node_pt(0)->ndim() != Dim) continue;
+
+          for(unsigned e=0, ne=mesh_pt(msh)->nelement(); e < ne; e++)
+            {
+              MicromagEquations* ele_pt =
+                checked_dynamic_cast<MicromagEquations*>
+                (mesh_pt(msh)->element_pt(e));
+
+              angles.push_back(ele_pt->max_m_angle_variation());
+            }
         }
       return angles;
     }
@@ -616,28 +626,11 @@ namespace oomph
     //       return Surface_exchange_mesh_pt;
     //     }
 
-    /// \short Non-const access function for Bulk_mesh_pt.
-    void set_bulk_mesh_pt(Mesh* mesh_pt) {Bulk_mesh_pt = mesh_pt;}
-
-    /// \short Const access function for Bulk_mesh_pt.
-    Mesh* bulk_mesh_pt() const
-    {
-#ifdef PARANOID
-      if(Bulk_mesh_pt == 0)
-        {
-          std::string error_msg = "Null bulk mesh pointer!";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Bulk_mesh_pt;
-    }
-
     /// \short Get a pointer to a MicromagEquations element.
     MicromagEquations* ele_pt() const
     {
       return checked_dynamic_cast<MicromagEquations*>
-        (bulk_mesh_pt()->element_pt(0));
+        (mesh_pt(0)->element_pt(0));
     }
 
     Mesh* flux_mesh_factory(Mesh* mesh_pt,
@@ -681,9 +674,6 @@ namespace oomph
 
     /// Normalise magnetisation problem after each step?
     bool Renormalise_each_time_step;
-
-    /// Pointer to bulk mesh (i.e. the magnetic material).
-    Mesh* Bulk_mesh_pt;
 
     /// \short Exchange_energy, computed after previous Newton solve.
     double Exchange_energy;
@@ -912,8 +902,8 @@ public:
   {
   public:
 
-    /// Constructor: Initialise pointers to null.
-    LLGArgs() : mesh_pt(0) {}
+    /// Constructor
+    LLGArgs() {}
 
     virtual void set_flags()
     {
@@ -935,8 +925,8 @@ public:
 
       // Do the mesh last of all because it can be slow
       mesh_name = to_lower(mesh_name);
-      mesh_pt = LLGFactories::mesh_factory(mesh_name, refinement,
-                                           time_stepper_pt, nnode1d);
+      mesh_pts.push_back(LLGFactories::mesh_factory(mesh_name, refinement,
+                                                    time_stepper_pt, nnode1d));
 
       use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
     }
@@ -951,7 +941,7 @@ public:
     }
 
 
-    Mesh* mesh_pt;
+    Vector<Mesh*> mesh_pts;
 
     unsigned nnode1d;
 

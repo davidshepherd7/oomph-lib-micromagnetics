@@ -225,170 +225,203 @@ namespace oomph
   }
 
   /// \short Function to do the real work of the constructor.
-  void SemiImplicitHybridMicromagneticsProblem::build(bool pin_phi1)
+  void SemiImplicitHybridMicromagneticsProblem::
+  build(Vector<Mesh*>& llg_mesh_pts, Vector<Mesh*>& phi_mesh_pts,
+        Vector<Mesh*>& phi_1_mesh_pts, bool pin_phi1)
   {
+    // Throughout this function we need to be careful not to use each
+    // problem's global mesh pointer until it as been built.
+
+
+    // build llg (no extra work needed before the build)
+    // ============================================================
+    llg_sub_problem_pt()->build(llg_mesh_pts);
+
+
     // Set up phi_1 problem
     // ============================================================
-    {
 
-      Vector<unsigned> neu_bound;
-      for(unsigned b=0, nb=phi_1_mesh_pt()->nboundary(); b < nb; b++)
-        {
-          neu_bound.push_back(b);
-        }
+    // phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m).
+    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+      {
+        Mesh* mesh_pt = phi_1_mesh_pts[msh];
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
+          {
+            phi_1_problem_pt()->add_neumann_boundary(mesh_pt, b, 0);
+          }
+      }
 
-      // phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m)
-      phi_1_problem_pt()->set_neumann_boundaries(neu_bound, 0);
+    // Pin a node which isn't involved in the boundary element method (we
+    // have to pin something to avoid a singular Jacobian, can't be a
+    // boundary node or things will go wrong with BEM).
+    if(pin_phi1)
+      {
+        Node* pinned_phi_1_node_pt = phi_1_mesh_pts[0]->get_some_non_boundary_node();
+        pinned_phi_1_node_pt->pin(0);
+        pinned_phi_1_node_pt->set_value(0,0.0);
+      }
+    else
+      {
+        std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
+                  << " you might be ok..."
+                  << std::endl;
+      }
 
-      if(pin_phi1)
-        {
-          // Pin a node which isn't involved in the boundary element method (we
-          // have to pin something to avoid a singular Jacobian, can't be a
-          // boundary node or things will go wrong with BEM).
-          Node* pinned_phi_1_node_pt = phi_1_mesh_pt()->get_some_non_boundary_node();
-          pinned_phi_1_node_pt->pin(0);
-          pinned_phi_1_node_pt->set_value(0,0.0);
-        }
-      else
-        {
-          std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
-                    << " you might be ok..."
-                    << std::endl;
-        }
+    // Finish off the problem
+    phi_1_problem_pt()->build(phi_1_mesh_pts);
 
-      // Finish off the problem
-      phi_1_problem_pt()->build();
 
-      // Things will go wrong if the nodes of all meshes are not in
-      // the same place:
+    // Check that all three types of mesh match up
 #ifdef PARANOID
-      if((phi_1_mesh_pt()->nnode() != phi_mesh_pt()->nnode())
-         || (phi_1_mesh_pt()->nnode() != llg_mesh_pt()->nnode()))
-        {
-          std::ostringstream error_msg;
-          error_msg << "Mesh nodes must be the same.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      unsigned dim = phi_mesh_pt()->node_pt(0)->ndim();
-      for(unsigned j=0; j<dim; j++)
-        {
-          for(unsigned nd=0, nnode= phi_1_mesh_pt()->nnode(); nd<nnode; nd++)
-            {
-              if((phi_1_mesh_pt()->node_pt(nd)->x(j) !=
-                  phi_mesh_pt()->node_pt(nd)->x(j))
-                 ||
-                 (phi_1_mesh_pt()->node_pt(nd)->x(j) !=
-                  llg_mesh_pt()->node_pt(nd)->x(j)))
-                {
-                  std::ostringstream error_msg;
-                  error_msg << "Mesh nodes must be in the same places.";
-                  throw OomphLibError(error_msg.str(),
-                                      OOMPH_CURRENT_FUNCTION,
-                                      OOMPH_EXCEPTION_LOCATION);
-                }
-            }
-        }
+    if((llg_mesh_pts.size() != phi_mesh_pts.size())
+       || (llg_mesh_pts.size() != phi_1_mesh_pts.size()))
+      {
+        std::string err = "All mesh lists must be the same size!";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
 #endif
 
-      // Assign micromagnetics element pointers
-      // ??ds dodgy...
-      for(unsigned e=0, ne=phi_1_mesh_pt()->nelement(); e < ne; e++)
-        {
-          MagnetostaticFieldEquations* ele_pt =
-            checked_dynamic_cast<MagnetostaticFieldEquations*>
-            (phi_1_mesh_pt()->element_pt(e));
 
-          MicromagEquations* m_ele_pt = checked_dynamic_cast<MicromagEquations*>
-            (llg_mesh_pt()->element_pt(e));
+    // Assign bulk elements pointers to each other (and check that it is
+    // safe).
+    for(unsigned msh=0; msh<llg_mesh_pts.size(); msh++)
+      {
+        Mesh* phi_mesh_pt = phi_mesh_pts[msh];
+        Mesh* llg_mesh_pt = llg_mesh_pts[msh];
+        Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
 
-          ele_pt->set_micromag_element_pt(m_ele_pt);
-        }
+#ifdef PARANOID
+        // Things will go wrong if the nodes of all meshes are not in
+        // the same place:
+        if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
+           || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nodes must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 
-    }
+        if((phi_1_mesh_pt->nelement() != phi_mesh_pt->nelement())
+           || (phi_1_mesh_pt->nelement() != llg_mesh_pt->nelement()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nelements must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
+        for(unsigned j=0; j<dim; j++)
+          {
+            for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
+              {
+                if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    phi_mesh_pt->node_pt(nd)->x(j))
+                   ||
+                   (phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    llg_mesh_pt->node_pt(nd)->x(j)))
+                  {
+                    std::ostringstream error_msg;
+                    error_msg << "Mesh nodes must be in the same places.";
+                    throw OomphLibError(error_msg.str(),
+                                        OOMPH_CURRENT_FUNCTION,
+                                        OOMPH_EXCEPTION_LOCATION);
+                  }
+              }
+          }
+
+        //??ds check that element e in each mesh has the nodes in the same
+        //places?
+#endif
+
+        // Assign the various elements pointers to each other
+        for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
+          {
+
+            // Get the element pointers
+            MagnetostaticFieldEquations* phi_1_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_1_mesh_pt->element_pt(e));
+            MagnetostaticFieldEquations* phi_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_mesh_pt->element_pt(e));
+            SemiImplicitMicromagEquations* m_ele_pt =
+              checked_dynamic_cast<SemiImplicitMicromagEquations*>
+              (llg_mesh_pt->element_pt(e));
+
+            phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
+            phi_ele_pt->set_micromag_element_pt(m_ele_pt);
+            m_ele_pt->magnetostatic_field_element_pt() = phi_ele_pt;
+          }
+
+      }
 
     // BEM handler:
     // ============================================================
-    {
-      // Construct the BEM (must be done before pinning phi values)
-      bem_handler_pt()->set_bem_all_boundaries(phi_1_mesh_pt());
+    // Construct the BEM (must be done before pinning phi values)
 
-      // both zero because they are in seperate problems
-      bem_handler_pt()->set_input_index(0);
-      bem_handler_pt()->set_output_index(0);
+    // Set list of boundaries to use bem on
+    for(unsigned msh=0, nmsh=phi_1_mesh_pts.size(); msh<nmsh; msh++)
+      {
+        for(unsigned b = 0; b < phi_1_mesh_pts[msh]->nboundary(); b++)
+          {
+            bem_handler_pt()->set_bem_boundary(b, phi_1_mesh_pts[msh]);
+          }
+      }
 
-      // Create an integration scheme ??ds move this outside somewhere...
-      bem_handler_pt()->integration_scheme_pt() =
-        LLGFactories::
-        variable_order_integrator_factory(phi_1_mesh_pt()->finite_element_pt(0));
+    // both indicies zero (because they are in separate problems)
+    bem_handler_pt()->set_input_index(0);
+    bem_handler_pt()->set_output_index(0);
 
-      bem_handler_pt()->input_corner_data_pt() = 0; //??Ds
+    // Create an integration scheme ??ds move this outside somewhere...
+    bem_handler_pt()->integration_scheme_pt() = LLGFactories::
+      variable_order_integrator_factory(phi_1_mesh_pt()->finite_element_pt(0));
 
+    // Only treat cases where the corners are rectangle-like for now
+    bem_handler_pt()->input_corner_data_pt() = 0; //??Ds
 
-      oomph_info << "Creating BEM handler" << std::endl;
-      bem_handler_pt()->build();
-    }
+    oomph_info << "Creating BEM handler" << std::endl;
+    bem_handler_pt()->build();
 
-    // Now we can set up phi problem
+    // Phi problem
     // ============================================================
 
-    unsigned nboundary = phi_mesh_pt()->nboundary();
-    Phi_boundary_values_pts.assign(nboundary, 0);
-    for(unsigned b=0; b < nboundary; b++)
+    // phi b.c.s are all Dirichlet, determined by a vector of BEM
+    // values. Create these vectors and link them into the phi problem.
+    for(unsigned msh=0, nmsh=phi_mesh_pts.size(); msh<nmsh; msh++)
       {
-        // Phi is determined by BEM
-        LinearAlgebraDistribution* dist_pt =
-          new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
-                                        phi_mesh_pt()->nboundary_node(b), false);
+        Mesh* mesh_pt = phi_mesh_pts[msh];
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
+          {
+            // Create the vector
+            LinearAlgebraDistribution* dist_pt =
+              new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
+                                            mesh_pt->nboundary_node(b), false);
+            DoubleVector* db_vec_pt = new DoubleVector(dist_pt);
 
-        Phi_boundary_values_pts[b] = new DoubleVector(dist_pt);
-        phi_problem_pt()->set_dirichlet_boundary_by_vector(b, Phi_boundary_values_pts[b]);
-      }
-    phi_problem_pt()->build();
+            // Plug it into the phi problem and our list of bem controlled
+            // values.
+            Phi_boundary_values_pts.push_back(db_vec_pt);
+            phi_problem_pt()->add_dirichlet_boundary_by_vector(mesh_pt, b,
+                                                               db_vec_pt);
+          }
 
-    // Assign micromagnetics element pointers
-    // ??ds dodgy...
-    for(unsigned e=0, ne=phi_mesh_pt()->nelement(); e < ne; e++)
-      {
-        MagnetostaticFieldEquations* ele_pt = checked_dynamic_cast<MagnetostaticFieldEquations*>
-          (phi_mesh_pt()->element_pt(e));
+#ifdef PARANOID
+        if(nmsh > 1)
+          {
+            std::string err = "not handled multi mesh here - phi_boundary_values_pt";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+#endif
 
-        MicromagEquations* m_ele_pt = checked_dynamic_cast<MicromagEquations*>
-          (llg_mesh_pt()->element_pt(e));
-
-        ele_pt->set_micromag_element_pt(m_ele_pt);
-      }
-
-
-    // LLG problem:
-    // ============================================================
-
-    //??ds while we still have phi in MM elements pin them all
-    unsigned phi_index = llg_element_pt()->phi_index_micromag();
-    unsigned phi_1_index = llg_element_pt()->phi_1_index_micromag();
-    for(unsigned nd=0, nnode=llg_mesh_pt()->nnode(); nd<nnode; nd++)
-      {
-        Node* nd_pt = llg_mesh_pt()->node_pt(nd);
-        nd_pt->pin(phi_index);
-        nd_pt->pin(phi_1_index);
       }
 
-    // Assign phi element pointers
-    // ??ds dodgy...
-    for(unsigned e=0, ne=llg_mesh_pt()->nelement(); e < ne; e++)
-      {
-        SemiImplicitMicromagEquations* ele_pt
-          = checked_dynamic_cast<SemiImplicitMicromagEquations*>
-          (llg_mesh_pt()->element_pt(e));
-        ele_pt->magnetostatic_field_element_pt() =
-          checked_dynamic_cast<MagnetostaticFieldEquations*>(phi_mesh_pt()->element_pt(e));
-      }
-
-
-    // Build the LLG part of the problem. ??ds
-    llg_sub_problem_pt()->build();
+    phi_problem_pt()->build(phi_mesh_pts);
   }
 
 
