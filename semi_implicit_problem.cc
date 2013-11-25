@@ -4,6 +4,9 @@
 // Quadratures for the quadrature factory
 #include "variable_order_quadrature.h"
 
+#include "multi_mesh.h"
+
+
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"
 #include "../../src/meshes/simple_rectangular_tri_mesh.h"
@@ -29,30 +32,30 @@ namespace oomph
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Mesh* llg_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           unsigned nnode1d)
-    {
+    Vector<Mesh*> llg_mesh_factory(const std::string& _mesh_name,
+                                   int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d)
+        {
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
       // Make the mesh and store a pointer to it
-      Mesh* mesh_pt = 0;
+      Vector<Mesh*> mesh_pts;
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
           unsigned nx = 5 * std::pow(2, refinement_level);
-          mesh_pt = new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
-            (nx, nx, lx, lx, time_stepper_pt);
+          mesh_pts.push_back(new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
+                             (nx, nx, lx, lx, time_stepper_pt));
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
-            ("./meshes/square." + to_string(refinement_level) + ".node",
-             "./meshes/square." + to_string(refinement_level) + ".ele",
-             "./meshes/square." + to_string(refinement_level) + ".poly",
-             time_stepper_pt);
+          mesh_pts.push_back(new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
@@ -60,38 +63,72 @@ namespace oomph
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = 2 * std::pow(2, refinement_level);
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
-          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
-            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+                             (nx, ny, nz, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
-            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
+          mesh_pts.push_back(new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+                             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+                              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+                              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+                             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+                             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
-            ("./meshes/sphere." + to_string(refinement_level) + ".node",
-             "./meshes/sphere." + to_string(refinement_level) + ".ele",
-             "./meshes/sphere." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
+          mesh_pts.push_back(new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+        }
+      else if(mesh_name == "multi_ut_sphere" && nnode1d == 2)
+        {
+          // First mesh: a sphere at the origin
+          mesh_pts.push_back(new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+
+          // Another sphere shifted 2 units along x
+          mesh_pts.push_back(new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+          shift_mesh(2.0, 0, 0, mesh_pts[1]);
+        }
+      else if(mesh_name == "multi_ut_square" && nnode1d == 2)
+        {
+          // First mesh: a square at the origin
+          mesh_pts.push_back(new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
+
+          // Another square shifted 2 units along x
+          mesh_pts.push_back(new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
+          shift_mesh(2.0, 0, 0, mesh_pts[1]);
         }
       else
         {
@@ -101,39 +138,42 @@ namespace oomph
         }
 
       // For some reason we have to call this manually...
-      mesh_pt->setup_boundary_element_info();
+      for(unsigned msh=0, nmsh=mesh_pts.size(); msh<nmsh; msh++)
+        {
+          mesh_pts[msh]->setup_boundary_element_info();
+        }
 
       // Done: pass out the mesh pointer
-      return mesh_pt;
+      return mesh_pts;
     }
 
     /// \short Make a mesh of MagnetostaticField elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Mesh* phi_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           unsigned nnode1d)
+    Vector<Mesh*> phi_mesh_factory(const std::string& _mesh_name,
+                                   int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d)
     {
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
       // Make the mesh and store a pointer to it
-      Mesh* mesh_pt = 0;
+      Vector<Mesh*> mesh_pts;
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
           unsigned nx = 5 * std::pow(2, refinement_level);
-          mesh_pt = new SimpleRectangularQuadMesh<QMagnetostaticFieldElement<2,2> >
-            (nx, nx, lx, lx, time_stepper_pt);
+          mesh_pts.push_back(new SimpleRectangularQuadMesh<QMagnetostaticFieldElement<2,2> >
+                             (nx, nx, lx, lx, time_stepper_pt));
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          mesh_pt = new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
-            ("./meshes/square." + to_string(refinement_level) + ".node",
-             "./meshes/square." + to_string(refinement_level) + ".ele",
-             "./meshes/square." + to_string(refinement_level) + ".poly",
-             time_stepper_pt);
+          mesh_pts.push_back(new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
@@ -141,38 +181,72 @@ namespace oomph
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = 2 * std::pow(2, refinement_level);
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
-          mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
-            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+                             (nx, ny, nz, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
-            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
-             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
+          mesh_pts.push_back(new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+                             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+                              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+                              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+                             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
           double lx = 30, ly = lx, lz = 100;
           unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+          mesh_pts.push_back(new SimpleCubicMesh<QMagnetostaticFieldElement<3, 2> >
+                             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt));
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
-            ("./meshes/sphere." + to_string(refinement_level) + ".node",
-             "./meshes/sphere." + to_string(refinement_level) + ".ele",
-             "./meshes/sphere." + to_string(refinement_level) + ".face",
-             time_stepper_pt);
+          mesh_pts.push_back(new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+        }
+      else if(mesh_name == "multi_ut_sphere" && nnode1d == 2)
+        {
+          // First mesh: a sphere at the origin
+          mesh_pts.push_back(new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+
+          // Another sphere shifted 2 units along x
+          mesh_pts.push_back(new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+                             ("./meshes/sphere." + to_string(refinement_level) + ".node",
+                              "./meshes/sphere." + to_string(refinement_level) + ".ele",
+                              "./meshes/sphere." + to_string(refinement_level) + ".face",
+                              time_stepper_pt));
+          shift_mesh(2.0, 0, 0, mesh_pts[1]);
+        }
+      else if(mesh_name == "multi_ut_square" && nnode1d == 2)
+        {
+          // First mesh: a square at the origin
+          mesh_pts.push_back(new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
+
+          // Another square shifted 2 units along x
+          mesh_pts.push_back(new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
+                             ("./meshes/square." + to_string(refinement_level) + ".node",
+                              "./meshes/square." + to_string(refinement_level) + ".ele",
+                              "./meshes/square." + to_string(refinement_level) + ".poly",
+                              time_stepper_pt));
+          shift_mesh(2.0, 0, 0, mesh_pts[1]);
         }
       else
         {
@@ -182,11 +256,15 @@ namespace oomph
         }
 
       // For some reason we have to call this manually...
-      mesh_pt->setup_boundary_element_info();
+      for(unsigned msh=0, nmsh=mesh_pts.size(); msh<nmsh; msh++)
+        {
+          mesh_pts[msh]->setup_boundary_element_info();
+        }
 
       // Done: pass out the mesh pointer
-      return mesh_pt;
+      return mesh_pts;
     }
+
 
 
     /// \short Return a factory function which will create the appropriate
@@ -409,15 +487,6 @@ namespace oomph
             phi_problem_pt()->add_dirichlet_boundary_by_vector(mesh_pt, b,
                                                                db_vec_pt);
           }
-
-#ifdef PARANOID
-        if(nmsh > 1)
-          {
-            std::string err = "not handled multi mesh here - phi_boundary_values_pt";
-            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
-          }
-#endif
 
       }
 

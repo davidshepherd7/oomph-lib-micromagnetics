@@ -33,19 +33,19 @@ namespace oomph
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Mesh* llg_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           unsigned nnode1d = 2);
+    Vector<Mesh*> llg_mesh_factory(const std::string& _mesh_name,
+                                   int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d = 2);
 
 
     /// \short Make a mesh of MagnetostaticField elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Mesh* phi_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           unsigned nnode1d = 2);
+    Vector<Mesh*> phi_mesh_factory(const std::string& _mesh_name,
+                                   int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d = 2);
 
 
     /// \short Return a factory function which will create the appropriate
@@ -60,7 +60,7 @@ namespace oomph
   {
   public:
 
-    // Default constructor, who knows what will happen here... ??ds
+    // Default constructor
     SemiImplicitHybridMicromagneticsProblem() :
       Phi_boundary_values_pts()
     {
@@ -273,14 +273,14 @@ namespace oomph
       // done before factory mesh function selection...
 
       // LLG (magnetism) mesh
-      llg_mesh_pts.push_back(SemiImplicitFactories::llg_mesh_factory
-        (mesh_name, refinement, time_stepper_pt));
+      llg_mesh_pts = SemiImplicitFactories::llg_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
 
       // Make the two phi meshes
-      phi_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt));
-      phi_1_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt));
+      phi_mesh_pts = SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
+      phi_1_mesh_pts = SemiImplicitFactories::phi_mesh_factory
+        (mesh_name, refinement, time_stepper_pt);
 
       // Pick the factory function for creating the phi 1 surface mesh
       phi_1_flux_mesh_factory_fct_pt =

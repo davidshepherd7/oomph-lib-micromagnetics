@@ -44,7 +44,8 @@ headers = array_interpolator.h \
 	prettyprint98.hpp \
 	residual_calculator.h \
 	poisson_test_problem.h \
-	residual_swapping_explicit_timestepper.h
+	residual_swapping_explicit_timestepper.h \
+	multi_mesh.h
 
 
 # Define name of library
