@@ -56,8 +56,6 @@ int main(int argc, char *argv[])
   // Assign stuff from input arguments.
   problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.Use_time_adaptive_newton = args.adaptive_flag();
-  problem.set_bulk_mesh_pt(args.mesh_pt);
-  problem.bulk_mesh_pt()->setup_boundary_element_info();
   problem.linear_solver_pt() = args.solver_pt;
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.newton_solver_tolerance() = args.newton_tol;
@@ -78,7 +76,7 @@ int main(int argc, char *argv[])
     }
 
   // Finished setup, now we can build the problem
-  problem.build();
+  problem.build(args.mesh_pts);
 
   // Initialise problem and output
   problem.initialise_dt(args.dt);

@@ -112,23 +112,27 @@ namespace oomph
       set_flux_mesh_factory(&Factories::
                             poisson_surface_mesh_factory<QTFPoissonFluxElement<2,3> >);
 
-      // Assign bulk mesh (flux mesh is automatically dealt with)
-      this->set_bulk_mesh(Bulk_mesh_pt);
-
       // Assign b.c.s
-      for(unsigned b=0; b < this->bulk_mesh_pt()->nboundary(); b++)
+      for(unsigned b=0; b<Bulk_mesh_pt->nboundary(); b++)
         {
-          if(b != 1) this->set_dirichlet_boundary(b, &TanhSolnForPoisson::get_exact_u);
+          if(b != 1)
+            {
+              this->add_dirichlet_boundary(Bulk_mesh_pt, b,
+                                           &TanhSolnForPoisson::get_exact_u);
+            }
         }
-      this->set_neumann_boundaries(Vector<unsigned>(1,1),
-                                   &TanhSolnForPoisson::prescribed_flux_on_fixed_x_boundary);
+
+      add_neumann_boundary(Bulk_mesh_pt, 1,
+                           &TanhSolnForPoisson::prescribed_flux_on_fixed_x_boundary);
 
       // Assign function pointers
       this->set_source_fct_pt(&TanhSolnForPoisson::source_function);
       this->exact_solution_fct_pt() = &TanhSolnForPoisson::get_exact_u;
 
       // Finish building the problem
-      this->build();
+      Vector<Mesh*> mesh_pts;
+      mesh_pts.push_back(Bulk_mesh_pt);
+      this->build(mesh_pts);
     }
 
 

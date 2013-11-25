@@ -36,7 +36,6 @@ int main(int argc, char *argv[])
   // Create main semi implicit problem
   SemiImplicitHybridMicromagneticsProblem problem;
   problem.add_time_stepper_pt(args.time_stepper_pt);
-  problem.llg_sub_problem_pt()->set_bulk_mesh_pt(args.llg_mesh_pt);
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
   problem.llg_sub_problem_pt()->linear_solver_pt() = args.solver_pt;
   problem.llg_sub_problem_pt()->renormalise_each_time_step() = args.renormalise_flag();
@@ -49,15 +48,13 @@ int main(int argc, char *argv[])
 
   // Create and set phi_1 sub problem
   GenericPoissonProblem phi_1_problem;
-  phi_1_problem.set_bulk_mesh(args.phi_1_mesh_pt);
   phi_1_problem.set_flux_mesh_factory(args.phi_1_flux_mesh_factory_fct_pt);
-  problem.set_phi_1_problem_pt(&phi_1_problem);
   phi_1_problem.newton_solver_tolerance() = args.newton_tol;
+  problem.set_phi_1_problem_pt(&phi_1_problem);
 
 
   // Create and set phi sub problem
   GenericPoissonProblem phi_problem;
-  phi_problem.set_bulk_mesh(args.phi_mesh_pt);
   phi_problem.newton_solver_tolerance() = args.newton_tol;
   problem.set_phi_problem_pt(&phi_problem);
 
@@ -84,7 +81,9 @@ int main(int argc, char *argv[])
   problem.Doc_info.output_jacobian = args.output_jacobian;
 
   // Finished customising the problem, now we can build it.
-  problem.build();
+  problem.build(args.llg_mesh_pts,
+                args.phi_mesh_pts,
+                args.phi_1_mesh_pts);
 
 
   // Initialise problem and output initial conditions

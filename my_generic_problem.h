@@ -173,8 +173,8 @@ namespace oomph
     virtual void write_additional_trace_headers(std::ofstream& trace_file)
       const {}
 
-    /// ??ds
-    virtual void doc_solution_additional(std::ofstream& soln_file) const = 0;
+    /// Overload to write any problem specific data
+    virtual void doc_solution_additional(std::ofstream& soln_file) const {};
     virtual void final_doc_additional() const {};
     virtual void initial_doc_additional() const {};
 
@@ -419,17 +419,26 @@ namespace oomph
     }
 
 
-    /// \short Perform final set up of problem (requires mesh pointers to
-    /// be set).
-    virtual void build()
+    /// \short Perform set up of problem.
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts)
       {
+
+        // Push all the meshes into the problem's sub mesh list
+        for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
+          {
+            add_sub_mesh(bulk_mesh_pts[j]);
+            bulk_mesh_pts[j]->setup_boundary_element_info();
+          }
+
         // If we have an iterative solver with a block preconditioner then
-        // add all the meshes to the block preconditioner.
+        // add all the meshes to the block preconditioner as well.
         IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
         if(its_pt != 0)
           {
             BlockPreconditioner<CRDoubleMatrix>* bp_pt
-              = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>(its_pt->preconditioner_pt());
+              = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
+              (its_pt->preconditioner_pt());
+
             if(bp_pt != 0)
               {
                 bp_pt->set_nmesh(nsub_mesh());

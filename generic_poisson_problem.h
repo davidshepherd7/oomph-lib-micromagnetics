@@ -15,12 +15,39 @@
 #include "./template_free_poisson_flux.h"
 
 #include "./my_general_header.h"
+#include "./my_generic_problem.h"
+
 
 
 namespace oomph
 {
 
-  class GenericPoissonProblem : public Problem
+  /// Simple struct to store info about Neumann boundaries.
+  struct NeumannCondition
+  {
+    /// Typedef because the full name is far too long
+    typedef typename TFPoissonFluxEquations::PoissonPrescribedFluxFctPt
+    PoissonFluxFctPt;
+
+    Mesh* mesh_pt;
+    unsigned boundary;
+    PoissonFluxFctPt prescribed_flux_pt;
+  };
+
+  /// Simple struct to store info about Dirichlet boundaries.
+  struct DirichletCondition
+  {
+    /// Use the same function pointer type to store Diriclet conditions as is
+    /// used to store exact solutions.
+    typedef FiniteElement::SteadyExactSolutionFctPt DirichletFctPt;
+
+    Mesh* mesh_pt;
+    unsigned boundary;
+    DirichletFctPt dc_fct_pt;
+    const DoubleVector* dc_vector_pt;
+  };
+
+  class GenericPoissonProblem : public MyProblem
   {
 
   public:
@@ -45,33 +72,27 @@ namespace oomph
     // think...).
 
     /// Constructor
-    GenericPoissonProblem() :
-      Flux_mesh_factory_fct_pt(0), Bulk_mesh_number(-10), Flux_mesh_number(-10),
-      Poisson_dof_number(0), Source_fct_pt(0), Exact_solution_fct_pt(0)
-    {}
+    GenericPoissonProblem()
+      : Flux_mesh_factory_fct_pt(0), Poisson_dof_number(0), Source_fct_pt(0),
+        Exact_solution_fct_pt(0) {}
 
     /// Destructor
-    ~GenericPoissonProblem() {}
+    virtual ~GenericPoissonProblem() {}
 
     /// Doc the solution.
-    virtual void doc_solution(DocInfo& doc_info) const;
+    void doc_solution_additional(std::ofstream &soln_file) const;
 
-    /// \short Create flux mesh on boundaries of bulk mesh, with the flux
-    /// given by the output of the function pointer pointer.
-    void set_neumann_boundaries(const Vector<unsigned> &boundaries,
-                                PoissonFluxFctPt const prescribed_flux_pt)
+    /// \short Create flux mesh on boundaries of the mesh, with the flux
+    /// given by the output of the function pointer pointer. ??ds currently
+    /// does one boundary at a time, change to all boundaries on single
+    /// mesh in one go?
+    void build_neumann_boundary_mesh(Mesh* mesh_pt,
+                                     const unsigned& boundary,
+                                     PoissonFluxFctPt const prescribed_flux_pt)
     {
-#ifdef PARANOID
-      if(Flux_mesh_number != -10)
-        {
-          std::string error_msg = "Already have a flux mesh!";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-
       // Build the mesh
-      Mesh* flux_mesh_pt = flux_mesh_factory(bulk_mesh_pt(), boundaries);
+      Mesh* flux_mesh_pt = flux_mesh_factory(mesh_pt,
+                                             Vector<unsigned>(1, boundary));
 
       // Set the prescribed flux function on the elements
       for(unsigned e=0, ne=flux_mesh_pt->nelement(); e < ne; e++)
@@ -81,9 +102,20 @@ namespace oomph
           ele_pt->flux_fct_pt() = prescribed_flux_pt;
         }
 
-      // Store the mesh and its location in the list of meshes.
-      Flux_mesh_number = add_sub_mesh(flux_mesh_pt);
+      // Add to global mesh list
+      add_sub_mesh(flux_mesh_pt);
     }
+
+    void add_neumann_boundary(Mesh* _mesh_pt,
+                              const unsigned& _boundary,
+                              PoissonFluxFctPt const _prescribed_flux_pt)
+      {
+        NeumannCondition n;
+        n.mesh_pt = _mesh_pt;
+        n.boundary = _boundary;
+        n.prescribed_flux_pt = _prescribed_flux_pt;
+        Neumann_conditions.push_back(n);
+      }
 
     /// \short Call the stored Flux_mesh_factory_fct_pt (and check if null
     /// in PARANOID).
@@ -107,30 +139,37 @@ namespace oomph
 
     /// \short Pin nodes on boundary b of bulk mesh with the value given by a
     /// function pointer.
-    void set_dirichlet_boundary(const unsigned &b,
-                                const DirichletFctPt condition_fct_pt)
+    void add_dirichlet_boundary(Mesh* mesh_pt,
+                                const unsigned &boundary,
+                                const DirichletFctPt dc_fct_pt)
     {
-      // Store function pointer to compute values on boundary b
-      std::pair<unsigned, DirichletFctPt> dcb;
-      dcb.first = b;
-      dcb.second = condition_fct_pt;
-      Dirichlet_function_conditions.push_back(dcb);
+      DirichletCondition dcb;
+      dcb.mesh_pt = mesh_pt;
+      dcb.boundary = boundary;
+      dcb.dc_fct_pt = dc_fct_pt;
+      dcb.dc_vector_pt = 0;
+
+      Dirichlet_conditions.push_back(dcb);
     }
 
-
-    void set_dirichlet_boundary_by_vector(const unsigned& b,
-                                          const DoubleVector* boundary_values_pt)
+    /// \short Pin nodes on boundary b of bulk mesh with the value given by
+    /// a vector of values.
+    void add_dirichlet_boundary_by_vector(Mesh* mesh_pt,
+                                          const unsigned& b,
+                                          const DoubleVector* dc_vector_pt)
     {
-      // Store pointer to vector where boundary values will be put
-      std::pair<unsigned, const DoubleVector*> dcb;
-      dcb.first = b;
-      dcb.second = boundary_values_pt;
-      Dirichlet_vector_conditions.push_back(dcb);
+      DirichletCondition dcb;
+      dcb.mesh_pt = mesh_pt;
+      dcb.boundary = b;
+      dcb.dc_fct_pt = 0;
+      dcb.dc_vector_pt = dc_vector_pt;
+
+      Dirichlet_conditions.push_back(dcb);
     }
 
 
     /// Finish building the problem once everything has been set.
-    void build();
+    void build(Vector<Mesh*>& bulk_mesh_pts);
 
     /// Update dirichlet conditions before Newton solve.
     virtual void actions_before_newton_solve()
@@ -153,8 +192,7 @@ namespace oomph
     // ============================================================
 
     /// Set function for Source_fct_pt.
-    void set_source_fct_pt
-    (SourceFctPt const source_fct_pt)
+    void set_source_fct_pt(SourceFctPt const source_fct_pt)
     {Source_fct_pt = source_fct_pt;}
 
     /// Const access function for Source_fct_pt.
@@ -172,55 +210,6 @@ namespace oomph
       return Source_fct_pt;
     }
 
-    /// Add a bulk mesh and set up numbering
-    void set_bulk_mesh(Mesh* b_mesh)
-    {
-#ifdef PARANOID
-      if(Bulk_mesh_number != -10)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Already have a bulk mesh for this problem."
-                    << "It's probably possible to change it but might be messy...";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      Bulk_mesh_number = add_sub_mesh(b_mesh);
-    }
-
-    /// Const access function for Bulk_mesh_pt.
-    Mesh* bulk_mesh_pt() const
-    {
-#ifdef PARANOID
-      if(Bulk_mesh_number == -10)
-        {
-          std::ostringstream error_msg;
-          error_msg << "No bulk mesh set for this problem.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return mesh_pt(Bulk_mesh_number);
-    }
-
-    /// Const access function for Neumann_condition_mesh_pt.
-    Mesh* flux_mesh_pt() const
-    {
-#ifdef PARANOID
-      if(Flux_mesh_number == -10)
-        {
-          std::ostringstream error_msg;
-          error_msg << "No flux mesh set for this problem.";
-          throw OomphLibError(error_msg.str(),
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return mesh_pt(Flux_mesh_number);
-    }
-
     /// Non-const access function for Poisson_dof_number.
     unsigned& poisson_dof_number() {return Poisson_dof_number;}
 
@@ -235,21 +224,15 @@ namespace oomph
     FiniteElement::SteadyExactSolutionFctPt exact_solution_fct_pt() const
     {return Exact_solution_fct_pt;}
 
+
   private:
 
     /// \short Function pointer for the function to use to construct a flux
     /// mesh on boundaries of the bulk mesh.
     FluxMeshFactoryFctPt Flux_mesh_factory_fct_pt;
 
-    /// \short Store the number of the bulk mesh in the global mesh_pt
-    /// array. Defaults to magic number -10 so that we can tell if it is
-    /// unset.
-    int Bulk_mesh_number;
-
-    /// \short Store the number of the flux (Neumann condition enforcing)
-    /// mesh in the global mesh_pt array. Defaults to magic number -10 so
-    /// that we can tell if it is unset.
-    int Flux_mesh_number;
+    /// Storage for flux meshes
+    Vector<NeumannCondition> Neumann_conditions;
 
     /// Store the index of the Poisson dof (defaults to zero).
     unsigned Poisson_dof_number;
@@ -263,12 +246,8 @@ namespace oomph
     FiniteElement::SteadyExactSolutionFctPt Exact_solution_fct_pt;
 
     /// \short Storage for a list of Dirichlet boundaries and pointers to
-    /// the functions which define their values.
-    Vector<std::pair<unsigned, DirichletFctPt> > Dirichlet_function_conditions;
-
-    /// \short Storage for a list of Dirichlet boundaries and pointers to
-    /// the vectors which define their values.
-    Vector<std::pair<unsigned, const DoubleVector*> > Dirichlet_vector_conditions;
+    /// the functions or vectors which define their values.
+    Vector<DirichletCondition> Dirichlet_conditions;
 
     /// Inaccessible copy constructor
     GenericPoissonProblem(const GenericPoissonProblem& dummy)
