@@ -109,6 +109,8 @@ namespace oomph
       // solve for phi
       std::cout << "solving phi" << std::endl;
       phi_problem_pt()->newton_solve();
+
+      std::cout << "mean field is " << average_magnetostatic_field() << std::endl;
     }
 
 
