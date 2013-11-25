@@ -571,7 +571,7 @@ namespace oomph
     }
 
   /// Pick and create a residual calculator to use
-  ResidualCalculator* residual_calculator_factory(const std::string& residual)
+  LLGResidualCalculator* residual_calculator_factory(const std::string& residual)
     {
       if(residual == "llg")
         return new LLGResidualCalculator(true);

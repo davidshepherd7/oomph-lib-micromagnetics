@@ -664,7 +664,7 @@ namespace oomph
     bool Use_fd_jacobian;
     bool Use_implicit_ms;
 
-    ResidualCalculator* Residual_calculator_pt;
+    LLGResidualCalculator* Residual_calculator_pt;
 
   private:
 
@@ -744,8 +744,7 @@ public:
                        TimeStepper* time_stepper_pt,
                        unsigned nnode1d = 2);
 
-    ResidualCalculator* residual_calculator_factory(const std::string& residual);
-
+    LLGResidualCalculator* residual_calculator_factory(const std::string& residual);
 
     /// \short Create a variable order quadrature object based on the
     /// dimension and shape of the element. Only works for some element
@@ -889,7 +888,7 @@ public:
     InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* magnetic_parameters_pt;
-    ResidualCalculator* residual_calculator_pt;
+    LLGResidualCalculator* residual_calculator_pt;
 
     // Strings for input to factory functions
     std::string initial_m_name;

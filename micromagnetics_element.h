@@ -155,7 +155,7 @@ namespace oomph
     // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
     bool Use_fd_jacobian;
-    ResidualCalculator* Residual_calculator_pt;
+    LLGResidualCalculator* Residual_calculator_pt;
 
     const MagneticParameters* magnetic_parameters_pt() const
     {return Magnetic_parameters_pt;}
@@ -554,6 +554,15 @@ namespace oomph
     void fill_in_contribution_to_mass_matrix(Vector<double> &residuals,
                                              DenseMatrix<double> &mmatrix)
     {
+#ifdef PARANOID
+      if(Residual_calculator_pt->use_gilbert_form())
+        {
+          std::string err = "Cannot do explicit time steps for Gilber form!";
+          err += " (well, it's probably possible but much easier to just use LL form)";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
 
       const unsigned n_node = this->nnode();
       const unsigned ndim = this->nodal_dimension();
