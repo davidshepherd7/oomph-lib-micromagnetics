@@ -30,22 +30,56 @@ namespace oomph
   /// responsibility to make sure the objects are deleted.
   namespace SemiImplicitFactories
   {
+    struct ShiftedMeshDetails
+    {
+      ShiftedMeshDetails()
+      {
+        mesh_name = "";
+        xshift = 0;
+        yshift = 0;
+        zshift = 0;
+      }
+
+      std::string mesh_name;
+      double xshift;
+      double yshift;
+      double zshift;
+    };
+
+    typedef Mesh* (MeshFactoryFctPt)(const std::string&, int,
+                                     TimeStepper*, unsigned);
+
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Vector<Mesh*> llg_mesh_factory(const std::string& _mesh_name,
-                                   int refinement_level,
-                                   TimeStepper* time_stepper_pt,
-                                   unsigned nnode1d = 2);
+    Mesh* llg_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           unsigned nnode1d = 2);
 
 
     /// \short Make a mesh of MagnetostaticField elements as specified by an
     /// input argument. Refined according to the given refinement level (in
     /// some way appropriate for that mesh type).
-    Vector<Mesh*> phi_mesh_factory(const std::string& _mesh_name,
-                                   int refinement_level,
-                                   TimeStepper* time_stepper_pt,
-                                   unsigned nnode1d = 2);
+    Mesh* phi_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           unsigned nnode1d = 2);
+
+    /// Create a vector of meshes with the names given in mesh details and
+    /// shifted as also specified in mesh_details.
+    Vector<Mesh*> multimesh_factory(MeshFactoryFctPt* underlying_factory,
+                                    Vector<ShiftedMeshDetails>& mesh_details,
+                                    int refinement_level,
+                                    TimeStepper* time_stepper_pt,
+                                    unsigned nnode1d = 2);
+
+    /// Create a pair of meshes near to each other (shifted along x).
+    Vector<Mesh*> simple_multimesh_factory(MeshFactoryFctPt* underlying_factory,
+                                           const std::string& mesh_name,
+                                           int refinement_level,
+                                           TimeStepper* time_stepper_pt,
+                                           unsigned nnode1d=2);
 
 
     /// \short Return a factory function which will create the appropriate
@@ -274,15 +308,41 @@ namespace oomph
       // Build the meshes, do this last because they can be SLOW, must be
       // done before factory mesh function selection...
 
-      // LLG (magnetism) mesh
-      llg_mesh_pts = SemiImplicitFactories::llg_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
+      // If the mesh name is prefixed by "multi_" then build the equivalent
+      // (simple, for now?) multiple mesh.
+      if(mesh_name.find("multi_") == 0)
+        {
+          // Copy the rest of the mesh name into a new string
+          std::string single_mesh_name(mesh_name, 6, string::npos);
 
-      // Make the two phi meshes
-      phi_mesh_pts = SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
-      phi_1_mesh_pts = SemiImplicitFactories::phi_mesh_factory
-        (mesh_name, refinement, time_stepper_pt);
+          // And use it to build the meshes
+          llg_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
+            (SemiImplicitFactories::llg_mesh_factory,
+             single_mesh_name, refinement, time_stepper_pt);
+
+          phi_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
+            (SemiImplicitFactories::phi_mesh_factory,
+             single_mesh_name, refinement, time_stepper_pt);
+
+          phi_1_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
+            (SemiImplicitFactories::phi_mesh_factory,
+             single_mesh_name, refinement, time_stepper_pt);
+
+        }
+      // Otherwise just build one mesh
+      else
+        {
+          // LLG (magnetism) mesh
+          llg_mesh_pts.push_back(SemiImplicitFactories::llg_mesh_factory
+                                 (mesh_name, refinement, time_stepper_pt));
+
+          // Make the two phi meshes
+          phi_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
+                                 (mesh_name, refinement, time_stepper_pt));
+          phi_1_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
+                                   (mesh_name, refinement, time_stepper_pt));
+        }
+
 
       // Pick the factory function for creating the phi 1 surface mesh
       phi_1_flux_mesh_factory_fct_pt =
