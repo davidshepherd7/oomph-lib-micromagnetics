@@ -5,9 +5,9 @@ set -o nounset
 
 # If no new commits since we last wrote this file (and file exists) then
 # just exit to avoid rebuilds.
-a=$(git log --since=`stat -c%Y git_version.h`)
-if [[ $a == "" ]]; then
-    if [[ -e git_version.h ]]; then
+if [[ -e git_version.h ]]; then
+    a=$(git log --since=`stat -c%Y git_version.h`)
+    if [[ $a == "" ]]; then
         exit 0
     fi
 fi
