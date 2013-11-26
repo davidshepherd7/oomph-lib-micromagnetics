@@ -54,6 +54,34 @@ build(Vector<Mesh*>& bulk_mesh_pts)
     }
 
 
+  // If there are no Dirichlet conditions on a given mesh then we need to
+  // pin some other value to zero to avoid a singular Jacobian.
+  // Loop over all meshes in problem
+  for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)
+    {
+
+      // Look for this mesh in the Dirichlet conditions
+      bool flag = false;
+      for(unsigned i=0, n=Dirichlet_conditions.size(); i<n; i++)
+        {
+          if(Dirichlet_conditions[i].mesh_pt == bulk_mesh_pts[msh])
+            {
+              flag = true;
+              break;
+            }
+        }
+
+      // If we didn't find any dirichlet conditions then pin something.
+      if(!flag)
+        {
+          Node* pinned_node_pt = bulk_mesh_pts[msh]->get_some_non_boundary_node();
+          pinned_node_pt->pin(poisson_dof_number());
+          pinned_node_pt->set_value(poisson_dof_number(), 0.0);
+        }
+    }
+
+
+
   // Loop over the bulk elements to set up element-specific things
   for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)
     {

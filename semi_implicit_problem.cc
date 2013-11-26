@@ -302,21 +302,22 @@ namespace oomph
           }
       }
 
-    // Pin a node which isn't involved in the boundary element method (we
-    // have to pin something to avoid a singular Jacobian, can't be a
-    // boundary node or things will go wrong with BEM).
-    if(pin_phi1)
-      {
-        Node* pinned_phi_1_node_pt = phi_1_mesh_pts[0]->get_some_non_boundary_node();
-        pinned_phi_1_node_pt->pin(0);
-        pinned_phi_1_node_pt->set_value(0,0.0);
-      }
-    else
-      {
-        std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
-                  << " you might be ok..."
-                  << std::endl;
-      }
+    // Doing this in base class instead
+    // // Pin a node which isn't involved in the boundary element method (we
+    // // have to pin something to avoid a singular Jacobian, can't be a
+    // // boundary node or things will go wrong with BEM).
+    // if(pin_phi1)
+    //   {
+    //     Node* pinned_phi_1_node_pt = phi_1_mesh_pts[0]->get_some_non_boundary_node();
+    //     pinned_phi_1_node_pt->pin(0);
+    //     pinned_phi_1_node_pt->set_value(0,0.0);
+    //   }
+    // else
+    //   {
+    //     std::cout << "Warning: not pinning phi1 at any point, technically J is singular..."
+    //               << " you might be ok..."
+    //               << std::endl;
+    //   }
 
     // Finish off the problem
     phi_1_problem_pt()->build(phi_1_mesh_pts);
