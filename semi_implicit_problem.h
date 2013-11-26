@@ -131,7 +131,10 @@ namespace oomph
 
       // update boundary values of phi
       std::cout << "solving BEM" << std::endl;
+      double t_start = TimingHelpers::timer();
       Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
+      double t_end = TimingHelpers::timer();
+      std::cout << "BEM time taken: " << t_end - t_start << std::endl;
 
       // push old phi values back in time (so that we can use them later to
       // get time derivatives of the field). Note that we don't use the
