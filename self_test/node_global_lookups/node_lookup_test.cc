@@ -21,17 +21,22 @@ int node_lookup_test()
   // Make a mesh of just the unpinned boundary nodes
   Mesh test_mesh;
   unsigned pdof = 0;
-  for(unsigned b=0; b <test_poisson.mesh_pt()->nboundary(); b++)
+  // Loop over all meshes in problem
+  for(unsigned msh=0, nmsh=test_poisson.nsub_mesh(); msh<nmsh; msh++)
     {
-      for(unsigned nd=0, nnode=test_poisson.mesh_pt()->nboundary_node(b); nd<nnode; nd++)
+      for(unsigned b=0; b <test_poisson.mesh_pt(msh)->nboundary(); b++)
         {
-          Node* nd_pt = test_poisson.mesh_pt()->boundary_node_pt(b,nd);
-          if(!(nd_pt->is_pinned(pdof)))
+          for(unsigned nd=0, nnode=test_poisson.mesh_pt(msh)->nboundary_node(b); nd<nnode; nd++)
             {
-              test_mesh.add_node_pt(nd_pt);
+              Node* nd_pt = test_poisson.mesh_pt(msh)->boundary_node_pt(b,nd);
+              if(!(nd_pt->is_pinned(pdof)))
+                {
+                  test_mesh.add_node_pt(nd_pt);
+                }
             }
         }
     }
+
 
   // Build lookup
   NodeGlobalNumbersLookup nd_lookup(&test_mesh, pdof);
