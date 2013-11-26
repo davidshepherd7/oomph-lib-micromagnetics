@@ -54,6 +54,13 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> minus_x(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[0] = -1.1;
+    return h;
+  }
+
   inline Vector<double> all_directions(const double& t, const Vector<double> &x)
   {
     Vector<double> h(3, 1.1);
@@ -84,6 +91,40 @@ namespace HApp
   inline Vector<double> non_uniform_z_500(const double& t, const Vector<double> &x)
   {return non_uniform_z_helper(t, x, 500);}
 
+  inline Vector<double> tanhx_minus_z(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[2] = -1.1*tanh(5*x[0]);
+    return h;
+  }
+
+  inline Vector<double> minus_z_above_x0(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    if(x[0] > 0)
+      {
+        h[2] = -1.1;
+      }
+    return h;
+  }
+
+  inline Vector<double> tanhx_minus_x(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[0] = -1.1*tanh(5*x[0]);
+    return h;
+  }
+
+  inline Vector<double> minus_x_above_x0(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    if(x[0] > 0)
+      {
+        h[0] = -1.1;
+      }
+    return h;
+  }
+
   inline HAppFctPt h_app_factory(const std::string& field_name)
   {
     if(field_name == "zero")
@@ -106,6 +147,10 @@ namespace HApp
       {
         return &HApp::minus_z;
       }
+    else if(field_name == "minus_x")
+      {
+        return &HApp::minus_x;
+      }
     else if(field_name == "all_directions")
       {
         return &HApp::all_directions;
@@ -125,6 +170,22 @@ namespace HApp
     else if(field_name == "non_uniform_z_500")
       {
         return &HApp::non_uniform_z_500;
+      }
+    else if(field_name == "tanhx_minus_z")
+      {
+        return &HApp::tanhx_minus_z;
+      }
+    else if(field_name == "minus_z_above_x0")
+      {
+        return &HApp::minus_z_above_x0;
+      }
+    else if(field_name == "tanhx_minus_x")
+      {
+        return &HApp::tanhx_minus_x;
+      }
+    else if(field_name == "minus_x_above_x0")
+      {
+        return &HApp::minus_x_above_x0;
       }
     else
       {
