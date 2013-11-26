@@ -97,6 +97,13 @@ namespace oomph
           if(boundaries_pt->size() == dim)
             {
               Corners[nd] = corner_angle;
+
+              std::cout << "Think I've found a corner at [";
+              for(unsigned j=0; j<nd_pt->ndim(); j++)
+                {
+                  std::cout << nd_pt->x(j) << ", ";
+                }
+              std::cout << "] I gave it the angle " << corner_angle << std::endl;
             }
           else if((dim == 3) && (boundaries_pt->size() == (dim - 1)))
             {
