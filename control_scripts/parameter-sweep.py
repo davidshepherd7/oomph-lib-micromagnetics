@@ -151,7 +151,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
             'initm' : ['smoothly_varying'],
             'happ' : ['x', 'y', 'z'],
             'mesh' : ['sq_square', 'ut_square'],
-            'output_jac' : ['at_end']
+            'output-jac' : ['at_end']
             }
         # more parameter sets go here
     else:

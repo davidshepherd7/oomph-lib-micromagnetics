@@ -497,7 +497,7 @@ namespace oomph
         specify_command_line_flag("-outdir", &outdir);
         outdir = "results";
 
-        specify_command_line_flag("-output_jac", &output_jacobian);
+        specify_command_line_flag("-output-jac", &output_jacobian);
         output_jacobian = "never";
 
         specify_command_line_flag("-ts", &time_stepper_name);
