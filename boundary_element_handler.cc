@@ -227,7 +227,7 @@ get_bem_values(DoubleVector &bem_output_values) const
   // Get input values
   for(unsigned nd=0, nnode=bem_mesh_pt()->nnode(); nd<nnode; nd++)
     {
-      unsigned geqn = bem_mesh_pt()->node_pt(nd)->eqn_number(0);
+      unsigned geqn = bem_mesh_pt()->node_pt(nd)->eqn_number(input_index());
       unsigned in_eqn = input_lookup_pt()->global_to_node(geqn);
 
       input_values[in_eqn] = bem_mesh_pt()->node_pt(nd)->value(input_index());
