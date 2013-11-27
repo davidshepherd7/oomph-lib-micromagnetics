@@ -438,7 +438,8 @@ namespace oomph
       for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
         {
           // Skip non-bulk meshes
-          if(mesh_pt(msh)->node_pt(0)->ndim() != Dim) continue;
+          if((mesh_pt(msh)->nnode() == 0)
+             || (mesh_pt(msh)->node_pt(0)->ndim() != Dim)) continue;
 
           for(unsigned e=0, ne=mesh_pt(msh)->nelement(); e < ne; e++)
             {

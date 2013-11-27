@@ -254,27 +254,33 @@ namespace oomph
 
     // Sum the difference over all bulk elements in problem
     unsigned bulk_ele_count = 0;
-    for(unsigned e=0, ne=mesh_pt()->nelement(); e < ne; e++)
+
+    // Loop over all meshes in problem
+    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
       {
-        // Skip non-bulk elements
-        if(mesh_pt()->finite_element_pt(e)->nodal_dimension() != Dim) continue;
+        // Skip non-bulk meshes
+        if((mesh_pt(msh)->nnode() == 0)
+           || (mesh_pt(msh)->node_pt(0)->ndim() != Dim)) continue;
 
-        MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
-          (mesh_pt()->element_pt(e));
-
-        Vector<double> numerical_m(3,0.0);
-        ele_pt->interpolated_m_micromag(s, numerical_m);
-
-        Vector<double> x(dim(),0.0);
-        ele_pt->interpolated_x(s,x);
-        Vector<double> exact_m = fct_pt(time(), x);
-
-        for(unsigned j=0; j<3; j++)
+        for(unsigned e=0, ne=mesh_pt(msh)->nelement(); e < ne; e++)
           {
-            diff += std::abs(numerical_m[j] - exact_m[j]);
-          }
+            MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
+              (mesh_pt(msh)->element_pt(e));
 
-        bulk_ele_count++;
+            Vector<double> numerical_m(3,0.0);
+            ele_pt->interpolated_m_micromag(s, numerical_m);
+
+            Vector<double> x(dim(),0.0);
+            ele_pt->interpolated_x(s,x);
+            Vector<double> exact_m = fct_pt(time(), x);
+
+            for(unsigned j=0; j<3; j++)
+              {
+                diff += std::abs(numerical_m[j] - exact_m[j]);
+              }
+
+            bulk_ele_count++;
+          }
       }
 
     // Divide to get the mean
