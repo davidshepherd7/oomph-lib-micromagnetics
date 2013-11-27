@@ -1,1 +1,1 @@
-SUBDIRS = standard midpoint
+SUBDIRS = standard midpoint fully_implicit

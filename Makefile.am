@@ -1,6 +1,8 @@
 # A few file definitions
 #-----------------------
 
+SUBDIRS = self_test
+
 # Define the sources
 sources = micromagnetics_element.cc \
 	micromagnetics_boundary_element.cc \

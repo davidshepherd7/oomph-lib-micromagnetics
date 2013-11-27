@@ -1,1 +1,1 @@
-SUBDIRS = cubeoid sphere
+SUBDIRS = cubeoid sphere two_sphere
