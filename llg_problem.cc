@@ -79,19 +79,6 @@ namespace oomph
             for(unsigned b=0; b<bulk_mesh_pts[msh]->nboundary(); b++)
               {boundaries.push_back(b);}
 
-            for(unsigned b=0; b<bulk_mesh_pts[msh]->nboundary(); b++)
-              {
-                for(unsigned nd=0; nd<bulk_mesh_pts[msh]->nboundary_node(b); nd++)
-                  {
-                    Node* nd_pt = bulk_mesh_pts[msh]->boundary_node_pt(b, nd);
-                    std::cout << nd_pt->eqn_number(phi_index())
-                              << " "
-                              << nd_pt->eqn_number(phi_1_index())
-                              << std::endl;
-                  }
-              }
-
-
             // Set up neumann condition on phi_1 boundary values (using flux mesh)
             Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pts[msh], boundaries);
 
