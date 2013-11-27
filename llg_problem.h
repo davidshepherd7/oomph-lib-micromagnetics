@@ -56,6 +56,7 @@ namespace oomph
       Crystalline_anisotropy_energy = MyProblem::Dummy_doc_data;
       Magnetostatic_energy = MyProblem::Dummy_doc_data;
       Effective_damping_constant = MyProblem::Dummy_doc_data;
+      Alt_eff_damp = MyProblem::Dummy_doc_data;
 
       // Bem stuff
       Bem_handler_pt = 0;
