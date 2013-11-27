@@ -7,7 +7,7 @@ output_jacobian always
 time_stepper bdf2
 solver_name gmres
 preconditioner_name amg
-doc_times_interval all
+doc_times_interval 0
 initial_m smoothly_varying_500
 h_app minus_z
 mag_params simple-llg

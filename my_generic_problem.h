@@ -81,6 +81,21 @@ namespace oomph
     /// Destructor
     virtual ~MyProblem() {}
 
+    virtual void actions_before_newton_step()
+      {
+        // Output Jacobian and residuals if requested
+        if((to_lower(Doc_info.output_jacobian) == "always")
+           && (should_doc_this_step(time_pt()->dt(), time())))
+          {
+            // label with doc_info number and the newton step number
+            std::string label = to_string(Doc_info.number())
+              + "_"
+              + to_string(Jacobian_setup_times.size() + 1);
+
+            dump_current_jacobian_residuals(label);
+          }
+      }
+
     virtual void actions_after_newton_step()
       {
         Jacobian_setup_times.push_back
@@ -99,7 +114,7 @@ namespace oomph
           {
             // Fill in dummy data
             Solver_iterations.push_back(Dummy_doc_data);
-            Preconditioner_setup_times.push_back(-1);
+            Preconditioner_setup_times.push_back(Dummy_doc_data);
           }
       }
 
@@ -174,9 +189,9 @@ namespace oomph
       const {}
 
     /// Overload to write any problem specific data
-    virtual void doc_solution_additional(std::ofstream& soln_file) const {};
-    virtual void final_doc_additional() const {};
-    virtual void initial_doc_additional() const {};
+    virtual void doc_solution_additional(std::ofstream& soln_file) const {}
+    virtual void final_doc_additional() const {}
+    virtual void initial_doc_additional() const {}
 
 
     /// \short Outputs to be done at the start of a run (i.e. outputing
@@ -197,7 +212,7 @@ namespace oomph
         if((to_lower(Doc_info.output_jacobian) == "at_start")
            || (to_lower(Doc_info.output_jacobian) == "always"))
           {
-            dump_current_jacobian("at_start");
+            dump_current_jacobian_residuals("at_start");
           }
 
         // pvd file
@@ -280,7 +295,7 @@ namespace oomph
         if((to_lower(Doc_info.output_jacobian) == "at_end")
            || (to_lower(Doc_info.output_jacobian) == "always"))
           {
-            dump_current_jacobian("at_end");
+            dump_current_jacobian_residuals("at_end");
           }
 
         // Write end of .pvd XML file
@@ -322,12 +337,6 @@ namespace oomph
                      << Doc_info.number() << ".vtu"
               << "\"/>" << std::endl;
             pvd_file.close();
-
-            // Output Jacobian if requested
-            if(to_lower(Doc_info.output_jacobian) == "always")
-              {
-                dump_current_jacobian(to_string(Doc_info.number()));
-              }
 
             Doc_info.number()++;
           }
@@ -402,13 +411,14 @@ namespace oomph
         }
       }
 
-    void dump_current_jacobian(const std::string& label)
+    void dump_current_jacobian_residuals(const std::string& label)
     {
       CRDoubleMatrix J;
-      DoubleVector dummy;
-      this->get_jacobian(dummy, J);
-      J.sparse_indexed_output(Doc_info.directory() + "/" + "jacobian_" +
-                              label);
+      DoubleVector residuals;
+      this->get_jacobian(residuals, J);
+
+      J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label);
+      residuals.output(Doc_info.directory() + "/residual_" + label);
     }
 
 
@@ -468,7 +478,7 @@ namespace oomph
 
     /// \short String to insert between fields in trace file. Use "; " by
     /// default (so that "," or " " can be used for lists if needed).
-    std::string Trace_seperator;
+    const std::string Trace_seperator;
     double Dummy_doc_data;
     unsigned Dim;
 

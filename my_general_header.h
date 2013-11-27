@@ -425,11 +425,12 @@ namespace oomph
 
     /// \short Construct a list of times to output the full solution at
     /// based on command line input in label.
-    inline Vector<double> doc_times_factory(std::string &label, const double &t_max)
+    inline Vector<double> doc_times_factory(const double& doc_interval,
+                                            const double &t_max)
       {
         Vector<double> doc_times;
 
-        if(label == "all")
+        if(doc_interval == 0)
           {
             // Do nothing: empty vector = output at every step.
           }
@@ -438,8 +439,6 @@ namespace oomph
         // times.
         else
           {
-            double doc_interval = std::strtod(label.c_str(), 0);
-
             // Add an output time every "doc_interval" time units until we get
             // to t_max.
             double doc_t = 0.0;
@@ -513,7 +512,7 @@ namespace oomph
         prec_name = "none";
 
         specify_command_line_flag("-doc-interval", &doc_times_interval);
-        doc_times_interval = "0.1";
+        doc_times_interval = 0.1;
       }
 
     void parse(int argc, char *argv[])
@@ -612,7 +611,7 @@ namespace oomph
     std::string solver_name;
     std::string prec_name;
 
-    std::string doc_times_interval;
+    double doc_times_interval;
     Vector<double> doc_times;
 
   };

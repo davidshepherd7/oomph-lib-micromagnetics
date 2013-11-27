@@ -21,7 +21,6 @@ import random
 import itertools as it
 import functools as ft
 import scipy as sp
-import matplotlib.pyplot as plt
 
 # Imports for specific functions
 from functools import partial as pt
@@ -77,7 +76,7 @@ def generate_jacobians(argsdict):
     l = [DRIVER, '-output-jac', 'always',
          '-solver', 'gmres',
          '-preconditioner', 'amg',
-         '-doc-interval', 'all'
+         '-doc-interval', '0',
          ] + argslist
     print("Running", ' '.join(l))
     try:
@@ -102,7 +101,8 @@ def check_jacobians(argsdict):
 
     # Compare the info file and all Jacobians using fpdiff
     compare_files = ([pjoin(validatadir, 'info')]
-                     + glob.glob(pjoin(validatadir, 'jacobian*')))
+                     + glob.glob(pjoin(validatadir, 'jacobian*'))
+                     + glob.glob(pjoin(validatadir, 'residual*')))
 
     success = True
     with open(pjoin(outdir, 'check_trace'), 'a') as tracefile:
@@ -178,7 +178,6 @@ def main():
                         'tmax': 2e-4,
                         'initm': 'smoothly_varying_500',
                         'outdir': 'Validation/J2'},
-
                         ]
 
     # If we are updating the data just do that then exit
@@ -195,9 +194,19 @@ def main():
         else:
             print("Old Jacobians are moving to", old_jac_folder)
 
-        # Make the new Jacobians and move them to validata
+        # Make the new Jacobians etc.
         list(Pool().map(generate_jacobians, jacobian_params))
-        os.renames('Validation', 'validata')
+
+        #  and move them to validata
+        files_needed = (glob.glob('Validation/*/jacobian*_1')
+                        + glob.glob('Validation/*/residual*_1')
+                        + glob.glob('Validation/*/info')
+                        + glob.glob('Validation/*/trace')
+                        + glob.glob('Validation/*/stdout'))
+
+        for f in files_needed:
+            _, d = os.path.split(os.path.dirname(f))
+            os.renames(f, pjoin("validata", d, os.path.basename(f)))
 
         # Zip up all the files
         subp.check_call('gzip validata/*/*', shell=True)

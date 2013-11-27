@@ -174,6 +174,9 @@ namespace oomph
     /// Update dirichlet conditions before Newton solve.
     virtual void actions_before_newton_solve()
     {
+      // Call base class version
+      MyProblem::actions_before_newton_solve();
+
       update_dirichlet_conditions();
     }
 

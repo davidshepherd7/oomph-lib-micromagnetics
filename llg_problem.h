@@ -97,8 +97,11 @@ namespace oomph
         }
     }
 
-    void actions_before_newton_step()
+    virtual void actions_before_newton_step()
     {
+      // Call base class version
+      MyProblem::actions_before_newton_step();
+
       std::cout << std::endl
                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
                 << "---------------------------------------" << std::endl;
@@ -120,7 +123,7 @@ namespace oomph
     virtual void actions_before_newton_solve()
     {
       // Call base class version
-      MyProblem::actions_after_newton_solve();
+      MyProblem::actions_before_newton_solve();
 
       // Update BEM magnetostatics boundary conditions (if we are doing
       // them fully implicitly).
