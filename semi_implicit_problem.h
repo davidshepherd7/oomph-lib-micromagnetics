@@ -79,6 +79,7 @@ namespace oomph
                                            const std::string& mesh_name,
                                            int refinement_level,
                                            TimeStepper* time_stepper_pt,
+                                           double xshift = 1.0,
                                            unsigned nnode1d=2);
 
 
@@ -294,6 +295,9 @@ namespace oomph
       specify_command_line_flag("-mesh", &mesh_name);
       mesh_name = "sq_square";
 
+      specify_command_line_flag("-xshift", &xshift);
+      xshift = 1.0;
+
       specify_command_line_flag("-numerical-BEM");
       // automatically defaults to false
     }
@@ -321,15 +325,15 @@ namespace oomph
           // And use it to build the meshes
           llg_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
             (SemiImplicitFactories::llg_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt);
+             single_mesh_name, refinement, time_stepper_pt, xshift);
 
           phi_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
             (SemiImplicitFactories::phi_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt);
+             single_mesh_name, refinement, time_stepper_pt, xshift);
 
           phi_1_mesh_pts = SemiImplicitFactories::simple_multimesh_factory
             (SemiImplicitFactories::phi_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt);
+             single_mesh_name, refinement, time_stepper_pt, xshift);
 
         }
       // Otherwise just build one mesh
@@ -377,6 +381,9 @@ namespace oomph
 
     // Strings for input to factory functions
     std::string mesh_name;
+
+    // Distance to move meshes away from origin (along +- x) in multi-mesh.
+    double xshift;
 
     bool use_numerical_integration;
   };

@@ -61,14 +61,15 @@ namespace oomph
                                            const std::string& mesh_name,
                                            int refinement_level,
                                            TimeStepper* time_stepper_pt,
+                                           double xshift,
                                            unsigned nnode1d)
     {
       Vector<ShiftedMeshDetails> inputs(2);
       inputs[0].mesh_name = mesh_name;
-      inputs[0].xshift = -1;
+      inputs[0].xshift = -xshift;
 
       inputs[1].mesh_name = mesh_name;
-      inputs[1].xshift = +1;
+      inputs[1].xshift = +xshift;
 
       return multimesh_factory(underlying_factory,
                                inputs, refinement_level,
