@@ -571,9 +571,6 @@ namespace oomph
     unsigned phi_1_index() const
     {return this->ele_pt()->phi_1_index_micromag();}
 
-    /// \short Get problem dimension (nodal dimension).
-    const unsigned dim() const {return this->Dim;}
-
     /// \short Non-const access function for Applied_field_fct_pt.
     HApp::HAppFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
 

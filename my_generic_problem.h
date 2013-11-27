@@ -67,7 +67,6 @@ namespace oomph
     /// Default constructor
     MyProblem() :
       Problem(),
-      Dim(0),
       Doc_info("results", 0),
       Use_time_adaptive_newton(false),
       Trace_filename("trace"),
@@ -75,6 +74,7 @@ namespace oomph
       Trace_seperator("; "),
       Dummy_doc_data(-1)
     {
+      Dim = 0;
       Output_precision = 8;
     }
 
@@ -449,9 +449,14 @@ namespace oomph
               }
           }
 
+        // Get the problem dimension
+        Dim = bulk_mesh_pts[0]->finite_element_pt(0)->nodal_dimension();
+
       }
 
-    unsigned Dim;
+    /// \short Get problem dimension (nodal dimension).
+    const unsigned dim() const {return this->Dim;}
+
     MyDocInfo Doc_info;
     unsigned Output_precision;
 
@@ -466,6 +471,7 @@ namespace oomph
     /// default (so that "," or " " can be used for lists if needed).
     std::string Trace_seperator;
     double Dummy_doc_data;
+    unsigned Dim;
 
   private:
 

@@ -40,9 +40,6 @@ namespace oomph
     // Call the underlying build to deal with adding meshes
     MyProblem::build(bulk_mesh_pts);
 
-    // Get the problem dimension
-    this->Dim = this->ele_pt()->nodal_dimension();
-
     // Finish off element build, at this point we should have only micromag
     // elements in the meshes (so we can loop over all meshes) but we don't
     // have a global mesh yet.
