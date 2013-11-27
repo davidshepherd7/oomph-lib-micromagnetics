@@ -19,7 +19,7 @@ new_clean_dir $SPHERE_DIR
 
 # Run simulation
 cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -dt 0.001 -tmax 0.001 -ref 1 -mesh ut_sphere -solver superlu -happ minus_z -initm exactly_z -outdir $SPHERE_DIR -mag-params 'simple-llg' -implicit-ms\
+./llg_driver -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere -solver superlu -happ minus_z -initm exactly_z -outdir $SPHERE_DIR -mag-params 'simple-llg' -implicit-ms\
     > $SPHERE_DIR/stdout
 
 # Extract + check energies

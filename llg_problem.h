@@ -183,12 +183,12 @@ namespace oomph
       {
         if(Use_implicit_ms)
           {
-            throw OomphLibError("Not yet implemented.",
-                                OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
-
             Bem_handler_pt->get_bem_values_and_copy_into_values(phi_index());
           }
+
+        // Otherwise don't do anything, if bem is being used
+        // semi-implicitly then it's done elsewhere. If it's not being used
+        // then nothing to update.
       }
 
     /// Integrate a function given by func_pt over every element in a mesh
