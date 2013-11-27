@@ -427,7 +427,6 @@ namespace oomph
         for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
           {
             add_sub_mesh(bulk_mesh_pts[j]);
-            bulk_mesh_pts[j]->setup_boundary_element_info();
           }
 
         // If we have an iterative solver with a block preconditioner then
