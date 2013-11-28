@@ -14,7 +14,7 @@ MM_LIB_DIR="$micromagroot/"
 # This gives us some finite exchange and magnetostatic energies to check
 # against previous runs.
 
-CUBEOID_DIR=$TPWD/Validation/cubeoid
+CUBEOID_DIR=$TPWD/Validation
 new_clean_dir $CUBEOID_DIR
 
 # Run simulation

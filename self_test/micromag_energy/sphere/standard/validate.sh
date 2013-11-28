@@ -14,7 +14,7 @@ MM_LIB_DIR="$micromagroot"
 # This gives us exactly calcuable zeeman, magnetostatic and anisotropy
 # energies and zero exchange.
 
-SPHERE_DIR=$TPWD/Validation/sphere
+SPHERE_DIR=$TPWD/Validation
 new_clean_dir $SPHERE_DIR
 
 # Run simulation
