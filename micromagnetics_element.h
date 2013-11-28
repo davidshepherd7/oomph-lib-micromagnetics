@@ -527,7 +527,7 @@ namespace oomph
     {
       //Call the generic residuals function with flag set to 0 using a dummy matrix argument
       fill_in_generic_residual_contribution_micromag
-        (residuals,GeneralisedElement::Dummy_matrix, 0);
+        (residuals, GeneralisedElement::Dummy_matrix, 0);
     }
 
     /// \short Add the element's contribution to its residual vector and element
@@ -535,18 +535,8 @@ namespace oomph
     void fill_in_contribution_to_jacobian(Vector<double> &residuals,
                                           DenseMatrix<double> &jacobian)
     {
-      if(Use_fd_jacobian)
-        {
-          // Generalised element version is by FD
-          FiniteElement::fill_in_contribution_to_jacobian(residuals,
-                                                          jacobian);
-        }
-      else
-        {
-          // Call the generic routine with the flag set to 1
-          fill_in_face_element_contribution_to_jacobian(jacobian);
-          fill_in_generic_residual_contribution_micromag(residuals,jacobian,1);
-        }
+      fill_in_generic_residual_contribution_micromag
+        (residuals, jacobian, 1);
     }
 
     /// This might go better inside generic get jacobian etc. once I write
@@ -608,8 +598,6 @@ namespace oomph
         }
     }
 
-    virtual void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const =0;
 
     /// Put dM/dt at local node l (using timestepper and history values) in the vector dmdt.
     void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
@@ -678,12 +666,6 @@ namespace oomph
         }
       return max_angle;
     }
-
-
-    /// A dummy double to hold space in Jacobian matrices for entries that are
-    /// determined by the boundary element method part of the hybrid method
-    /// (until it can be filled in at the problem level).
-    static const double DummyBEMControlledEntry;
 
 
     // Energy calculations
@@ -816,8 +798,6 @@ namespace oomph
     //   return J;
     // }
 
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const;
 
   }; // end of QMicromagElement class declaration
 
@@ -853,8 +833,6 @@ namespace oomph
     // void output(FILE* file_pt, const unsigned &n_plot = 5)
     // {MicromagEquations::output(file_pt,n_plot);}
 
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const;
   }; // end of TMicromagElement class declaration
 
 
@@ -1208,9 +1186,6 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {SemiImplicitMicromagEquations::output(outfile,n_plot);}
 
-    //??ds
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const;
   }; // end of QSemiImplicitMicromagElement class declaration
 
 
@@ -1228,9 +1203,6 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {SemiImplicitMicromagEquations::output(outfile,n_plot);}
 
-    //??ds
-    void fill_in_face_element_contribution_to_jacobian
-    (DenseMatrix<double> &jacobian) const;
   };
 
 

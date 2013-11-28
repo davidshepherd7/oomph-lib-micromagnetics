@@ -106,6 +106,10 @@ namespace oomph
       //  }
 
       //??ds - removed for now!
+
+      std::string err = "Not implemented";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
     }
 
     /// Number of dof types added by this element. We add two: one each for the

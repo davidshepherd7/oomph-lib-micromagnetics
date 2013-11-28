@@ -92,24 +92,6 @@ namespace oomph
             Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->get_some_non_boundary_node();
             pinned_phi_1_node_pt->pin(phi_1_index());
             pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
-
-
-            // I don't think phi should be pinned: needs to be in Jacobian
-            // // Set up pinning of phi boundary values
-            // for(unsigned b=0; b<bulk_mesh_pts[msh]->nboundary(); b++)
-            //   {
-            //     for(unsigned nd=0; nd<bulk_mesh_pts[msh]->nboundary_node(b); nd++)
-            //       {
-            //         Node* nd_pt = bulk_mesh_pts[msh]->boundary_node_pt(b, nd);
-            //         nd_pt->pin(phi_index());
-            //         nd_pt->set_value(phi_index(), 0.0);
-            //       }
-            //   }
-
-            // std::string err = "Not implemented";
-            // throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-            //                     OOMPH_CURRENT_FUNCTION);
-
           }
 
       }
@@ -172,7 +154,7 @@ namespace oomph
 
         // Set indexes to look phi/phi1 variables
         Bem_handler_pt->set_input_index(phi_1_index());
-        Bem_handler_pt->set_output_index(phi_1_index()); //??ds might work
+        Bem_handler_pt->set_output_index(phi_index());
 
         // Loop over all meshes in problem adding to bem list
         for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)

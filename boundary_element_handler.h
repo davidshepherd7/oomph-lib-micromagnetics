@@ -295,10 +295,9 @@ namespace oomph
     /// per boundary).
     void get_bem_values(const Vector<DoubleVector*> &bem_output_values) const;
 
-    /// Put the (output) values of the bem directly into the values of the
-    /// boundary nodes (with the value index as specified as an argument).
-    void get_bem_values_and_copy_into_values(const unsigned& output_value_index)
-      const;
+    /// Put the output values of the bem directly into the values of the
+    /// boundary nodes.
+    void get_bem_values_and_copy_into_values() const;
 
     /// Build the mesh, lookup schemes and matrix in that order.
     void build()
@@ -368,9 +367,7 @@ namespace oomph
     // Access functions:
     // ============================================================
 
-    /// Access to the pointer to the boundary element method mesh. Use
-    /// pointer for consistency with everything else ever even though we
-    /// store the actual value in the class.
+    /// Access to the pointer to the boundary element method mesh.
     const Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
     /// Const access to the boundary matrix
@@ -431,7 +428,7 @@ namespace oomph
     /// \short Const access function for Integration_scheme.
     const Integral* integration_scheme_pt() const {return Integration_scheme_pt;}
 
-
+    //??ds move this into a mesh class?
     const Vector<std::pair<Vector<double>,double> >* const input_corner_data_pt() const
     {return Input_corner_data_pt;}
 

@@ -64,6 +64,103 @@ namespace oomph
       Flux_mesh_factory_pt = 0;
     }
 
+    /// Get the jacobian as a SumOfMatrices. This is probably the best way
+    /// to deal with Jacobians involving a dense bem block (i.e. in fully
+    /// implicit bem). If we aren't using that then this is basically the
+    /// same as using the cr matrix form but with inside wrapper class.
+    void get_jacobian(DoubleVector &residuals, SumOfMatrices &jacobian)
+    {
+      // Get the fem Jacobian and the residuals
+      CRDoubleMatrix* fem_jacobian_pt =
+        new CRDoubleMatrix(residuals.distribution_pt());
+      Problem::get_jacobian(residuals, *fem_jacobian_pt);
+
+      // Assign the fem jacobian to be the "main" sumofmatrices matrix. Do
+      // delete it when done.
+      jacobian.main_matrix_pt() = fem_jacobian_pt;
+      jacobian.set_delete_main_matrix();
+
+      // If we're doing bem here then add on the bem matrix and the
+      // d(phibound)/d(phibound) block identity matrix.
+      if(Use_implicit_ms)
+        {
+          // Add the bem matrix to the jacobian in the right places. Don't
+          // delete it when done.
+          jacobian.add_matrix(Bem_handler_pt->bem_matrix_pt(),
+                              Bem_handler_pt->row_lookup_pt(),
+                              Bem_handler_pt->col_lookup_pt(),
+                              false);
+
+          // Create identity CRDoubleMatrix
+          unsigned bem_nnode = Bem_handler_pt->bem_mesh_pt()->nnode();
+          LinearAlgebraDistribution dist;
+          Bem_handler_pt->get_bm_distribution(dist);
+          Vector<double> values(bem_nnode, -1.0);
+          Vector<int> col_index(bem_nnode), row_index(bem_nnode), row_start;
+          for(unsigned nd=0; nd<bem_nnode; nd++)
+            {
+              col_index[nd] = nd;
+              row_index[nd] = nd;
+            }
+          VectorOps::rowindex2rowstart(row_index, row_start);
+          CRDoubleMatrix* bem_block_identity_pt =
+            new CRDoubleMatrix(&dist, bem_nnode, values, col_index, row_start);
+
+          // Add it on
+          jacobian.add_matrix(bem_block_identity_pt,
+                              Bem_handler_pt->output_lookup_pt(),
+                              Bem_handler_pt->output_lookup_pt(),
+                              false);
+        }
+
+    }
+
+    /// Get the Jacobian as a CRDoubleMatrix (the normal matrix format). If
+    /// we aren't using bem fully implicitly this is fine. If we are then
+    /// this is not a good idea for "real" problems but useful for tests.
+    void get_jacobian(DoubleVector &residuals, CRDoubleMatrix &jacobian)
+    {
+      // If we're calculating ms here then include the bem matrix. Warning:
+      // this is not going to be fast! Use the sumofmatrices version
+      // instead if possible.
+      if(Use_implicit_ms)
+        {
+          Vector<double> sum_values;
+          Vector<int> sum_rows, sum_cols, sum_row_start;
+          unsigned ncol = 0;
+          LinearAlgebraDistribution dist;
+
+          // These braces make sure that the fem jacobian is destroyed asap
+          // to reduce memory usage.
+          {
+            // Get as a sum of matrices jacobian
+            SumOfMatrices sum_jacobian;
+            get_jacobian(residuals, sum_jacobian);
+
+            // Copy out the data we need
+            ncol = sum_jacobian.ncol();
+            dist = *(checked_dynamic_cast<CRDoubleMatrix*>
+                     (sum_jacobian.main_matrix_pt())->distribution_pt());
+
+            // // Convert to indicies ??ds SLOW (N^2)
+            // sum_jacobian.get_as_indices(sum_cols, sum_rows, sum_values);
+            VectorOps::get_as_indicies(sum_jacobian, sum_values, sum_cols, sum_rows);
+
+          } // sum_jacobian destroyed -> fem_jacobian destroyed, but
+            // information we need is still in the vectors.
+
+          // Convert to rowstart form and make a cr matrix out of it
+          VectorOps::rowindex2rowstart(sum_rows, sum_row_start);
+          jacobian.build(&dist, ncol, sum_values, sum_cols, sum_row_start);
+        }
+
+      // Otherwise just do it as normal
+      else
+        {
+          Problem::get_jacobian(residuals, jacobian);
+        }
+    }
+
     /// Function that does the real work of the constructors.
     void build(Vector<Mesh*>& bulk_mesh_pts);
 
@@ -186,7 +283,7 @@ namespace oomph
       {
         if(Use_implicit_ms)
           {
-            Bem_handler_pt->get_bem_values_and_copy_into_values(phi_index());
+            Bem_handler_pt->get_bem_values_and_copy_into_values();
           }
 
         // Otherwise don't do anything, if bem is being used

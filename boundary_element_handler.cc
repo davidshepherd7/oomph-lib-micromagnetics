@@ -42,8 +42,9 @@ void BoundaryElementHandler::build_bem_matrix()
   // Get the number of nodes in the boundary problem
   unsigned long n_node = bem_mesh_pt()->nnode();
 
-  // Initialise and resize the boundary matrix
-  Bem_matrix.resize(n_node,n_node);
+  // Initialise and resize the boundary matrix ??ds this wastes some time
+  // copying over old values. Write a new resize function?
+  Bem_matrix.resize(n_node, n_node);
   Bem_matrix.initialise(0.0);
 
   // Loop over all elements in the BEM mesh
@@ -65,53 +66,36 @@ void BoundaryElementHandler::build_bem_matrix()
       elem_pt->fill_in_contribution_to_boundary_matrix(element_boundary_matrix,
                                                        Use_numerical_integration);
 
+      //??ds some of this stuff should be done using iterators to avoid
+      // lookups in a map.
+
       // Loop over the nodes in this element (to copy results into final matrix)
       for(unsigned l=0;l<n_element_node;l++)
         {
           // Get the node number (in the bem mesh) from the global equation number.
           int global_l_number = elem_pt->node_pt(l)->eqn_number(input_index());
-          int l_number = input_lookup_pt()->global_to_node(global_l_number);
-
-#ifdef PARANOID
-          if(l_number == -1)
-            {
-              std::string err = "global equation number ";
-              err += to_string(global_l_number);
-              err += " was not found in the global to input node lookup scheme.";
-              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-            }
-#endif
+          unsigned l_number = input_lookup_pt()->global_to_node(global_l_number);
 
           // Loop over all nodes in the mesh and add contributions from this element
           for(unsigned long s_nd=0; s_nd<n_node; s_nd++)
             {
               int global_s_number
-                = bem_mesh_pt()->node_pt(s_nd)->eqn_number(input_index());
-              int s_number = output_lookup_pt()->global_to_node(global_s_number);
-
-#ifdef PARANOID
-              if(s_number == -1)
-                {
-                  std::cout << *output_lookup_pt()->global_to_node_mapping_pt() << std::endl;
-
-                  std::string err = "global equation number ";
-                  err += to_string(global_s_number);
-                  err += " was not found in the global to output node lookup scheme.";
-                  throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                      OOMPH_CURRENT_FUNCTION);
-                }
-#endif
+                = bem_mesh_pt()->node_pt(s_nd)->eqn_number(output_index());
+              unsigned s_number = output_lookup_pt()->
+                global_to_node(global_s_number);
 
               // Rows are indexed by output (source node) number, columns
               // are indexed by input (l) number.
               Bem_matrix(s_number, l_number) += element_boundary_matrix(l,s_nd);
+
+              //??ds I think elemental bem matrices are currently actually
+              //the transpose, so we needed to switch them back here. Fix this?
             }
         }
     }
 
   // Lindholm formula/adaptive integral does not contain the solid angle
-  // contribution so add it.
+  // contribution so add it now.
   corner_list_pt()->add_corner_contributions(Bem_matrix);
 
 }
@@ -292,7 +276,7 @@ get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
 }
 
 void BoundaryElementHandler::
-get_bem_values_and_copy_into_values(const unsigned& output_value_index) const
+get_bem_values_and_copy_into_values() const
   {
     // Get as one big vector
     DoubleVector full_vector;
@@ -314,7 +298,7 @@ get_bem_values_and_copy_into_values(const unsigned& output_value_index) const
             unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
             unsigned out_eqn = output_lookup_pt()->global_to_node(g_eqn);
 
-            m_pt->boundary_node_pt(b, nd)->set_value(output_value_index,
+            m_pt->boundary_node_pt(b, nd)->set_value(output_index(),
                                                      full_vector[out_eqn]);
           }
       }

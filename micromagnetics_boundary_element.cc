@@ -356,6 +356,8 @@ namespace oomph
     D. A. Lindholm, "Three-Dimensional Magnetostatic Fields from
     Point-Matched Integral Equations with Linearly Varying Scalar
     Sources", IEEE Trans. Magn. MAG-20 (1984) 2025-2032.
+
+    Code is slightly transformed from magpar.
   */
   int Bele(const std::vector<double>& bvert, const std::vector<double>& facv1,
            const std::vector<double>& facv2, const std::vector<double>& facv3,
@@ -502,7 +504,8 @@ namespace oomph
   {
 
 #warning using a long, expensive test to check if nodes need to be swapped
-    // ??Ds
+    // ??Ds fix this!
+
     // Get global nodal positions
     Vector<Vector<double> > x_tn(3);
     for(unsigned l=0, nl=node_list.size(); l<nl; l++)
@@ -580,6 +583,7 @@ namespace oomph
     Vector<unsigned> node_list(3,0);
     node_list[0] = 0; node_list[1] = 1; node_list[2] = 2;
 
+    //??ds should be possible to get rid of this!
     if(!(normals_match(node_list)))
       {
         std::swap(node_list[0], node_list[1]);

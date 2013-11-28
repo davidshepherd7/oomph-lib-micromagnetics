@@ -323,11 +323,11 @@ namespace oomph
         /// continue to next integration point).
         //======================================================================
         if(!flag) continue;
-        // Note that "continue" means go on to the next step of the loop, which
-        // is perhaps not entirely clear. We use "if(not thing) then continue"
-        // statements rather than "if(thing) then .." because the amount of
-        // braces and indentation gets ridiculous with so many nested for loops
-        // and if statements.
+        // Note that "continue" means go on to the next step of the loop,
+        // which is perhaps not entirely intuitive. We use "if(not thing)
+        // then continue" statements rather than "if(thing) then { ... }"
+        // because the amount of braces and indentation gets ridiculous
+        // with so many nested for loops and if statements.
 
 
         // nondiffterms precalcs
@@ -394,13 +394,15 @@ namespace oomph
                 const int phi_unknown = e_pt->nodal_local_eqn(l2,e_pt->phi_index_micromag());
 
                 // The diagonal of the phi phi block is non-zero but it is
-                // determined by the BEM method. Because of the way FEM assembly
-                // is handled we cannot put the values in here. So for now we
-                // put in dummy values to reserve space in the sparse matrix.
+                // determined by the BEM method. The block is minus
+                // identity matrix if the residuals are just r_nodal =
+                // G[phi_1_b] - phi_b. Nodal values used because bem is
+                // done by co-location rather than Galerkin to keep the bem
+                // matrix simpler. Currently add this in the problem to avoid overlap issues.
                 if(e_pt->node_pt(l)->is_on_boundary())
                   {
                     if(phi_eqn == phi_unknown)
-                      jacobian(phi_eqn,phi_unknown) = e_pt->DummyBEMControlledEntry;
+                      jacobian(phi_eqn,phi_unknown) = 0;
                     else
                       jacobian(phi_eqn,phi_unknown) = 0.0;
                   }

@@ -11,10 +11,6 @@ using namespace VectorOps;
 
 namespace oomph
 {
-
-  /// ??ds Magic number, probably bad...
-  const double MicromagEquations::DummyBEMControlledEntry = 10;
-
   /// \short Integrate a function given by func_pt over the element using
   /// the given integral_pt(). Because C++ sucks we have to do this with
   /// weird function objects.
@@ -604,62 +600,6 @@ namespace oomph
 
 
 
-  template <unsigned DIM, unsigned NNODE_1D>
-  void QMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
-  (DenseMatrix<double> &jacobian) const
-  {
-    std::set<FiniteElement*>::iterator it;
-    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-      {
-        MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-          dynamic_cast<MicromagFluxElement<QMicromagElement<DIM,NNODE_1D> >* >
-          (*it);
-        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-      }
-  }
-
-
-  template < unsigned DIM, unsigned NNODE_1D>
-  void TMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
-  (DenseMatrix<double> &jacobian) const
-  {
-    std::set<FiniteElement*>::iterator it;
-    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-      {
-        MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-          dynamic_cast<MicromagFluxElement<TMicromagElement<DIM,NNODE_1D> >* >
-          (*it);
-        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-      }
-  }
-
-  template < unsigned DIM, unsigned NNODE_1D>
-  void QSemiImplicitMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
-  (DenseMatrix<double> &jacobian) const
-  {
-    std::set<FiniteElement*>::iterator it;
-    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-      {
-        MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-          dynamic_cast<MicromagFluxElement<QSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
-          (*it);
-        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-      }
-  }
-
-  template < unsigned DIM, unsigned NNODE_1D>
-  void TSemiImplicitMicromagElement<DIM, NNODE_1D>::fill_in_face_element_contribution_to_jacobian
-  (DenseMatrix<double> &jacobian) const
-  {
-    std::set<FiniteElement*>::iterator it;
-    for(it=this->Face_element_pts.begin(); it!=this->Face_element_pts.end(); it++)
-      {
-        MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* flux_ele_pt =
-          dynamic_cast<MicromagFluxElement<TSemiImplicitMicromagElement<DIM,NNODE_1D> >* >
-          (*it);
-        flux_ele_pt->fill_in_bulk_contribution_to_face_jacobian(jacobian);
-      }
-  }
 
   //====================================================================
   // Force building of templates
