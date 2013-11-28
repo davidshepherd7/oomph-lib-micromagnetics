@@ -1,29 +1,29 @@
 #ifndef OOMPH_MICROMAGNETICS_FLUX_ELEMENT_H
 #define OOMPH_MICROMAGNETICS_FLUX_ELEMENT_H
 
-/*
-  A face element to impose the flux boundary condition on the potential for
-  micromagnetics. It is not possible to use the already existing Poisson flux
-  elements becuase they assume that:
-
-  1) The "parent" element will be called PoissonElement.
-
-  2) The Jacobian contribution due to the flux elements is always zero. This is
-  not true for our case since the flux is fixed as m.n (where m is the
-  magnetisation). So differentiation wrt m gives a non-zero result.
-
-*/
-
-
 // class MicromagEquations;
 #include "./micromagnetics_element.h"
+
+// Note: we can't use a .cc file here easily because then we would need to
+// instantiate the template for every possible element, of which there are
+// quite a few...
 
 namespace oomph
 {
 
+
   //======================================================================
+  /// A face element to impose the flux boundary condition on the potential for
+  /// micromagnetics. It is not possible to use the already existing Poisson flux
+  /// elements becuase they assume that:
   ///
-  //======================================================================
+  /// 1) The "parent" element will be called PoissonElement.
+  ///
+  /// 2) The Jacobian contribution due to the flux elements is always
+  /// zero. This is not true for our case since the flux is fixed as m.n
+  /// (where m is the magnetisation). So differentiation wrt m gives a
+  /// non-zero result.
+  // ======================================================================
   template <class ELEMENT>
   class MicromagFluxElement : public virtual FaceGeometry<ELEMENT>,
                               public virtual FaceElement
@@ -35,37 +35,6 @@ namespace oomph
     /// index of the face to which the element is attached.
     MicromagFluxElement(FiniteElement* const &bulk_el_pt,
                         const int& face_index);
-
-    ///\short  Broken empty constructor
-    MicromagFluxElement()
-    {
-      throw OomphLibError
-        ("Don't call empty constructor for MicromagFluxElement",
-         OOMPH_CURRENT_FUNCTION,
-         OOMPH_EXCEPTION_LOCATION);
-    }
-
-    /// Broken copy constructor
-    MicromagFluxElement(const MicromagFluxElement& dummy)
-    {
-      BrokenCopy::broken_copy("MicromagFluxElement");
-    }
-
-    /// Broken assignment operator
-    void operator=(const MicromagFluxElement&)
-    {
-      BrokenCopy::broken_assign("MicromagFluxElement");
-    }
-
-    // /// \short Specify the value of nodal zeta from the face geometry
-    // /// The "global" intrinsic coordinate of the element when
-    // /// viewed as part of a geometric object should be given by
-    // /// the FaceElement representation, by default (needed to break
-    // /// indeterminacy if bulk element is SolidElement)
-    // //??ds don't think I need this....
-    // double zeta_nodal(const unsigned &n, const unsigned &k,
-    //                 const unsigned &i) const
-    // {return FaceElement::zeta_nodal(n,k,i);}
 
     /// Add the element's contribution to its residual vector
     void fill_in_contribution_to_residuals(Vector<double> &residuals)
@@ -86,7 +55,6 @@ namespace oomph
     }
 
 
-
     /// \short Output function -- forward to broken version in FiniteElement.
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {FiniteElement::output(outfile,n_plot);}
@@ -96,25 +64,30 @@ namespace oomph
     void output(FILE* file_pt, const unsigned &n_plot=5)
     {FiniteElement::output(file_pt,n_plot);}
 
-    /// Access function for the pointer the to bulk element
-    MicromagEquations* bulk_element_pt() const {return Bulk_element_pt;}
+    MicromagEquations* bulk_element_pt() const
+    {
+      return Bulk_element_pt;
+    }
 
     unsigned m_index_micromag(const unsigned &i) const
     {
       return bulk_element_pt()->m_index_micromag(i);
     }
 
-    unsigned ndof_types()
-    {return 0;}
+    unsigned ndof_types() {return 0;}
 
     /// \short Element makes no changes to dof numbering - do nothing.
-    void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
-                                      block_lookup_list) {}
+    void get_dof_numbers_for_unknowns
+    (std::list<std::pair<unsigned long,unsigned> >& block_lookup_list) {}
 
     /// Return  m . dm/dn at s.
     double interpolated_mdotdmdn_micromag(const Vector<double> &s) const
     {
       // dm_i/dn = dm_i/dx . normal
+
+      std::string err = "Untested with midpoint, not using interpolator so prob. no good";
+      throw OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
 
       // Get shape functions
       Shape psi(nnode()); DShape dpsidx(nnode(),dim());
@@ -174,19 +147,33 @@ namespace oomph
     (Vector<double> &residuals, DenseMatrix<double> &jacobian,
      const unsigned& flag);
 
-  private:
 
-    ///The spatial dimension of the problem
-    unsigned Nodal_dim;
+  private:
 
     /// Pointer to the attached bulk element
     MicromagEquations* Bulk_element_pt;
+
+    ///\short Broken empty constructor
+    MicromagFluxElement()
+    {
+      throw OomphLibError
+        ("Don't call empty constructor for MicromagFluxElement",
+         OOMPH_CURRENT_FUNCTION,
+         OOMPH_EXCEPTION_LOCATION);
+    }
+
+    /// Broken copy constructor
+    MicromagFluxElement(const MicromagFluxElement& dummy)
+    {
+      BrokenCopy::broken_copy("MicromagFluxElement");
+    }
+
+    /// Broken assignment operator
+    void operator=(const MicromagFluxElement&)
+    {
+      BrokenCopy::broken_assign("MicromagFluxElement");
+    }
   };
-
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-
 
 
   //===========================================================================
@@ -198,20 +185,14 @@ namespace oomph
   //===========================================================================
   template<class ELEMENT>
   MicromagFluxElement<ELEMENT>::
-  MicromagFluxElement(FiniteElement* const &bulk_el_pt,
-                      const int &face_index) :
-    FaceGeometry<ELEMENT>(),
-    FaceElement(),
-    Bulk_element_pt(checked_dynamic_cast<MicromagEquations*>(bulk_el_pt))
+  MicromagFluxElement(FiniteElement* const &bulk_el_pt, const int &face_index)
+    : FaceGeometry<ELEMENT>(), FaceElement(),
+      Bulk_element_pt(checked_dynamic_cast<MicromagEquations*>(bulk_el_pt))
   {
     // Let the bulk element build the FaceElement, i.e. setup the pointers
     // to its nodes (by referring to the appropriate nodes in the bulk
     // element), etc.
     bulk_element_pt()->build_face_element(face_index,this);
-
-    // Extract the dimension of the problem from the dimension of
-    // the first node
-    Nodal_dim = this->node_pt(0)->ndim();
   }
 
 
@@ -239,6 +220,7 @@ namespace oomph
 
     const unsigned n_node = nnode();
     const unsigned n_intpt = integral_pt()->nweight();
+    const unsigned dim = node_pt(0)->ndim();
 
     Shape psi(n_node), test(n_node);
 
@@ -256,8 +238,8 @@ namespace oomph
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
         // Local coords
-        Vector<double> s(Nodal_dim-1);
-        for(unsigned i=0;i<(Nodal_dim-1);i++)
+        Vector<double> s(dim-1);
+        for(unsigned i=0;i<(dim-1);i++)
           s[i] = integral_pt()->knot(ipt,i);
 
         const double J = shape_test(s,psi,test);
@@ -266,18 +248,18 @@ namespace oomph
         // Get the shape/test functions and derrivatives
         shape_test(s,psi,test);
 
-        Vector<double> itp_x(Nodal_dim,0.0), itp_m(3,0.0);
+        Vector<double> itp_x(dim,0.0), itp_m(3,0.0);
         for(unsigned l=0; l<n_node; l++)
           {
-            for(unsigned j=0; j<Nodal_dim; j++)
+            for(unsigned j=0; j<dim; j++)
               itp_x[j] += nodal_position(l,j)*psi(l);
             for(unsigned j=0; j<3; j++)
               itp_m[j] += nodal_value(l, m_index[j])*psi(l);
           }
 
-        Vector<double> low_dim_normal(Nodal_dim,0.0), normal(3,0.0);
+        Vector<double> low_dim_normal(dim,0.0), normal(3,0.0);
         outer_unit_normal(s, low_dim_normal);
-        for(unsigned j=0; j<Nodal_dim; j++) {normal[j] = low_dim_normal[j];}
+        for(unsigned j=0; j<dim; j++) {normal[j] = low_dim_normal[j];}
 
         double mdotn = VectorOps::dot(normal, itp_m);
 
@@ -318,29 +300,6 @@ namespace oomph
       }
 
   }
-
-
-    //??ds
-
-    // // Loop over residuals (one for each node).
-    // for(unsigned l_res=0; l_res<bulk_nnode; l_res++)
-    //   {
-    //     //if(this->get_node_number(be_pt->node_pt(l_res)) == -1) continue;
-
-    //     for(unsigned l_var=0; l_var<bulk_nnode; l_var++)
-    //       {
-    //         std::cout <<  "residual: " << l_res << ", variable: " << l_var << std::endl;
-
-    //         for(unsigned j=0; j<3; j++)
-    //           {
-    //             for(unsigned i=0; i<3; i++)
-    //               {
-    //                 std::cout << std::setw( 12 ) << jacobian(l_res*3 + j, l_var*3 + i);
-    //               }
-    //             std::cout << std::endl;
-    //           }
-    //       }
-
 
 } // End of oomph namespace
 
