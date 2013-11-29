@@ -7,7 +7,7 @@
 
 namespace oomph
 {
-
+  using namespace InterpolatorHelpers;
 
   /* Implementation notes:
 
@@ -39,10 +39,12 @@ namespace oomph
   template<unsigned VAL>
   class GeneralArrayInterpolator
   {
+
   public:
     /// Default constructor
     GeneralArrayInterpolator(const FiniteElement* const this_element,
-                             const Vector<double> &s)
+                             const Vector<double> &s,
+                             bool call_build=true)
       :
       // Cache some loop end conditions
       Nnode(this_element->nnode()),
@@ -78,51 +80,6 @@ namespace oomph
     // Negative time to signify that it has not been calculated yet
       Intp_time(NotYetCalculatedValue)
     {
-      // Set up shape + test functions
-      J = this_element->dshape_eulerian(s, Psi, Dpsidx);
-      Test = Psi;
-      Dtestdx = Dpsidx;
-
-      // Find out if any nodes in this element are hanging
-      Has_hanging_nodes = false;
-      for(unsigned nd=0, nnode=This_element->nnode(); nd<nnode; nd++)
-        {
-          Node* nd_pt = This_element->node_pt(nd);
-          if(nd_pt->is_hanging())
-            {
-              Has_hanging_nodes = true;
-              break;
-            }
-        }
-
-#ifdef PARANOID
-      for(unsigned nd=0, nnode=This_element->nnode(); nd<nnode; nd++)
-        {
-          Node* nd_pt = This_element->node_pt(nd);
-
-          // Check all number of values the same for all nodes
-          if(nd_pt->nvalue() != VAL)
-            {
-              std::ostringstream error_msg;
-              error_msg << "Number of values must be the same at all nodes to use this interpolator.";
-              throw OomphLibError(error_msg.str(),
-                                  OOMPH_CURRENT_FUNCTION,
-                                  OOMPH_EXCEPTION_LOCATION);
-            }
-
-          // Check ts_pts are all the same
-          if(nd_pt->time_stepper_pt() != This_element->node_pt(0)->time_stepper_pt())
-            {
-              std::ostringstream error_msg;
-              error_msg << "Time steppers should all be the same within an element!";
-              throw OomphLibError(error_msg.str(),
-                                  OOMPH_CURRENT_FUNCTION,
-                                  OOMPH_EXCEPTION_LOCATION);
-            }
-
-        }
-#endif
-
       // Initialise storage
       for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
       for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
@@ -133,7 +90,26 @@ namespace oomph
           for(unsigned j=0; j<3; j++) Dvaluesdx[i][j] = NotYetCalculatedValue;
         }
 
+      if(call_build)
+        {
+          build();
+        }
     }
+
+    virtual void build()
+      {
+        // Set up shape + test functions
+        J = This_element->dshape_eulerian(s(), Psi, Dpsidx);
+        Test = Psi;
+        Dtestdx = Dpsidx;
+
+        // Find out if any nodes in this element are hanging
+        Has_hanging_nodes =
+          InterpolatorHelpers::has_hanging_nodes(This_element);
+
+        // If paranoid check that all nodes have the same nvalues.
+        InterpolatorHelpers::check_nvalues_in_element_same(This_element);
+      }
 
     /// Destructor
     ~GeneralArrayInterpolator() {}
@@ -291,35 +267,6 @@ namespace oomph
     double Dvaluesdt[VAL];
     double Dvaluesdx[VAL][3];
 
-
-    // Magic number signifying that the time has not been set yet
-    static const double NotYetCalculatedValue = -987654.321;
-
-    // Checks to see if private variables are initialised
-    bool uninitialised(double var) const {return var == NotYetCalculatedValue;}
-
-    /// \short Check to see if a vector is initialised. Recusive checking
-    /// would be faster but takes a fairly large amount of time.
-    template<typename T> bool uninitialised(Vector<T> var) const
-    {
-      bool uninitialised_entry = false;
-      for(unsigned j=0; j<var.size(); j++)
-        {
-          if(uninitialised(var[j]))
-            {
-              uninitialised_entry = true;
-              break;
-            }
-        }
-      return var.empty() || uninitialised_entry;
-      // return var.empty();
-    }
-
-    bool uninitialised(const double* var) const
-    {
-      if(var == 0) return true;
-      else return uninitialised(var[0]);
-    }
 
     // Position interpolation
     // ============================================================
@@ -519,6 +466,68 @@ namespace oomph
   };
 
 
+
+  /// Modified version of the itnerpolator for face elements: 1) can't get x
+  /// derivatives very easily here so throw errors if we try. 2) Don't try to
+  /// get dpsi etc (because we can't), just get shape and Jacobian separately.
+  template<unsigned VAL>
+  class FaceElementArrayInterpolator
+    : public GeneralArrayInterpolator<VAL>
+  {
+
+  public:
+
+    /// Constructor, jsut use underlying interpolator
+    FaceElementArrayInterpolator(const FaceElement* this_element,
+                                   const Vector<double> &s)
+      : GeneralArrayInterpolator<VAL>(this_element, s, false)
+    {
+      build();
+    }
+
+
+    virtual void build()
+    {
+      // Set up shape + test functions
+      this->J = this->This_element->J_eulerian(this->s());
+      this->This_element->shape(this->s(), this->Psi);
+      this->Test = this->Psi;
+
+      // Find out if any nodes in this element are hanging
+      this->Has_hanging_nodes =
+        InterpolatorHelpers::has_hanging_nodes(this->This_element);
+
+      // If paranoid check that all nodes have the same nvalues.
+      InterpolatorHelpers::check_nvalues_in_element_same(this->This_element);
+    }
+
+    double dpsidx(const unsigned &i, const unsigned &i_direc) const
+    {
+      broken_function_error();
+      return 0;
+    }
+
+    double dtestdx(const unsigned &i, const unsigned &i_direc) const
+    {
+      broken_function_error();
+      return 0;
+    }
+
+  private:
+
+    void broken_function_error() const
+    {
+      std::string err = "Cannot calculate derivatives w.r.t. x in face elements";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+    }
+
+    // /// Broken constructors
+    // // FaceElementArrayInterpolator() {}
+    // FaceElementArrayInterpolator(FaceElementArrayInterpolator& d) {}
+    // void operator=(FaceElementArrayInterpolator& d) {}
+
+  };
 
 } // End of oomph namespace
 

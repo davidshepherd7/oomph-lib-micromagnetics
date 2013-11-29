@@ -1229,7 +1229,7 @@ namespace oomph
     MMInterpolator(const FiniteElement* const this_element,
                    const Vector<double> &s)
       : GeneralInterpolator(this_element, s),
-        Div_m(this->NotYetCalculatedValue)
+        Div_m(InterpolatorHelpers::NotYetCalculatedValue)
     {}
 
     /// Set different timestepper constructor
@@ -1237,7 +1237,7 @@ namespace oomph
                    const Vector<double> &s,
                    const TimeStepper* ts_pt)
       : GeneralInterpolator(this_element, s, ts_pt),
-        Div_m(this->NotYetCalculatedValue)
+        Div_m(InterpolatorHelpers::NotYetCalculatedValue)
     {}
 
 
@@ -1251,7 +1251,7 @@ namespace oomph
 
     const Vector<double> &m()
     {
-      if(this->uninitialised(M))
+      if(InterpolatorHelpers::uninitialised(M))
         {
           M = this->interpolate_values(This_element->m_index_micromag(0),
                                        This_element->m_index_micromag(2) + 1);
@@ -1261,7 +1261,7 @@ namespace oomph
 
     const Vector<double>& dmdt()
     {
-      if(this->uninitialised(Dmdt))
+      if(InterpolatorHelpers::uninitialised(Dmdt))
         {
           Dmdt = this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
                                              This_element->m_index_micromag(2) + 1);
@@ -1281,7 +1281,7 @@ namespace oomph
 
     double div_m()
     {
-      if(this->uninitialised(Div_m))
+      if(InterpolatorHelpers::uninitialised(Div_m))
         {
           Div_m = 0;
           for(unsigned j=0; j<Dim; j++) Div_m += dmdx(j)[j];
@@ -1311,7 +1311,7 @@ namespace oomph
     MMArrayInterpolator(const FiniteElement* const this_element,
                         const Vector<double> &s)
       : GeneralArrayInterpolator<VAL>(this_element, s),
-        Dmdt(0), M(0), Div_m(this->NotYetCalculatedValue)
+        Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue)
     {}
 
     double phi() {return this->value(This_element->phi_index_micromag());}
@@ -1324,7 +1324,7 @@ namespace oomph
 
     const double* m()
     {
-      if(this->uninitialised(M))
+      if(InterpolatorHelpers::uninitialised(M))
         {
           this->interpolate_values(This_element->m_index_micromag(0),
                                    This_element->m_index_micromag(2) + 1);
@@ -1335,7 +1335,7 @@ namespace oomph
 
     const double* dmdt()
     {
-      if(this->uninitialised(Dmdt))
+      if(InterpolatorHelpers::uninitialised(Dmdt))
         {
           this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
                                       This_element->m_index_micromag(2) + 1);
@@ -1352,7 +1352,7 @@ namespace oomph
 
     double div_m()
     {
-      if(this->uninitialised(Div_m))
+      if(InterpolatorHelpers::uninitialised(Div_m))
         {
           Div_m = 0;
           for(unsigned j=0; j<this->Dim; j++) Div_m += dmdx(j)[j];
