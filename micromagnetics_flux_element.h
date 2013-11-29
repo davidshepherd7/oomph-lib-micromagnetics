@@ -206,9 +206,9 @@ namespace oomph
    DenseMatrix<double> &jacobian,
    const unsigned& flag)
   {
-#warning flux elements not compatible with midpoint yet
     // If there is some surface anisotropy then throw an error: not
     // implemented.
+#ifdef PARANOID
     if(bulk_element_pt()->magnetic_parameters_pt()->surface_anisotropy_enabled())
       {
         std::ostringstream error_msg;
@@ -217,6 +217,7 @@ namespace oomph
                             OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
+#endif
 
     const unsigned n_node = nnode();
     const unsigned n_intpt = integral_pt()->nweight();
@@ -237,31 +238,25 @@ namespace oomph
     //--------------------------------
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
+
         // Local coords
         Vector<double> s(dim-1);
-        for(unsigned i=0;i<(dim-1);i++)
-          s[i] = integral_pt()->knot(ipt,i);
+        for(unsigned i=0; i<(dim-1); i++) {s[i] = integral_pt()->knot(ipt, i);}
 
-        const double J = shape_test(s,psi,test);
-        const double W = integral_pt()->weight(ipt) * J;
+        // Create interpolator (deals with midpoint weirdness, so still
+        // very useful even for such a simple residual).
+        FaceElementArrayInterpolator<5> intp(this, s);
 
-        // Get the shape/test functions and derrivatives
-        shape_test(s,psi,test);
+        const double W = integral_pt()->weight(ipt) * intp.j();
 
-        Vector<double> itp_x(dim,0.0), itp_m(3,0.0);
-        for(unsigned l=0; l<n_node; l++)
+        // Get mdotn at this point
+        Vector<double> normal(dim,0.0);
+        outer_unit_normal(s, normal);
+        double mdotn = 0.0;
+        for(unsigned j=0; j<dim; j++)
           {
-            for(unsigned j=0; j<dim; j++)
-              itp_x[j] += nodal_position(l,j)*psi(l);
-            for(unsigned j=0; j<3; j++)
-              itp_m[j] += nodal_value(l, m_index[j])*psi(l);
+            mdotn += intp.value(m_index[j]) * normal[j];
           }
-
-        Vector<double> low_dim_normal(dim,0.0), normal(3,0.0);
-        outer_unit_normal(s, low_dim_normal);
-        for(unsigned j=0; j<dim; j++) {normal[j] = low_dim_normal[j];}
-
-        double mdotn = VectorOps::dot(normal, itp_m);
 
         // Loop over the test functions doing residual and Jacobian
         // contributions.
@@ -270,27 +265,28 @@ namespace oomph
             // Get indicies for phi_1 equation
             int phi_1_eqn = nodal_local_eqn (l, phi1_index);
 
-            // Phi contribution (if not a dirichlet b.c.)
-            if(phi_1_eqn >= 0)
-              residuals[phi_1_eqn] += mdotn*test(l)*W;
+            // Skip if a dirichlet b.c.
+            if(phi_1_eqn < 0) continue;
 
-            // Jacobian (phi_1 w.r.t m_i)
+            // Add contribution to phi residual
+            residuals[phi_1_eqn] += mdotn * intp.test(l) * W;
+
+            // Skip rest if Jacobian not requested
             if(!flag) continue;
+
             for(unsigned l2=0; l2<n_node; l2++)
               {
                 // Loop over which m we are differentiating w.r.t
-                Vector<unsigned> m_unknown(3,0.0);
                 for(unsigned j=0; j<3; j++)
                   {
-                    m_unknown[j] = nodal_local_eqn(l2, m_index[j]);
-                    if(m_unknown[j] < 0) continue;
+                    unsigned m_unknown = nodal_local_eqn(l2, m_index[j]);
 
-                    // phi_1 residual w.r.t m_j
-                    if(phi_1_eqn >= 0)
-                      {
-                        jacobian(phi_1_eqn, m_unknown[j])
-                          += psi(l2) * test(l) * normal[j] * W;
-                      }
+                    // Skip rest is m[j] pinned
+                    if(m_unknown < 0) continue;
+
+                    // phi_1 residual w.r.t m[j]
+                    jacobian(phi_1_eqn, m_unknown)
+                      += intp.psi(l2) * intp.test(l) * normal[j] * W;
 
                   }
               }
