@@ -249,9 +249,13 @@ namespace oomph
 
         const double W = integral_pt()->weight(ipt) * intp.j();
 
-        // Get mdotn at this point
+        // Get normal vector, force 3 entries for ease of combination with
+        // m which always has 3 entries.
         Vector<double> normal(dim,0.0);
         outer_unit_normal(s, normal);
+        normal.resize(3, 0.0); // make 3d, initialise new values to zero.
+
+        // Get mdotn at this point
         double mdotn = 0.0;
         for(unsigned j=0; j<dim; j++)
           {
