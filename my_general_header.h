@@ -270,6 +270,12 @@ namespace oomph
         }
       else if(solver_name == "fdlu")
         { solver_pt = new FD_LU; }
+      else if(solver_name == "som-gmres")
+        {
+          IterativeLinearSolver* its_pt = new GMRES<SumOfMatrices>;
+          its_pt->max_iter() = 200;
+          solver_pt = its_pt;
+        }
       else
         {
           std::string err("Unrecognised solver name ");
