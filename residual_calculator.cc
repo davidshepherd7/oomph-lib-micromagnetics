@@ -231,7 +231,6 @@ namespace oomph
         double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
         // Copy some things into vectors ready for use in function calls
-        const double itp_divm = intp.div_m();
         Vector<double> xvec(ndim, 0.0);
         for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
         Vector<double> mvec(3, 0.0);
@@ -263,7 +262,7 @@ namespace oomph
             if((phi_eqn >= 0) && (!(e_pt->node_pt(l)->is_on_boundary())))
               {
                 residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
-                residuals[phi_eqn] -= itp_divm*intp.test(l)*W;         // div(m)
+                residuals[phi_eqn] -= intp.div_m()*intp.test(l)*W;         // div(m)
                 for(unsigned k=0;k<ndim;k++)                       // Poisson
                   residuals[phi_eqn] -= intp.dphidx()[k]*intp.dtestdx(l,k)*W;
               }
@@ -273,7 +272,7 @@ namespace oomph
             if(phi_1_eqn >= 0)
               {
                 residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
-                residuals[phi_1_eqn] -= itp_divm*intp.test(l)*W;
+                residuals[phi_1_eqn] -= intp.div_m()*intp.test(l)*W;
                 for(unsigned k=0;k<ndim;k++)
                   residuals[phi_1_eqn] -= intp.dphi1dx()[k]*intp.dtestdx(l,k)*W;
               }
