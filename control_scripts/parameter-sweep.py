@@ -39,9 +39,17 @@ def execute_oomph_driver(args_dict, output_root):
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
     for key, value in args_dict.items():
-        if key not in ['mpi_ncores', 'driver', 'outdir']:
+        if key not in ['mpi_ncores', 'driver', 'outdir', 'implicit-ms']:
             processed_kwargs.append('-'+str(key))
             processed_kwargs.append(str(value))
+
+    # Handle implicit ms: append to args list if true in dict and driver is llg
+    # driver.
+    implicit_ms = args_dict.get('implicit-ms')
+    if (implicit_ms is not None) and args_dict['driver'] == "./llg_driver/llg_driver":
+        if implicit_ms:
+            processed_kwargs.append('-implicit-ms')
+
 
     # Construct an output directory name based on inputs if not specified.
     if args_dict.get('outdir') is None:
@@ -96,6 +104,12 @@ def execute_oomph_driver(args_dict, output_root):
         print('This run failed!', file=open(pjoin(final_outdir, "FAILED"), 'w'))
 
     return 0
+
+
+def build(folder):
+    print("Building in", folder)
+    subp.check_call(['make', '--silent', '--keep-going',
+                    'LIBTOOLFLAGS=--silent'], cwd=folder)
 
 
 def _apply_to_list(function, list_of_args):
@@ -360,6 +374,51 @@ def standard_sweep(parameter_set, serial_mode=False):
             'mp-pred' : ["edbdf3", "rk4"]
             }
 
+    elif parameter_set == "multi-domain-failures":
+         args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'dt' : [1e-4, 1e-5],
+            'tmax' : [1.0],
+            'ts' : ["bdf2", "midpoint"],
+            'mesh' : ['multi_ut_square', 'multi_sq_square'],
+            'renorm_m' : [1],
+            'ref' : [3],
+            'doc-interval' : ["all"]
+            }
+
+    elif parameter_set == "multi-domain-squares":
+         args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'tmax' : [1e-10],
+            'ts' : ["midpoint"],
+            'mesh' : ['multi_sq_square', 'sq_square'],
+            'ref' : [1],
+            'happ' : ['zero'],
+            }
+
+    elif parameter_set == "multi-domain-spheres-energy-test":
+         args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'tmax' : [1e-10],
+            'ts' : ["midpoint"],
+            'mesh' : ['multi_ut_sphere', 'ut_sphere'],
+            'ref' : [3],
+            'happ' : ['zero'],
+            }
+
+    elif parameter_set == "compare-implicitness":
+         args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver",
+                        "./llg_driver/llg_driver"],
+            'tmax' : [20],
+            'ts' : ["bdf2"],
+            'mesh' : ['multi_ut_sphere'],
+            'ref' : [2],
+            'tol' : [1e-3, 1e-5],
+            'dt' : [1e-6],
+            'implicit-ms' : [True]
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
@@ -375,10 +434,8 @@ def standard_sweep(parameter_set, serial_mode=False):
                      'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
     # Make sure the driver binaries are up to date
-    driver_folder = os.path.dirname(args_dict['driver'][0])
-    print("Building in", driver_folder)
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
+    driver_folders = [os.path.dirname(d) for d in args_dict['driver']]
+    map(build, driver_folders)
 
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)

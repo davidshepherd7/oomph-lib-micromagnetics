@@ -311,7 +311,10 @@ def plot_vs_time(data, plot_values):
     for axes, p in zip(axesarray, plot_values):
 
         for d in data:
-            name = str(d['tol']) + " " + str(d['refinement']) + " " + str(d['time_stepper'])
+            name = str(d['tol']) + " " + str(d['refinement'])\
+               + " " + str(d['time_stepper'])\
+               + " " + str(d.get('use_implicit_ms') is not None)
+
             axes.plot(d['times'], d[p], label=name)
             axes.set_ylabel(latex_safe(p))
 
