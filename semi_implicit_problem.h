@@ -261,10 +261,10 @@ namespace oomph
       mesh_name = "sq_square";
 
       specify_command_line_flag("-xshift", &xshift);
-      xshift = 1.0;
+      xshift = 1.5;
 
       specify_command_line_flag("-yshift", &yshift);
-      yshift = 1.0;
+      yshift = 1.5;
 
       specify_command_line_flag("-numerical-BEM");
       // automatically defaults to false
