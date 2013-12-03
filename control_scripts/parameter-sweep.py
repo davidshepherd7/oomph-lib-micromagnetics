@@ -14,6 +14,8 @@ import argparse
 import os
 import os.path
 import hashlib
+import shutil
+import re
 
 import itertools as it
 import functools as ft
@@ -33,6 +35,34 @@ from glob import glob
 greenColour = '\033[01;32m'
 redColour = '\033[01;31m'
 endColour = '\033[0m'
+
+
+# def recursive_check_filenames_rm_safe(root_dir):
+#     """Check that all files inside a directory are only output from my drivers,
+#     and so safe to be deleted.
+#     """
+#     whitelist = ["info", "trace", "stdout", "soln.pvd", "run_script.sh",
+#                  ".dummy_check.dat", "FAILED",
+#                  "info.gz", "trace.gz", "stdout.gz", ".dummy_check.dat.gz",
+#                  "FAILED.gz", "averages", "errors", "field_averages",
+#                  "solndatfiles.tar.bz2"]
+
+#     regex_whitelist = map(re.compile,
+#                           [r"\A(soln|phione|field)(\d*)\.(dat|dat\.gz|vtu)$",
+#                            r"jacobian.*", r"residual.*", r".*~"])
+
+#     def safe(f):
+#         safe_wl = f in whitelist
+#         safe_re = any([(r.match(f) is not None) for r in regex_whitelist])
+#         print(safe_wl, safe_re)
+#         return safe_wl or safe_re
+
+#     for root, dirs, files in os.walk(root_dir):
+#         for f in files:
+#             if not safe(f):
+#                 print(f)
+#                 raise Exception("Tried to delete non whitelisted file: \""+f+"\"")
+
 
 def execute_oomph_driver(args_dict, output_root):
 
@@ -180,7 +210,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
 
     return 0
 
-def standard_sweep(parameter_set, serial_mode=False):
+def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     if parameter_set == 'nmag_cubeoid':
         args_dict = {
@@ -412,8 +442,8 @@ def standard_sweep(parameter_set, serial_mode=False):
                         "./llg_driver/llg_driver"],
             'tmax' : [20],
             'ts' : ["bdf2"],
-            'mesh' : ['multi_ut_sphere'],
-            'ref' : [2],
+            'mesh' : ['many_ut_square'],
+            'ref' : [3],
             'tol' : [1e-3, 1e-5],
             'dt' : [1e-6],
             'implicit-ms' : [True]
@@ -424,6 +454,13 @@ def standard_sweep(parameter_set, serial_mode=False):
 
     output_root = pjoin('../experiments/parameter_sweeps',
                         '_'.join(parameter_set.split()))
+
+
+    if cleanup:
+        print("Cleaning out", output_root)
+        # recursive_check_filenames_rm_safe(output_root)
+        shutil.rmtree(output_root)
+        os.mkdir(output_root)
 
     # Make sure micromag library is up to date
     library_folder = os.path.abspath("../")
@@ -469,6 +506,9 @@ def main():
     parser.add_argument('--parameters', '-p', dest='parameters',
                         help = 'Do a standard parameter sweep with the specified parameter set.')
 
+    parser.add_argument('--clean', action='store_true',
+                        help='clean up old results from the target folder')
+
     # parser.add_argument('-ncores', '-j', dest='ncores',
     #                     help='Set number of cores to use.')
 
@@ -477,9 +517,10 @@ def main():
     # Main function
     # ============================================================
 
+
     # Do parameter sweep
     if args.parameters is not None:
-        standard_sweep(args.parameters, args.debug_mode)
+        standard_sweep(args.parameters, args.clean, args.debug_mode)
 
     # Or just dump some Jacobians
     elif args.j_parameter_set is not None:
