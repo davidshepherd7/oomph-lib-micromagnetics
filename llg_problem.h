@@ -1014,6 +1014,12 @@ public:
       specify_command_line_flag("-nnode1d", &nnode1d);
       nnode1d = 2;
 
+      specify_command_line_flag("-xshift", &xshift);
+      xshift = 1.5;
+
+      specify_command_line_flag("-yshift", &yshift);
+      yshift = 1.5;
+
       specify_command_line_flag("-implicit-ms");
     }
 
@@ -1031,7 +1037,18 @@ public:
           std::string base_name = Factories::rest_of_name("multi_", mesh_name);
           mesh_pts = Factories::simple_multimesh_factory(LLGFactories::mesh_factory,
                                                          base_name, refinement,
-                                                         time_stepper_pt, nnode1d);
+                                                         time_stepper_pt, xshift,
+                                                         nnode1d);
+        }
+
+      // Or with "many" prefix make a load of meshes
+      else if(Factories::has_prefix("many_", mesh_name))
+        {
+          std::string base_name = Factories::rest_of_name("many_", mesh_name);
+
+          mesh_pts = Factories::simple_many_multimesh_factory
+            (LLGFactories::mesh_factory, base_name, refinement,
+             time_stepper_pt, xshift, yshift, nnode1d);
         }
 
       // Otherwise just make a single mesh
@@ -1057,6 +1074,8 @@ public:
     Vector<Mesh*> mesh_pts;
 
     unsigned nnode1d;
+    double xshift;
+    double yshift;
 
     bool use_implicit_ms;
 

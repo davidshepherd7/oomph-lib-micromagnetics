@@ -214,6 +214,49 @@ namespace oomph
                                time_stepper_pt, nnode1d);
     }
 
+    // Create lots of meshes near to each other (spaced out along x, y).
+    inline Vector<Mesh*> simple_many_multimesh_factory
+    (MeshFactoryFctPt* underlying_factory, const std::string& mesh_name,
+     int refinement_level, TimeStepper* time_stepper_pt,
+     double xspacing, double yspacing, unsigned nnode1d = 2)
+    {
+      // Idea is to just make a square (or rect.) grid of meshes, spaced
+      // according to xspacing and yspacing.
+
+      // Decided number of meshes
+      unsigned n_along_one_direction = 4;
+      unsigned n_total = n_along_one_direction*n_along_one_direction;
+      Vector<ShiftedMeshDetails> inputs(n_total);
+
+      // Keep track of shift distances
+      double basex = 0.0;
+      double basey = 0.0;
+
+      // Loop through setting the shift distances for each one
+      for(unsigned j=0; j<n_along_one_direction; j++)
+        {
+          for(unsigned i=0; i<n_along_one_direction; i++)
+            {
+              // Store the mesh details
+              inputs[j*n_along_one_direction+i].mesh_name = mesh_name;
+              inputs[j*n_along_one_direction+i].xshift = basex;
+              inputs[j*n_along_one_direction+i].yshift = basey;
+
+              // Next column: move along y
+              basey += yspacing;
+            }
+
+          // Next row: zero the y shift and move along x
+          basex += xspacing;
+          basey = 0.0;
+        }
+
+      // Construct the meshes using the general multimesh factory
+      return multimesh_factory(underlying_factory,
+                               inputs, refinement_level,
+                               time_stepper_pt, nnode1d);
+    }
+
 
     template<class ELEMENT>
     inline Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,

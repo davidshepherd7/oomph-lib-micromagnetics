@@ -263,6 +263,9 @@ namespace oomph
       specify_command_line_flag("-xshift", &xshift);
       xshift = 1.0;
 
+      specify_command_line_flag("-yshift", &yshift);
+      yshift = 1.0;
+
       specify_command_line_flag("-numerical-BEM");
       // automatically defaults to false
     }
@@ -302,6 +305,23 @@ namespace oomph
              single_mesh_name, refinement, time_stepper_pt, xshift);
 
         }
+
+      // Or with "many" prefix make a load of meshes
+      else if(Factories::has_prefix("many_", mesh_name))
+        {
+          std::string base_name = Factories::rest_of_name("many_", mesh_name);
+
+          llg_mesh_pts = Factories::simple_many_multimesh_factory
+            (SemiImplicitFactories::llg_mesh_factory, base_name, refinement,
+             time_stepper_pt, xshift, yshift);
+          phi_mesh_pts = Factories::simple_many_multimesh_factory
+            (SemiImplicitFactories::phi_mesh_factory, base_name, refinement,
+             time_stepper_pt, xshift, yshift);
+          phi_1_mesh_pts = Factories::simple_many_multimesh_factory
+            (SemiImplicitFactories::phi_mesh_factory, base_name, refinement,
+             time_stepper_pt, xshift, yshift);
+         }
+
       // Otherwise just build one mesh
       else
         {
@@ -350,6 +370,7 @@ namespace oomph
 
     // Distance to move meshes away from origin (along +- x) in multi-mesh.
     double xshift;
+    double yshift;
 
     bool use_numerical_integration;
   };

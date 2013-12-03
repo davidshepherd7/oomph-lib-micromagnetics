@@ -18,7 +18,7 @@ namespace oomph
                            Mesh* mesh_pt)
   {
 #ifdef PARANOID
-    // If given shifts in more dimensions than we have
+    // If given shifts in more dimensions than we have then error
     if(((mesh_pt->node_pt(0)->ndim() == 1) && ((y != 0.0) || (z != 0.0)))
        ||
        ((mesh_pt->node_pt(0)->ndim() == 2) && (z != 0.0)))
