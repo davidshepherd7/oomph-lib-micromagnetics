@@ -189,7 +189,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       return weight_1d(i,order);
     }
@@ -197,7 +197,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
       return knot_1d(i,order);
     }
@@ -232,7 +232,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       unsigned i_x = i%order;
       unsigned i_y = i/order;
@@ -242,7 +242,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
       if(j==0)
         {
@@ -295,7 +295,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"QVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       unsigned i_x = i%order;
       unsigned i_y = (i/order)%order;
@@ -305,7 +305,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
       if(j==0)
         {
@@ -373,7 +373,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       return weight_1d(i,order);
     }
@@ -381,7 +381,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
       return 0.5*(knot_1d(i,order) + 1);
     }
@@ -417,7 +417,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       // Get weight for quadrilateral
       //??ds could replace this by a call to Q quadrature?
@@ -436,7 +436,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderGaussLegendre::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
 
       // Get knot for quadrilateral and transform
@@ -497,7 +497,7 @@ namespace oomph
     {
 #ifdef PARANOID
       unsigned dummy = 0;
-      error_check(i,dummy,order,"TVariableOrderQuadrature::weight");
+      error_check(i,dummy,order, OOMPH_CURRENT_FUNCTION);
 #endif
       return 0.0;
     }
@@ -505,7 +505,7 @@ namespace oomph
     inline double knot(const unsigned &i, const unsigned &j, const unsigned &order) const
     {
 #ifdef PARANOID
-      error_check(i,j,order,"VariableOrderQuadrature::knot");
+      error_check(i,j,order, OOMPH_CURRENT_FUNCTION);
 #endif
       std::ostringstream error_stream;
       error_stream << "Requested knot coordinate for 3D triangles, not yet implemented for variable order." << std::endl;

@@ -29,7 +29,7 @@ namespace oomph
         std::ostringstream error_stream;
         error_stream << "Invalid dimension " << dim();
         throw OomphLibError(error_stream.str(),
-                            OOMPH_CURRENT_FUNCTION,
+                            function_name,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -39,7 +39,7 @@ namespace oomph
         error_stream << "Gaussian quadrature of order "
                      << order << " is not (yet) implemented.";
         throw OomphLibError(error_stream.str(),
-                            OOMPH_CURRENT_FUNCTION,
+                            function_name,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -50,7 +50,7 @@ namespace oomph
                      << order << " does not have a weight number " << i
                      << ".";
         throw OomphLibError(error_stream.str(),
-                            OOMPH_CURRENT_FUNCTION,
+                            function_name,
                             OOMPH_EXCEPTION_LOCATION);
       }
 
@@ -60,7 +60,7 @@ namespace oomph
         error_stream << "Dimension of quadrature is " << dim()
                      << " so coordinate " << j << " does not exist";
         throw OomphLibError(error_stream.str(),
-                            OOMPH_CURRENT_FUNCTION,
+                            function_name,
                             OOMPH_EXCEPTION_LOCATION);
       }
   }
