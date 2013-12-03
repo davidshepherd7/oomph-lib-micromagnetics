@@ -699,6 +699,17 @@ namespace oomph
             }
 #endif
         }
+
+      // Maybe make a preconditioner which only acts on the main matrix of
+      // a sum of matrices.
+      else if(Factories::has_prefix("som-main-", prec_name))
+        {
+          std::string ul_prec_name = Factories::rest_of_name("som-main-", prec_name);
+          Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
+          its_pt->preconditioner_pt() = new MainMatrixOnlyPreconditioner(ul_prec);
+        }
+
+      // Otherwise just make a normal preconditioner
       else if(prec_name != "none")
         {
           prec_pt = Factories::preconditioner_factory(prec_name);

@@ -47,7 +47,8 @@ headers = array_interpolator.h \
 	residual_calculator.h \
 	poisson_test_problem.h \
 	residual_swapping_explicit_timestepper.h \
-	multi_mesh.h
+	multi_mesh.h \
+	sum_of_matrices_preconditioner.h
 
 
 # Define name of library
