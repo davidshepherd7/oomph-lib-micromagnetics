@@ -93,24 +93,31 @@ namespace oomph
 
           // Create identity CRDoubleMatrix
           unsigned bem_nnode = Bem_handler_pt->bem_mesh_pt()->nnode();
-          LinearAlgebraDistribution dist;
-          Bem_handler_pt->get_bm_distribution(dist);
-          Vector<double> values(bem_nnode, -1.0);
-          Vector<int> col_index(bem_nnode), row_index(bem_nnode), row_start;
+          unsigned nrow = fem_jacobian_pt->nrow();
+          LinearAlgebraDistribution* dist_pt = fem_jacobian_pt->distribution_pt();
+          Vector<double> values(bem_nnode, 0.0);
+          Vector<int> row_index(bem_nnode), row_start;
           for(unsigned nd=0; nd<bem_nnode; nd++)
             {
-              col_index[nd] = nd;
-              row_index[nd] = nd;
+              unsigned i = Bem_handler_pt->output_lookup_pt()
+                ->node_to_global(nd);
+              values[nd] = -1.0;
+              row_index[nd] = i;
             }
-          VectorOps::rowindex2rowstart(row_index, row_start);
-          CRDoubleMatrix* bem_block_identity_pt =
-            new CRDoubleMatrix(&dist, bem_nnode, values, col_index, row_start);
+
+          // Sort the row index list then create row starts vector. DO NOT
+          // COPY THIS CODE FOR CREATION OF OTHER MATRICES: sorting is only
+          // safe because all the values are the same (1.0).
+          std::sort(row_index.begin(), row_index.end());
+          VectorOps::rowindex2rowstart(row_index, nrow, row_start);
+
+          // Create the matrix
+          CRDoubleMatrix bem_block_identity(dist_pt, nrow, values,
+                                            row_index, row_start);
+
 
           // Add it on
-          jacobian.add_matrix(bem_block_identity_pt,
-                              Bem_handler_pt->output_lookup_pt(),
-                              Bem_handler_pt->output_lookup_pt(),
-                              false);
+          fem_jacobian_pt->add(bem_block_identity, *fem_jacobian_pt);
         }
 
     }
