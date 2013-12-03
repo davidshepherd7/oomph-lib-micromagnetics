@@ -550,6 +550,11 @@ def main():
         multi_plot(all_results, keys_to_split_on, plot_m_averages)
 
 
+    if 'newt' in args.plots:
+        plot_m_averages = par(plot_vs_time,
+                              plot_values=['n_newton_iters','dts'])
+        multi_plot(all_results, keys_to_split_on, plot_m_averages)
+
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
