@@ -137,23 +137,24 @@ def parse_run(results_folder):
     return d
 
 
-def parse_parameter_sweep(root_dir):
+def parse_parameter_sweep(root_dirs):
     """Get a list of dictionaries of results in directories (recursively)
-    contained in root_dir.
+    contained in the list of root_dirs.
     """
 
-    # Recursively parse directories inside the root_dir
     results = []
-    for root, dirs, filenames in os.walk(root_dir):
-        for d in dirs:
-            print("Parsing", pjoin(root, d))
-            results.append(parse_run(pjoin(root, d)))
+    for root_dir in root_dirs:
+        # Recursively parse directories inside the root_dir
+        for root, dirs, filenames in os.walk(root_dir):
+            for d in dirs:
+                print("Parsing", pjoin(root, d))
+                results.append(parse_run(pjoin(root, d)))
 
-    # Also parse the root directory if it contains results (i.e. at least
-    # an info file)
-    if os.path.isfile(pjoin(root_dir, "info")):
-        print("Parsing", root_dir)
-        results.append(parse_run(root_dir))
+        # Also parse the root directory if it contains results (i.e. at least
+        # an info file)
+        if os.path.isfile(pjoin(root_dir, "info")):
+            print("Parsing", root_dir)
+            results.append(parse_run(root_dir))
 
     return results
 
@@ -501,7 +502,7 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('parsedir',
+    parser.add_argument('--dir', '-d', action='append',
                         help='Set the directory to look for data in.')
 
     parser.add_argument('--print-data', action='store_true',
@@ -520,7 +521,7 @@ def main():
     # ============================================================
 
     # Get the results that aren't just empty
-    really_all_results = parse_parameter_sweep(args.parsedir)
+    really_all_results = parse_parameter_sweep(args.dir)
     all_results = [d for d in really_all_results if d is not None]
     print(len(all_results), "data sets out of", len(really_all_results), "used",
           "(any others didn't have enough time steps finished).")
