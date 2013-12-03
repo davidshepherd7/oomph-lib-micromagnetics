@@ -436,17 +436,29 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'happ' : ['zero'],
             }
 
-    elif parameter_set == "compare-implicitness":
+    elif parameter_set == "compare-implicitness-semi":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver",
-                        "./llg_driver/llg_driver"],
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'tmax' : [20],
             'ts' : ["bdf2"],
             'mesh' : ['many_ut_square'],
-            'ref' : [3],
-            'tol' : [1e-3, 1e-5],
+            'ref' : [3, 4],
+            'tol' : [1e-1, 1e-3, 1e-5],
             'dt' : [1e-6],
-            'implicit-ms' : [True]
+            }
+
+    elif parameter_set == "compare-implicitness-implicit":
+         args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'tmax' : [20],
+            'ts' : ["bdf2"],
+            'mesh' : ['many_ut_square'],
+            'ref' : [3, 4],
+            'tol' : [1e-1, 1e-3, 1e-5],
+            'dt' : [1e-6],
+            'implicit-ms' : [True],
+            'solver' : ['som-gmres'],
+            'preconditioner' : ['som-main-exact']
             }
 
     else:
