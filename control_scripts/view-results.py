@@ -67,7 +67,7 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('dir', default="results",
+    parser.add_argument('-d', '--dir', default="results/",
                         help='Pick results directory, default is "results".')
 
     parser.add_argument('-j', default=8, dest='ncores',
