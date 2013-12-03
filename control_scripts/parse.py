@@ -92,8 +92,9 @@ def parse_trace_file(filename):
     for header, col in zip(headers, zip(*body)):
 
         # Convert the data in "col" from strings to python data types
-        # (e.g. floats, lists).
-        real_data = [ast.literal_eval(c) for c in col]
+        # (e.g. floats, lists). If it's a list (or list of lists or...)
+        # type then convert to an sp.array.
+        real_data = maybe_recursive_convert_to_array([ast.literal_eval(c) for c in col])
 
         # Put it into our dict with the header of the column as the key and
         # the rest as the data.
@@ -209,6 +210,29 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     return newlist
 
 
+def is_iterable(item):
+    # Add types here you don't want to mistake as iterables
+    if isinstance(item, basestring):
+        return False
+
+    # Fake an iteration.
+    try:
+        for x in item:
+            break
+    except TypeError:
+        return False
+
+    return True
+
+def maybe_recursive_convert_to_array(arr):
+    """Convert lists to arrays, lists of lists to arrays of arrays etc. Also
+    works for any iterable. Non-iterable types are left alone.
+    """
+    if is_iterable(arr):
+        return sp.array([maybe_recursive_convert_to_array(a) for a in arr])
+    else:
+        return arr
+
 # Plotting functions
 # ============================================================
 
@@ -300,24 +324,37 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def plot_vs_time(data, plot_values):
+def plot_vs_time(data, plot_values, operations_on_values=None):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
+
+    # Default operations: do nothing
+    if operations_on_values is None:
+        operations_on_values = [None]*len(plot_values)
 
     fig, axesmatrix = plt.subplots(len(plot_values), 1, sharex = True,
                                    squeeze=False)
     axesarray = axesmatrix.flat
 
-    for axes, p in zip(axesarray, plot_values):
+    for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
         for d in data:
             name = str(d['tol']) + " " + str(d['refinement'])\
                + " " + str(d['time_stepper'])\
                + " " + str(d.get('use_implicit_ms') is not None)
 
-            axes.plot(d['times'], d[p], label=name)
-            axes.set_ylabel(latex_safe(p))
+            if op is not None:
+                vals = map(op, d[p])
+            else:
+                vals = d[p]
+
+            axes.plot(d['times'], vals, label=name)
+
+            if op is not None:
+                axes.set_ylabel(latex_safe(op.__name__ + " of " + p))
+            else:
+                axes.set_ylabel(latex_safe(p))
 
         axesarray[-1].set_xlabel('time')
 
@@ -552,9 +589,15 @@ def main():
 
 
     if 'newt' in args.plots:
-        plot_m_averages = par(plot_vs_time,
-                              plot_values=['n_newton_iters','dts'])
-        multi_plot(all_results, keys_to_split_on, plot_m_averages)
+        plot_newton_iters = par(plot_vs_time,
+                                plot_values=['n_newton_iters','dts'])
+        multi_plot(all_results, keys_to_split_on, plot_newton_iters)
+
+    if 'soltimes' in args.plots:
+        plot_sol_time_averages = par(plot_vs_time,
+                              plot_values=['solver_times','jacobian_setup_times'],
+                              operations_on_values=[sp.mean, sp.mean])
+        multi_plot(all_results, keys_to_split_on, plot_sol_time_averages)
 
     # Plot |m| error vs time
     if 'ml' in args.plots:
