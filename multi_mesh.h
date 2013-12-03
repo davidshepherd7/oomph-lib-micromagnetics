@@ -2,7 +2,6 @@
 #define OOMPH_MULTI_MESH_H
 
 
-#include "semi_implicit_problem.h"
 #include "../../src/generic/mesh.h"
 #include "../../src/generic/timesteppers.h"
 #include "../../src/generic/Vector.h"

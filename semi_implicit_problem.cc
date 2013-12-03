@@ -4,8 +4,6 @@
 // Quadratures for the quadrature factory
 #include "variable_order_quadrature.h"
 
-#include "multi_mesh.h"
-
 
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"
@@ -28,53 +26,6 @@ namespace oomph
   /// responsibility to make sure the objects are deleted.
   namespace SemiImplicitFactories
   {
-
-    /// Create a vector of meshes with the names given in mesh details and
-    /// shifted as also specified in mesh_details.
-    Vector<Mesh*> multimesh_factory(MeshFactoryFctPt* underlying_factory,
-                                    Vector<ShiftedMeshDetails>& mesh_details,
-                                    int refinement_level,
-                                    TimeStepper* time_stepper_pt,
-                                    unsigned nnode1d)
-      {
-        Vector<Mesh*> mesh_pts;
-
-        const unsigned nj = mesh_details.size();
-        for(unsigned j=0; j<nj; j++)
-          {
-            mesh_pts.push_back(underlying_factory(mesh_details[j].mesh_name,
-                                                  refinement_level,
-                                                  time_stepper_pt,
-                                                  nnode1d));
-
-            shift_mesh(mesh_details[j].xshift,
-                       mesh_details[j].yshift,
-                       mesh_details[j].zshift,
-                       mesh_pts[j]);
-          }
-
-        return mesh_pts;
-      }
-
-    /// Create a pair of meshes near to each other (shifted along x).
-    Vector<Mesh*> simple_multimesh_factory(MeshFactoryFctPt* underlying_factory,
-                                           const std::string& mesh_name,
-                                           int refinement_level,
-                                           TimeStepper* time_stepper_pt,
-                                           double xshift,
-                                           unsigned nnode1d)
-    {
-      Vector<ShiftedMeshDetails> inputs(2);
-      inputs[0].mesh_name = mesh_name;
-      inputs[0].xshift = -xshift;
-
-      inputs[1].mesh_name = mesh_name;
-      inputs[1].xshift = +xshift;
-
-      return multimesh_factory(underlying_factory,
-                               inputs, refinement_level,
-                               time_stepper_pt, nnode1d);
-    }
 
     /// \short Make a mesh of Micromag elements as specified by an
     /// input argument. Refined according to the given refinement level (in

@@ -828,10 +828,10 @@ public:
     /// according to the given refinement level (in some way appropriate
     /// for that mesh type). Assumption: this will be passed into a
     /// problem, which will delete the pointer when it's done.
-    Vector<Mesh*> mesh_factory(const std::string& _mesh_name,
-                               int refinement_level,
-                               TimeStepper* time_stepper_pt,
-                               unsigned nnode1d = 2);
+    Mesh* mesh_factory(const std::string& _mesh_name,
+                       int refinement_level,
+                       TimeStepper* time_stepper_pt,
+                       unsigned nnode1d = 2);
 
     LLGResidualCalculator* residual_calculator_factory(const std::string& residual);
 
@@ -1024,8 +1024,22 @@ public:
 
       // Do the mesh last of all because it can be slow
       mesh_name = to_lower(mesh_name);
-      mesh_pts = LLGFactories::mesh_factory(mesh_name, refinement,
-                                            time_stepper_pt, nnode1d);
+
+      // If it has this prefix then make multiple meshes
+      if(Factories::has_prefix("multi_", mesh_name))
+        {
+          std::string base_name = Factories::rest_of_name("multi_", mesh_name);
+          mesh_pts = Factories::simple_multimesh_factory(LLGFactories::mesh_factory,
+                                                         base_name, refinement,
+                                                         time_stepper_pt, nnode1d);
+        }
+
+      // Otherwise just make a single mesh
+      else
+        {
+          mesh_pts.push_back(LLGFactories::mesh_factory(mesh_name, refinement,
+                                                        time_stepper_pt, nnode1d));
+        }
 
       use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
     }
