@@ -105,7 +105,7 @@ int main()
       Vector<double> sum_values;
       VectorOps::get_as_indicies(sum_matrix, sum_values, sum_cols, sum_rows);
 
-      VectorOps::rowindex2rowstart(sum_rows, sum_row_start);
+      VectorOps::rowindex2rowstart(sum_rows, sum_matrix.nrow(), sum_row_start);
       CRDoubleMatrix total_matrix;
       total_matrix.build(&dist, sum_matrix.ncol(), sum_values, sum_cols, sum_row_start);
 

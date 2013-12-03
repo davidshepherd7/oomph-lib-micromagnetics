@@ -7,6 +7,7 @@
 #include <numeric>
 #include <functional>
 #include <set>
+#include <algorithm>
 
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
@@ -357,39 +358,49 @@ namespace VectorOps
       }
   }
 
-  // Warning: must be sorted
+  /// Construct a row start vector from a row index vector. The row index
+  /// vector must be sorted.
   inline void rowindex2rowstart(const Vector<int>& row_index,
+                                const unsigned& nrow,
                                 Vector<int>& row_start)
   {
+#ifdef PARANOID
+    // Check that the row index vector is sorted. Use this weird thing
+    // instead of std::is_sorted because we don't have c++11. Looks for
+    // adjacent elements s.t. e1 > e2, i.e. not sorted.
+    if(std::adjacent_find(row_index.begin(), row_index.end(),
+                          std::greater<double>()) != row_index.end())
+      {
+        std::string err = "Row index vector must be sorted!";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
     row_start.clear();
     row_start.reserve(row_index.back()+1);
 
     row_start.push_back(0);
 
-    int i=0;
-    for(int row = 0; row < row_index.back() + 1; row++)
+    unsigned i=0;
+    for(int row = 0; row < int(nrow); row++)
       {
         int count = 0;
 
-        // If our row is smaller than row_index[i] then it has no entries
-        if (row < row_index[i])
+        // Otherwise: count the number of entries, the next row starts
+        // that number of entries further along.
+        while((i < row_index.size()) && (row == row_index[i]))
           {
-            row_start.push_back(row_start.back() + count);
+            count++;
+            i++;
           }
-        else
-          {
-            // Otherwise: count the number of entries
-            while((unsigned(i) < row_index.size()) && (row == row_index[i]))
-              {
-                count++;
-                i++;
-              }
-            row_start.push_back(row_start.back() + count);
-          }
+        row_start.push_back(row_start.back() + count);
       }
 
-
+    // Final entry of row_start vector:
+    row_start.push_back(row_index.size());
   }
+
 
   inline void diag_cr_matrix(CRDoubleMatrix& cr_matrix, const unsigned& n,
                              const double& value)
@@ -403,7 +414,7 @@ namespace VectorOps
         col_index[i] = i;
       }
 
-    rowindex2rowstart(row_index,row_start);
+    rowindex2rowstart(row_index, n, row_start);
     cr_matrix.build(n, values, col_index, row_start);
   }
 
@@ -440,7 +451,7 @@ namespace VectorOps
     // std::cout << col_index << std::endl;
     // std::cout << values << std::endl;
 
-    rowindex2rowstart(row_index, row_start);
+    rowindex2rowstart(row_index, n, row_start);
     // std::cout << row_start << std::endl;
 
     cr_matrix.build(n, values, col_index, row_start);

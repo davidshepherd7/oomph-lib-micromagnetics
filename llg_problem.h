@@ -150,7 +150,7 @@ namespace oomph
             // information we need is still in the vectors.
 
           // Convert to rowstart form and make a cr matrix out of it
-          VectorOps::rowindex2rowstart(sum_rows, sum_row_start);
+          VectorOps::rowindex2rowstart(sum_rows, ncol, sum_row_start);
           jacobian.build(&dist, ncol, sum_values, sum_cols, sum_row_start);
         }
 
