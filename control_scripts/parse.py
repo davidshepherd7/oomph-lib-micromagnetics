@@ -107,6 +107,10 @@ def parse_trace_file(filename):
     except KeyError:
         pass
 
+    # Calculate time stamp differences (rough value for wall clock time per
+    # step).
+    data['unix_timestamp_diffs'] = differences(data['unix_timestamp'])
+
     return data
 
 
@@ -232,6 +236,13 @@ def maybe_recursive_convert_to_array(arr):
         return sp.array([maybe_recursive_convert_to_array(a) for a in arr])
     else:
         return arr
+
+def differences(arr):
+    """Get an array containing the differences between consecutive values of an
+    array. First value is None.
+    """
+    return [None] + [a - b for a, b in zip(arr[1:], arr[:-1])]
+
 
 # Plotting functions
 # ============================================================
@@ -514,8 +525,8 @@ def iterations_vs_dt(data):
         dts = [sp.mean(d['dts']) for d in data_prec]
 
         axarr.scatter(dts, iterations, marker = symbols.next(), s = 50,
-                      c = colours.next(),
-                      label=data_prec[0]['preconditioner_name'].split('-')[3])
+                      c = colours.next())
+                      # label=data_prec[0]['preconditioner_name'].split('-')[3])
 
         axarr.set_xlabel("dt")
         axarr.set_ylabel("N solver iterations")
@@ -634,6 +645,13 @@ def main():
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
                                   y_operation=damping_error_mean)
         multi_plot(all_results, keys_to_split_on, plot_damping_errors)
+
+    if 'wc-time' in args.plots:
+        plot_wall_time_vs_time = \
+          par(plot_vs_time,
+              plot_values=['unix_timestamp_diffs', 'dts'])
+
+        multi_plot(all_results, keys_to_split_on, plot_wall_time_vs_time)
 
 
     plt.show()
