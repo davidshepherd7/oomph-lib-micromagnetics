@@ -136,7 +136,7 @@ def execute_oomph_driver(args_dict, output_root):
     return 0
 
 
-def build(folder):
+def build_driver(folder):
     print("Building in", folder)
     subp.check_call(['make', '--silent', '--keep-going',
                     'LIBTOOLFLAGS=--silent'], cwd=folder)
@@ -484,7 +484,8 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     # Make sure the driver binaries are up to date
     driver_folders = [os.path.dirname(d) for d in args_dict['driver']]
-    map(build, driver_folders)
+    for f in driver_folders:
+        build_driver(f)
 
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)
