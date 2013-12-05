@@ -276,15 +276,15 @@ namespace oomph
       calculate_energies();
     }
 
-    virtual void actions_after_newton_step()
-    {
-      // Call base class actions function
-      MyProblem::actions_after_newton_step();
+    virtual void actions_before_newton_convergence_check()
+      {
+        // Call base class actions function
+        MyProblem::actions_before_newton_convergence_check();
 
-      // Update BEM magnetostatics boundary conditions (if we are doing them
-      // fully implicitly).
-      maybe_update_bem_boundary_conditions();
-    }
+        // Update BEM magnetostatics boundary conditions (if we are doing them
+        // fully implicitly).
+        maybe_update_bem_boundary_conditions();
+      }
 
     void maybe_update_bem_boundary_conditions()
       {
