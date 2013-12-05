@@ -547,7 +547,7 @@ namespace oomph
 #ifdef PARANOID
       if(Residual_calculator_pt->use_gilbert_form())
         {
-          std::string err = "Cannot do explicit time steps for Gilber form!";
+          std::string err = "Cannot do explicit time steps for Gilbert form!";
           err += " (well, it's probably possible but much easier to just use LL form)";
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);

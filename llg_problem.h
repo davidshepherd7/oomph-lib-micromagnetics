@@ -935,9 +935,10 @@ public:
       // If we are using llg residual with midpoint method then we need to
       // swap residuals over in the explicit predictor time steps. Put in
       // the class to do this here.
-      if(residual_to_use == "llg" && time_stepper_name == "midpoint")
+      if(residual_to_use == "llg" && ((time_stepper_name == "midpoint")
+          || time_stepper_name == "midpoint-bdf"))
         {
-          MidpointMethod* mp_pt = checked_dynamic_cast<MidpointMethod*>
+          MidpointMethodBase* mp_pt = checked_dynamic_cast<MidpointMethodBase*>
             (time_stepper_pt);
 
           // We've already run the base classes factories so we have the
