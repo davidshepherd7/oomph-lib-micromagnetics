@@ -356,15 +356,8 @@ int main(int argc, char* argv[])
         << ", dt = " << dt
         << std::endl;
 
-      // The Newton step itself, adaptive if requested
-      if(problem.Use_time_adaptive_newton)
-        {
-          dt = problem.adaptive_unsteady_newton_solve(dt, args.tol);
-        }
-      else
-        {
-          problem.unsteady_newton_solve(dt);
-        }
+      // Do the newton solve (different ones depending flags set)
+      dt = problem.smart_newton_solve(dt, args.tol);
 
       // Output
       problem.doc_solution();

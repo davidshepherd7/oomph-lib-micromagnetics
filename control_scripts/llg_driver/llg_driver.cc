@@ -34,8 +34,20 @@ int main(int argc, char *argv[])
   // Tell it if we want renormalisation or not
   problem.renormalise_each_time_step() = args.renormalise_flag();
 
-  // Assign stuff from input arguments.
-  problem.add_time_stepper_pt(args.time_stepper_pt);
+  // Assign time stepper
+  if(args.explicit_flag())
+    {
+      problem.Use_explicit_timestepper = true;
+      problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
+
+      // This is a steady time stepper, to allow initialisation to work.
+      problem.add_time_stepper_pt(args.time_stepper_pt);
+    }
+  else
+    {
+      problem.add_time_stepper_pt(args.time_stepper_pt);
+    }
+
   problem.Use_time_adaptive_newton = args.adaptive_flag();
   problem.linear_solver_pt() = args.solver_pt;
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
@@ -87,21 +99,12 @@ int main(int argc, char *argv[])
         << ", dt = " << dt
         << ", |m| error = " << 1 - problem.mean_nodal_magnetisation_length()
         << ", energy = " << problem.micromagnetic_energy() << std::endl
-        << std::setprecision(8)
         << ", previous step effective damping = " << problem.Effective_damping_constant
         << ", alt damping calc = " << problem.Alt_eff_damp
-        << std::setprecision(4)
         << std::endl;
 
-      // The Newton step itself, adaptive if requested
-      if(problem.Use_time_adaptive_newton)
-        {
-          dt = problem.adaptive_unsteady_newton_solve(dt, args.tol);
-        }
-      else
-        {
-          problem.unsteady_newton_solve(dt);
-        }
+      // Do the newton solve (different ones depending flags set)
+      dt = problem.smart_newton_solve(dt, args.tol);
 
       // Output
       problem.doc_solution();

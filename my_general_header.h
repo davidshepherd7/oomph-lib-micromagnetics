@@ -91,6 +91,30 @@ namespace oomph
         return std::string(test_string, prefix.size(), string::npos);
       }
 
+    /// Make an explicit time stepper
+    inline ExplicitTimeStepper* explicit_time_stepper_factory
+    (const std::string& ts_name)
+    {
+      if(ts_name == "rk4")
+        {
+          return new RungeKutta<4>;
+        }
+      else if(ts_name == "lrk4")
+        {
+          return new LowStorageRungeKutta<4>;
+        }
+      else if (ts_name == "ebdf3")
+        {
+          return new EBDF3;
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised time stepper name "
+                              + ts_name,
+                              OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
     /// \short Make a timestepper from an input argument. Assumption: this
     /// will be passed into a problem, which will delete the pointer when
     /// it's done.
@@ -113,33 +137,26 @@ namespace oomph
       else if(ts_name == "midpoint")
         {
           MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
-
-          if(mp_pred_name == "rk4")
-            {
-              mp_pt->set_predictor_pt(new RungeKutta<4>);
-            }
-          else if(mp_pred_name == "lrk4")
-            {
-              mp_pt->set_predictor_pt(new LowStorageRungeKutta<4>);
-            }
-          else if (mp_pred_name == "ebdf3")
-            {
-              mp_pt->set_predictor_pt(new EBDF3);
-            }
-          else
-            {
-              throw OomphLibError("Unrecognised predictor name "
-                                  + mp_pred_name,
-                                  OOMPH_CURRENT_FUNCTION,
-                                  OOMPH_EXCEPTION_LOCATION);
-            }
+          ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
+          mp_pt->set_predictor_pt(pred_pt);
           return mp_pt;
+        }
+      else if(ts_name == "midpoint-bdf")
+        {
+          MidpointMethodByBDF* mp_pt = new MidpointMethodByBDF(adaptive_flag);
+          ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
+          mp_pt->set_predictor_pt(pred_pt);
+          return mp_pt;
+        }
+      else if(ts_name == "steady")
+        {
+          // 2 steps so that we have enough space to do reasonable time
+          // derivative estimates in e.g. energy derivatives.
+          return new Steady<2>;
         }
       else
         {
-          throw OomphLibError("Unrecognised timestepper name " + ts_name,
-                              OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
+          return 0;
         }
     }
 
@@ -608,7 +625,10 @@ namespace oomph
   public:
 
     /// Constructor: Initialise pointers to null.
-    MyCliArgs() : time_stepper_pt(0), solver_pt(0), prec_pt(0) {}
+    MyCliArgs() : time_stepper_pt(0), solver_pt(0), prec_pt(0)
+    {
+      explicit_time_stepper_pt = 0;
+    }
 
     /// Destructor: clean up everything we made in the factories.
     virtual ~MyCliArgs()
@@ -616,6 +636,7 @@ namespace oomph
         delete prec_pt; prec_pt = 0;
         delete solver_pt; solver_pt = 0;
         delete time_stepper_pt; time_stepper_pt = 0;
+        delete explicit_time_stepper_pt; explicit_time_stepper_pt = 0;
       }
 
     virtual void set_flags()
@@ -681,6 +702,17 @@ namespace oomph
       // Build all the pointers to stuff
       time_stepper_pt = Factories::time_stepper_factory(time_stepper_name,
                                                         mp_pred_name);
+      if(time_stepper_pt == 0) // failed, so try explicit
+        {
+          explicit_time_stepper_pt = Factories::
+            explicit_time_stepper_factory(time_stepper_name);
+
+          // Still need a dummy timestepper to get everything set up
+          // without segfaults (ts determines how much storage to create in
+          // nodes).
+          time_stepper_pt = Factories::time_stepper_factory("steady");
+        }
+
       solver_pt = Factories::linear_solver_factory(solver_name);
 
       // Create and set preconditioner pointer if our solver is iterative.
@@ -744,6 +776,22 @@ namespace oomph
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
+    /// Explcit if an explicit_time_stepper_pt has been set
+    bool explicit_flag()
+    {
+      // Check that we don't have two "real" timesteppers
+      if((!time_stepper_pt->is_steady()) && (explicit_time_stepper_pt != 0))
+        {
+          std::string err = "Somehow implicit timestepper is steady but explicit one is set!";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+      else
+        {
+          return explicit_time_stepper_pt != 0;
+        }
+    }
+
 
     // Variables
     double dt;
@@ -757,6 +805,7 @@ namespace oomph
     std::string output_jacobian;
 
     TimeStepper* time_stepper_pt;
+    ExplicitTimeStepper* explicit_time_stepper_pt;
     LinearSolver* solver_pt;
     Preconditioner* prec_pt;
 
