@@ -95,13 +95,12 @@ namespace oomph
           unsigned bem_nnode = Bem_handler_pt->bem_mesh_pt()->nnode();
           unsigned nrow = fem_jacobian_pt->nrow();
           LinearAlgebraDistribution* dist_pt = fem_jacobian_pt->distribution_pt();
-          Vector<double> values(bem_nnode, 0.0);
+          Vector<double> values(bem_nnode, -1.0);
           Vector<int> row_index(bem_nnode), row_start;
           for(unsigned nd=0; nd<bem_nnode; nd++)
             {
               unsigned i = Bem_handler_pt->output_lookup_pt()
                 ->node_to_global(nd);
-              values[nd] = -1.0;
               row_index[nd] = i;
             }
 
