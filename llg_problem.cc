@@ -11,6 +11,7 @@
 #include "../../src/meshes/triangle_mesh.h"
 
 #include "./multi_mesh.h"
+#include "./single_element_mesh.h"
 
 namespace oomph
 {
@@ -449,6 +450,10 @@ namespace oomph
             (nx, nx, lx, lx, time_stepper_pt);
 
           scale_mesh(scaling_factor, mesh_pt); //??ds add rest of scaling factors
+        }
+      else if(mesh_name == "single-element" && nnode1d == 2)
+        {
+          mesh_pt = new SingleElementMesh<QMicromagElement<2,2> >(time_stepper_pt);
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
