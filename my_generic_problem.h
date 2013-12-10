@@ -485,7 +485,18 @@ namespace oomph
           }
 
         // Get the problem dimension
-        Dim = bulk_mesh_pts[0]->finite_element_pt(0)->nodal_dimension();
+        FiniteElement* fele_pt = dynamic_cast<FiniteElement*>
+          (bulk_mesh_pts[0]->element_pt(0));
+        if(fele_pt != 0)
+          {
+            Dim = fele_pt->nodal_dimension();
+          }
+        else
+          {
+            // Presumably if a "bulk" mesh contains non-finite elements
+            // then this is not a pde, so no dimension as such.
+            Dim = 0;
+          }
 
       }
 

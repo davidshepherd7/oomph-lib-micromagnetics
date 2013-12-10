@@ -219,21 +219,18 @@ class ODEProblem : public MyProblem
 public:
 
   /// constructor
-  ODEProblem(TimeStepper* ts_pt, FunctionOfTimePt ex_pt,
-             FunctionOfTimeValPt deriv_pt)
-  {
-    // Create timestepper
-    add_time_stepper_pt(ts_pt);
+  ODEProblem() {}
 
-    // Make mesh
-    mesh_pt()=new Mesh;
+  void build(Vector<Mesh*>& bulk_mesh_pts)
+    {
+      // Call the underlying build
+      MyProblem::build(bulk_mesh_pts);
 
-    // Create/add element
-    mesh_pt()->add_element_pt(new ODEElement(ts_pt, ex_pt, deriv_pt));
-
-    // Assign eqn numbers
-    oomph_info << "Number of unknowns: " << assign_eqn_numbers() << std::endl;
-  }
+      // Set up the global mesh and assign equation numbers
+      build_global_mesh();
+      this->assign_eqn_numbers();
+      oomph_info << "LLG Number of equations: " << ndof() << std::endl;
+    }
 
   void set_initial_condition()
   {
@@ -320,8 +317,7 @@ int main(int argc, char* argv[])
   args.parse(argc, argv);
 
   // Create problem
-  ODEProblem problem(args.time_stepper_pt, args.exact_solution_pt,
-                     args.derivative_function_pt);
+  ODEProblem problem;
 
   // Assign from args
   problem.linear_solver_pt() = args.solver_pt;
@@ -329,9 +325,19 @@ int main(int argc, char* argv[])
   // problem.Use_fd_jacobian = args.use_fd_jacobian;
   problem.Use_time_adaptive_newton = args.adaptive_flag();
 
-  // Assign explicit time stepper. Only one of the timesteppers will be a
-  // real timestepper, the other will be null or a dummy instead.
+  // Assign time steppers. Only one of the timesteppers will be a real
+  // timestepper, the other will be null or a dummy instead.
+  problem.add_time_stepper_pt(args.time_stepper_pt);
   problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
+
+  // Create mesh and build problem
+  Vector<Mesh*> mesh_pts;
+  mesh_pts.push_back(new Mesh);
+  mesh_pts[0]->
+    add_element_pt(new ODEElement(args.time_stepper_pt, args.exact_solution_pt,
+                                  args.derivative_function_pt));
+
+  problem.build(mesh_pts);
 
   // Initialise problem and output
   problem.initialise_dt(args.dt);
