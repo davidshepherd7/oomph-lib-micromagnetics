@@ -76,7 +76,6 @@ namespace oomph
     {
       Dim = 0;
       Output_precision = 8;
-      Use_explicit_timestepper = false;
     }
 
     /// Destructor
@@ -85,9 +84,8 @@ namespace oomph
 
     double smart_newton_solve(double dt, const double& tol)
     {
-      // The Newton step itself, adaptive if requested, explicit if
-      // requested
-      if(Use_explicit_timestepper)
+      // The Newton step itself, adaptive if requested.
+      if(use_explicit())
         {
           explicit_timestep(dt);
         }
@@ -102,6 +100,12 @@ namespace oomph
 
       return dt;
     }
+
+    bool use_explicit()
+      {
+        return (explicit_time_stepper_pt() != 0)
+          && (time_stepper_pt()->is_steady());
+      }
 
     virtual void actions_before_newton_step()
       {
@@ -492,7 +496,6 @@ namespace oomph
     unsigned Output_precision;
 
     bool Use_time_adaptive_newton;
-    bool Use_explicit_timestepper;
 
     std::string Trace_filename;
     std::string Info_filename;

@@ -55,14 +55,15 @@ namespace oomph
   }
 
 
-  class SemiImplicitHybridMicromagneticsProblem :
-    public LLGProblem
+  /// Base class for problems which solve the llg with magnetostatics as
+  /// two separate problems at each step: one Poisson BEM problen for the
+  /// field then a normal llg problem for the magnetisation.
+  class DecoupledLLGProblem : public LLGProblem
   {
   public:
 
     // Default constructor
-    SemiImplicitHybridMicromagneticsProblem() :
-      Phi_boundary_values_pts()
+    DecoupledLLGProblem() : Phi_boundary_values_pts()
     {
       Bem_handler_pt = 0;
       Phi_1_problem_pt = 0;
@@ -74,7 +75,7 @@ namespace oomph
                Vector<Mesh*>& phi_1_mesh_pts, bool pin_phi1=true);
 
     /// Destructor
-    ~SemiImplicitHybridMicromagneticsProblem()
+    virtual ~DecoupledLLGProblem()
     {
       // Kill boundary value storage vectors
       for(unsigned j=0; j<Phi_boundary_values_pts.size(); j++)
@@ -83,6 +84,8 @@ namespace oomph
         }
     }
 
+    /// Interface for whichever function is needed to do the timestepping
+    virtual double do_step(const double& dt, const double& tol)=0;
 
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve()
@@ -114,27 +117,6 @@ namespace oomph
       phi_problem_pt()->newton_solve();
 
       std::cout << "mean field is " << average_magnetostatic_field() << std::endl;
-    }
-
-
-    /// Replacement for "newton_solve()" that does a few different solves.
-    double semi_implicit_step(const double &dt, const double eps=0.0)
-    {
-      // Solve for the magnetostatic field.
-      magnetostatics_solve();
-
-      // solve for m
-      if(eps != 0.0)
-        {
-          std::cout << "solving LLG (with time adaptivity)" << std::endl;
-          return llg_sub_problem_pt()->adaptive_unsteady_newton_solve(dt, eps);
-        }
-      else
-        {
-          std::cout << "solving LLG" << std::endl;
-          llg_sub_problem_pt()->unsteady_newton_solve(dt);
-        }
-      return dt;
     }
 
     /// Set up an initial M
@@ -245,6 +227,73 @@ namespace oomph
   };
 
 
+  /// Class for solving the implicit llg with magnetostatics handled
+  /// explicitly.
+  class SemiImplicitHybridMicromagneticsProblem : public DecoupledLLGProblem
+  {
+    public:
+    SemiImplicitHybridMicromagneticsProblem() : DecoupledLLGProblem() {}
+
+    /// Replacement for "newton_solve()" that does a few different solves.
+    double semi_implicit_step(const double &dt, const double eps)
+    {
+      // Solve for the magnetostatic field.
+      magnetostatics_solve();
+
+      // solve for m
+      if(Use_time_adaptive_newton)
+        {
+          return llg_sub_problem_pt()->adaptive_unsteady_newton_solve(dt, eps);
+        }
+      else
+        {
+          llg_sub_problem_pt()->unsteady_newton_solve(dt);
+        }
+      return dt;
+      //??ds make this smarter?
+    }
+
+    /// Function to do a time step: just call semi-implicit step
+    double do_step(const double& dt, const double& tol)
+      {
+        return semi_implicit_step(dt, tol);
+      }
+
+  };
+
+
+  /// Class for an llg problem which can be solved by an explicit time
+  /// stepper. This has to be a separate class from
+  /// SemiImplicitHybridMicromagneticsProblem because when using midpoint
+  /// method we often want to take a single explcit time step as a
+  /// predictor, but in that case we don't need to solve the magnetostatics
+  /// problem again (because we just did it).
+  class ExplicitLLGProblem : public DecoupledLLGProblem
+  {
+  public:
+    ExplicitLLGProblem() : DecoupledLLGProblem() {}
+
+    /// Do an explicit step step (we need extra things because we need to
+    /// solve for phi before we can do the normal explicit step).
+    void get_inverse_mass_matrix_times_residuals(DoubleVector &Mres)
+    {
+      // Solve for the magnetostatic field.
+      magnetostatics_solve();
+
+      // Now get what we actually wanted
+      Problem::get_inverse_mass_matrix_times_residuals(Mres);
+    }
+
+    /// Function to do a time step: just call explicit step
+    double do_step(const double& dt, const double& tol)
+    {
+      explicit_timestep(dt);
+      return dt;
+    }
+  };
+
+
+
   /// Command line args class for semi implicit llg problems. Just add the
   /// mesh stuff.
   class SemiImplicitMMArgs : public MMArgs
@@ -346,6 +395,17 @@ namespace oomph
       bem_element_factory_fct_pt =
         LLGFactories::bem_element_factory_factory
         (llg_mesh_pts[0]->finite_element_pt(0));
+
+
+      // Pick the problem itself (explicit or semi implicit)
+      if(explicit_flag())
+        {
+          problem_pt = new ExplicitLLGProblem;
+        }
+      else
+        {
+          problem_pt = new SemiImplicitHybridMicromagneticsProblem;
+        }
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -373,6 +433,8 @@ namespace oomph
     double yshift;
 
     bool use_numerical_integration;
+
+    DecoupledLLGProblem* problem_pt;
   };
 
 

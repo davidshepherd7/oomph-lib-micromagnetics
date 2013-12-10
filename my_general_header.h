@@ -152,7 +152,7 @@ namespace oomph
         {
           // 2 steps so that we have enough space to do reasonable time
           // derivative estimates in e.g. energy derivatives.
-          return new Steady<2>;
+          return new Steady<3>;
         }
       else
         {

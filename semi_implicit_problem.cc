@@ -228,7 +228,7 @@ namespace oomph
   }
 
   /// \short Function to do the real work of the constructor.
-  void SemiImplicitHybridMicromagneticsProblem::
+  void DecoupledLLGProblem::
   build(Vector<Mesh*>& llg_mesh_pts, Vector<Mesh*>& phi_mesh_pts,
         Vector<Mesh*>& phi_1_mesh_pts, bool pin_phi1)
   {
@@ -421,7 +421,7 @@ namespace oomph
 
 
 
-  void SemiImplicitHybridMicromagneticsProblem::
+  void DecoupledLLGProblem::
   set_initial_condition(const InitialM::InitialMFctPt initial_m_pt)
   {
     // Backup time in global Time object
@@ -483,7 +483,7 @@ namespace oomph
     calculate_energies(false);
   }
 
-  void SemiImplicitHybridMicromagneticsProblem::
+  void DecoupledLLGProblem::
   doc_solution_additional(std::ofstream &some_file) const
   {
     unsigned npts = 2;
@@ -506,7 +506,7 @@ namespace oomph
   //============================================================
   //
   //============================================================
-  Vector<double> SemiImplicitHybridMicromagneticsProblem::
+  Vector<double> DecoupledLLGProblem::
   average_magnetostatic_field() const
   {
     const unsigned nodal_dim = checked_dynamic_cast<MagnetostaticFieldEquations*>
