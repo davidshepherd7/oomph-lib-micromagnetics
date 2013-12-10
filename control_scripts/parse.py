@@ -559,19 +559,23 @@ def main():
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--dir', '-d', action='append',
-                        help='Set the directory to look for data in.')
+                        help='Set the directory to look for data in (default "results").')
 
     parser.add_argument('--print-data', action='store_true',
                         help='Pretty print data to stdout')
 
     parser.add_argument('--plots', '-p', action='append',
-                        help='choose what to plot')
+                        help='choose what to plot (default "m")')
 
     args = parser.parse_args()
 
     if args.plots is None:
         print("No plots requested, so plotting magnetisations")
         args.plots = ['m']
+
+    if (args.dir is None) or (args.dir == []):
+        print("No directories given, so parsing ./results")
+        args.dir = ["results"]
 
     # Main function
     # ============================================================
