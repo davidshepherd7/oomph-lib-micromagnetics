@@ -69,7 +69,7 @@ def execute_oomph_driver(args_dict, output_root):
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
     for key, value in args_dict.items():
-        if key not in ['mpi_ncores', 'driver', 'outdir', 'implicit-ms']:
+        if key not in ['mpi_ncores', 'driver', 'outdir', 'implicit-ms', 'fd-jac']:
             processed_kwargs.append('-'+str(key))
             processed_kwargs.append(str(value))
 
@@ -79,6 +79,11 @@ def execute_oomph_driver(args_dict, output_root):
     if (implicit_ms is not None) and args_dict['driver'] == "./llg_driver/llg_driver":
         if implicit_ms:
             processed_kwargs.append('-implicit-ms')
+
+    # Handle fd jac: append to args list if true in dict
+    fd_jac = args_dict.get('fd-jac')
+    if (fd_jac is not None) and fd_jac:
+        processed_kwargs.append('-fd-jac')
 
 
     # Construct an output directory name based on inputs if not specified.
@@ -459,6 +464,17 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'implicit-ms' : [True],
             'solver' : ['som-gmres'],
             'preconditioner' : ['som-main-exact']
+            }
+
+    elif parameter_set == "check-single-ele-mesh":
+         args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'tmax' : [10],
+            'ts' : ["bdf2", "rk4"],
+            'mesh' : ['single-element'],
+            'dt' : [1e-2, 1e-1, 1e-3],
+            'resi' : ['ll'],
+            'fd-jac' : [True],
             }
 
     else:
