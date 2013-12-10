@@ -164,11 +164,6 @@ namespace oomph
                       }
                     residuals[m_eqn] -= llg_damp_c * sum * W;
                   }
-                else
-                  {
-                    std::cerr << "PINNED magnetisation! shouldn't be any of these!"
-                              <<std::endl;
-                  }
               }
 
           } // End of loop over test functions, end of residual calculations
@@ -306,11 +301,6 @@ namespace oomph
                     // derivatives of the test function).
                     residuals[m_eqn] -= exch_c * llg_precess_c *
                       opt_cross(i, intp.m(), gradtestdotgradmi) * W;
-                  }
-                else
-                  {
-                    std::cerr << "PINNED magnetisation! shouldn't be any of these!"
-                              <<std::endl;
                   }
               }
 

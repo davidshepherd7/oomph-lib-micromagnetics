@@ -62,6 +62,30 @@ namespace oomph
           }
       }
 
+    // For debugging we might want to pin m values on the boundary
+    if(Pin_boundary_m)
+      {
+        // Loop over all meshes in problem
+        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+          {
+            Mesh* mesh_pt = this->mesh_pt(msh);
+            for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+              {
+                for(unsigned nd=0, nnd=mesh_pt->nboundary_node(b); nd<nnd; nd++)
+                  {
+                    Node* nd_pt = mesh_pt->boundary_node_pt(b, nd);
+                    for(unsigned j=0; j<3; j++)
+                      {
+                        nd_pt->pin(m_index(j));
+                      }
+                    std::cout << nd_pt->x(0) <<
+                      " " << nd_pt->x(1) << std::endl;
+                  }
+              }
+
+          }
+      }
+
     // Set up bem stuff if we are doing it
     if(Use_implicit_ms)
       {

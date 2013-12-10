@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.newton_solver_tolerance() = args.newton_tol;
   problem.Use_fd_jacobian = args.use_fd_jacobian;
+  problem.Pin_boundary_m = args.pin_boundary_m;
   problem.Use_implicit_ms = args.use_implicit_ms;
   problem.Residual_calculator_pt = args.residual_calculator_pt;
 

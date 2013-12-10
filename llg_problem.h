@@ -38,7 +38,6 @@ namespace oomph
     LLGProblem() :
       Compare_with_mallinson(false),
       Swap_solver_large_dt(false),
-      Use_fd_jacobian(false),
       Use_implicit_ms(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false),
@@ -62,6 +61,10 @@ namespace oomph
       Bem_handler_pt = 0;
       Flux_mesh_pt = 0;
       Flux_mesh_factory_pt = 0;
+
+      // Debugging switches
+      Pin_boundary_m = false;
+      Use_fd_jacobian = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -761,6 +764,7 @@ namespace oomph
     /// \short Should we swap to superlu for large dt solves?
     bool Swap_solver_large_dt;
 
+    bool Pin_boundary_m;
     bool Use_fd_jacobian;
     bool Use_implicit_ms;
 
@@ -1030,6 +1034,8 @@ public:
       yshift = 1.5;
 
       specify_command_line_flag("-implicit-ms");
+
+      specify_command_line_flag("-pin-boundary-m");
     }
 
 
@@ -1068,6 +1074,8 @@ public:
         }
 
       use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
+
+      pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -1087,6 +1095,7 @@ public:
     double yshift;
 
     bool use_implicit_ms;
+    bool pin_boundary_m;
 
     // Strings for input to factory functions
     std::string mesh_name;
