@@ -819,9 +819,6 @@ public:
 
   private:
 
-    /// \short ??ds
-    void create_surface_exchange_elements(const unsigned& b);
-
     /// Inaccessible copy constructor
     LLGProblem(const LLGProblem & dummy)
     {BrokenCopy::broken_copy("LLGProblem");}
