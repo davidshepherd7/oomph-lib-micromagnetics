@@ -10,6 +10,7 @@
 #include "../../src/meshes/tetgen_mesh.h"
 #include "../../src/meshes/triangle_mesh.h"
 
+#include "./multi_mesh.h"
 
 namespace oomph
 {
@@ -431,10 +432,12 @@ namespace oomph
     Mesh* mesh_factory(const std::string& _mesh_name,
                        int refinement_level,
                        TimeStepper* time_stepper_pt,
+                       double scaling_factor,
                        unsigned nnode1d)
     {
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
+      #warning "Scaling not implemented for most meshes"
 
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt;
@@ -444,6 +447,8 @@ namespace oomph
           unsigned nx = 5 * std::pow(2, refinement_level);
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
+
+          scale_mesh(scaling_factor, mesh_pt); //??ds add rest of scaling factors
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {

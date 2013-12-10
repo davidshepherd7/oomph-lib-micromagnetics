@@ -33,8 +33,11 @@ namespace oomph
     Mesh* llg_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
+                           double scaling_factor,
                            unsigned nnode1d)
     {
+      //??ds add scaling factor
+
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
@@ -115,8 +118,11 @@ namespace oomph
     Mesh* phi_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
+                           double scaling_factor,
                            unsigned nnode1d)
     {
+      //??ds add scaling factor
+
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 

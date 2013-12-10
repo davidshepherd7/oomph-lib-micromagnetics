@@ -843,6 +843,7 @@ public:
     Mesh* mesh_factory(const std::string& _mesh_name,
                        int refinement_level,
                        TimeStepper* time_stepper_pt,
+                       double scaling_factor=1.0,
                        unsigned nnode1d = 2);
 
     LLGResidualCalculator* residual_calculator_factory(const std::string& residual);
@@ -1033,6 +1034,9 @@ public:
       specify_command_line_flag("-yshift", &yshift);
       yshift = 1.5;
 
+      specify_command_line_flag("-scale", &scale);
+      scale = 1.0;
+
       specify_command_line_flag("-implicit-ms");
 
       specify_command_line_flag("-pin-boundary-m");
@@ -1054,6 +1058,7 @@ public:
                                                          base_name, refinement,
                                                          time_stepper_pt, xshift,
                                                          nnode1d);
+          //??ds add scaling
         }
 
       // Or with "many" prefix make a load of meshes
@@ -1063,14 +1068,15 @@ public:
 
           mesh_pts = Factories::simple_many_multimesh_factory
             (LLGFactories::mesh_factory, base_name, refinement,
-             time_stepper_pt, xshift, yshift, nnode1d);
+             time_stepper_pt, xshift, yshift, nnode1d); //??ds add scaling
         }
 
       // Otherwise just make a single mesh
       else
         {
-          mesh_pts.push_back(LLGFactories::mesh_factory(mesh_name, refinement,
-                                                        time_stepper_pt, nnode1d));
+          mesh_pts.push_back
+            (LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt,
+                                        scale, nnode1d));
         }
 
       use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
@@ -1093,6 +1099,7 @@ public:
     unsigned nnode1d;
     double xshift;
     double yshift;
+    double scale;
 
     bool use_implicit_ms;
     bool pin_boundary_m;

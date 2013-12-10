@@ -15,7 +15,7 @@ namespace oomph
   /// Move all nodes of a mesh by (x, y, z).
   // ??ds Move inside Mesh?
   inline void shift_mesh(const double& x, const double& y, const double& z,
-                           Mesh* mesh_pt)
+                         Mesh* mesh_pt)
   {
 #ifdef PARANOID
     // If given shifts in more dimensions than we have then error
@@ -37,7 +37,22 @@ namespace oomph
         if(nd_pt->ndim() > 1) {nd_pt->x(1) += y;}
         if(nd_pt->ndim() > 2) {nd_pt->x(2) += z;}
       }
+  }
 
+
+  /// Multiply all positions of nodes in mesh by scaling factor.
+  // ??ds Move inside Mesh?
+  // ??ds assumes mesh is around zero?
+  inline void scale_mesh(double scaling_factor, Mesh* mesh_pt)
+  {
+    // For each node scale any positions that exist
+    for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+      {
+        Node* nd_pt = mesh_pt->node_pt(nd);
+        nd_pt->x(0) *= scaling_factor;
+        if(nd_pt->ndim() > 1) {nd_pt->x(1) *= scaling_factor;}
+        if(nd_pt->ndim() > 2) {nd_pt->x(2) *= scaling_factor;}
+      }
   }
 
   // /// Create two meshes near each other.

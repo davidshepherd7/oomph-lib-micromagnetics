@@ -184,7 +184,7 @@ namespace oomph
 
     /// function pointer type to create a mesh
     typedef Mesh* (MeshFactoryFctPt)(const std::string&, int,
-                                     TimeStepper*, unsigned);
+                                     TimeStepper*, double, unsigned);
 
 
     /// Create a vector of meshes with the names given in mesh details and
@@ -203,6 +203,7 @@ namespace oomph
           mesh_pts.push_back(underlying_factory(mesh_details[j].mesh_name,
                                                 refinement_level,
                                                 time_stepper_pt,
+                                                1.0,
                                                 nnode1d));
 
           shift_mesh(mesh_details[j].xshift,

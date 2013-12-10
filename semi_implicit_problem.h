@@ -36,6 +36,7 @@ namespace oomph
     Mesh* llg_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
+                           double scaling_factor = 1.0,
                            unsigned nnode1d = 2);
 
 
@@ -45,6 +46,7 @@ namespace oomph
     Mesh* phi_mesh_factory(const std::string& _mesh_name,
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
+                           double scaling_factor = 1.0,
                            unsigned nnode1d = 2);
 
 
