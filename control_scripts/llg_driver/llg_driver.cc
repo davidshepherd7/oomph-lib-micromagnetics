@@ -35,17 +35,19 @@ int main(int argc, char *argv[])
   problem.renormalise_each_time_step() = args.renormalise_flag();
 
   // Assign time stepper
-  if(args.explicit_flag())
+  if(args.explicit_flag() && args.use_implicit_ms)
     {
-      problem.Use_explicit_timestepper = true;
-      problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
-
-      // This is a steady time stepper, to allow initialisation to work.
-      problem.add_time_stepper_pt(args.time_stepper_pt);
+      std::string err = "Cannot do explicit but fully coupled time stepping ";
+      err += "when magnetostatics is included, use the decoupled driver instead";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
     }
   else
     {
+      // Assign time steppers. Only one of these two will be a real
+      // timestepper, the other will be null or a dummy instead.
       problem.add_time_stepper_pt(args.time_stepper_pt);
+      problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
     }
 
   problem.Use_time_adaptive_newton = args.adaptive_flag();

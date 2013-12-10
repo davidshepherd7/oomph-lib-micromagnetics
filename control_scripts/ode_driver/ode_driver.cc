@@ -329,6 +329,9 @@ int main(int argc, char* argv[])
   // problem.Use_fd_jacobian = args.use_fd_jacobian;
   problem.Use_time_adaptive_newton = args.adaptive_flag();
 
+  // Assign explicit time stepper. Only one of the timesteppers will be a
+  // real timestepper, the other will be null or a dummy instead.
+  problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
 
   // Initialise problem and output
   problem.initialise_dt(args.dt);
