@@ -107,6 +107,10 @@ namespace oomph
         {
           return new EBDF3;
         }
+      else if (ts_name == "euler")
+        {
+          return new Euler;
+        }
       else
         {
           throw OomphLibError("Unrecognised time stepper name "
