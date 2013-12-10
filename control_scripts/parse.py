@@ -348,12 +348,20 @@ def plot_vs_time(data, plot_values, operations_on_values=None):
                                    squeeze=False)
     axesarray = axesmatrix.flat
 
+
+    # Is dt or tol more interesting for labels? Use dt if all tols are zero
+    # (i.e. non-adaptive)
+    if all([d['tol'] == 0 for d in data]):
+        dt_label = 'initial_dt'
+    else:
+        dt_label = 'tol'
+
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
         for d in data:
-            name = str(d['tol']) + " " + str(d['refinement'])\
+            name = str(d[dt_label]) + " " + str(d['refinement'])\
                + " " + str(d['time_stepper'])\
-               + " " + str(d.get('use_implicit_ms') is not None)
+               + " " + str(d.get('use_implicit_ms'))
 
             if op is not None:
                 vals = map(op, d[p])
