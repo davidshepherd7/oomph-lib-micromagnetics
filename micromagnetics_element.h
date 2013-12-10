@@ -557,6 +557,10 @@ namespace oomph
       // Get the residuals
       fill_in_contribution_to_residuals(residuals);
 
+      // Factor to rescale time s.t. it matches with Gilbert form of llg
+      const double llg_damp_c = this->llg_damping_coeff();
+      const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
+
       const unsigned n_node = this->nnode();
       const unsigned eldim = this->dim();
       const unsigned n_unknowns = ndof_types();
@@ -578,10 +582,11 @@ namespace oomph
           // Get integration weight and J of transformation
           double W = this->integral_pt()->weight(ipt) * J_eulerian(s);
 
-          for(unsigned l=0;l<n_node;l++)
+          // Loop over the dofs in a node
+          for(unsigned i=0;i<n_unknowns;i++)
             {
-              //Loop over the unknowns
-              for(unsigned i=0;i<n_unknowns;i++)
+              // Double loop over nodes: equations and unknowns
+              for(unsigned l=0;l<n_node;l++)
                 {
                   int local_eqn = this->nodal_local_eqn(l,i);
                   if(local_eqn < 0) continue;
@@ -591,11 +596,8 @@ namespace oomph
                       int local_unknown = this->nodal_local_eqn(l2,i);
                       if(local_unknown < 0) continue;
 
-                      //??ds do we need to multiply by
-                      //d_valuederivative_evaltime_by_dvalue_np1? Yes if
-                      //using that implementation of midpoint.
                       mmatrix(local_eqn, local_unknown) +=
-                        psi(l2)*test(l)*W;
+                        -ll_conversion_factor * psi(l2)*test(l)*W;
                     }
                 }
             }
