@@ -20,9 +20,8 @@ new_clean_dir $CUBEOID_DIR
 # Run simulation
 cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
 ./semi_implicit_mm_driver -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
-    -solver superlu -happ zero -initm xz -outdir $CUBEOID_DIR \
-    -mag-params 'simple-llg' \
-    > $CUBEOID_DIR/stdout
+    -solver superlu -happ zero -initm xz -mag-params 'simple-llg' \
+     -outdir $CUBEOID_DIR > $CUBEOID_DIR/stdout
 
 # Extract + check energies
 final_energy $CUBEOID_DIR/trace > $CUBEOID_DIR/energies

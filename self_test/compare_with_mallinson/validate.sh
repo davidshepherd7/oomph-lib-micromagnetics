@@ -45,9 +45,8 @@ llg_dir="$TPWD/Validation/llg"
 new_clean_dir $llg_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
-    -ts midpoint -newton-tol 1e-12 \
-    -initm z -outdir $llg_dir -mag-params 'simple-llg' \
-    > $llg_dir/stdout
+    -ts midpoint -newton-tol 1e-12 -initm z -mag-params 'simple-llg' \
+     -outdir $llg_dir> $llg_dir/stdout
 
 # Check the errors are small by comparing with a file full of zeros
 cd $TPWD
@@ -62,9 +61,8 @@ llg_bdf_midpoint_dir="$TPWD/Validation/llg_bdf_midpoint"
 new_clean_dir $llg_bdf_midpoint_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
-    -ts midpoint-bdf -newton-tol 1e-12 \
-    -initm z -outdir $llg_bdf_midpoint_dir -mag-params 'simple-llg' \
-    > $llg_bdf_midpoint_dir/stdout
+    -ts midpoint-bdf -newton-tol 1e-12 -initm z -mag-params 'simple-llg' \
+    -outdir $llg_bdf_midpoint_dir > $llg_bdf_midpoint_dir/stdout
 
 # Check the errors are small by comparing with a file full of zeros
 cd $TPWD
@@ -81,9 +79,8 @@ ll_dir="$TPWD/Validation/ll"
 new_clean_dir $ll_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi ll -dt 1e-2 -tmax 0.3 -solver superlu -happ minus_z \
-    -ts midpoint \
-    -initm z -outdir $ll_dir -mag-params 'simple-llg' -fd-jac \
-    > $ll_dir/stdout
+    -ts midpoint -initm z -mag-params 'simple-llg' -fd-jac \
+    -outdir $ll_dir > $ll_dir/stdout
 
 # Check the errors are small
 cd $TPWD
@@ -102,8 +99,8 @@ new_clean_dir $mul_mesh_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
     -ts midpoint -newton-tol 1e-12 -mesh multi_ut_square \
-    -initm z -outdir $mul_mesh_dir -mag-params 'simple-llg' \
-    > $mul_mesh_dir/stdout
+    -initm z -mag-params 'simple-llg' \
+    -outdir $mul_mesh_dir > $mul_mesh_dir/stdout
 
 # Check the errors are small by comparing with a file full of zeros
 cd $TPWD
