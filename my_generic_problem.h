@@ -499,8 +499,10 @@ namespace oomph
           this->get_jacobian(residuals, M);
           this->assembly_handler_pt() = old_assembly_handler_pt;
 
-          M.sparse_indexed_output(Doc_info.directory() + "/massmatrix_" + label);
-          residuals.output(Doc_info.directory() + "/explicit_residual_" + label);
+          M.sparse_indexed_output(Doc_info.directory() + "/massmatrix_" + label,
+                                  Output_precision, true);
+          residuals.output(Doc_info.directory() + "/explicit_residual_" + label,
+                           Output_precision);
         }
       else
         {
@@ -508,8 +510,10 @@ namespace oomph
           DoubleVector residuals;
           this->get_jacobian(residuals, J);
 
-          J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label);
-          residuals.output(Doc_info.directory() + "/residual_" + label);
+          J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label,
+                                  Output_precision, true);
+          residuals.output(Doc_info.directory() + "/residual_" + label,
+                           Output_precision);
         }
     }
 
