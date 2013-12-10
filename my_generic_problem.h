@@ -15,6 +15,8 @@
 #include "../../src/generic/iterative_linear_solver.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 #include "../../src/generic/hypre_solver.h"
+#include "../../src/generic/general_purpose_preconditioners.h"
+
 
 
 #include "./my_general_header.h"
@@ -561,6 +563,13 @@ namespace oomph
             // then this is not a pde, so no dimension as such.
             Dim = 0;
           }
+
+        // Set the solver for explicit timesteps (mass matrix) to CG with a
+        // diagonal predconditioner.
+        IterativeLinearSolver* mm_solver_pt = new CG<CRDoubleMatrix>;
+        mm_solver_pt->preconditioner_pt() =
+          new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
+        explicit_solver_pt() = mm_solver_pt;
 
       }
 
