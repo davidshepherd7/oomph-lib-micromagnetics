@@ -8,6 +8,7 @@
 */
 
 #include "../../src/generic/problem.h"
+#include "../../src/generic/assembly_handler.h"
 #include "../../src/generic/oomph_utilities.h"
 
 #include "../../src/generic/linear_solver.h"
@@ -116,11 +117,55 @@ namespace oomph
             // label with doc_info number and the newton step number
             std::string label = to_string(Doc_info.number())
               + "_"
-              + to_string(Jacobian_setup_times.size() + 1);
+              + to_string(nnewton_step_this_solve() + 1);
 
-            dump_current_jacobian_residuals(label);
+            dump_current_mm_or_jacobian_residuals(label);
           }
       }
+
+    unsigned nnewton_step_this_solve() const
+      {
+        return Jacobian_setup_times.size();
+      }
+
+    virtual void actions_before_explicit_timestep()
+      {
+        // Output Jacobian and residuals if requested
+        if((to_lower(Doc_info.output_jacobian) == "always")
+           && (should_doc_this_step(time_pt()->dt(), time())))
+          {
+            // label with doc_info number and the newton step number
+            std::string label = to_string(Doc_info.number())
+              + "_"
+              + to_string(nnewton_step_this_solve() + 1);
+
+            dump_current_mm_or_jacobian_residuals(label);
+          }
+      }
+
+
+    virtual void actions_after_explicit_timestep()
+    {
+      Jacobian_setup_times.push_back
+        (this->explicit_solver_pt()->jacobian_setup_time());
+      Solver_times.push_back
+        (this->explicit_solver_pt()->linear_solver_solution_time());
+
+      const IterativeLinearSolver* its_pt
+        = dynamic_cast<const IterativeLinearSolver*>(this->explicit_solver_pt());
+      if(its_pt != 0)
+        {
+          Solver_iterations.push_back(its_pt->iterations());
+          Preconditioner_setup_times.push_back(its_pt->preconditioner_setup_time());
+        }
+      else
+        {
+          // Fill in dummy data
+          Solver_iterations.push_back(Dummy_doc_data);
+          Preconditioner_setup_times.push_back(Dummy_doc_data);
+        }
+    }
+
 
     virtual void actions_after_newton_step()
       {
@@ -238,7 +283,7 @@ namespace oomph
         if((to_lower(Doc_info.output_jacobian) == "at_start")
            || (to_lower(Doc_info.output_jacobian) == "always"))
           {
-            dump_current_jacobian_residuals("at_start");
+            dump_current_mm_or_jacobian_residuals("at_start");
           }
 
         // pvd file
@@ -321,7 +366,7 @@ namespace oomph
         if((to_lower(Doc_info.output_jacobian) == "at_end")
            || (to_lower(Doc_info.output_jacobian) == "always"))
           {
-            dump_current_jacobian_residuals("at_end");
+            dump_current_mm_or_jacobian_residuals("at_end");
           }
 
         // Write end of .pvd XML file
@@ -437,14 +482,33 @@ namespace oomph
         }
       }
 
-    void dump_current_jacobian_residuals(const std::string& label)
+    void dump_current_mm_or_jacobian_residuals(const std::string& label)
     {
-      CRDoubleMatrix J;
-      DoubleVector residuals;
-      this->get_jacobian(residuals, J);
+      // We actually want the mass matrix if we are doing explicit steps
+      if(use_explicit())
+        {
+          CRDoubleMatrix M;
+          DoubleVector residuals;
 
-      J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label);
-      residuals.output(Doc_info.directory() + "/residual_" + label);
+          // This is how you get mass matrices, ugly...
+          AssemblyHandler* old_assembly_handler_pt = this->assembly_handler_pt();
+          ExplicitTimeStepHandler ehandler;
+          this->assembly_handler_pt() = &ehandler;
+          this->get_jacobian(residuals, M);
+          this->assembly_handler_pt() = old_assembly_handler_pt;
+
+          M.sparse_indexed_output(Doc_info.directory() + "/massmatrix_" + label);
+          residuals.output(Doc_info.directory() + "/explicit_residual_" + label);
+        }
+      else
+        {
+          CRDoubleMatrix J;
+          DoubleVector residuals;
+          this->get_jacobian(residuals, J);
+
+          J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label);
+          residuals.output(Doc_info.directory() + "/residual_" + label);
+        }
     }
 
 
