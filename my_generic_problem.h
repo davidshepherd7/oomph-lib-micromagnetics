@@ -130,23 +130,10 @@ namespace oomph
         return Jacobian_setup_times.size();
       }
 
-    virtual void actions_before_explicit_timestep()
-      {
-        // Output Jacobian and residuals if requested
-        if((to_lower(Doc_info.output_jacobian) == "always")
-           && (should_doc_this_step(time_pt()->dt(), time())))
-          {
-            // label with doc_info number and the newton step number
-            std::string label = to_string(Doc_info.number())
-              + "_"
-              + to_string(nnewton_step_this_solve() + 1);
+    virtual void actions_before_explicit_stage()
+      {MyProblem::actions_before_newton_step();}
 
-            dump_current_mm_or_jacobian_residuals(label);
-          }
-      }
-
-
-    virtual void actions_after_explicit_timestep()
+    virtual void actions_after_explicit_stage()
     {
       Jacobian_setup_times.push_back
         (this->explicit_solver_pt()->jacobian_setup_time());
@@ -166,8 +153,17 @@ namespace oomph
           Solver_iterations.push_back(Dummy_doc_data);
           Preconditioner_setup_times.push_back(Dummy_doc_data);
         }
+
+      // Not quite the same as actions after newton step because we are
+      // interested in what happened in the explicit solver instead of the
+      // main solver.
     }
 
+    virtual void actions_before_explicit_timestep()
+    {MyProblem::actions_before_newton_solve();}
+
+    virtual void actions_after_explicit_timestep()
+      {MyProblem::actions_after_newton_solve();}
 
     virtual void actions_after_newton_step()
       {
