@@ -457,7 +457,7 @@ namespace VectorOps
     cr_matrix.build(n, values, col_index, row_start);
   }
 
-  inline void get_as_indicies(DoubleMatrixBase &matrix,
+  inline void get_as_indicies(const DoubleMatrixBase &matrix,
                               Vector<double> &values,
                               Vector<int> &col_index,
                               Vector<int> &row_index)
@@ -472,6 +472,42 @@ namespace VectorOps
                 col_index.push_back(j);
                 values.push_back(matrix(i,j));
               }
+          }
+      }
+  }
+
+  /// Get three vectors of the values, column indicies and row indidices of
+  /// entries in a CR matrix. Sorted by row index then col index. Optimised
+  /// version for CR matrices
+  inline void get_as_indicies(const CRDoubleMatrix &matrix,
+                              Vector<double> &values,
+                              Vector<int> &col_index,
+                              Vector<int> &row_index)
+  {
+    // Reserve space so we don't re-allocate the vectors inside the loop.
+    int nval = matrix.nnz();
+    values.reserve(nval);
+    col_index.reserve(nval);
+    row_index.reserve(nval);
+
+    // Loop over rows
+    const int* row_start = matrix.row_start();
+    for(int i = 0; i < int(matrix.nrow_local()); i++)
+      {
+        // Throw col/val pairs in this row into a map (to get them sorted)
+        std::map<int, double> col_val_map;
+        for(int entry=row_start[i]; entry<row_start[i+1]; entry++)
+          {
+            col_val_map[matrix.column_index()[entry]] = matrix.value()[entry];
+          }
+
+        // Pull them out of the map and into the output vectors
+        std::map<int, double>::const_iterator it;
+        for(it=col_val_map.begin(); it!=col_val_map.end(); ++it)
+          {
+            row_index.push_back(i);
+            col_index.push_back(it->first);
+            values.push_back(it->second);
           }
       }
   }
@@ -545,6 +581,171 @@ namespace VectorOps
     // Construct a set (which has no duplicates by definition) and compare
     // sizes.
     return std::set<T>(v.begin(), v.end()).size() != v.size();
+  }
+
+
+  inline void check_matrices_compatible(const CRDoubleMatrix& m1,
+                                        const CRDoubleMatrix& m2)
+  {
+#ifdef PARANOID
+    if(m1.nrow() != m2.nrow())
+      {
+        std::string err = "The two matrices have a different number of rows";
+        err += "matrix 1 has " + to_string(m1.nrow()) + " rows ";
+        err += "but matrix 2 has " + to_string(m2.nrow()) +".";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+    if(m1.ncol() != m2.ncol())
+      {
+        std::string err = "The two matrices have a different number of cols";
+        err += "matrix 1 has " + to_string(m1.ncol()) + " cols ";
+        err += "but matrix 2 has " + to_string(m2.ncol()) +".";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+
+    if(*(m1.distribution_pt()) != *(m2.distribution_pt()))
+      {
+        std::string err = "The two matrices have different distributions.";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+  }
+
+  //??ds move to class?
+  inline void check_matrix_built(const CRDoubleMatrix& m)
+  {
+#ifdef PARANOID
+    if(!m.built())
+      {
+        std::string err = "This matrix is not built.";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+  }
+
+  /// \short Add two matrices together and put the result into mout. The
+  /// two input matrices must have the same shape and distribution. The
+  /// output matrix will have the same shape and distribution as the
+  /// inputs. It is safe to use one of the inputs as the output.
+  inline void cr_matrix_add(const CRDoubleMatrix& m1, const CRDoubleMatrix& m2,
+                            CRDoubleMatrix& mout)
+  {
+    // Basic idea is:
+    // 1. Get both matrices in coordinate form to make them easier to work
+    // with.
+    // 2. Merge the entries into one using something similar to the merge
+    // from mergesort. (Two counters, one for each matrix. Compare row/col
+    // of current entry in each matrx. Insert the smallest and increment
+    // that counter. Loop)
+    // 3. Convert back to compressed row format and build the new matrix.
+
+    // Possible optimisations if needed:
+    // 1. Use row start format directly
+    // 2. Use C-arrays instead of vectors and use build without copy function.
+
+
+    // Paranoid tests
+    check_matrix_built(m1);
+    check_matrix_built(m2);
+    check_matrices_compatible(m1, m2);
+
+    // Get the values of the matrices in sorted coordinate form
+    Vector<double> v1, v2;
+    Vector<int> c1, c2, r1, r2;
+    get_as_indicies(m1, v1, c1, r1);
+    get_as_indicies(m2, v2, c2, r2);
+
+    // Get the sizes of the input matrix coordinate vectors
+    int n1 = c1.size(), n2 = c2.size();
+
+    // Create output matrix vectors and reserve space. Get enough space for
+    // the case where m1 and m2 have no overlapping values because it's an
+    // easy to calculate upper bound for the amount we actually need.
+    Vector<double> vs;
+    Vector<int> cs, rs;
+    vs.reserve(n1 + n2);
+    cs.reserve(n1 + n2);
+    rs.reserve(n1 + n2);
+
+    // Loop over all entries in the two lists of coordinates while at least
+    // one of them hasn't reached the end
+    int i1 = 0, i2 = 0;
+    while(i1 < n1 && i2 < n2)
+      {
+        // If the current entry in matrix 1 is first (i.e. on an earlier
+        // row or column) then insert it and increment its counter.
+        if(r1[i1] < r2[i2] || (r1[i1] == r2[i2] && c1[i1] < c2[i1]))
+          {
+            vs.push_back(v1[i1]);
+            cs.push_back(c1[i1]);
+            rs.push_back(r1[i1]);
+            i1++;
+          }
+        // If the current entry in matrix 2 is first then insert it
+        // and increment its counter.
+        else if(r1[i1] > r2[i2] || (r1[i1] == r2[i2] && c1[i1] > c2[i1]))
+          {
+            vs.push_back(v2[i2]);
+            cs.push_back(c2[i2]);
+            rs.push_back(r2[i2]);
+            i2++;
+          }
+        // If they are both the same row and col then add them together and
+        // insert, increment both counters.
+        else if(r1[i1] == r2[i2] && c1[i1] == c2[i1])
+          {
+            vs.push_back(v1[i1] + v2[i2]);
+            cs.push_back(c1[i1]);
+            rs.push_back(r1[i1]);
+            i1++;
+            i2++;
+          }
+        // Never get here I hope
+        else
+          {
+            std::string err = "Never get here!";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+      }
+
+    // Copy over the rest
+    while(i1 < n1)
+      {
+        vs.push_back(v1[i1]);
+        cs.push_back(c1[i1]);
+        rs.push_back(r1[i1]);
+        i1++;
+      }
+    while(i2 < n2)
+      {
+        vs.push_back(v2[i2]);
+        cs.push_back(c2[i2]);
+        rs.push_back(r2[i2]);
+        i2++;
+      }
+
+
+    // Convert the row index vector to row starts
+    Vector<int> sum_row_start;
+    rowindex2rowstart(rs, m1.nrow(), sum_row_start);
+
+    // Copy out dist and ncol so that we can't accidentally delete them
+    // before using them if the output matrix is one of the inputs. Safe
+    // to use m1 for distribution, ncol because we checked that they are
+    // the same before.
+    LinearAlgebraDistribution dist = *m1.distribution_pt();
+    int ncol = m1.ncol();
+
+    // Finally, build the output matrix. Because we do this only at the very
+    // end, after all processing has been done, it is safe to output the
+    // result into one of the input matrices if needed.
+    mout.build(&dist, ncol, vs, cs, sum_row_start);
+
   }
 
 

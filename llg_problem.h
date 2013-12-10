@@ -116,8 +116,9 @@ namespace oomph
 
 
           // Add it on
-          fem_jacobian_pt->add(bem_block_identity, *fem_jacobian_pt);
-        }
+          VectorOps::cr_matrix_add(*fem_jacobian_pt, bem_block_identity,
+                                   *fem_jacobian_pt);
+          }
 
     }
 
@@ -150,7 +151,8 @@ namespace oomph
 
             // // Convert to indicies ??ds SLOW (N^2)
             // sum_jacobian.get_as_indices(sum_cols, sum_rows, sum_values);
-            VectorOps::get_as_indicies(sum_jacobian, sum_values, sum_cols, sum_rows);
+            VectorOps::get_as_indicies(sum_jacobian, sum_values, sum_cols,
+                                       sum_rows);
 
           } // sum_jacobian destroyed -> fem_jacobian destroyed, but
             // information we need is still in the vectors.
