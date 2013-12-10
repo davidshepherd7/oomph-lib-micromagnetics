@@ -310,6 +310,9 @@ namespace oomph
   void MicromagFluxElement<ELEMENT>::fill_in_contribution_to_mass_matrix
   (Vector<double> &residuals, DenseMatrix<double> &mmatrix)
   {
+    // Get the residuals
+    fill_in_contribution_to_residuals(residuals);
+
     const unsigned n_node = this->nnode();
     const unsigned eldim = this->dim();
     const unsigned n_unknowns = ndof_types();
