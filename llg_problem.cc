@@ -315,7 +315,7 @@ namespace oomph
     return temp_error/double(mesh_pt()->nnode());
   }
 
-  /// \short ??ds
+  /// \short Get a vector of the mean of the nodal magnetisations
   Vector<double> LLGProblem::mean_magnetisation() const
   {
     Vector<Vector<double> > ms = get_nodal_magnetisations();

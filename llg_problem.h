@@ -238,8 +238,18 @@ namespace oomph
       maybe_update_bem_boundary_conditions();
     }
 
-    void actions_after_newton_solve()
+    virtual void actions_after_explicit_timestep()
+      {
+        MyProblem::actions_after_explicit_timestep();
+
+        // We need to keep M normalised...
+        std::cout << "Renormalising nodal magnetisations." << std::endl;
+        renormalise_magnetisation();
+      }
+
+    virtual void actions_after_newton_solve()
     {
+      MyProblem::actions_after_newton_solve();
 
       std::cout << std::endl
                 << "Finalising" << std::endl
