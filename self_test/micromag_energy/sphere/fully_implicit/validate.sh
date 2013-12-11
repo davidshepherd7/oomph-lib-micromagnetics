@@ -19,7 +19,8 @@ new_clean_dir $SPHERE_DIR
 
 # Run simulation
 cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere -solver superlu \
+./llg_driver -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere -solver som-gmres \
+    -preconditioner som-main-exact \
     -happ minus_z -initm exactly_z -mag-params 'simple-llg' -implicit-ms\
     -outdir $SPHERE_DIR > $SPHERE_DIR/stdout
 
