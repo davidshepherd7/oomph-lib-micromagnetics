@@ -36,8 +36,6 @@ namespace oomph
                            double scaling_factor,
                            unsigned nnode1d)
     {
-      //??ds add scaling factor
-
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
@@ -103,6 +101,9 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
 
       // For some reason we need to call this manually
       mesh_pt->setup_boundary_element_info();
@@ -188,6 +189,9 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
 
       // For some reason we need to call this manually
       mesh_pt->setup_boundary_element_info();

@@ -1007,32 +1007,20 @@ public:
 
 
   /// Command line args class for llg problems. Just add the mesh
-  /// stuff. ??ds refactor to combine with MMArgs?
+  /// stuff.
   class LLGArgs : public MMArgs
   {
   public:
 
-    /// Constructor
-    LLGArgs() {}
+    /// Constructor: use llg mesh factory to make base meshes
+    LLGArgs()
+    {
+      mesh_factory_pt = LLGFactories::mesh_factory;
+    }
 
     virtual void set_flags()
     {
       MMArgs::set_flags();
-
-      specify_command_line_flag("-mesh", &mesh_name);
-      mesh_name = "sq_square";
-
-      specify_command_line_flag("-nnode1d", &nnode1d);
-      nnode1d = 2;
-
-      specify_command_line_flag("-xshift", &xshift);
-      xshift = 1.5;
-
-      specify_command_line_flag("-yshift", &yshift);
-      yshift = 1.5;
-
-      specify_command_line_flag("-scale", &scale);
-      scale = 1.0;
 
       specify_command_line_flag("-implicit-ms");
 
@@ -1044,65 +1032,23 @@ public:
     {
       MMArgs::run_factories();
 
-      // Do the mesh last of all because it can be slow
-      mesh_name = to_lower(mesh_name);
-
-      // If it has this prefix then make multiple meshes
-      if(Factories::has_prefix("multi_", mesh_name))
-        {
-          std::string base_name = Factories::rest_of_name("multi_", mesh_name);
-          mesh_pts = Factories::simple_multimesh_factory(LLGFactories::mesh_factory,
-                                                         base_name, refinement,
-                                                         time_stepper_pt, xshift,
-                                                         nnode1d);
-          //??ds add scaling
-        }
-
-      // Or with "many" prefix make a load of meshes
-      else if(Factories::has_prefix("many_", mesh_name))
-        {
-          std::string base_name = Factories::rest_of_name("many_", mesh_name);
-
-          mesh_pts = Factories::simple_many_multimesh_factory
-            (LLGFactories::mesh_factory, base_name, refinement,
-             time_stepper_pt, xshift, yshift, nnode1d); //??ds add scaling
-        }
-
-      // Otherwise just make a single mesh
-      else
-        {
-          mesh_pts.push_back
-            (LLGFactories::mesh_factory(mesh_name, refinement, time_stepper_pt,
-                                        scale, nnode1d));
-        }
-
       use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
 
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
     }
 
+
     /// Write out all args (in a parseable format) to a stream.
     virtual void dump_args(std::ostream& out_stream) const
     {
       MMArgs::dump_args(out_stream);
-      out_stream << "mesh " << mesh_name << std::endl;
-      out_stream << "nnode1d " << nnode1d << std::endl;
-      out_stream << "use_implicit_ms " << use_implicit_ms << std::endl;
+      out_stream << "use_implicit_ms " << use_implicit_ms << std::endl
+                 << "pin_boundary_m " << pin_boundary_m << std::endl
+        ;
     }
-
-
-    Vector<Mesh*> mesh_pts;
-
-    unsigned nnode1d;
-    double xshift;
-    double yshift;
-    double scale;
 
     bool use_implicit_ms;
     bool pin_boundary_m;
-
-    // Strings for input to factory functions
-    std::string mesh_name;
   };
 
 }

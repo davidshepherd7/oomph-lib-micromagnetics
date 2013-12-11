@@ -321,72 +321,24 @@ namespace oomph
       // automatically defaults to false
     }
 
+    void build_meshes()
+      {
+        using namespace SemiImplicitFactories;
+        llg_mesh_pts = build_meshes_helper(llg_mesh_factory);
+        phi_mesh_pts = build_meshes_helper(phi_mesh_factory);
+        phi_1_mesh_pts = build_meshes_helper(phi_mesh_factory);
+      }
+
 
     void run_factories()
     {
+      // Run lower level factories first: need base meshes to exist before
+      // we add surface elements.
       MMArgs::run_factories();
 
-      // Store inside class
+      // Find out if we set the flag for numerical evaluation of the BEM
+      // integrals
       use_numerical_integration = Specified_command_line_flag["-numerical-BEM"];
-
-      to_lower(mesh_name);
-
-      // Build the meshes, do this last because they can be SLOW, must be
-      // done before factory mesh function selection...
-
-      // If the mesh name is prefixed by "multi_" then build the equivalent
-      // (simple, for now?) multiple mesh.
-      if(Factories::has_prefix("multi_", mesh_name))
-        {
-          // Copy the rest of the mesh name into a new string
-          std::string single_mesh_name = Factories::rest_of_name("multi_",
-                                                                 mesh_name);
-
-          // And use it to build the meshes
-          llg_mesh_pts = Factories::simple_multimesh_factory
-            (SemiImplicitFactories::llg_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt, xshift);
-
-          phi_mesh_pts = Factories::simple_multimesh_factory
-            (SemiImplicitFactories::phi_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt, xshift);
-
-          phi_1_mesh_pts = Factories::simple_multimesh_factory
-            (SemiImplicitFactories::phi_mesh_factory,
-             single_mesh_name, refinement, time_stepper_pt, xshift);
-
-        }
-
-      // Or with "many" prefix make a load of meshes
-      else if(Factories::has_prefix("many_", mesh_name))
-        {
-          std::string base_name = Factories::rest_of_name("many_", mesh_name);
-
-          llg_mesh_pts = Factories::simple_many_multimesh_factory
-            (SemiImplicitFactories::llg_mesh_factory, base_name, refinement,
-             time_stepper_pt, xshift, yshift);
-          phi_mesh_pts = Factories::simple_many_multimesh_factory
-            (SemiImplicitFactories::phi_mesh_factory, base_name, refinement,
-             time_stepper_pt, xshift, yshift);
-          phi_1_mesh_pts = Factories::simple_many_multimesh_factory
-            (SemiImplicitFactories::phi_mesh_factory, base_name, refinement,
-             time_stepper_pt, xshift, yshift);
-         }
-
-      // Otherwise just build one mesh
-      else
-        {
-          // LLG (magnetism) mesh
-          llg_mesh_pts.push_back(SemiImplicitFactories::llg_mesh_factory
-                                 (mesh_name, refinement, time_stepper_pt));
-
-          // Make the two phi meshes
-          phi_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
-                                 (mesh_name, refinement, time_stepper_pt));
-          phi_1_mesh_pts.push_back(SemiImplicitFactories::phi_mesh_factory
-                                   (mesh_name, refinement, time_stepper_pt));
-        }
-
 
       // Pick the factory function for creating the phi 1 surface mesh
       phi_1_flux_mesh_factory_fct_pt =
@@ -397,7 +349,6 @@ namespace oomph
       bem_element_factory_fct_pt =
         LLGFactories::bem_element_factory_factory
         (llg_mesh_pts[0]->finite_element_pt(0));
-
 
       // Pick the problem itself (explicit or semi implicit)
       if(explicit_flag())
@@ -426,13 +377,6 @@ namespace oomph
 
     GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
     LLGFactories::BEMElementFactoryFctPt bem_element_factory_fct_pt;
-
-    // Strings for input to factory functions
-    std::string mesh_name;
-
-    // Distance to move meshes away from origin (along +- x) in multi-mesh.
-    double xshift;
-    double yshift;
 
     bool use_numerical_integration;
 

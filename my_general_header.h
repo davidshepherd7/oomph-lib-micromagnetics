@@ -41,55 +41,26 @@
 namespace oomph
 {
 
-  using namespace CommandLineArgs;
-  using namespace StringConversion;
-
-  inline bool small(const double& test_double)
-  {
-    return std::abs(test_double) < 1e-5;
-  }
-
-  struct RowColVal
-  {
-  public:
-    RowColVal(int row_, int col_, double val_)
-      : row(row_), col(col_), val(val_)
-    {}
-
-    int row;
-    int col;
-    double val;
-
-    bool operator<(const RowColVal& other) const
-    {
-      if (this->row == other.row)
-        return (this->col < other.col);
-      else
-        return (this->row < other.row);
-    }
-  };
-
-
   namespace Factories
   {
 
     inline bool has_prefix(std::string prefix, std::string test_string)
-      {
-        return test_string.find(prefix) == 0;
-      }
+    {
+      return test_string.find(prefix) == 0;
+    }
 
     inline std::string rest_of_name(std::string prefix, std::string test_string)
-      {
+    {
 #ifdef PARANOID
-        if(!has_prefix(prefix, test_string))
-          {
-            std::string err = "This string doesn't have the prefix to remove!";
-            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
-          }
+      if(!has_prefix(prefix, test_string))
+        {
+          std::string err = "This string doesn't have the prefix to remove!";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
 #endif
-        return std::string(test_string, prefix.size(), string::npos);
-      }
+      return std::string(test_string, prefix.size(), string::npos);
+    }
 
     /// Make an explicit time stepper
     inline ExplicitTimeStepper* explicit_time_stepper_factory
@@ -183,33 +154,53 @@ namespace oomph
     };
 
     /// function pointer type to create a mesh
-    typedef Mesh* (MeshFactoryFctPt)(const std::string&, int,
+    typedef Mesh* (*MeshFactoryFctPt)(const std::string&, int,
                                      TimeStepper*, double, unsigned);
 
 
     /// Create a vector of meshes with the names given in mesh details and
     /// shifted as also specified in mesh_details.
-    inline Vector<Mesh*> multimesh_factory(MeshFactoryFctPt* underlying_factory,
+    inline Vector<Mesh*> multimesh_factory(MeshFactoryFctPt underlying_factory,
                                            Vector<ShiftedMeshDetails>& mesh_details,
                                            int refinement_level,
                                            TimeStepper* time_stepper_pt,
-                                           unsigned nnode1d=2)
+                                           double scaling,
+                                           unsigned nnode1d)
     {
+#ifdef PARANOID
+      if(underlying_factory == 0)
+        {
+          std::string err = "Null underlying mesh factory pointer";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
       Vector<Mesh*> mesh_pts;
 
       const unsigned nj = mesh_details.size();
       for(unsigned j=0; j<nj; j++)
         {
-          mesh_pts.push_back(underlying_factory(mesh_details[j].mesh_name,
-                                                refinement_level,
-                                                time_stepper_pt,
-                                                1.0,
-                                                nnode1d));
+          // Build it without scaling
+          Mesh* mesh_pt = underlying_factory(mesh_details[j].mesh_name,
+                                             refinement_level,
+                                             time_stepper_pt,
+                                             1.0,
+                                             nnode1d);
 
+          // Shift it
           shift_mesh(mesh_details[j].xshift,
                      mesh_details[j].yshift,
                      mesh_details[j].zshift,
-                     mesh_pts[j]);
+                     mesh_pt);
+
+          // Scale it. We do this after shifting so that we are scaling the
+          // entire multi-mesh, including gaps between meshes. This is much
+          // more intuitive.
+          scale_mesh(scaling, mesh_pt);
+
+          // Add to list
+          mesh_pts.push_back(mesh_pt);
         }
 
       return mesh_pts;
@@ -217,30 +208,32 @@ namespace oomph
 
 
     /// Create a pair of meshes near to each other (shifted along x).
-    inline Vector<Mesh*> simple_multimesh_factory(MeshFactoryFctPt* underlying_factory,
+    inline Vector<Mesh*> simple_multimesh_factory(MeshFactoryFctPt underlying_factory,
                                                   const std::string& mesh_name,
                                                   int refinement_level,
                                                   TimeStepper* time_stepper_pt,
                                                   double xshift,
-                                                  unsigned nnode1d = 2)
+                                                  double scaling,
+                                                  unsigned nnode1d)
     {
       Vector<ShiftedMeshDetails> inputs(2);
       inputs[0].mesh_name = mesh_name;
       inputs[0].xshift = -xshift;
+
 
       inputs[1].mesh_name = mesh_name;
       inputs[1].xshift = +xshift;
 
       return multimesh_factory(underlying_factory,
                                inputs, refinement_level,
-                               time_stepper_pt, nnode1d);
+                               time_stepper_pt, scaling, nnode1d);
     }
 
     // Create lots of meshes near to each other (spaced out along x, y).
     inline Vector<Mesh*> simple_many_multimesh_factory
-    (MeshFactoryFctPt* underlying_factory, const std::string& mesh_name,
+    (MeshFactoryFctPt underlying_factory, const std::string& mesh_name,
      int refinement_level, TimeStepper* time_stepper_pt,
-     double xspacing, double yspacing, unsigned nnode1d = 2)
+     double xspacing, double yspacing, double scaling, unsigned nnode1d)
     {
       // Idea is to just make a square (or rect.) grid of meshes, spaced
       // according to xspacing and yspacing.
@@ -276,13 +269,13 @@ namespace oomph
       // Construct the meshes using the general multimesh factory
       return multimesh_factory(underlying_factory,
                                inputs, refinement_level,
-                               time_stepper_pt, nnode1d);
+                               time_stepper_pt, scaling, nnode1d);
     }
 
 
     template<class ELEMENT>
     inline Mesh* surface_mesh_factory(Mesh* bulk_mesh_pt,
-                               const Vector<unsigned> &boundaries)
+                                      const Vector<unsigned> &boundaries)
     {
       Mesh* flux_mesh_pt = new Mesh;
 
@@ -364,14 +357,14 @@ namespace oomph
         {
           std::string error_msg = _prec_name + " is not a block llg preconditioner";
           error_msg += "(should begin with blockllg-).";
-            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
         }
       if(parameters.size() != 5)
         {
           std::string error_msg = "Not enough parameters in llg block string.";
-            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
         }
 #endif
 
@@ -541,10 +534,10 @@ namespace oomph
 #endif
         }
 
-        // General purpose AMG (default parameters)
-        // ============================================================
-        else if(prec_name == "amg")
-          {
+      // General purpose AMG (default parameters)
+      // ============================================================
+      else if(prec_name == "amg")
+        {
 #ifdef OOMPH_HAS_HYPRE
           HyprePreconditioner* amg_pt = new HyprePreconditioner;
           amg_pt->hypre_method() = HyprePreconditioner::BoomerAMG;
@@ -552,37 +545,37 @@ namespace oomph
 
 #else // If no Hypre then give a warning and use exact
           OomphLibWarning("Don't have Hypre, using exact preconditioner.",
-            OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+                          OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
           prec_pt = preconditioner_factory("exact");
 #endif
         }
 
-        else if(prec_name == "identity")
-          { prec_pt = new IdentityPreconditioner; }
+      else if(prec_name == "identity")
+        { prec_pt = new IdentityPreconditioner; }
 
-        else if(prec_name == "none")
-          { prec_pt = 0; }
+      else if(prec_name == "none")
+        { prec_pt = 0; }
 
-       else if(prec_name == "exact")
-          { prec_pt = new SuperLUPreconditioner; }
+      else if(prec_name == "exact")
+        { prec_pt = new SuperLUPreconditioner; }
 
-       else if(prec_name == "blockexact")
-          { prec_pt = new ExactBlockPreconditioner<CRDoubleMatrix>; }
+      else if(prec_name == "blockexact")
+        { prec_pt = new ExactBlockPreconditioner<CRDoubleMatrix>; }
 
 
       // if it starts with blockllg then call that factory
-       else if(split_string(prec_name, '-')[0] == "blockllg")
-         {
-           prec_pt = block_llg_factory(prec_name);
-         }
+      else if(split_string(prec_name, '-')[0] == "blockllg")
+        {
+          prec_pt = block_llg_factory(prec_name);
+        }
 
-        else
-          {
-            std::string err("Unrecognised preconditioner name ");
-            err += prec_name;
-            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
+      else
+        {
+          std::string err("Unrecognised preconditioner name ");
+          err += prec_name;
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
 
       return prec_pt;
 
@@ -593,32 +586,62 @@ namespace oomph
     /// based on command line input in label.
     inline Vector<double> doc_times_factory(const double& doc_interval,
                                             const double &t_max)
-      {
-        Vector<double> doc_times;
+    {
+      Vector<double> doc_times;
 
-        if(doc_interval == 0)
-          {
-            // Do nothing: empty vector = output at every step.
-          }
+      if(doc_interval == 0)
+        {
+          // Do nothing: empty vector = output at every step.
+        }
 
-        // Otherwise we have a number giving the interval between doc
-        // times.
-        else
-          {
-            // Add an output time every "doc_interval" time units until we get
-            // to t_max.
-            double doc_t = 0.0;
-            while(doc_t < t_max)
-              {
-                doc_times.push_back(doc_t);
-                doc_t += doc_interval;
-              }
-          }
+      // Otherwise we have a number giving the interval between doc
+      // times.
+      else
+        {
+          // Add an output time every "doc_interval" time units until we get
+          // to t_max.
+          double doc_t = 0.0;
+          while(doc_t < t_max)
+            {
+              doc_times.push_back(doc_t);
+              doc_t += doc_interval;
+            }
+        }
 
-        return doc_times;
-      }
+      return doc_times;
+    }
 
   }
+
+  using namespace CommandLineArgs;
+  using namespace StringConversion;
+  using namespace Factories;
+
+
+  inline bool small(const double& test_double)
+  {
+    return std::abs(test_double) < 1e-5;
+  }
+
+  struct RowColVal
+  {
+  public:
+    RowColVal(int row_, int col_, double val_)
+      : row(row_), col(col_), val(val_)
+    {}
+
+    int row;
+    int col;
+    double val;
+
+    bool operator<(const RowColVal& other) const
+    {
+      if (this->row == other.row)
+        return (this->col < other.col);
+      else
+        return (this->row < other.row);
+    }
+  };
 
 
   /// \short Parse inputs and store in a struct-like format. The objects
@@ -627,12 +650,14 @@ namespace oomph
   /// run_factories as appropriate.
   class MyCliArgs
   {
+
   public:
 
     /// Constructor: Initialise pointers to null.
     MyCliArgs() : time_stepper_pt(0), solver_pt(0), prec_pt(0)
     {
       explicit_time_stepper_pt = 0;
+      mesh_factory_pt = 0;
     }
 
     /// Destructor: clean up everything we made in the factories.
@@ -683,6 +708,22 @@ namespace oomph
 
         specify_command_line_flag("-doc-interval", &doc_times_interval);
         doc_times_interval = 0.1;
+
+        specify_command_line_flag("-mesh", &mesh_name);
+        mesh_name = "sq_square";
+
+        specify_command_line_flag("-nnode1d", &nnode1d);
+        nnode1d = 2;
+
+        specify_command_line_flag("-xshift", &xshift);
+        xshift = 1.5;
+
+        specify_command_line_flag("-yshift", &yshift);
+        yshift = 1.5;
+
+        specify_command_line_flag("-scale", &scale);
+        scale = 1.0;
+
       }
 
     void parse(int argc, char *argv[])
@@ -705,20 +746,20 @@ namespace oomph
       mp_pred_name = to_lower(mp_pred_name);
 
       // Build all the pointers to stuff
-      time_stepper_pt = Factories::time_stepper_factory(time_stepper_name,
+      time_stepper_pt = time_stepper_factory(time_stepper_name,
                                                         mp_pred_name);
       if(time_stepper_pt == 0) // failed, so try explicit
         {
-          explicit_time_stepper_pt = Factories::
+          explicit_time_stepper_pt =
             explicit_time_stepper_factory(time_stepper_name);
 
           // Still need a dummy timestepper to get everything set up
           // without segfaults (ts determines how much storage to create in
           // nodes).
-          time_stepper_pt = Factories::time_stepper_factory("steady");
+          time_stepper_pt = time_stepper_factory("steady");
         }
 
-      solver_pt = Factories::linear_solver_factory(solver_name);
+      solver_pt = linear_solver_factory(solver_name);
 
       // Create and set preconditioner pointer if our solver is iterative.
       IterativeLinearSolver* its_pt
@@ -739,23 +780,26 @@ namespace oomph
 
       // Maybe make a preconditioner which only acts on the main matrix of
       // a sum of matrices.
-      else if(Factories::has_prefix("som-main-", prec_name))
+      else if(has_prefix("som-main-", prec_name))
         {
-          std::string ul_prec_name = Factories::rest_of_name("som-main-", prec_name);
-          Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
+          std::string ul_prec_name = rest_of_name("som-main-", prec_name);
+          Preconditioner* ul_prec = preconditioner_factory(ul_prec_name);
           its_pt->preconditioner_pt() = new MainMatrixOnlyPreconditioner(ul_prec);
         }
 
       // Otherwise just make a normal preconditioner
       else if(prec_name != "none")
         {
-          prec_pt = Factories::preconditioner_factory(prec_name);
+          prec_pt = preconditioner_factory(prec_name);
           its_pt->preconditioner_pt() = prec_pt;
         }
 
-      doc_times = Factories::doc_times_factory(doc_times_interval, tmax);
+      doc_times = doc_times_factory(doc_times_interval, tmax);
 
       use_fd_jacobian = command_line_flag_has_been_set("-fd-jac");
+
+      // Build the meshes using whatever function the sub class defines
+      build_meshes();
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -797,6 +841,59 @@ namespace oomph
         }
     }
 
+    virtual void build_meshes()
+      {
+        this->mesh_pts = build_meshes_helper(mesh_factory_pt);
+      }
+
+    Vector<Mesh*> build_meshes_helper(MeshFactoryFctPt mesh_factory_pt)
+      {
+
+#ifdef PARANOID
+        if(mesh_factory_pt == 0)
+          {
+            std::string err = "Mesh factory pointer is null!";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+#endif
+
+        Vector<Mesh*> mesh_pts;
+
+        mesh_name = to_lower(mesh_name);
+
+        // If it has this prefix then make multiple meshes
+        if(has_prefix("multi_", mesh_name))
+          {
+            std::string base_name = rest_of_name("multi_", mesh_name);
+            mesh_pts = simple_multimesh_factory(mesh_factory_pt,
+                                                base_name, refinement,
+                                                time_stepper_pt, xshift,
+                                                scale,
+                                                nnode1d);
+          }
+
+        // Or with "many" prefix make a load of meshes
+        else if(has_prefix("many_", mesh_name))
+          {
+            std::string base_name = rest_of_name("many_", mesh_name);
+
+            mesh_pts = simple_many_multimesh_factory
+              (mesh_factory_pt, base_name, refinement,
+               time_stepper_pt, xshift, yshift, scale, nnode1d);
+          }
+
+        // Otherwise just make a single mesh
+        else
+          {
+            mesh_pts.push_back
+              (mesh_factory_pt(mesh_name, refinement, time_stepper_pt,
+                                          scale, nnode1d));
+          }
+
+        return mesh_pts;
+      }
+
 
     // Variables
     double dt;
@@ -819,9 +916,19 @@ namespace oomph
     std::string mp_pred_name;
     std::string solver_name;
     std::string prec_name;
+    std::string mesh_name;
+
 
     double doc_times_interval;
     Vector<double> doc_times;
+
+    // Mesh parameters
+    MeshFactoryFctPt mesh_factory_pt;
+    Vector<Mesh*> mesh_pts;
+    unsigned nnode1d;
+    double xshift;
+    double yshift;
+    double scale;
 
   };
 

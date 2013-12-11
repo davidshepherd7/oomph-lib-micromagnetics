@@ -438,7 +438,6 @@ namespace oomph
     {
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
-      #warning "Scaling not implemented for most meshes"
 
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt;
@@ -448,8 +447,6 @@ namespace oomph
           unsigned nx = 5 * std::pow(2, refinement_level);
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
-
-          scale_mesh(scaling_factor, mesh_pt); //??ds add rest of scaling factors
         }
       else if(mesh_name == "single-element" && nnode1d == 2)
         {
@@ -508,6 +505,9 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
 
       // Done: pass out the mesh pointer
       return mesh_pt;

@@ -12,5 +12,4 @@ initial_m smoothly_varying_5
 h_app minus_z
 mag_params simple-llg
 damping_parameter_override -10
-mesh ut_square
-nnode1d 2
+use_implicit_ms 0
