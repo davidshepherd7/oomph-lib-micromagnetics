@@ -365,8 +365,8 @@ namespace oomph
     virtual void dump_args(std::ostream& out_stream) const
     {
       MMArgs::dump_args(out_stream);
-      out_stream << "mesh " << mesh_name << std::endl;
-      out_stream << "numerical-BEM " << use_numerical_integration
+      out_stream << "numerical-BEM " << use_numerical_integration << std::endl
+                 << "explicit-flag " << explicit_flag()
                  << std::endl;
     }
 

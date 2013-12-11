@@ -966,7 +966,10 @@ public:
         << "initial_m " << initial_m_name << std::endl
         << "h_app " << h_app_name << std::endl
         << "mag_params " << magnetic_parameters_name << std::endl
-        << "damping_parameter_override " << dampc << std::endl;
+        << "residual_to_use " << residual_to_use << std::endl
+        << "Renormalise " << Renormalise << std::endl
+        << "damping_parameter_override " << dampc << std::endl
+        ;
     }
 
 

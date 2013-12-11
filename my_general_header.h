@@ -816,17 +816,25 @@ namespace oomph
         << "output_jacobian " << output_jacobian << std::endl
 
         << "time_stepper " << time_stepper_name << std::endl
+        << "mp_pred_name " << mp_pred_name << std::endl
         << "solver_name " << solver_name << std::endl
         << "preconditioner_name " << prec_name <<std::endl
 
-        << "doc_times_interval " << doc_times_interval << std::endl;
+        << "doc_times_interval " << doc_times_interval << std::endl
+
+        << "mesh " << mesh_name << std::endl
+        << "nnode1d " << nnode1d << std::endl
+        << "xshift " << xshift << std::endl
+        << "yshift " << yshift << std::endl
+        << "scale " << scale << std::endl
+        ;
     }
 
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
     /// Explcit if an explicit_time_stepper_pt has been set
-    bool explicit_flag()
+    bool explicit_flag() const
     {
       // Check that we don't have two "real" timesteppers
       if((!time_stepper_pt->is_steady()) && (explicit_time_stepper_pt != 0))
