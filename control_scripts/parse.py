@@ -591,7 +591,7 @@ def main():
         pprint(all_results)
 
     # Good default keys to split..
-    keys_to_split_on = ['mesh', 'refinement', 'h_app', 'initial_m', 'mag_params']
+    keys_to_split_on = ['mesh', 'h_app', 'initial_m', 'mag_params']
 
 
     # Do actual plots
