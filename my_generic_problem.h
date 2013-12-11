@@ -566,11 +566,20 @@ namespace oomph
 
         // Set the solver for explicit timesteps (mass matrix) to CG with a
         // diagonal predconditioner.
-        IterativeLinearSolver* mm_solver_pt = new CG<CRDoubleMatrix>;
-        mm_solver_pt->preconditioner_pt() =
+        IterativeLinearSolver* expl_solver_pt = new CG<CRDoubleMatrix>;
+        expl_solver_pt->preconditioner_pt() =
           new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
-        explicit_solver_pt() = mm_solver_pt;
 
+        // If it takes more that 10 iterations then something has almost
+        // certainly gone wrong!
+        expl_solver_pt->max_iter() = 10;
+        expl_solver_pt->enable_error_after_max_iter();
+        explicit_solver_pt() = expl_solver_pt;
+
+        // Store + re-use the mass matrix used in explicit steps (since we
+        // are almost certainly not going to do spatially adaptivity
+        // anytime soon this is safe).
+        this->enable_mass_matrix_reuse();
       }
 
     /// \short Get problem dimension (nodal dimension).
