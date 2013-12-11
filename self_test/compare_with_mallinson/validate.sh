@@ -94,7 +94,7 @@ wrapped_fpdiff $ll_dir/time_error_norms validata/zeros 0 1e-5
 
 # Run simulation with llg residual. Midpoint is ESSENTIAL to get low enough
 # errors without tiny step size
-mul_mesh_dir="$TPWD/Validation/llg"
+mul_mesh_dir="$TPWD/Validation/mul_mesh_llg"
 new_clean_dir $mul_mesh_dir
 cd $CONTROL_SCRIPTS/llg_driver/
 ./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
@@ -106,5 +106,22 @@ cd $CONTROL_SCRIPTS/llg_driver/
 cd $TPWD
 cut -d\; -f 4 < $mul_mesh_dir/trace > $mul_mesh_dir/time_error_norms
 wrapped_fpdiff $mul_mesh_dir/time_error_norms validata/zeros 0 1e-5
+
+
+# Explicit timestepping
+# ============================================================
+explicit_dir="$TPWD/Validation/explicit_llg"
+new_clean_dir $explicit_dir
+cd $CONTROL_SCRIPTS/llg_driver/
+./llg_driver -resi ll -tmax 0.3 -dt 1e-2 -happ minus_z \
+    -ts rk4 -mesh single-element \
+    -initm z -mag-params 'simple-llg' \
+    -outdir $explicit_dir > $explicit_dir/stdout
+
+# Check the errors are small by comparing with a file full of zeros
+cd $TPWD
+cut -d\; -f 4 < $explicit_dir/trace > $explicit_dir/time_error_norms
+wrapped_fpdiff $explicit_dir/time_error_norms validata/zeros 0 1e-5
+
 
 exit 0
