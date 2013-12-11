@@ -229,7 +229,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'happ' : ['zero'],
             'mesh' : ['sq_cubeoid'],
             'solver' : ['gmres'],
-            'preconditioner' : ['amg']
+            'prec' : ['amg']
             }
 
     elif parameter_set == 'const_dt_nmag_cubeoid':
@@ -244,7 +244,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'happ' : ['zero'],
             'mesh' : ['sq_cubeoid'],
             'solver' : ['gmres'],
-            'preconditioner' : ['amg']
+            'prec' : ['amg']
             }
 
     elif parameter_set == 'nmag_cubeoid_llg_prec':
@@ -260,7 +260,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'mag-params' :["simple-llg"],
             'mesh' : ['sq_cubeoid'],
             'solver' : ['gmres'],
-            'preconditioner' : ['blockllg-uppertriangular-blockexact-xy-exact',
+            'prec' : ['blockllg-uppertriangular-blockexact-xy-exact',
                                 'blockllg-uppertriangular-blockexact-xz-exact',
                                 'blockllg-uppertriangular-blockexact-yz-exact',
                                 ]
@@ -324,10 +324,10 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'happ' : ['x', 'y', 'z'],
             'mesh' : ['sq_square', 'ut_square'],
             'solver' : ['gmres'],
-            'preconditioner': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
-                               'blockllg-uppertriangular-blockantidiagonal-xz-exact',
-                               'blockllg-uppertriangular-blockantidiagonal-yz-exact',
-                               ]
+            'prec': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
+                     'blockllg-uppertriangular-blockantidiagonal-xz-exact',
+                     'blockllg-uppertriangular-blockantidiagonal-yz-exact',
+                     ]
 
             }
 
@@ -342,10 +342,10 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'happ' : ['x', 'y', 'z', 'all_directions'],
             'mesh' : ['sq_square', 'ut_square', 'ut_sphere'],
             'solver' : ['gmres'],
-            'preconditioner': ['blockllg-uppertriangular-blockexact-xy-exact',
-                               'blockllg-uppertriangular-blockexact-xz-exact',
-                               'blockllg-uppertriangular-blockexact-yz-exact',
-                               ]
+            'prec': ['blockllg-uppertriangular-blockexact-xy-exact',
+                     'blockllg-uppertriangular-blockexact-xz-exact',
+                     'blockllg-uppertriangular-blockexact-yz-exact',
+                     ]
             }
 
     elif parameter_set == "adaptive-midpoint-conservation":
@@ -463,7 +463,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'dt' : [1e-6],
             'implicit-ms' : [True],
             'solver' : ['som-gmres'],
-            'preconditioner' : ['som-main-exact']
+            'prec' : ['som-main-exact']
             }
 
     elif parameter_set == "check-single-ele-mesh":

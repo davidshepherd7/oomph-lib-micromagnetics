@@ -33,6 +33,7 @@
 
 // Preconditioners for factory
 #include "../../src/generic/general_purpose_block_preconditioners.h"
+#include "../../src/generic/general_purpose_preconditioners.h"
 
 
 #include "./magnetics_helpers.h"
@@ -554,6 +555,9 @@ namespace oomph
 #endif
         }
 
+      else if(prec_name == "ilu0")
+        { prec_pt = new ILUZeroPreconditioner<CRDoubleMatrix>; }
+
       else if(prec_name == "identity")
         { prec_pt = new IdentityPreconditioner; }
 
@@ -707,7 +711,7 @@ namespace oomph
         specify_command_line_flag("-solver", &solver_name);
         solver_name = "superlu";
 
-        specify_command_line_flag("-preconditioner", &prec_name);
+        specify_command_line_flag("-prec", &prec_name);
         prec_name = "none";
 
         specify_command_line_flag("-doc-interval", &doc_times_interval);

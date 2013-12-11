@@ -75,7 +75,7 @@ def generate_jacobians(argsdict):
     # Run the driver with the given arguments and outputting the Jacobian
     l = [DRIVER, '-output-jac', 'always',
          '-solver', 'gmres',
-         '-preconditioner', 'amg',
+         '-prec', 'amg',
          '-doc-interval', '0',
          ] + argslist
     print("Running", ' '.join(l))
