@@ -42,6 +42,11 @@ int main(int argc, char *argv[])
   problem_pt->add_time_stepper_pt(args.time_stepper_pt);
   problem_pt->set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
 
+  if(args.adaptive_flag())
+    {
+      problem_pt->Use_time_adaptive_newton = true;
+    }
+
   // Assign other values
   problem_pt->llg_sub_problem_pt()->applied_field_fct_pt() = args.h_app_fct_pt;
   problem_pt->llg_sub_problem_pt()->linear_solver_pt() = args.solver_pt;
