@@ -70,6 +70,10 @@ namespace oomph
         {
           return new RungeKutta<4>;
         }
+      else if(ts_name == "rk2")
+        {
+          return new RungeKutta<2>;
+        }
       else if(ts_name == "lrk4")
         {
           return new LowStorageRungeKutta<4>;
