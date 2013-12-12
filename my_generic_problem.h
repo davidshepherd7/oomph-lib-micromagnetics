@@ -113,8 +113,7 @@ namespace oomph
     virtual void actions_before_newton_step()
       {
         // Output Jacobian and residuals if requested
-        if((to_lower(Doc_info.output_jacobian) == "always")
-           && (should_doc_this_step(time_pt()->dt(), time())))
+        if(to_lower(Doc_info.output_jacobian) == "always")
           {
             // label with doc_info number and the newton step number
             std::string label = to_string(Doc_info.number())
