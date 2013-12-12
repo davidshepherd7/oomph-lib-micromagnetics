@@ -13,6 +13,8 @@
 
 #include "../../src/generic/linear_solver.h"
 #include "../../src/generic/iterative_linear_solver.h"
+#include "../../src/generic/matrices.h"
+#include "../../src/generic/block_preconditioner.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 #include "../../src/generic/hypre_solver.h"
 #include "../../src/generic/general_purpose_preconditioners.h"
@@ -479,6 +481,7 @@ namespace oomph
         }
       }
 
+
     void dump_current_mm_or_jacobian_residuals(const std::string& label)
     {
       // We actually want the mass matrix if we are doing explicit steps
@@ -509,6 +512,24 @@ namespace oomph
                                   Output_precision, true);
           residuals.output(Doc_info.directory() + "/residual_" + label,
                            Output_precision);
+
+          // Also dump blocks if we have a block preconditioner
+          IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
+          if(its_pt != 0)
+            {
+              BlockPreconditioner<CRDoubleMatrix>* bp_pt
+                = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
+                (its_pt->preconditioner_pt());
+              if(bp_pt != 0)
+                {
+                  // Set up blocks
+                  bp_pt->setup(&J, J.distribution_pt()->communicator_pt());
+
+                  // Dump the blocks
+                  std::string basefname = Doc_info.directory() + "/J_" + label;
+                  bp_pt->output_blocks_to_files(basefname, Output_precision);
+                }
+            }
         }
     }
 
@@ -541,6 +562,7 @@ namespace oomph
 
             if(bp_pt != 0)
               {
+                // Set up meshes
                 bp_pt->set_nmesh(nsub_mesh());
                 for(unsigned i=0; i< nsub_mesh(); i++)
                   {

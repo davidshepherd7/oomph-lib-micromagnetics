@@ -57,9 +57,9 @@ control_scripts/*/*driver
 meshes/generate_tetgen_sphere_input/generate_tetgen_sphere_input
 
 # Self test output folders
-self_test/*/Validation
-self_test/*/*/Validation
-self_test/*/*/*/Validation
+self_test/*/Validation*
+self_test/*/*/Validation*
+self_test/*/*/*/Validation*
 
 
 # self test binaries

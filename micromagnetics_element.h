@@ -114,11 +114,18 @@ namespace oomph
       // Clear list (just in case)
       block_lookup_list.clear();
 
+      int nvalue = required_nvalue(0);
+
+      // Use a map because it's easier to overwrite entries
+      std::map<unsigned long, unsigned> block_lookup_map;
+
       // Loop over all nodes then all unpinned values (dofs) at each node. For
       // each of these we create a pair giving the global equation number and
       // the corresponding dof type (number).
       for(unsigned nd=0; nd<nnode(); nd++)
         {
+          Node* nd_pt = node_pt(nd);
+
           // Put it into the block lookup list
           for(unsigned index = 0, nindex=node_pt(nd)->nvalue(); index<nindex; index++)
             {
@@ -126,13 +133,33 @@ namespace oomph
               if(local_eqn_number >= 0)
                 {
                   int global_eqn_number = eqn_number(local_eqn_number);
-                  std::pair<unsigned long, unsigned> lookup;
-                  lookup.first = global_eqn_number;
-                  lookup.second = index;
-                  block_lookup_list.push_front(lookup);
+                  block_lookup_map[global_eqn_number] = index;
+                }
+            }
+
+          // If it's a boundary node then move the phi dofs to new blocks
+          // of their own (these are BEM values).
+          if(nd_pt->is_on_boundary())
+            {
+              int phi_local_eqn_number = this->nodal_local_eqn(nd, phi_index_micromag());
+              if(phi_local_eqn_number >= 0)
+                {
+                  int global_eqn_number = eqn_number(phi_local_eqn_number);
+                  block_lookup_map[global_eqn_number] = nvalue;
+                }
+
+              int phi_1_local_eqn_number = this->nodal_local_eqn(nd, phi_1_index_micromag());
+              if(phi_1_local_eqn_number >= 0)
+                {
+                  int global_eqn_number = eqn_number(phi_1_local_eqn_number);
+                  block_lookup_map[global_eqn_number] = nvalue + 1;
                 }
             }
         }
+
+      // Convert to a list
+      block_lookup_list.assign(block_lookup_map.begin(),
+                               block_lookup_map.end());
 
     }
 
@@ -143,8 +170,10 @@ namespace oomph
     unsigned required_nvalue(const unsigned &n) const
     {return 5;}
 
+    /// \short 7 dof types for preconditioning: the 5 values and 2 more for
+    /// boundary phi values.
     unsigned ndof_types()
-    {return required_nvalue(0);}
+    {return required_nvalue(0) + 2;}
 
     typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
 
@@ -563,7 +592,7 @@ namespace oomph
 
       const unsigned n_node = this->nnode();
       const unsigned eldim = this->dim();
-      const unsigned n_unknowns = ndof_types();
+      const unsigned n_unknowns = required_nvalue(0);
 
       Shape psi(n_node), test(n_node);
       Vector<double> s(eldim);
