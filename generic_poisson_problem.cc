@@ -119,6 +119,12 @@ build(Vector<Mesh*>& bulk_mesh_pts)
   checked_dynamic_cast<IterativeLinearSolver*>(linear_solver_pt())
     ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
 
+  // Poisson problems are linear so we can reuse Jacobians
+  enable_jacobian_reuse();
+
+  // And we can say so to skip a residual evaluation
+  Problem_is_nonlinear = false;
+
   // Set up equation numbering scheme
   std::cout << "Poisson number of equations: " << assign_eqn_numbers() << std::endl;
 }
