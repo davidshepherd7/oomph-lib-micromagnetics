@@ -50,6 +50,14 @@ int main(int argc, char *argv[])
       problem.set_explicit_time_stepper_pt(args.explicit_time_stepper_pt);
     }
 
+  if(args.use_implicit_ms && args.time_stepper_name == "midpoint")
+    {
+      std::string err = "Fully implicit is not set up for use with standard midpoint";
+      err += " use midpoint-bdf instead.";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+    }
+
   problem.Use_time_adaptive_newton = args.adaptive_flag();
   problem.linear_solver_pt() = args.solver_pt;
   problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
