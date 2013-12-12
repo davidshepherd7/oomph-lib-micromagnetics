@@ -570,11 +570,13 @@ namespace oomph
         expl_solver_pt->preconditioner_pt() =
           new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
 
-        // If it takes more that 10 iterations then something has almost
+        // If it takes more than 100 iterations then something has almost
         // certainly gone wrong!
-        expl_solver_pt->max_iter() = 10;
+        expl_solver_pt->max_iter() = 100;
         expl_solver_pt->enable_error_after_max_iter();
         explicit_solver_pt() = expl_solver_pt;
+
+        // expl_solver_pt->enable_doc_convergence_history();
 
         // Store + re-use the mass matrix used in explicit steps (since we
         // are almost certainly not going to do spatially adaptivity
