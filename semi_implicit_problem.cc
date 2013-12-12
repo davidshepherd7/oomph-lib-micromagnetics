@@ -489,6 +489,9 @@ namespace oomph
     // Reset backed up time for global timestepper
     llg_sub_problem_pt()->time_pt()->time()=backed_up_time;
 
+    // Solve for initial field and phi values
+    magnetostatics_solve();
+
     // Do the energy calculations, don't try to calculate an effective damping
     calculate_energies(false);
   }

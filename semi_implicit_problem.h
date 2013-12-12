@@ -275,21 +275,19 @@ namespace oomph
   public:
     ExplicitLLGProblem() : DecoupledLLGProblem() {}
 
-    /// Do an explicit step step (we need extra things because we need to
-    /// solve for phi before we can do the normal explicit step).
-    void get_inverse_mass_matrix_times_residuals(DoubleVector &Mres)
+    void actions_after_explicit_stage()
     {
-      // Solve for the magnetostatic field.
+      // Solve for the new magnetostatic field.
       magnetostatics_solve();
 
-      // Now get what we actually wanted
-      Problem::get_inverse_mass_matrix_times_residuals(Mres);
+      DecoupledLLGProblem::actions_after_explicit_stage();
     }
 
-    /// Function to do a time step: just call explicit step
+    /// Function to do a time step: just call explicit step on the llg
+    /// sub-problem.
     double do_step(const double& dt, const double& tol)
     {
-      explicit_timestep(dt);
+      llg_sub_problem_pt()->explicit_timestep(dt);
       return dt;
     }
   };
