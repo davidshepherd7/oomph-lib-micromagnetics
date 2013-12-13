@@ -504,11 +504,25 @@ namespace oomph
         }
       else
         {
-          CRDoubleMatrix J;
+          CRDoubleMatrix J, *J_pt;
+          SumOfMatrices J2;
           DoubleVector residuals;
-          this->get_jacobian(residuals, J);
 
-          J.sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label,
+          // Check if we are using som-gmres, if so we don't want to get
+          // the whole matrix because it will be very slow! Just do outputs
+          // with the main matrix instead (I'm assuming it's a CR matrix).
+          if(dynamic_cast<GMRES<SumOfMatrices>* >(linear_solver_pt()) != 0)
+            {
+              this->get_jacobian(residuals, J2);
+              J_pt = checked_dynamic_cast<CRDoubleMatrix*>(J2.main_matrix_pt());
+            }
+          else
+            {
+              this->get_jacobian(residuals, J);
+              J_pt = &J;
+            }
+
+          J_pt->sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label,
                                   Output_precision, true);
           residuals.output(Doc_info.directory() + "/residual_" + label,
                            Output_precision);
@@ -517,13 +531,17 @@ namespace oomph
           IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
           if(its_pt != 0)
             {
+              // Try to get a block preconditioner from the preconditioner
               BlockPreconditioner<CRDoubleMatrix>* bp_pt
-                = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
+                = smart_cast_preconditioner<BlockPreconditioner<CRDoubleMatrix>*>
                 (its_pt->preconditioner_pt());
+
               if(bp_pt != 0)
                 {
                   // Set up blocks
-                  bp_pt->setup(&J, J.distribution_pt()->communicator_pt());
+                  bp_pt->set_matrix_pt(J_pt);
+                  bp_pt->set_comm_pt(J_pt->distribution_pt()->communicator_pt());
+                  bp_pt->block_setup();
 
                   // Dump the blocks
                   std::string basefname = Doc_info.directory() + "/J_" + label;
