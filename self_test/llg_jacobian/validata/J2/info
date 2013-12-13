@@ -8,6 +8,7 @@ time_stepper bdf2
 mp_pred_name ebdf3
 solver_name gmres
 preconditioner_name amg
+blocking_name none
 doc_times_interval 0
 mesh sq_cubeoid
 nnode1d 2

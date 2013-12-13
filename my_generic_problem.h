@@ -556,8 +556,9 @@ namespace oomph
         IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
         if(its_pt != 0)
           {
+            // Try to get a block preconditioner from the preconditioner
             BlockPreconditioner<CRDoubleMatrix>* bp_pt
-              = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
+              = smart_cast_preconditioner<BlockPreconditioner<CRDoubleMatrix>*>
               (its_pt->preconditioner_pt());
 
             if(bp_pt != 0)

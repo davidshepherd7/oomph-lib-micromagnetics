@@ -66,11 +66,17 @@ namespace oomph
     void set_comm_pt(const OomphCommunicator* const comm_pt)
     {Underlying_prec_pt->set_comm_pt(comm_pt);}
 
+    Preconditioner* underlying_preconditioner_pt() const
+    {
+      return Underlying_prec_pt;
+    }
+
   private:
 
     Preconditioner* Underlying_prec_pt;
 
   };
+
 
 } // End of oomph namespace
 

@@ -39,8 +39,47 @@
 #include "./magnetics_helpers.h"
 #include "./sum_of_matrices_preconditioner.h"
 
+#include "micromagnetics_element.h" //??ds try to get rid of this?
+
 namespace oomph
 {
+
+  /// Given a preconditioner:
+  /// 1) if it's a the right type of preconditioner return it
+  /// 2) otherwise if its a som preconditioner containing" the right type
+  /// of preconditioner then return a pointer to the underlying
+  /// preconditioner.
+  /// 3) otherwise return null
+  template<class T>
+  T smart_cast_preconditioner(Preconditioner* prec_pt)
+  {
+    T bp_pt = dynamic_cast<T> (prec_pt);
+    if(bp_pt != 0)
+      {
+        return bp_pt;
+      }
+    else
+      {
+        MainMatrixOnlyPreconditioner* som_main_prec_pt
+          = dynamic_cast<MainMatrixOnlyPreconditioner*>(prec_pt);
+        if(som_main_prec_pt != 0)
+          {
+            T ul_bp_pt = dynamic_cast<T>
+              (som_main_prec_pt->underlying_preconditioner_pt());
+            if(ul_bp_pt != 0)
+              {
+                return ul_bp_pt;
+              }
+          }
+        else
+          {
+            return 0;
+          }
+      }
+
+    // Never get here?
+    return 0;
+  }
 
   namespace Factories
   {
@@ -512,6 +551,58 @@ namespace oomph
       return bp_pt;
     }
 
+    inline Vector<unsigned> dof_to_block_factory(const std::string& _name)
+      {
+        const std::string name = to_lower(_name);
+
+        // Make an element to look up indicies from
+        TMicromagElement<2,2> dummy_ele;
+
+        const unsigned ndof = dummy_ele.ndof_types(); //??ds unsafe?
+        Vector<unsigned> dof_to_block(ndof);
+
+        if(name == "none")
+          {
+            // identity mapping
+            for(unsigned j=0; j<ndof; j++)
+              {
+                dof_to_block[j] = j;
+              }
+          }
+
+        // All m values in one block, others left alone.
+        // [0, 1, 2, 2, 2, 3, 4]
+        else if(name == "group-m")
+          {
+            unsigned k = 0;
+
+            // Normal phi/phi1
+            dof_to_block[dummy_ele.phi_index_micromag()] = k++;
+            dof_to_block[dummy_ele.phi_1_index_micromag()] = k++;
+
+            // m all in one block
+            for(unsigned j=0; j<3; j++)
+              {
+                int index = dummy_ele.m_index_micromag(j);
+                dof_to_block[index] = k;
+              }
+            k++;
+
+            // boundary phi/phi1 ??ds assume they are at the end...
+            dof_to_block[5] = k++;
+            dof_to_block[6] = k++;
+          }
+        else
+          {
+            std::string err = "Unrecognised blocking name";
+            err += name;
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+
+        return dof_to_block;
+      }
+
 
     inline Preconditioner* preconditioner_factory(const std::string &_prec_name)
     {
@@ -568,7 +659,25 @@ namespace oomph
         { prec_pt = new SuperLUPreconditioner; }
 
       else if(prec_name == "blockexact")
-        { prec_pt = new ExactBlockPreconditioner<CRDoubleMatrix>; }
+        {
+          prec_pt = new ExactBlockPreconditioner<CRDoubleMatrix>;
+        }
+
+      else if(prec_name == "blocklt")
+        {
+          BlockTriangularPreconditioner<CRDoubleMatrix>* bp_pt
+            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
+          bp_pt->lower_triangular();
+          prec_pt = bp_pt;
+        }
+
+      else if(prec_name == "blockut")
+        {
+          BlockTriangularPreconditioner<CRDoubleMatrix>* bp_pt
+            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
+          bp_pt->upper_triangular();
+          prec_pt = bp_pt;
+        }
 
 
       // if it starts with blockllg then call that factory
@@ -586,7 +695,6 @@ namespace oomph
         }
 
       return prec_pt;
-
     }
 
 
@@ -732,6 +840,9 @@ namespace oomph
         specify_command_line_flag("-scale", &scale);
         scale = 1.0;
 
+        specify_command_line_flag("-blocking", &blocking_name);
+        blocking_name = "none";
+
       }
 
     void parse(int argc, char *argv[])
@@ -769,6 +880,7 @@ namespace oomph
 
       solver_pt = linear_solver_factory(solver_name);
 
+
       // Create and set preconditioner pointer if our solver is iterative.
       IterativeLinearSolver* its_pt
         = dynamic_cast<IterativeLinearSolver*>(solver_pt);
@@ -785,21 +897,49 @@ namespace oomph
             }
 #endif
         }
-
-      // Maybe make a preconditioner which only acts on the main matrix of
-      // a sum of matrices.
-      else if(has_prefix("som-main-", prec_name))
+      else
         {
-          std::string ul_prec_name = rest_of_name("som-main-", prec_name);
-          Preconditioner* ul_prec = preconditioner_factory(ul_prec_name);
-          its_pt->preconditioner_pt() = new MainMatrixOnlyPreconditioner(ul_prec);
+          // Maybe make a preconditioner which only acts on the main matrix of
+          // a sum of matrices.
+          if(has_prefix("som-main-", prec_name))
+            {
+              std::string ul_prec_name = rest_of_name("som-main-", prec_name);
+              Preconditioner* ul_prec = preconditioner_factory(ul_prec_name);
+              prec_pt = new MainMatrixOnlyPreconditioner(ul_prec);
+
+              its_pt->preconditioner_pt() = prec_pt;
+            }
+          // Otherwise just make a normal preconditioner
+          else if(prec_name != "none")
+            {
+              prec_pt = preconditioner_factory(prec_name);
+
+              its_pt->preconditioner_pt() = prec_pt;
+            }
         }
 
-      // Otherwise just make a normal preconditioner
-      else if(prec_name != "none")
+
+      // If possible then set the dof to block mapping, otherwise check
+      // that we didn't want to set one.
+      GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* gpbp_pt
+        = smart_cast_preconditioner<GeneralPurposeBlockPreconditioner<CRDoubleMatrix>*>
+        (prec_pt);
+
+      // Test for case where the preconditioner itself is a block preconditioner
+      if(gpbp_pt != 0)
         {
-          prec_pt = preconditioner_factory(prec_name);
-          its_pt->preconditioner_pt() = prec_pt;
+          dof_to_block_map = dof_to_block_factory(blocking_name);
+          gpbp_pt->set_dof_to_block_map(dof_to_block_map);
+        }
+      else
+        {
+          if(blocking_name != "none")
+            {
+              std::string err = "Dof to block map specified but cannot be set";
+              err += " because preconditioner is not a GeneralPurposeBlockPreconditioner.";
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
         }
 
       doc_times = doc_times_factory(doc_times_interval, tmax);
@@ -827,6 +967,7 @@ namespace oomph
         << "mp_pred_name " << mp_pred_name << std::endl
         << "solver_name " << solver_name << std::endl
         << "preconditioner_name " << prec_name <<std::endl
+        << "blocking_name " << blocking_name << std::endl
 
         << "doc_times_interval " << doc_times_interval << std::endl
 
@@ -926,12 +1067,14 @@ namespace oomph
     ExplicitTimeStepper* explicit_time_stepper_pt;
     LinearSolver* solver_pt;
     Preconditioner* prec_pt;
+    Vector<unsigned> dof_to_block_map;
 
     // Strings for input to factory functions
     std::string time_stepper_name;
     std::string mp_pred_name;
     std::string solver_name;
     std::string prec_name;
+    std::string blocking_name;
     std::string mesh_name;
 
 
