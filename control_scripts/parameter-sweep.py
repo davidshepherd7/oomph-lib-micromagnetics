@@ -477,6 +477,20 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'fd-jac' : [True],
             }
 
+
+    elif parameter_set == "coarse-blocked-ut-preconditioner":
+         args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'tmax' : [1.0],
+            'ts' : ["bdf2"],
+            'mesh' : ['sq_square', 'ut_sphere'],
+            'dt' : [0.5, 0.1, 1e-4],
+            'ref' : [2, 4, 5],
+            'implicit-ms' : [True],
+            'solver' : ['som-gmres'],
+            'prec' : ['som-main-blockut'],
+            'blocking' : ['group-m-phi-phi-boundary'],
+            }
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 

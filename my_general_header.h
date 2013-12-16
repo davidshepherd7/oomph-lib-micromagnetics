@@ -592,6 +592,28 @@ namespace oomph
             dof_to_block[5] = k++;
             dof_to_block[6] = k++;
           }
+        else if(name == "group-m-phi-phi-boundary")
+          {
+            unsigned k = 0;
+
+            // All phi into one block
+            dof_to_block[dummy_ele.phi_index_micromag()] = k;
+            dof_to_block[5] = k;
+            k++;
+
+            // Simiarly for phi1
+            dof_to_block[dummy_ele.phi_1_index_micromag()] = k;
+            dof_to_block[6] = k;
+            k++;
+
+            // m all in one block
+            for(unsigned j=0; j<3; j++)
+              {
+                int index = dummy_ele.m_index_micromag(j);
+                dof_to_block[index] = k;
+              }
+            k++;
+          }
         else
           {
             std::string err = "Unrecognised blocking name";
