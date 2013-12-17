@@ -93,13 +93,13 @@ def generate_sphere_mesh(mesh_dir, radius, refinement):
         subp.check_call([command, str(radius), str(refinement)],
                         stdout = mesh_input_file)
 
-    vol = 0.1
+    initial_vol = 0.1
 
     # Now use the input file to create a mesh using tetgen
     subp.check_call(['tetgen',
                      '-q', # "Good quality" mesh
-                     # '-a' + str(vol), # don't specify an area...
-                     '-Y', # Don't split boundary faces (so that refinement
+                     '-a' + str(initial_vol / (4 ** refinement)), # specify an area
+                     '-Y', # Don't split boundary faces (so that surface refinement
                            # is effectively controlled by the input file).
                      '-p', mesh_input_filename],
                     cwd = mesh_dir)
