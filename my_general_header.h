@@ -15,6 +15,7 @@
 #endif
 
 #include <ostream>
+#include <climits>
 
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/timesteppers.h"
@@ -865,6 +866,8 @@ namespace oomph
         specify_command_line_flag("-blocking", &blocking_name);
         blocking_name = "none";
 
+        specify_command_line_flag("-max-steps", &max_steps);
+        max_steps = UINT_MAX; // can't get bigger than this or we overflow
       }
 
     void parse(int argc, char *argv[])
@@ -978,6 +981,7 @@ namespace oomph
       out_stream
         << "initial_dt " << dt << std::endl
         << "tmax " << tmax << std::endl
+        << "max_steps " << max_steps << std::endl
         << "tol " << tol << std::endl
         << "refinement " << refinement << std::endl
         << "newton-tol " << newton_tol << std::endl
@@ -1081,6 +1085,7 @@ namespace oomph
     int refinement;
     double newton_tol;
     bool use_fd_jacobian;
+    unsigned max_steps;
 
     std::string outdir;
     std::string output_jacobian;
