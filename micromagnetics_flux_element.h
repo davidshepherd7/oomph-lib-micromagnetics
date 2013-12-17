@@ -286,7 +286,7 @@ namespace oomph
                 // Loop over which m we are differentiating w.r.t
                 for(unsigned j=0; j<3; j++)
                   {
-                    unsigned m_unknown = nodal_local_eqn(l2, m_index[j]);
+                    int m_unknown = nodal_local_eqn(l2, m_index[j]);
 
                     // Skip rest is m[j] pinned
                     if(m_unknown < 0) continue;
