@@ -9,26 +9,64 @@ namespace oomph
   using namespace MathematicalConstants;
   using namespace StringConversion;
 
-  // Our exact solution function type
-  typedef double (*FunctionOfTimePt)(double t);
+
 
   // Our derivative function type
   typedef double (*FunctionOfTimeValPt)(double t, double u);
 
+  // Our exact solution function type
+  typedef InitialConditionFctPt FunctionOfTimePt;
+
 
   namespace deriv_functions
   {
+    inline Vector<double> cos(double time, const Vector<double>& x)
+    {
+      Vector<double> values(1);
+      values[0] = std::cos(time);
+      return values;
+    }
     inline double dcos(double t, double u) {return -1*std::sin(t);}
+
+
+    inline Vector<double> sin(double time, const Vector<double>& x)
+    {
+      Vector<double> values(1);
+      values[0] = std::sin(time);
+      return values;
+    }
     inline double dsin(double t, double u) {return std::cos(t);}
+
+
+    inline Vector<double> exp(double time, const Vector<double>& x)
+    {
+      Vector<double> values(1);
+      values[0] = std::exp(time);
+      return values;
+    }
     inline double dexp(double t, double u) {return u;}
 
-    double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
-    inline double poly3(double t) {return a3*t*t*t + a2*t*t + a1*t +a0;}
-    inline double dpoly3(double t, double u) {return 3*t*t*a3 + 2*t*a2 + a1;}
 
+    // A polynomial of degree 2
     double b0 = 0.5, b1 = 0, b2 = 1;
-    inline double poly2(double t) {return b2*t*t + b1*t +b0;}
+    inline Vector<double> poly2(double time, const Vector<double>& x)
+    {
+      Vector<double> values(1);
+      values[0] =  b2*time*time + b1*time +b0;
+      return values;
+    }
     inline double dpoly2(double t, double u) {return 2*t*b2 + b1;}
+
+
+    // A polynomial of degree 3
+    double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
+    inline Vector<double> poly3(double time, const Vector<double>& x)
+    {
+      Vector<double> values(1);
+      values[0] = a3*time*time*time + a2*time*time + a1*time +a0;
+      return values;
+    }
+    inline double dpoly3(double t, double u) {return 3*t*t*a3 + 2*t*a2 + a1;}
   }
 
   namespace ODEFactories
@@ -37,9 +75,9 @@ namespace oomph
     // Pick an exact solution using a name
     inline FunctionOfTimePt exact_solutions_factory(const std::string& exact_name)
     {
-      if(exact_name == "sin") return &std::sin;
-      else if(exact_name == "cos") return &std::cos;
-      else if(exact_name == "exp") return &std::exp;
+      if(exact_name == "sin") return &deriv_functions::sin;
+      else if(exact_name == "cos") return &deriv_functions::cos;
+      else if(exact_name == "exp") return &deriv_functions::exp;
       else if(exact_name == "poly3") return &deriv_functions::poly3;
       else if(exact_name == "poly2") return &deriv_functions::poly2;
       else
@@ -147,7 +185,8 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return Exact_solution_pt(t);
+      Vector<double> dummy;
+      return Exact_solution_pt(t, dummy)[0];
     }
 
     /// Exact solution
@@ -197,6 +236,8 @@ namespace oomph
       derivative_function_pt = ODEFactories::derivative_function_factory(exact_name);
 
       MyCliArgs::run_factories();
+
+      initial_condition_fpt = exact_solution_pt;
     }
 
     virtual void dump_args(std::ostream& out_stream) const
@@ -236,7 +277,7 @@ namespace oomph
       // Set up the global mesh and assign equation numbers
       build_global_mesh();
       this->assign_eqn_numbers();
-      oomph_info << "LLG Number of equations: " << ndof() << std::endl;
+      oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
     void set_initial_condition()

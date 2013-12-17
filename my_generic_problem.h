@@ -112,6 +112,12 @@ namespace oomph
           && (time_stepper_pt()->is_steady());
       }
 
+    bool is_steady()
+      {
+        return (explicit_time_stepper_pt() == 0)
+          && (time_stepper_pt()->is_steady());
+      }
+
     virtual void actions_before_newton_step()
       {
         // Output Jacobian and residuals if requested
@@ -626,6 +632,54 @@ namespace oomph
 
     /// \short Get problem dimension (nodal dimension).
     const unsigned dim() const {return this->Dim;}
+
+
+    /// Assign initial conditions from function pointer
+    virtual void set_initial_condition(InitialConditionFctPt ic_fpt)
+      {
+#ifdef PARANOID
+        if(ic_fpt == 0)
+          {
+            std::string err = "Null inital condition function pointer";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+#endif
+
+        // Loop over current & previous timesteps
+        int nprev_steps=this->time_stepper_pt()->nprev_values();
+        for (int t=nprev_steps; t>=0; t--)
+          {
+            double time = time_pt()->time(t);
+
+            // Loop over all nodes in all meshes in problem and set values.
+            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+              {
+                Mesh* mesh_pt = this->mesh_pt(msh);
+
+                for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+                  {
+                    Node* nd_pt = mesh_pt->node_pt(nd);
+
+                    // Get the position
+                    const unsigned dim = nd_pt->ndim();
+                    Vector<double> x(dim);
+                    nd_pt->position(t, x);
+
+                    // Get the values
+                    Vector<double> values = ic_fpt(time, x);
+
+                    // Copy into dofs
+                    for(unsigned j=0, nj=values.size(); j<nj; j++)
+                      {
+                        nd_pt->set_value(t, j, values[j]);
+                      }
+                  }
+
+                //??ds can't set external/internal data like this though
+              }
+          }
+      }
 
     MyDocInfo Doc_info;
     unsigned Output_precision;

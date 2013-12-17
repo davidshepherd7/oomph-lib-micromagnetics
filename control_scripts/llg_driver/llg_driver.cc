@@ -60,16 +60,15 @@ int main(int argc, char *argv[])
 
   problem.Use_time_adaptive_newton = args.adaptive_flag();
   problem.linear_solver_pt() = args.solver_pt;
-  problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.newton_solver_tolerance() = args.newton_tol;
   problem.Use_fd_jacobian = args.use_fd_jacobian;
+
+  // Magnetics specific parameters
+  problem.applied_field_fct_pt() = args.h_app_fct_pt;
+  problem.set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem.Pin_boundary_m = args.pin_boundary_m;
   problem.Use_implicit_ms = args.use_implicit_ms;
   problem.Residual_calculator_pt = args.residual_calculator_pt;
-
-
-  // Set applied field
-  problem.applied_field_fct_pt() = args.h_app_fct_pt;
 
   // Set exact solution if we have one
   if((args.h_app_name == "minus_z")

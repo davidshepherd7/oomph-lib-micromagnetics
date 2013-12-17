@@ -1,11 +1,6 @@
 
-
-
 #include "generic.h"
-
-#include "../../my_general_header.h"
-#include "../../unsteady_heat_problem.h"
-
+#include "micromag.h"
 
 // Mesh
 #include "meshes/rectangular_quadmesh.h"

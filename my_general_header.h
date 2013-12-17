@@ -45,6 +45,8 @@
 namespace oomph
 {
 
+  class MyProblem;
+
   /// Given a preconditioner:
   /// 1) if it's a the right type of preconditioner return it
   /// 2) otherwise if its a som preconditioner containing" the right type
@@ -82,25 +84,45 @@ namespace oomph
     return 0;
   }
 
+  /// Function type for use as initial condition. Slight overhead of
+  /// vectors is worth it even in cases with one dof/space dimensions for
+  /// the generality. No overhead for returning a vector due to return
+  /// value optimisation.
+  typedef Vector<double> (*InitialConditionFctPt)(double t,
+                                                  const Vector<double>&x);
+
   namespace Factories
   {
 
-    inline bool has_prefix(std::string prefix, std::string test_string)
+    /// Check if prefix is a prefix of test_string.
+    inline bool has_prefix(const std::string& prefix,
+                           const std::string& test_string)
     {
       return test_string.find(prefix) == 0;
     }
 
-    inline std::string rest_of_name(std::string prefix, std::string test_string)
+    /// Remove the string prefix from the start of test_string. If it isn't
+    /// a prefix of it then throw an error.
+    inline std::string rest_of_name(const std::string& prefix,
+                                    const std::string& test_string)
     {
-#ifdef PARANOID
       if(!has_prefix(prefix, test_string))
         {
           std::string err = "This string doesn't have the prefix to remove!";
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
-#endif
+
       return std::string(test_string, prefix.size(), string::npos);
+    }
+
+    /// Throw an unrecognised name error from factory function "function".
+    inline void unrecognised_name(const std::string& name,
+                                  const std::string& function)
+    {
+      std::string err = "Unrecognised name " + name;
+      err += " in factory function " + function + ".";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION, function.c_str());
     }
 
     /// Make an explicit time stepper
@@ -797,6 +819,7 @@ namespace oomph
     {
       explicit_time_stepper_pt = 0;
       mesh_factory_pt = 0;
+      initial_condition_fpt = 0;
     }
 
     /// Destructor: clean up everything we made in the factories.
@@ -882,6 +905,10 @@ namespace oomph
       // (e.g. creating meshes).
       this->run_factories();
     }
+
+    /// Function to overload to assign any additional parameters which
+    /// can't be dealt with here.
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const {}
 
     virtual void run_factories()
     {
@@ -1090,6 +1117,7 @@ namespace oomph
     std::string outdir;
     std::string output_jacobian;
 
+    InitialConditionFctPt initial_condition_fpt;
     TimeStepper* time_stepper_pt;
     ExplicitTimeStepper* explicit_time_stepper_pt;
     LinearSolver* solver_pt;
