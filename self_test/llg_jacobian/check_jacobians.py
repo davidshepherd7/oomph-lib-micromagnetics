@@ -86,11 +86,6 @@ def generate_jacobians(argsdict):
         print("FAILED", ' '.join(l))
         return False
 
-    # Remove time data from the info file
-    computed_info_file = pjoin(outdir, 'info')
-    data="".join(open(computed_info_file).readlines()[5:-1])
-    open(computed_info_file, "wb").write(data.encode())
-
     return True
 
 
@@ -99,9 +94,8 @@ def check_jacobians(argsdict):
     outdir = argsdict['outdir']
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
-    # Compare the info file and all Jacobians using fpdiff
-    compare_files = ([pjoin(validatadir, 'info')]
-                     + glob.glob(pjoin(validatadir, 'jacobian*'))
+    # Compare all Jacobians using fpdiff
+    compare_files = (glob.glob(pjoin(validatadir, 'jacobian*'))
                      + glob.glob(pjoin(validatadir, 'residual*')))
 
     success = True
@@ -149,7 +143,6 @@ def main():
     parser.add_argument('--serial', action='store_true')
     parser.add_argument('--fast', action='store_true')
     parser.add_argument('--update-data', action='store_true')
-    parser.add_argument('--update-info', action='store_true')
 
     args = parser.parse_args()
 
@@ -211,20 +204,7 @@ def main():
         # Zip up all the files
         subp.check_call('gzip validata/*/*', shell=True)
 
-        # unzip info files
-        subp.check_call('gunzip validata/*/info.gz', shell=True)
-
         return 0
-
-    elif args.update_info:
-        list(Pool().map(generate_jacobians, jacobian_params))
-
-        print("Copying info files from Validation to validata.")
-        subp.check_call('cp --parents */info ../validata', shell=True,
-                        cwd='Validation')
-
-        return 0
-
 
 
     # If its a fast check just do the first one
