@@ -573,7 +573,6 @@ namespace oomph
     void fill_in_contribution_to_mass_matrix(Vector<double> &residuals,
                                              DenseMatrix<double> &mmatrix)
     {
-#ifdef PARANOID
       if(Residual_calculator_pt->use_gilbert_form())
         {
           std::string err = "Cannot do explicit time steps for Gilbert form!";
@@ -581,7 +580,6 @@ namespace oomph
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
-#endif
 
       // Get the residuals
       fill_in_contribution_to_residuals(residuals);
