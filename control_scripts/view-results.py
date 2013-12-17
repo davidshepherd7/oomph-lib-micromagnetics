@@ -91,7 +91,8 @@ def main():
                          + ' | tar x', shell=True)
         return 0
 
-    if len(glob.glob(pjoin(args.dir, "*.vtu"))) > 0:
+    # If there are as many .vtu files as dat or dat.gz then no need to convert files
+    if len(glob.glob(pjoin(args.dir, "soln*.vtu"))) == len(glob.glob(pjoin(args.dir, "soln*.dat*"))):
         print("Already converted files, just running paraview.")
 
     else:
