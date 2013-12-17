@@ -49,7 +49,8 @@ headers = array_interpolator.h \
 	residual_swapping_explicit_timestepper.h \
 	multi_mesh.h \
 	sum_of_matrices_preconditioner.h \
-	single_element_mesh.h
+	single_element_mesh.h \
+	ode_problem.h
 
 
 # Define name of library
