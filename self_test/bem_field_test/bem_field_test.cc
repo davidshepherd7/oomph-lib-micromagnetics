@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   problem.llg_sub_problem_pt()->applied_field_fct_pt() = fake_args.h_app_fct_pt;
   problem.llg_sub_problem_pt()->Use_fd_jacobian = fake_args.use_fd_jacobian;
   problem.llg_sub_problem_pt()->Residual_calculator_pt = fake_args.residual_calculator_pt;
-  problem.Doc_info.Args_pt = &fake_args;
+  problem.Doc_info.copy_args_string(&fake_args);
 
   // Create and set phi_1 sub problem
   GenericPoissonProblem phi_1_problem;

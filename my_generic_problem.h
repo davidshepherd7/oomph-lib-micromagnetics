@@ -53,16 +53,18 @@ namespace oomph
   {
   public:
     /// Default constructor
-    MyDocInfo() : DocInfo(), output_jacobian("never"), Args_pt(0) {}
+    MyDocInfo() : DocInfo(), output_jacobian("never") {}
 
-    MyDocInfo(const std::string& directory,
-              const MyCliArgs* const args_pt,
-              const std::string& output_jacobian="never")
-      : DocInfo(directory), output_jacobian(output_jacobian), Args_pt(args_pt)
-    {}
+    /// Copy dump of args into args_str.
+    void copy_args_string(MyCliArgs* args_pt)
+      {
+        std::ostringstream stream;
+        args_pt->dump_args(stream);
+        args_str = stream.str();
+      }
 
     std::string output_jacobian;
-    const MyCliArgs* Args_pt;
+    std::string args_str;
   };
 
 
@@ -71,8 +73,6 @@ namespace oomph
   public:
     /// Default constructor
     MyProblem() :
-      Problem(),
-      Doc_info("results", 0),
       Use_time_adaptive_newton(false),
       Trace_filename("trace"),
       Info_filename("info"),
@@ -347,7 +347,7 @@ namespace oomph
           << "unix_time " << std::time(0) << std::endl
           << "git_version " << GitVersion::VERSION << std::endl
           << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
-        Doc_info.Args_pt->dump_args(info_file);
+        info_file << Doc_info.args_str;
         info_file.close();
 
 

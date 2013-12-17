@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   problem_pt->llg_sub_problem_pt()->Use_fd_jacobian = args.use_fd_jacobian;
   problem_pt->llg_sub_problem_pt()->Residual_calculator_pt = args.residual_calculator_pt;
 
-  problem_pt->Doc_info.Args_pt = &args;
+  problem_pt->Doc_info.copy_args_string(&args);
 
   // Create and set phi_1 sub problem
   GenericPoissonProblem phi_1_problem;
