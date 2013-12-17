@@ -678,7 +678,7 @@ namespace VectorOps
       {
         // If the current entry in matrix 1 is first (i.e. on an earlier
         // row or column) then insert it and increment its counter.
-        if(r1[i1] < r2[i2] || (r1[i1] == r2[i2] && c1[i1] < c2[i1]))
+        if(r1[i1] < r2[i2] || (r1[i1] == r2[i2] && c1[i1] < c2[i2]))
           {
             vs.push_back(v1[i1]);
             cs.push_back(c1[i1]);
@@ -687,7 +687,7 @@ namespace VectorOps
           }
         // If the current entry in matrix 2 is first then insert it
         // and increment its counter.
-        else if(r1[i1] > r2[i2] || (r1[i1] == r2[i2] && c1[i1] > c2[i1]))
+        else if(r1[i1] > r2[i2] || (r1[i1] == r2[i2] && c1[i1] > c2[i2]))
           {
             vs.push_back(v2[i2]);
             cs.push_back(c2[i2]);
@@ -696,7 +696,7 @@ namespace VectorOps
           }
         // If they are both the same row and col then add them together and
         // insert, increment both counters.
-        else if(r1[i1] == r2[i2] && c1[i1] == c2[i1])
+        else if(r1[i1] == r2[i2] && c1[i1] == c2[i2])
           {
             vs.push_back(v1[i1] + v2[i2]);
             cs.push_back(c1[i1]);
