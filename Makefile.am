@@ -50,7 +50,8 @@ headers = array_interpolator.h \
 	multi_mesh.h \
 	sum_of_matrices_preconditioner.h \
 	single_element_mesh.h \
-	ode_problem.h
+	ode_problem.h \
+	unsteady_heat_problem.h
 
 
 # Define name of library
