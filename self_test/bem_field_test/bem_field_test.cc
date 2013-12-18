@@ -17,8 +17,8 @@ namespace Inputs
 {
   Vector<double> exact_M(const double& t, const Vector<double> &x)
   {
-    Vector<double> M(3,0.0);
-    M[0] = 1;
+    Vector<double> M(5,0.0);
+    M[2] = 1;
     return M;
   }
 }

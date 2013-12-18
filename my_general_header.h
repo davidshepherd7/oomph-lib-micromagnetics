@@ -88,7 +88,7 @@ namespace oomph
   /// vectors is worth it even in cases with one dof/space dimensions for
   /// the generality. No overhead for returning a vector due to return
   /// value optimisation.
-  typedef Vector<double> (*InitialConditionFctPt)(double t,
+  typedef Vector<double> (*InitialConditionFctPt)(const double& t,
                                                   const Vector<double>&x);
 
   namespace Factories

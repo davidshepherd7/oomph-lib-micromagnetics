@@ -61,7 +61,15 @@ namespace oomph
     {
       Vector<double> x; //dummy
       Vector<double> H = HApp::minus_z(0, x);
-      double theta_start = cart2theta(InitialM::z(0, x));
+
+      // Get initial magnetisation
+      Vector<double> initial_values = InitialM::z(0, x);
+      Vector<double> initm;
+      initm.assign(initial_values.begin()+2, initial_values.end());
+      // (can't use range constructor because they are not implemented for
+      // oomph vectors, for some reason...)
+
+      double theta_start = cart2theta(initm);
       double theta_now = cart2theta(m);
 
       double analytical_time =
@@ -88,7 +96,15 @@ namespace oomph
                                        const Vector<double> &m)
     {
       Vector<double> x; // dummy!
-      double theta_start = cart2theta(InitialM::z(0,x));
+
+      // Get initial magnetisation
+      Vector<double> initial_values = InitialM::z(0, x);
+      Vector<double> initm;
+      initm.assign(initial_values.begin()+2, initial_values.end());
+      // (can't use range constructor because they are not implemented for
+      // oomph vectors, for some reason...)
+
+      double theta_start = cart2theta(initm);
       double theta_now = cart2theta(m);
 
       return analytic_phi(parameters_pt->normalised_gilbert_damping(),

@@ -12,7 +12,7 @@ namespace oomph
 
 
   // Our derivative function type
-  typedef double (*FunctionOfTimeValPt)(double t, double u);
+  typedef double (*FunctionOfTimeValPt)(const double& t, const double& u);
 
   // Our exact solution function type
   typedef InitialConditionFctPt FunctionOfTimePt;
@@ -20,53 +20,53 @@ namespace oomph
 
   namespace deriv_functions
   {
-    inline Vector<double> cos(double time, const Vector<double>& x)
+    inline Vector<double> cos(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] = std::cos(time);
       return values;
     }
-    inline double dcos(double t, double u) {return -1*std::sin(t);}
+    inline double dcos(const double& t, const double& u) {return -1*std::sin(t);}
 
 
-    inline Vector<double> sin(double time, const Vector<double>& x)
+    inline Vector<double> sin(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] = std::sin(time);
       return values;
     }
-    inline double dsin(double t, double u) {return std::cos(t);}
+    inline double dsin(const double& t, const double& u) {return std::cos(t);}
 
 
-    inline Vector<double> exp(double time, const Vector<double>& x)
+    inline Vector<double> exp(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] = std::exp(time);
       return values;
     }
-    inline double dexp(double t, double u) {return u;}
+    inline double dexp(const double& t, const double& u) {return u;}
 
 
     // A polynomial of degree 2
     double b0 = 0.5, b1 = 0, b2 = 1;
-    inline Vector<double> poly2(double time, const Vector<double>& x)
+    inline Vector<double> poly2(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] =  b2*time*time + b1*time +b0;
       return values;
     }
-    inline double dpoly2(double t, double u) {return 2*t*b2 + b1;}
+    inline double dpoly2(const double& t, const double& u) {return 2*t*b2 + b1;}
 
 
     // A polynomial of degree 3
     double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
-    inline Vector<double> poly3(double time, const Vector<double>& x)
+    inline Vector<double> poly3(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] = a3*time*time*time + a2*time*time + a1*time +a0;
       return values;
     }
-    inline double dpoly3(double t, double u) {return 3*t*t*a3 + 2*t*a2 + a1;}
+    inline double dpoly3(const double& t, const double& u) {return 3*t*t*a3 + 2*t*a2 + a1;}
   }
 
   namespace ODEFactories

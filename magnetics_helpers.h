@@ -204,47 +204,50 @@ namespace InitialM
   using namespace StringConversion;
   using namespace VectorOps;
 
+  // Note that dof storage in micromag elements is actually in the order
+  // [phi, phi1, mx, my, mz], so we put mx in element 2 of the vector etc.
+
   typedef Vector<double> (*InitialMFctPt)(const double& t, const Vector<double>&x);
 
   inline Vector<double> x(const double& t, const Vector<double> &x)
   {
-    Vector<double> m(3, 0.0);
-    m[0] = 1.0;
-    m[1] = 0.2;
+    Vector<double> m(5, 0.0);
+    m[2] = 1.0;
+    m[3] = 0.2;
     normalise(m);
     return m;
   }
 
   inline Vector<double> y(const double& t, const Vector<double> &x)
   {
-    Vector<double> m(3, 0.0);
-    m[1] = 1.0;
-    m[2] = 0.2;
+    Vector<double> m(5, 0.0);
+    m[3] = 1.0;
+    m[4] = 0.2;
     normalise(m);
     return m;
   }
 
   inline Vector<double> z(const double& t, const Vector<double> &x)
   {
-    Vector<double> m(3, 0.0);
-    m[2] = 1.0;
-    m[0] = 0.2;
+    Vector<double> m(5, 0.0);
+    m[4] = 1.0;
+    m[2] = 0.2;
     normalise(m);
     return m;
   }
 
   inline Vector<double> exactly_z(const double& t, const Vector<double> &x)
   {
-    Vector<double> m(3, 0.0);
-    m[2] = 1.0;
+    Vector<double> m(5, 0.0);
+    m[4] = 1.0;
     return m;
   }
 
   inline Vector<double> xz(const double& t, const Vector<double> &x)
   {
-    Vector<double> m(3, 0.0);
-    m[0] = 1.0;
+    Vector<double> m(5, 0.0);
     m[2] = 1.0;
+    m[4] = 1.0;
     normalise(m);
     return m;
   }
@@ -252,13 +255,12 @@ namespace InitialM
   inline Vector<double> smoothly_varying_m_helper(double l, const double& t,
                                                   const Vector<double> &x)
   {
-    Vector<double> m(3,0.0);
-
-    m[0] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
-    m[1] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
-    m[2] = 1.0 - m[0] - m[1];
-
+    Vector<double> m(5, 0.0);
+    m[2] = sin(x[0]*2*Pi/l) + sin(x[1]*2*Pi/l);
+    m[3] = cos(x[0]*2*Pi/l) + cos(x[1]*2*Pi/l);
+    m[4] = 1.0 - m[2] - m[3];
     normalise(m);
+
     return m;
   }
 
