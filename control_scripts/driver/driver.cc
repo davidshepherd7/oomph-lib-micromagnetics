@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
   // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
 
   // Assign doc parameters
+  problem_pt->Doc_info.copy_args_string(args_pt);
   problem_pt->Doc_info.set_directory(args_pt->outdir);
   problem_pt->Doc_info.output_jacobian = args_pt->output_jacobian;
   problem_pt->set_doc_times(args_pt->doc_times);
