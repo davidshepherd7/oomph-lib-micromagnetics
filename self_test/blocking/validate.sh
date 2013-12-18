@@ -19,8 +19,8 @@ MM_LIB_DIR="$micromagroot/"
 valdir=$TPWD/Validation_no_ms
 new_clean_dir $valdir
 
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
     -ts midpoint-bdf -happ minus_z -initm z -output-jac always \
     -outdir $valdir 2>&1 > $valdir/stdout
 
@@ -73,8 +73,8 @@ wrapped_fpdiff  $valdir/J_1_1_block_6_6 <(echo -n "")
 valdir=$TPWD/Validation_ms
 new_clean_dir $valdir
 
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
     -ts midpoint-bdf -happ minus_z -initm z -output-jac always -implicit-ms \
     -outdir $valdir 2>&1 > $valdir/stdout
 
@@ -99,8 +99,8 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "49")
 valdir=$TPWD/Validation_ms
 new_clean_dir $valdir
 
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
     -ts midpoint-bdf -happ minus_z -initm z -output-jac always -implicit-ms \
     -blocking group-m \
     -outdir $valdir 2>&1 > $valdir/stdout
@@ -127,8 +127,8 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "25")
 # valdir=$TPWD/Validation_ms
 # new_clean_dir $valdir
 
-# cd $CONTROL_SCRIPTS/llg_driver/
-# ./llg_driver -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver som-gmres \
+# cd $CONTROL_SCRIPTS/driver/
+# ./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver som-gmres \
 #     -prec som-main-blockexact \
 #     -ts midpoint-bdf -happ minus_z -initm z -implicit-ms -output-jac always \
 #     -outdir $valdir 2>&1 > $valdir/stdout

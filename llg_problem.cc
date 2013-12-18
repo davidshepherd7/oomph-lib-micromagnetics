@@ -138,6 +138,28 @@ namespace oomph
       }
 
 
+    // If we are using llg residual with midpoint method then we need to
+    // swap residuals over in the explicit predictor time steps. Put in
+    // the class to do this here.
+    if(Residual_calculator_pt->use_gilbert_form()
+       && dynamic_cast<MidpointMethodBase*>(time_stepper_pt()) != 0)
+      {
+        MidpointMethodBase* mp_pt = checked_dynamic_cast<MidpointMethodBase*>
+          (time_stepper_pt());
+
+        // We've already run the base classes factories so we have the
+        // timestepper ready to play with. Create and set up our rs
+        // timestepper.
+        ResidualSwappingExplicitTimestepper* rsts_pt
+          = new ResidualSwappingExplicitTimestepper;
+        rsts_pt->underlying_time_stepper_pt = mp_pt->predictor_pt();
+        rsts_pt->residual_pt = checked_dynamic_cast<LLGResidualCalculator*>
+          (Residual_calculator_pt);
+
+        mp_pt->set_predictor_pt(rsts_pt);
+      }
+
+
 
     // Build the global mesh
     this->build_global_mesh();
@@ -357,69 +379,6 @@ namespace oomph
 
     temp_stddev /= double(mesh_pt()->nnode());
     m_error_stddev = std::sqrt(temp_stddev);
-  }
-
-
-
-  //======================================================================
-  /// Set up the initial conditions
-  //======================================================================
-  void LLGProblem::
-  set_initial_condition(const InitialM::InitialMFctPt initial_m_pt)
-  {
-    // Backup time in global Time object
-    double backed_up_time=this->time_pt()->time();
-
-    // Past history needs to be established for t=time0-deltat, ...
-    // Then provide current values (at t=time0) which will also form
-    // the initial guess for the first solve at t=time0+deltat
-
-    // Get M indicies
-    Vector<unsigned> m_index_micromag(3,0);
-    MicromagEquations* elem_pt = dynamic_cast<MicromagEquations*>
-      (this->mesh_pt()->element_pt(0));
-    for(unsigned i=0; i<3; i++)
-      {
-        m_index_micromag[i] = elem_pt->m_index_micromag(i);
-      }
-
-    // Set continuous times at previous timesteps:
-    int nprev_steps=this->time_stepper_pt()->nprev_values();
-    Vector<double> prev_time(nprev_steps+1);
-    for (int t=nprev_steps;t>=0;t--)
-      {
-        prev_time[t]=this->time_pt()->time(t);
-      }
-
-    // Loop over current & previous timesteps
-    for (int t=nprev_steps;t>=0;t--)
-      {
-        // Continuous time
-        double time = prev_time[t];
-        std::cout << "setting IC at time =" << time << std::endl;
-
-        // Loop over the nodes to set initial values everywhere
-        for(unsigned n=0, nnd=mesh_pt()->nnode(); n<nnd; n++)
-          {
-            // Get initial value of m from inputs
-            Vector<double> x(Dim, 0.0);
-            mesh_pt()->node_pt(n)->position(t,x);
-            Vector<double> m = initial_m_pt(time,x);
-
-            // Set initial condition on m
-            for(unsigned i=0; i<3; i++)
-              {
-                mesh_pt()->node_pt(n)->set_value
-                  (t,m_index_micromag[i],m[i]);
-              }
-          }
-      }
-
-    // Reset backed up time for global timestepper
-    this->time_pt()->time()=backed_up_time;
-
-    // Do the energy calculations, don't try to calculate an effective damping
-    calculate_energies(false);
   }
 
 

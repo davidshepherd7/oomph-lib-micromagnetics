@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
   problem_pt->llg_sub_problem_pt()->set_mag_parameters_pt(args.magnetic_parameters_pt);
   problem_pt->llg_sub_problem_pt()->newton_solver_tolerance() = args.newton_tol;
   problem_pt->llg_sub_problem_pt()->Use_fd_jacobian = args.use_fd_jacobian;
-  problem_pt->llg_sub_problem_pt()->Residual_calculator_pt = args.residual_calculator_pt;
 
   problem_pt->Doc_info.copy_args_string(&args);
 
@@ -101,7 +100,7 @@ int main(int argc, char *argv[])
   // Initialise problem and output initial conditions
   // ============================================================
   problem_pt->initialise_dt(args.dt);
-  problem_pt->set_initial_condition(args.initial_m_fct_pt);
+  problem_pt->set_initial_condition(args.initial_condition_fpt);
   problem_pt->set_doc_times(args.doc_times);
 
   problem_pt->initial_doc();

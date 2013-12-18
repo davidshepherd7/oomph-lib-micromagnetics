@@ -43,8 +43,8 @@ new_clean_dir Validation
 # errors without tiny step size
 llg_dir="$TPWD/Validation/llg"
 new_clean_dir $llg_dir
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
     -ts midpoint -newton-tol 1e-12 -initm z -mag-params 'simple-llg' \
      -outdir $llg_dir> $llg_dir/stdout
 
@@ -59,8 +59,8 @@ wrapped_fpdiff $llg_dir/time_error_norms validata/zeros 0 1e-5
 
 llg_bdf_midpoint_dir="$TPWD/Validation/llg_bdf_midpoint"
 new_clean_dir $llg_bdf_midpoint_dir
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
     -ts midpoint-bdf -newton-tol 1e-12 -initm z -mag-params 'simple-llg' \
     -outdir $llg_bdf_midpoint_dir > $llg_bdf_midpoint_dir/stdout
 
@@ -77,8 +77,8 @@ wrapped_fpdiff $llg_bdf_midpoint_dir/time_error_norms validata/zeros 0 1e-5
 # Run simulation with ll residual
 ll_dir="$TPWD/Validation/ll"
 new_clean_dir $ll_dir
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -resi ll -dt 1e-2 -tmax 0.3 -solver superlu -happ minus_z \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -dt 1e-2 -tmax 0.3 -solver superlu -happ minus_z \
     -ts midpoint -initm z -mag-params 'simple-llg' -fd-jac \
     -outdir $ll_dir > $ll_dir/stdout
 
@@ -96,8 +96,8 @@ wrapped_fpdiff $ll_dir/time_error_norms validata/zeros 0 1e-5
 # errors without tiny step size
 mul_mesh_dir="$TPWD/Validation/mul_mesh_llg"
 new_clean_dir $mul_mesh_dir
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -resi llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -tmax 0.3 -dt 1e-2 -solver superlu -happ minus_z \
     -ts midpoint -newton-tol 1e-12 -mesh multi_ut_square \
     -initm z -mag-params 'simple-llg' \
     -outdir $mul_mesh_dir > $mul_mesh_dir/stdout
@@ -112,8 +112,8 @@ wrapped_fpdiff $mul_mesh_dir/time_error_norms validata/zeros 0 1e-5
 # ============================================================
 explicit_dir="$TPWD/Validation/explicit_llg"
 new_clean_dir $explicit_dir
-cd $CONTROL_SCRIPTS/llg_driver/
-./llg_driver -resi ll -tmax 0.3 -dt 1e-2 -happ minus_z \
+cd $CONTROL_SCRIPTS/driver/
+./driver ll -tmax 0.3 -dt 1e-2 -happ minus_z \
     -ts rk4 -mesh single-element \
     -initm z -mag-params 'simple-llg' \
     -outdir $explicit_dir > $explicit_dir/stdout

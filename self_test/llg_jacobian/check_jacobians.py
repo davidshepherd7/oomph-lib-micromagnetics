@@ -28,7 +28,7 @@ from os.path import join as pjoin
 
 
 # Binaries (??ds globals are bad...)
-DRIVER = "../../control_scripts/llg_driver/llg_driver"
+DRIVER = "../../control_scripts/driver/driver"
 FPDIFF = "../../../../bin/fpdiff.py"
 
 
@@ -73,7 +73,7 @@ def generate_jacobians(argsdict):
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Run the driver with the given arguments and outputting the Jacobian
-    l = [DRIVER, '-output-jac', 'always',
+    l = [DRIVER, 'llg', '-output-jac', 'always',
          '-solver', 'gmres',
          '-prec', 'amg',
          '-doc-interval', '0',
@@ -151,10 +151,10 @@ def main():
     # ============================================================
 
     # Build
-    print("Building llg_driver")
+    print("Building driver")
     subp.check_call(['make'],
                     stdout=open(os.devnull, 'w'),
-                    cwd="../../control_scripts/llg_driver/")
+                    cwd="../../control_scripts/driver/")
 
     # Set of parameters to test the Jacobians for. Use varying initial m to
     # get mostly non-zeros in J. Only first entry is used for "fast mode".

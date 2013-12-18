@@ -546,10 +546,6 @@ namespace oomph
 
     }
 
-    /// Set up an initial M
-    void set_initial_condition(const InitialM::InitialMFctPt initial_m_pt);
-
-
     /// \short Return a vector of the maximum angle variation in each
     /// element.
     Vector<double> elemental_max_m_angle_variations() const
@@ -577,6 +573,14 @@ namespace oomph
     /// \short Error for adaptive timestepper (rms of nodal error determined by
     /// comparison with explicit timestepper result).
     double global_temporal_error_norm();
+
+
+    virtual void actions_after_set_initial_condition()
+      {
+        MyProblem::actions_after_set_initial_condition();
+
+        calculate_energies(false);
+      }
 
 
     // Lots of magnetisation manipulation functions
@@ -896,9 +900,8 @@ public:
   {
   public:
     /// Constructor: Initialise pointers to null.
-    MMArgs() : initial_m_fct_pt(0), h_app_fct_pt(0),
-               magnetic_parameters_pt(0),
-               residual_calculator_pt(0) {}
+    MMArgs() : h_app_fct_pt(0),
+               magnetic_parameters_pt(0) {}
 
     virtual void set_flags()
     {
@@ -918,9 +921,6 @@ public:
 
       specify_command_line_flag("-dampc", &dampc);
       dampc = -10;
-
-      specify_command_line_flag("-resi", &residual_to_use);
-      residual_to_use = "llg";
     }
 
 
@@ -932,7 +932,7 @@ public:
       h_app_name = to_lower(h_app_name);
       magnetic_parameters_name = to_lower(magnetic_parameters_name);
 
-      initial_m_fct_pt = InitialM::initial_m_factory(initial_m_name);
+      initial_condition_fpt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       magnetic_parameters_pt =
         Factories::magnetic_parameters_factory(magnetic_parameters_name);
@@ -941,30 +941,17 @@ public:
         {
           magnetic_parameters_pt->gilbert_damping() = dampc;
         }
+    }
 
-      residual_calculator_pt = LLGFactories::
-        residual_calculator_factory(residual_to_use);
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const
+    {
+      LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
+      llg_pt->applied_field_fct_pt() = h_app_fct_pt;
+      llg_pt->set_mag_parameters_pt(magnetic_parameters_pt);
+      llg_pt->renormalise_each_time_step() = renormalise_flag();
 
-      // If we are using llg residual with midpoint method then we need to
-      // swap residuals over in the explicit predictor time steps. Put in
-      // the class to do this here.
-      if(residual_to_use == "llg" && ((time_stepper_name == "midpoint")
-          || time_stepper_name == "midpoint-bdf"))
-        {
-          MidpointMethodBase* mp_pt = checked_dynamic_cast<MidpointMethodBase*>
-            (time_stepper_pt);
-
-          // We've already run the base classes factories so we have the
-          // timestepper ready to play with. Create and set up our rs
-          // timestepper.
-          ResidualSwappingExplicitTimestepper* rsts_pt
-            = new ResidualSwappingExplicitTimestepper;
-          rsts_pt->underlying_time_stepper_pt = mp_pt->predictor_pt();
-          rsts_pt->residual_pt = checked_dynamic_cast<LLGResidualCalculator*>
-            (residual_calculator_pt);
-
-          mp_pt->set_predictor_pt(rsts_pt);
-        }
+      // ??ds this should maybe be a general one?
+      llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -976,14 +963,13 @@ public:
         << "initial_m " << initial_m_name << std::endl
         << "h_app " << h_app_name << std::endl
         << "mag_params " << magnetic_parameters_name << std::endl
-        << "residual_to_use " << residual_to_use << std::endl
         << "Renormalise " << Renormalise << std::endl
         << "damping_parameter_override " << dampc << std::endl
         ;
     }
 
 
-    bool renormalise_flag()
+    bool renormalise_flag() const
     {
       // If flag not set then only do it for bdf timesteppers
       if(Renormalise == -1)
@@ -998,16 +984,13 @@ public:
         }
     }
 
-    InitialM::InitialMFctPt initial_m_fct_pt;
     HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* magnetic_parameters_pt;
-    LLGResidualCalculator* residual_calculator_pt;
 
     // Strings for input to factory functions
     std::string initial_m_name;
     std::string h_app_name;
     std::string magnetic_parameters_name;
-    std::string residual_to_use;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =
@@ -1059,6 +1042,26 @@ public:
                  << "pin_boundary_m " << pin_boundary_m << std::endl
         ;
     }
+
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const
+      {
+        // Assign general micromagnetics ones
+        MMArgs::assign_specific_parameters(problem_pt);
+
+        LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
+        llg_pt->Pin_boundary_m = pin_boundary_m;
+        llg_pt->Use_implicit_ms = use_implicit_ms;
+
+        // Set exact solution if we have one
+        if((h_app_name == "minus_z")
+           && (initial_m_name == "z")
+           && (magnetic_parameters_pt->gilbert_damping() != 0.0)
+           && !use_implicit_ms)
+          {
+            llg_pt->Compare_with_mallinson = true;
+          }
+      }
+
 
     bool use_implicit_ms;
     bool pin_boundary_m;

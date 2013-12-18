@@ -31,9 +31,6 @@ int main(int argc, char *argv[])
   // Create problem
   LLGProblem problem;
 
-  // Tell it if we want renormalisation or not
-  problem.renormalise_each_time_step() = args.renormalise_flag();
-
   // Assign time stepper
   if(args.explicit_flag() && args.use_implicit_ms)
     {
@@ -69,6 +66,8 @@ int main(int argc, char *argv[])
   problem.Pin_boundary_m = args.pin_boundary_m;
   problem.Use_implicit_ms = args.use_implicit_ms;
   problem.Residual_calculator_pt = args.residual_calculator_pt;
+  problem.renormalise_each_time_step() = args.renormalise_flag();
+
 
   // Set exact solution if we have one
   if((args.h_app_name == "minus_z")

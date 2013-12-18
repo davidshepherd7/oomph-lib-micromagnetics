@@ -121,9 +121,6 @@ namespace oomph
       std::cout << "mean field is " << average_magnetostatic_field() << std::endl;
     }
 
-    /// Set up an initial M
-    void set_initial_condition(const InitialM::InitialMFctPt initial_m_pt);
-
     /// Initialise timestep: only llg problem has a timestep.
     void initialise_dt(const double &dt)
     {llg_sub_problem_pt()->initialise_dt(dt);}
@@ -132,6 +129,18 @@ namespace oomph
     void doc_solution_additional(std::ofstream &some_file) const;
 
     Vector<double> average_magnetostatic_field() const;
+
+    void actions_after_set_initial_condition()
+      {
+        MyProblem::actions_after_set_initial_condition();
+
+        // Solve for initial field and phi values
+        magnetostatics_solve();
+
+        // Do the energy calculations, don't try to calculate an effective
+        // damping
+        calculate_energies(false);
+      }
 
     /// Access functions
     // =================================================================

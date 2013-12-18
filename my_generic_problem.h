@@ -60,7 +60,7 @@ namespace oomph
       {
         std::ostringstream stream;
         args_pt->dump_args(stream);
-        args_str = stream.str();
+        args_str.assign(stream.str());
       }
 
     std::string output_jacobian;
@@ -679,7 +679,13 @@ namespace oomph
                 //??ds can't set external/internal data like this though
               }
           }
+
+        actions_after_set_initial_condition();
       }
+
+    /// Hook to be overloaded with any calculations needed after setting of
+    /// initial conditions.
+    virtual void actions_after_set_initial_condition() {}
 
     MyDocInfo Doc_info;
     unsigned Output_precision;
