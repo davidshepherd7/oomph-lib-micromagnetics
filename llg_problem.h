@@ -210,7 +210,7 @@ namespace oomph
       // Call base class version
       MyProblem::actions_before_newton_step();
 
-      std::cout << std::endl
+      oomph_info << std::endl
                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
                 << "---------------------------------------" << std::endl;
 
@@ -243,7 +243,7 @@ namespace oomph
         MyProblem::actions_after_explicit_timestep();
 
         // We need to keep M normalised...
-        std::cout << "Renormalising nodal magnetisations." << std::endl;
+        oomph_info << "Renormalising nodal magnetisations." << std::endl;
         renormalise_magnetisation();
       }
 
@@ -251,14 +251,14 @@ namespace oomph
     {
       MyProblem::actions_after_newton_solve();
 
-      std::cout << std::endl
+      oomph_info << std::endl
                 << "Finalising" << std::endl
                 << "-------------------------------------------" << std::endl;
 
       // If we're using BDF we need to keep M normalised.
       if(renormalise_each_time_step())
         {
-          std::cout << "Renormalising nodal magnetisations." << std::endl;
+          oomph_info << "Renormalising nodal magnetisations." << std::endl;
           renormalise_magnetisation();
         }
 

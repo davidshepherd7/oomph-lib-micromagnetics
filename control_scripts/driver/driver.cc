@@ -147,7 +147,8 @@ int main(int argc, char *argv[])
   args_pt->parse(argc, argv);
 
   oomph_info << "With the following arguments:" << std::endl;
-  args_pt->dump_args(std::cout);
+  args_pt->dump_args(*oomph_info.stream_pt());
+  oomph_info << std::endl;
 
 
   // Assign time steppers to problem. At most one of these two will be a

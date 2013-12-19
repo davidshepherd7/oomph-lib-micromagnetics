@@ -80,8 +80,6 @@ namespace oomph
                       {
                         nd_pt->pin(m_index(j));
                       }
-                    std::cout << nd_pt->x(0) <<
-                      " " << nd_pt->x(1) << std::endl;
                   }
               }
 
@@ -122,6 +120,8 @@ namespace oomph
     // Otherwise pin all phi and phi_1 dofs to zero
     else
       {
+        oomph_info << "Pinning phi values in main problem's meshes." << std::endl;
+
         // Loop over all meshes in problem
         for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
           {
@@ -176,7 +176,7 @@ namespace oomph
     // My_linear_solver_pt = linear_solver_pt();
 
     // Write out some stuff
-    mag_parameters_pt()->output(std::cout);
+    mag_parameters_pt()->output(*oomph_info.stream_pt());
     oomph_info << "LLG Number of equations: " << ndof() << std::endl;
     oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
 
