@@ -109,6 +109,13 @@ namespace oomph
             {
               // in 3d we also have edges with solid angle pi/4pi
               Corners[nd] = 0.25;
+
+              std::cout << "Think I've found an edge at [";
+              for(unsigned j=0; j<nd_pt->ndim(); j++)
+                {
+                  std::cout << nd_pt->x(j) << ", ";
+                }
+              std::cout << "] I gave it the angle " << Corners[nd] << std::endl;
             }
           else
             {
