@@ -12,7 +12,6 @@ sources = micromagnetics_element.cc \
 	llg_problem.cc \
 	variable_order_quadrature.cc \
 	generic_poisson_problem.cc \
-	semi_implicit_problem.cc \
 	boundary_element_handler.cc \
 	template_free_poisson_flux.cc \
 	residual_calculator.cc
@@ -41,7 +40,6 @@ headers = array_interpolator.h \
 	mallinson_solution.h \
 	variable_order_quadrature.h \
 	vector_helpers.h \
-	semi_implicit_problem.h \
 	boundary_element_handler.h \
 	prettyprint98.hpp \
 	residual_calculator.h \
