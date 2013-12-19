@@ -15,7 +15,7 @@
 #include "boundary_element_handler.h"
 #include "micromagnetics_flux_element.h"
 #include "residual_swapping_explicit_timestepper.h"
-
+#include "generic_poisson_problem.h"
 
 namespace oomph
 {
@@ -807,6 +807,42 @@ public:
 
     FluxMeshFactoryFctPt
     mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
+  }
+
+  /// \short A namespace full of functions that take some "dynamic"
+  /// (i.e. can be calculated at runtime) input and create a new instance
+  /// of the appropriate object, using the new command (Factory Method
+  /// design pattern).
+  ///
+  /// Typically these objects are passed straight into other classes and
+  /// will be deleted by the destructor of that class. If not it is your
+  /// responsibility to make sure the objects are deleted.
+  namespace SemiImplicitFactories
+  {
+    /// \short Make a mesh of Micromag elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
+    Mesh* llg_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           double scaling_factor = 1.0,
+                           unsigned nnode1d = 2);
+
+
+    /// \short Make a mesh of MagnetostaticField elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
+    Mesh* phi_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           double scaling_factor = 1.0,
+                           unsigned nnode1d = 2);
+
+
+    /// \short Return a factory function which will create the appropriate
+    /// "flux mesh" for the bulk element pointer given.
+    GenericPoissonProblem::FluxMeshFactoryFctPt
+    phi_1_flux_mesh_factory_factory(const FiniteElement* bulk_phi_1_ele_pt);
   }
 
 

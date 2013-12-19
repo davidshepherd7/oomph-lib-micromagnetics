@@ -1,4 +1,10 @@
+real_time 2014-01-15-13-04-07
+unix_time 1389791047
+git_version f954c5cdd9c89c2a92670a8ad39b68c549cc1c59
+driver_name ../../control_scripts/driver/driver
+initial_dt 0.0001
 tmax 0.0002
+max_steps 4294967295
 tol 0
 refinement 2
 newton-tol 1e-08
@@ -18,7 +24,7 @@ scale 1
 initial_m smoothly_varying_500
 h_app minus_z
 mag_params simple-llg
-residual_to_use llg
 Renormalise -1
 damping_parameter_override -10
 use_implicit_ms 0
+pin_boundary_m 0

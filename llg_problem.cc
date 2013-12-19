@@ -13,6 +13,9 @@
 #include "./multi_mesh.h"
 #include "./single_element_mesh.h"
 
+#include "micromagnetics_element.h"
+#include "magnetostatic_field_flux_element.h"
+
 namespace oomph
 {
 
@@ -390,12 +393,14 @@ namespace oomph
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
+      // Refinement always roughly the same for structured meshes
+      unsigned nx = 5 * std::pow(2, refinement_level);
+
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt;
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
-          unsigned nx = 5 * std::pow(2, refinement_level);
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
@@ -405,6 +410,9 @@ namespace oomph
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
             ("./meshes/square." + to_string(refinement_level) + ".node",
              "./meshes/square." + to_string(refinement_level) + ".ele",
@@ -414,31 +422,25 @@ namespace oomph
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           // nmag cubeoid
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = 2 * std::pow(2, refinement_level);
+          double lx = 1, ly = lx, lz = 3*lx;
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
           mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
-      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
-        {
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = std::pow(2, refinement_level);
-          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
-            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
-        }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
-          double lx = 30, ly = lx, lz = 100;
-          unsigned nx = std::pow(2, refinement_level);
+          double lx = 1, ly = lx, lz = 3*lx;
           mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
@@ -567,6 +569,228 @@ namespace oomph
         {
           return Factories::surface_mesh_factory
             <MicromagFluxElement<QMicromagElement<3,2> > >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+    }
+
+  }
+
+  /// \short A namespace full of functions that take some "dynamic"
+  /// (i.e. can be calculated at runtime) input and create an instance
+  /// of the appropriate object, using "new" (Factory Method
+  /// design pattern).
+  ///
+  /// Typically these objects are passed straight into other classes and
+  /// will be deleted by the destructor of that class. If not it is your
+  /// responsibility to make sure the objects are deleted.
+  namespace SemiImplicitFactories
+  {
+
+    /// \short Make a mesh of Micromag elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
+    Mesh* llg_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           double scaling_factor,
+                           unsigned nnode1d)
+    {
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      unsigned nx = 5 * std::pow(2, refinement_level);
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          // nmag cubeoid
+          double lx = 1, ly = lx, lz = 3*lx;
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          double lx = 1, ly = lx, lz = 3*lx;
+          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 1, ly = lx, lz = 3*lx;
+          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
+
+      // For some reason we need to call this manually
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+
+    /// \short Make a mesh of MagnetostaticField elements as specified by an
+    /// input argument. Refined according to the given refinement level (in
+    /// some way appropriate for that mesh type).
+    Mesh* phi_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           double scaling_factor,
+                           unsigned nnode1d)
+    {
+      //??ds add scaling factor
+
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      unsigned nx = 5 * std::pow(2, refinement_level);
+
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QMagnetostaticFieldElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          mesh_pt = new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          double lx = 1, ly = lx, lz = 3*lx;
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          std::string err = "ut mesh edge/corners not right";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 1, ly = lx, lz = 3*lx;
+          mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
+
+      // For some reason we need to call this manually
+      mesh_pt->setup_boundary_element_info();
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+
+
+    /// \short Return a factory function which will create the appropriate
+    /// "flux mesh" for the bulk element pointer given.
+    GenericPoissonProblem::FluxMeshFactoryFctPt
+    phi_1_flux_mesh_factory_factory(const FiniteElement* bulk_phi_1_ele_pt)
+    {
+      if(dynamic_cast<const TMagnetostaticFieldElement<2, 2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<TMagnetostaticFieldFluxElement<2, 2> >;
+        }
+      else if(dynamic_cast<const TMagnetostaticFieldElement<3, 2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<TMagnetostaticFieldFluxElement<3, 2> >;
+        }
+
+      else if(dynamic_cast<const QMagnetostaticFieldElement<2,2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<QMagnetostaticFieldFluxElement<2,2> >;
+        }
+      else if(dynamic_cast<const QMagnetostaticFieldElement<3,2>*>(bulk_phi_1_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory<QMagnetostaticFieldFluxElement<3,2> >;
         }
 
       else
