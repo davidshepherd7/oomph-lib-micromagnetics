@@ -167,14 +167,6 @@ namespace oomph
     // Number the equations
     this->assign_eqn_numbers();
 
-    // // ??ds For if we want to swap solver for large dt. For now swap if
-    // // we are using any iterative solver.
-    // if(dynamic_cast<IterativeLinearSolver*>(linear_solver_pt()) != 0)
-    //   {
-    //     Swap_solver_large_dt = true;
-    //   }
-    // My_linear_solver_pt = linear_solver_pt();
-
     // Write out some stuff
     mag_parameters_pt()->output(*oomph_info.stream_pt());
     oomph_info << "LLG Number of equations: " << ndof() << std::endl;
@@ -198,7 +190,7 @@ namespace oomph
         Bem_handler_pt->integration_scheme_pt() = LLGFactories::
           variable_order_integrator_factory(bulk_mesh_pts[0]->finite_element_pt(0));
 
-        // Set indexes to look phi/phi1 variables
+        // Set indexes to look in for phi/phi1 variables
         Bem_handler_pt->set_input_index(phi_1_index());
         Bem_handler_pt->set_output_index(phi_index());
 

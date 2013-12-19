@@ -213,18 +213,6 @@ namespace oomph
       oomph_info << std::endl
                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
                 << "---------------------------------------" << std::endl;
-
-      if(Swap_solver_large_dt)
-        {
-          if(this->time_pt()->dt() > 1e-2)
-            {
-              linear_solver_pt() = Super_LU_solver_pt;
-            }
-          else
-            {
-              linear_solver_pt() = My_linear_solver_pt;
-            }
-        }
     }
 
 
@@ -361,7 +349,7 @@ namespace oomph
         // Store energy for damping calculations
         Previous_energies.push_front(micromagnetic_energy());
 
-        // Keep the lsit of previous energies reasonably small (we only
+        // Keep the list of previous energies reasonably small (we only
         // need N for any bdf<N> calculation).
         if(Previous_energies.size() > 5) Previous_energies.pop_back();
 
@@ -617,57 +605,6 @@ namespace oomph
     /// \short ??ds
     void norm_m_error(double &m_error_avg, double &m_error_stddev) const;
 
-    // /// Elementwise calculation of m . dm/dn on the boundaries. This gives a good measure of
-    // /// orthogonality of m and dmdn.
-    // double mean_orthogonality_m_error() const
-    // {
-    //   // unsigned nele = surface_exchange_mesh_pt()->nelement();
-    //   // double temp_sum = 0.0;
-
-    //   // // Calculate m . dm/dn for each element
-    //   // for(unsigned e=0; e < nele; e++)
-    //   //   {
-    //   //     MicromagFluxElement<MicromagEquations>* ele_pt
-    //   //       = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
-    //   //       (surface_exchange_mesh_pt()->element_pt(e));
-    //   //     Vector<double> s(ele_pt->dim(), 0.5); // middle of element
-    //   //     temp_sum += ele_pt->interpolated_mdotdmdn_micromag(s);
-    //   //   }
-
-    //   // // Take average
-    //   // return temp_sum / double(nele);
-
-    //   std::ostringstream error_msg;
-    //   error_msg << "Not implemented.";
-    //   throw OomphLibError(error_msg.str(),
-    //                       OOMPH_CURRENT_FUNCTION,
-    //                       OOMPH_EXCEPTION_LOCATION);
-
-    // }
-
-    // void orthogonality_m_error(double &orthogonality_error_avg,
-    //                            double &orthogonality_error_stddev) const
-    // {
-    //   orthogonality_error_avg = mean_orthogonality_m_error();
-
-    //   unsigned nele = surface_exchange_mesh_pt()->nelement();
-    //   double temp_sum = 0.0;
-
-    //   // Calculate m . dm/dn for each element
-    //   for(unsigned e=0; e < nele; e++)
-    //     {
-    //       MicromagFluxElement<MicromagEquations>* ele_pt
-    //         = checked_dynamic_cast<MicromagFluxElement<MicromagEquations>*>
-    //         (surface_exchange_mesh_pt()->element_pt(e));
-    //       Vector<double> s(ele_pt->dim(), 0.5); // middle of element
-    //       temp_sum += pow( ele_pt->interpolated_mdotdmdn_micromag(s)
-    //                        - orthogonality_error_avg, 2);
-    //     }
-
-    //   // Take stddev
-    //   orthogonality_error_stddev = std::sqrt(temp_sum / double(nele));
-    // }
-
 
     double get_error_norm() const
     {
@@ -730,31 +667,10 @@ namespace oomph
     /// \short Const access function for Renormalise_each_time_step.
     bool renormalise_each_time_step() const {return Renormalise_each_time_step;}
 
-    //     /// \short Non-const access function for Surface_exchange_mesh_pt.
-    //     Mesh*& surface_exchange_mesh_pt() {return Surface_exchange_mesh_pt;}
-
-    //     /// \short Const access function for Surface_exchange_mesh_pt.
-    //     Mesh* surface_exchange_mesh_pt() const
-    //     {
-    // #ifdef PARANOID
-    //       if(Surface_exchange_mesh_pt == 0)
-    //         {
-    //           std::ostringstream error_msg;
-    //           error_msg << "Surface exchange mesh pointer not set.";
-    //           throw OomphLibError(error_msg.str(),
-    //                               OOMPH_CURRENT_FUNCTION,
-    //                               OOMPH_EXCEPTION_LOCATION);
-    //         }
-    // #endif
-
-    //       return Surface_exchange_mesh_pt;
-    //     }
-
     /// \short Get a pointer to a MicromagEquations element.
     MicromagEquations* ele_pt() const
     {
-      return checked_dynamic_cast<MicromagEquations*>
-        (mesh_pt(0)->element_pt(0));
+      return checked_dynamic_cast<MicromagEquations*>(mesh_pt(0)->element_pt(0));
     }
 
     Mesh* flux_mesh_factory(Mesh* mesh_pt,

@@ -14,10 +14,10 @@ namespace oomph
 
   //======================================================================
   /// A face element to impose the flux boundary condition on the potential for
-  /// micromagnetics. It is not possible to use the already existing Poisson flux
+  /// micromagnetics. It is not possible to use the existing Poisson flux
   /// elements becuase they assume that:
   ///
-  /// 1) The "parent" element will be called PoissonElement.
+  /// 1) The corresponding bulk element will be a PoissonElement.
   ///
   /// 2) The Jacobian contribution due to the flux elements is always
   /// zero. This is not true for our case since the flux is fixed as m.n
