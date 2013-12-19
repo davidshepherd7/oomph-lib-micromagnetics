@@ -481,15 +481,39 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
     elif parameter_set == "coarse-blocked-ut-preconditioner":
          args_dict = {
             'driver' : ["./llg_driver/llg_driver"],
-            'tmax' : [1.0],
+            'tmax' : [10.0],
             'ts' : ["bdf2"],
             'mesh' : ['sq_square', 'ut_sphere'],
-            'dt' : [0.5, 0.1, 1e-4],
+            'dt' : [0.5, 0.1],
             'ref' : [2, 4, 5],
             'implicit-ms' : [True],
             'solver' : ['som-gmres'],
             'prec' : ['som-main-blockut'],
             'blocking' : ['group-m-phi-phi-boundary'],
+            'scale' : [1, 1000],
+            }
+
+    elif parameter_set == "blah":
+         args_dict = {
+            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'tmax' : [20],
+            'ts' : ["rk2"],
+            'dt' : [0.1, 1e-2, 1e-3, 1e-4],
+            'scale' : [10],
+            'resi' : ['ll'],
+            }
+
+
+    elif parameter_set == "blah2":
+         args_dict = {
+            'driver' : ["./llg_driver/llg_driver"],
+            'tmax' : [20],
+            'ts' : ["bdf2"],
+            'tol' : [1e-3, 1e-4],
+            'scale' : [10],
+            'implicit-ms' : [True],
+            'solver' : ['som-gmres'],
+            'prec' : ['som-main-blockut'],
             }
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))

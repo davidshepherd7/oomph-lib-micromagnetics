@@ -591,7 +591,7 @@ def main():
         pprint(all_results)
 
     # Good default keys to split..
-    keys_to_split_on = ['mesh', 'h_app', 'initial_m', 'mag_params']
+    keys_to_split_on = ['mesh', 'h_app', 'initial_m', 'mag_params', 'scale']
 
 
     # Do actual plots
@@ -633,8 +633,8 @@ def main():
     if 'its' in args.plots:
         multi_plot(all_results, keys_to_split_on, iterations_vs_dt)
 
-        plot_iters_step = par(plot_vs_step, plot_values=['dts', 'n_solver_iters'],
-                              operations=[identity, sp.mean])
+        plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
+                              operations_on_values=[identity, sp.mean])
         multi_plot(all_results, keys_to_split_on, plot_iters_step)
 
 
