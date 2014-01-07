@@ -361,7 +361,7 @@ def plot_vs_time(data, plot_values, operations_on_values=None):
         for d in data:
             name = str(d[dt_label]) + " " + str(d['refinement'])\
                + " " + str(d['time_stepper'])\
-               + " " + str(d.get('use_implicit_ms'))
+               + " " + str(d.get('decoupled_ms') == "1")
 
             if op is not None:
                 vals = map(op, d[p])
