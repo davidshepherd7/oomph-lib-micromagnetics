@@ -638,9 +638,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
             ("./meshes/square." + to_string(refinement_level) + ".node",
              "./meshes/square." + to_string(refinement_level) + ".ele",
@@ -845,9 +842,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
             ("./meshes/square." + to_string(refinement_level) + ".node",
              "./meshes/square." + to_string(refinement_level) + ".ele",
@@ -938,9 +932,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TriangleMesh<TMagnetostaticFieldElement<2, 2> >
             ("./meshes/square." + to_string(refinement_level) + ".node",
              "./meshes/square." + to_string(refinement_level) + ".ele",
