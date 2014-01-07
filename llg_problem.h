@@ -775,34 +775,12 @@ namespace oomph
 
     unsigned phi_index() const
     {
-      if(Decoupled_ms)
-        {
-          // TFPoissonEquations* p_pt = checked_dynamic_cast<TFPoissonEquations*>
-          //   (phi_problem_pt()->mesh_pt()->element_pt(0));
-          // return p_pt->u_index_poisson();
-          //??ds fix eventually?
-          return 0;
-        }
-      else
-        {
-          return this->ele_pt()->phi_index_micromag();
-        }
+      return this->ele_pt()->phi_index_micromag();
     }
 
     unsigned phi_1_index() const
     {
-      if(Decoupled_ms)
-        {
-          // TFPoissonEquations* p_pt = checked_dynamic_cast<TFPoissonEquations*>
-          //   (phi_1_problem_pt()->mesh_pt()->element_pt(0));
-          // return p_pt->u_index_poisson();
-          //??ds fix eventually?
-          return 0;
-        }
-      else
-        {
-          return this->ele_pt()->phi_1_index_micromag();
-        }
+      return this->ele_pt()->phi_1_index_micromag();
     }
 
     /// \short Non-const access function for Applied_field_fct_pt.

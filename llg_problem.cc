@@ -165,9 +165,7 @@ namespace oomph
         MidpointMethodBase* mp_pt = checked_dynamic_cast<MidpointMethodBase*>
           (time_stepper_pt());
 
-        // We've already run the base classes factories so we have the
-        // timestepper ready to play with. Create and set up our rs
-        // timestepper.
+        // Create and set up our residual swapping timestepper.
         ResidualSwappingExplicitTimestepper* rsts_pt
           = new ResidualSwappingExplicitTimestepper;
         rsts_pt->underlying_time_stepper_pt = mp_pt->predictor_pt();
@@ -208,9 +206,22 @@ namespace oomph
         Bem_handler_pt->integration_scheme_pt() = LLGFactories::
           variable_order_integrator_factory(bulk_mesh_pts[0]->finite_element_pt(0));
 
+
+        // Get phi indicies as appropriate for bem. If bem calculations are
+        // decoupled then we actually want the phi indicies in the
+        // sub-problems, not the phi indicies in the main llg elements.
+        unsigned bem_phi_index = phi_index();
+        unsigned bem_phi_1_index = phi_1_index();
+        if(Decoupled_ms)
+          {
+            //??ds generalise this?
+            bem_phi_index = 0;
+            bem_phi_1_index = 0;
+          }
+
         // Set indexes to look in for phi/phi1 variables
-        Bem_handler_pt->set_input_index(phi_1_index());
-        Bem_handler_pt->set_output_index(phi_index());
+        Bem_handler_pt->set_input_index(bem_phi_1_index);
+        Bem_handler_pt->set_output_index(bem_phi_index);
 
         // Loop over all meshes in problem adding to bem list
         for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)
@@ -235,6 +246,11 @@ namespace oomph
                                       Vector<Mesh*>& phi_mesh_pts,
                                       Vector<Mesh*>& phi_1_mesh_pts)
   {
+
+    //??ds duplicated code? Generalise?
+    // Get phi indicies as appropriate for decoupled bem.
+    unsigned bem_phi_index = 0;
+    unsigned bem_phi_1_index = 0;
 
     // First build the llg problem
     build(llg_mesh_pts);
@@ -381,8 +397,8 @@ namespace oomph
       }
 
     // Set indexes to look in for phi/phi1 variables
-    Bem_handler_pt->set_input_index(phi_1_index());
-    Bem_handler_pt->set_output_index(phi_index());
+    Bem_handler_pt->set_input_index(bem_phi_1_index);
+    Bem_handler_pt->set_output_index(bem_phi_index);
 
     // Create an integration scheme ??ds move this outside somewhere...
     Bem_handler_pt->integration_scheme_pt() = LLGFactories::
