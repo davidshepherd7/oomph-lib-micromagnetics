@@ -114,9 +114,24 @@ namespace oomph
             // Pin a phi_1 value which isn't involved in the boundary element
             // method (we have to pin something to avoid a singular Jacobian,
             // can't be a boundary node or things will go wrong with BEM).
+#ifdef OOMPH_HAS_MPI
+            // In parallel we need to make sure that only one node is
+            // pinned in total
+            std::string err = "Not implemented!";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+
+            // Check that processor id is 0, if so then pin as for serial,
+            // otherwise do nothing.
+
+            //??ds Could be problems when nodes duplicated? Not sure how
+            //all that works yet?
+#else
             Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->get_some_non_boundary_node();
             pinned_phi_1_node_pt->pin(phi_1_index());
             pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
+#endif
+
           }
 
       }
