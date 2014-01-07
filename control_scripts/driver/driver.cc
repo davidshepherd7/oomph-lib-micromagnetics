@@ -97,7 +97,7 @@ namespace oomph
 
       if(cli_args_name == "llg" || cli_args_name == "ll")
         {
-          cli_args_pt = new LLGArgs;
+          cli_args_pt = new MMArgs;
         }
       else if(cli_args_name == "ode")
         {
@@ -157,7 +157,6 @@ int main(int argc, char *argv[])
   problem_pt->set_explicit_time_stepper_pt(args_pt->explicit_time_stepper_pt);
 
   // Assign general purpose parameters
-  problem_pt->Use_time_adaptive_newton = args_pt->adaptive_flag();
   problem_pt->linear_solver_pt() = args_pt->solver_pt;
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
@@ -173,7 +172,19 @@ int main(int argc, char *argv[])
 
 
   // Build and initialise the problem
-  problem_pt->build(args_pt->mesh_pts);
+  MMArgs* mm_args_pt = dynamic_cast<MMArgs*>(args_pt);
+  if(mm_args_pt !=0 && mm_args_pt->decoupled_ms)
+    {
+      //?? clean this up
+      LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
+      llg_pt->build_decoupled_ms(mm_args_pt->mesh_pts,
+                                 mm_args_pt->phi_mesh_pts,
+                                 mm_args_pt->phi_1_mesh_pts);
+    }
+  else
+    {
+      problem_pt->build(args_pt->mesh_pts);
+    }
   problem_pt->initialise_dt(args_pt->dt); //??ds is this ok for steady state prob?
   problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
   problem_pt->initial_doc();

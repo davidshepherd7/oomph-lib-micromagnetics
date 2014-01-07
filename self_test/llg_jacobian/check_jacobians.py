@@ -73,7 +73,9 @@ def generate_jacobians(argsdict):
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Run the driver with the given arguments and outputting the Jacobian
-    l = [DRIVER, 'llg', '-output-jac', 'always',
+    l = [DRIVER, 'llg',
+          '-disable-ms',
+         '-output-jac', 'always',
          '-solver', 'gmres',
          '-prec', 'amg',
          '-doc-interval', '0',

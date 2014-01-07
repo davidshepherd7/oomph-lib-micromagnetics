@@ -21,7 +21,7 @@ new_clean_dir $SPHERE_DIR
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere -solver som-gmres \
     -prec som-main-exact \
-    -happ minus_z -initm exactly_z -mag-params 'simple-llg' -implicit-ms\
+    -happ minus_z -initm exactly_z -mag-params 'simple-llg' \
     -outdir $SPHERE_DIR > $SPHERE_DIR/stdout
 
 # Extract + check energies

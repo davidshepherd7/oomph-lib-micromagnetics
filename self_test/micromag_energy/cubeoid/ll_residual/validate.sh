@@ -18,10 +18,10 @@ LL_CUBEOID_DIR=$TPWD/Validation
 new_clean_dir $LL_CUBEOID_DIR
 
 # Run simulation
-cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
-./semi_implicit_mm_driver -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
+cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
+./driver ll -decoupled-ms -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
     -solver superlu -happ zero -initm xz -mag-params 'simple-llg' \
-    -resi "ll" -fd-jac \
+    -fd-jac \
     -outdir $LL_CUBEOID_DIR> $LL_CUBEOID_DIR/stdout
 
 # Extract + check energies

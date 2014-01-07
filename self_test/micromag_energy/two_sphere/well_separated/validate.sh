@@ -18,8 +18,8 @@ TWO_SPHERE_DIR=$TPWD/Validation
 new_clean_dir $TWO_SPHERE_DIR
 
 # Run simulation
-cd $CONTROL_SCRIPTS/semi_implicit_mm_driver/
-./semi_implicit_mm_driver -dt 0.001 -tmax 0.001 -ref 3 \
+cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
+./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -ref 3 \
     -solver superlu -happ minus_z -initm exactly_z  \
     -mag-params 'simple-llg' -mesh multi_ut_sphere -xshift 20 \
     -outdir $TWO_SPHERE_DIR > $TWO_SPHERE_DIR/stdout

@@ -73,7 +73,6 @@ namespace oomph
   public:
     /// Default constructor
     MyProblem() :
-      Use_time_adaptive_newton(false),
       Trace_filename("trace"),
       Info_filename("info"),
       Trace_seperator("; "),
@@ -90,11 +89,11 @@ namespace oomph
     double smart_newton_solve(double dt, const double& tol)
     {
       // The Newton step itself, adaptive if requested.
-      if(use_explicit())
+      if(explicit_flag())
         {
           explicit_timestep(dt);
         }
-      else if(Use_time_adaptive_newton)
+      else if(tol != 0.0)
         {
           dt = adaptive_unsteady_newton_solve(dt, tol);
         }
@@ -106,7 +105,7 @@ namespace oomph
       return dt;
     }
 
-    bool use_explicit()
+    bool explicit_flag()
       {
         return (explicit_time_stepper_pt() != 0)
           && (time_stepper_pt()->is_steady());
@@ -491,7 +490,7 @@ namespace oomph
     void dump_current_mm_or_jacobian_residuals(const std::string& label)
     {
       // We actually want the mass matrix if we are doing explicit steps
-      if(use_explicit())
+      if(explicit_flag())
         {
           CRDoubleMatrix M;
           DoubleVector residuals;
@@ -689,8 +688,6 @@ namespace oomph
 
     MyDocInfo Doc_info;
     unsigned Output_precision;
-
-    bool Use_time_adaptive_newton;
 
     std::string Trace_filename;
     std::string Info_filename;

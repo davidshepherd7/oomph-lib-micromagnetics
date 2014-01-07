@@ -90,7 +90,7 @@ namespace oomph
       }
 
     // Set up bem stuff if we are doing it
-    if(Use_implicit_ms)
+    if(implicit_ms_flag())
       {
         // Figure out how to build the flux meshes that we're going to need
         // for neumann boundaries.
@@ -179,7 +179,7 @@ namespace oomph
 
     // Create bem_handler if we are doing fully implicit magnetostatics
     // ============================================================
-    if(Use_implicit_ms)
+    if(implicit_ms_flag())
       {
         Bem_handler_pt = new BoundaryElementHandler;
 
@@ -214,6 +214,203 @@ namespace oomph
         // maybe_update_bem_boundary_conditions();
       }
 
+  }
+
+  void LLGProblem::build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
+                                      Vector<Mesh*>& phi_mesh_pts,
+                                      Vector<Mesh*>& phi_1_mesh_pts)
+  {
+
+    // First build the llg problem
+    build(llg_mesh_pts);
+
+
+    // Throughout this function we need to be careful not to use each
+    // problem's global mesh pointer until it as been built.
+
+    // Set up phi_1 problem
+    // ============================================================
+
+    //??ds move outside?
+    Phi_1_problem_pt = new GenericPoissonProblem;
+    phi_1_problem_pt()->set_flux_mesh_factory(Phi_1_flux_mesh_factory_fct_pt);
+    phi_1_problem_pt()->newton_solver_tolerance() = newton_solver_tolerance();
+
+    // phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m).
+    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+      {
+        Mesh* mesh_pt = phi_1_mesh_pts[msh];
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
+          {
+            phi_1_problem_pt()->add_neumann_boundary(mesh_pt, b, 0);
+          }
+      }
+
+    // Finish off the problem
+    phi_1_problem_pt()->build(phi_1_mesh_pts);
+
+
+    // Check that all three types of mesh match up
+#ifdef PARANOID
+    if((nsub_mesh() != phi_mesh_pts.size())
+       || (nsub_mesh() != phi_1_mesh_pts.size()))
+      {
+        std::string err = "All mesh lists must be the same size!";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
+
+    // Assign bulk elements pointers to each other (and check that it is
+    // safe).
+    for(unsigned msh=0; msh<nsub_mesh(); msh++)
+      {
+        Mesh* phi_mesh_pt = phi_mesh_pts[msh];
+        Mesh* llg_mesh_pt = mesh_pt(msh); // llg = main problem
+        Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
+
+#ifdef PARANOID
+        // Things will go wrong if the nodes of all meshes are not in
+        // the same place:
+        if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
+           || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nodes must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        if((phi_1_mesh_pt->nelement() != phi_mesh_pt->nelement())
+           || (phi_1_mesh_pt->nelement() != llg_mesh_pt->nelement()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nelements must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
+        for(unsigned j=0; j<dim; j++)
+          {
+            for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
+              {
+                if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    phi_mesh_pt->node_pt(nd)->x(j))
+                   ||
+                   (phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    llg_mesh_pt->node_pt(nd)->x(j)))
+                  {
+                    std::ostringstream error_msg;
+                    error_msg << "Mesh nodes must be in the same places.";
+                    throw OomphLibError(error_msg.str(),
+                                        OOMPH_CURRENT_FUNCTION,
+                                        OOMPH_EXCEPTION_LOCATION);
+                  }
+              }
+          }
+
+        //??ds check that element e in each mesh has the nodes in the same
+        //places?
+#endif
+
+        // Assign the various elements pointers to each other
+        for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
+          {
+
+            // Get the element pointers
+            MagnetostaticFieldEquations* phi_1_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_1_mesh_pt->element_pt(e));
+            MagnetostaticFieldEquations* phi_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_mesh_pt->element_pt(e));
+            SemiImplicitMicromagEquations* m_ele_pt =
+              checked_dynamic_cast<SemiImplicitMicromagEquations*>
+              (llg_mesh_pt->element_pt(e));
+
+            phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
+            phi_ele_pt->set_micromag_element_pt(m_ele_pt);
+            m_ele_pt->magnetostatic_field_element_pt() = phi_ele_pt;
+          }
+
+      }
+
+    // BEM handler:
+    // ============================================================
+    // Construct the BEM (must be done before pinning phi values)
+
+#ifdef PARANOID
+    if(Bem_handler_pt != 0)
+      {
+        std::string err = "Already have a bem handler!?";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
+    //??ds create outside?
+    Bem_handler_pt = new BoundaryElementHandler;
+
+
+    // Set list of boundaries to use bem on
+    for(unsigned msh=0, nmsh=phi_1_mesh_pts.size(); msh<nmsh; msh++)
+      {
+        for(unsigned b = 0; b < phi_1_mesh_pts[msh]->nboundary(); b++)
+          {
+            Bem_handler_pt->set_bem_boundary(b, phi_1_mesh_pts[msh]);
+          }
+      }
+
+    // Set indexes to look in for phi/phi1 variables
+    Bem_handler_pt->set_input_index(phi_1_index());
+    Bem_handler_pt->set_output_index(phi_index());
+
+    // Create an integration scheme ??ds move this outside somewhere...
+    Bem_handler_pt->integration_scheme_pt() = LLGFactories::
+      variable_order_integrator_factory
+      (phi_1_problem_pt()->mesh_pt()->finite_element_pt(0));
+
+    // Only treat cases where the corners are rectangle-like for now
+    Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
+
+    Bem_handler_pt->Bem_element_factory = Bem_element_factory_pt;
+
+    oomph_info << "Creating BEM handler" << std::endl;
+    Bem_handler_pt->build();
+
+    // Phi problem
+    // ============================================================
+
+    Phi_problem_pt = new GenericPoissonProblem;
+    phi_problem_pt()->newton_solver_tolerance() = newton_solver_tolerance();
+
+    // phi b.c.s are all Dirichlet, determined by a vector of BEM
+    // values. Create these vectors and link them into the phi problem.
+    for(unsigned msh=0, nmsh=phi_mesh_pts.size(); msh<nmsh; msh++)
+      {
+        Mesh* mesh_pt = phi_mesh_pts[msh];
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
+          {
+            // Create the vector
+            LinearAlgebraDistribution* dist_pt =
+              new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
+                                            mesh_pt->nboundary_node(b), false);
+            DoubleVector* db_vec_pt = new DoubleVector(dist_pt);
+
+            // Plug it into the phi problem and our list of bem controlled
+            // values.
+            Phi_boundary_values_pts.push_back(db_vec_pt);
+            phi_problem_pt()->add_dirichlet_boundary_by_vector(mesh_pt, b,
+                                                               db_vec_pt);
+          }
+
+      }
+
+    phi_problem_pt()->build(phi_mesh_pts);
   }
 
 

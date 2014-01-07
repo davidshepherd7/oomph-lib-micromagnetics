@@ -20,6 +20,20 @@
 namespace oomph
 {
 
+  // Function types
+  // ============================================================
+
+  /// \short Function pointer type for function which returns a BEM
+  /// element.
+  typedef MicromagBEMElementEquations*
+  (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
+
+  /// Function pointer type for function to create flux meshes
+  typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
+                                        const Vector<unsigned> &boundaries);
+
+
+
   class ResidualCalculator;
 
   // ============================================================
@@ -29,16 +43,9 @@ namespace oomph
   {
   public:
 
-
-    /// Function type which creates flux meshes
-    typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
-                                          const Vector<unsigned> &boundaries);
-
     /// Default constructor - do nothing except nulling pointers.
     LLGProblem() :
       Compare_with_mallinson(false),
-      Swap_solver_large_dt(false),
-      Use_implicit_ms(false),
       Applied_field_fct_pt(0),
       Renormalise_each_time_step(false),
       Previous_energies(5, 0.0)
@@ -62,15 +69,21 @@ namespace oomph
       Flux_mesh_pt = 0;
       Flux_mesh_factory_pt = 0;
 
+      Decoupled_ms = false;
+      Disable_ms = false;
+      Phi_problem_pt = 0;
+      Phi_1_problem_pt = 0;
+
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
-    /// to deal with Jacobians involving a dense bem block (i.e. in fully
+    /// to deal with Jacobians involving a dense block (i.e. in fully
     /// implicit bem). If we aren't using that then this is basically the
-    /// same as using the cr matrix form but with inside wrapper class.
+    /// same as using the cr matrix form but with the Jacobian wrapped
+    /// inside a SumOfMatrices class.
     void get_jacobian(DoubleVector &residuals, SumOfMatrices &jacobian)
     {
       // Get the fem Jacobian and the residuals
@@ -85,7 +98,7 @@ namespace oomph
 
       // If we're doing bem here then add on the bem matrix and the
       // d(phibound)/d(phibound) block identity matrix.
-      if(Use_implicit_ms)
+      if(implicit_ms_flag())
         {
           // Add the bem matrix to the jacobian in the right places. Don't
           // delete it when done.
@@ -121,19 +134,20 @@ namespace oomph
           // Add it on
           VectorOps::cr_matrix_add(*fem_jacobian_pt, bem_block_identity,
                                    *fem_jacobian_pt);
-          }
+        }
 
     }
 
     /// Get the Jacobian as a CRDoubleMatrix (the normal matrix format). If
-    /// we aren't using bem fully implicitly this is fine. If we are then
-    /// this is not a good idea for "real" problems but useful for tests.
+    /// we are using fully implicit bem then this is not a good idea for
+    /// "real" problems but useful for tests. Otherwise this is exactly the
+    /// same as Problem::get_jacobian().
     void get_jacobian(DoubleVector &residuals, CRDoubleMatrix &jacobian)
     {
       // If we're calculating ms here then include the bem matrix. Warning:
       // this is not going to be fast! Use the sumofmatrices version
       // instead if possible.
-      if(Use_implicit_ms)
+      if(implicit_ms_flag())
         {
           Vector<double> sum_values;
           Vector<int> sum_rows, sum_cols, sum_row_start;
@@ -183,6 +197,14 @@ namespace oomph
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
       delete Residual_calculator_pt; Residual_calculator_pt = 0;
       delete Bem_handler_pt; Bem_handler_pt = 0;
+      delete Phi_problem_pt; Phi_problem_pt = 0;
+      delete Phi_1_problem_pt; Phi_1_problem_pt = 0;
+
+      // Kill boundary value storage vectors
+      for(unsigned j=0; j<Phi_boundary_values_pts.size(); j++)
+        {
+          delete Phi_boundary_values_pts[j];
+        }
     }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
@@ -204,6 +226,15 @@ namespace oomph
           for(unsigned j=0; j<3; j++) nd_pt->set_value(m_index(j),m_values[j]);
         }
     }
+
+    virtual void actions_before_implicit_timestep()
+      {
+        if(Decoupled_ms)
+          {
+            // Solve for the magnetostatic field.
+            magnetostatics_solve();
+          }
+      }
 
     virtual void actions_before_newton_step()
     {
@@ -234,6 +265,17 @@ namespace oomph
         oomph_info << "Renormalising nodal magnetisations." << std::endl;
         renormalise_magnetisation();
       }
+
+    virtual void actions_after_explicit_stage()
+    {
+      // Solve for the new magnetostatic field.
+      if(Decoupled_ms)
+        {
+          magnetostatics_solve();
+        }
+
+      MyProblem::actions_after_explicit_stage();
+    }
 
     virtual void actions_after_newton_solve()
     {
@@ -290,7 +332,7 @@ namespace oomph
 
     void maybe_update_bem_boundary_conditions()
       {
-        if(Use_implicit_ms)
+        if(implicit_ms_flag())
           {
             Bem_handler_pt->get_bem_values_and_copy_into_values();
           }
@@ -484,6 +526,20 @@ namespace oomph
 
       // Output solution with specified number of plot points per element
       mesh_pt()->output(some_file, npts);
+
+      if(Decoupled_ms)
+        {
+          // Output the magnetostatic field data
+          std::ofstream field_file((Doc_info.directory() + "/field"
+                                    + Doc_info.number_as_string() + ".dat").c_str());
+          phi_problem_pt()->mesh_pt()->output(field_file, npts);
+          field_file.close();
+
+          std::ofstream phi1_file((Doc_info.directory() + "/phione"
+                                   + Doc_info.number_as_string() + ".dat").c_str());
+          phi_1_problem_pt()->mesh_pt()->output(phi1_file, npts);
+          phi1_file.close();
+        }
     }
 
     void write_additional_trace_headers(std::ofstream& trace_file) const
@@ -567,6 +623,12 @@ namespace oomph
       {
         MyProblem::actions_after_set_initial_condition();
 
+        if(Decoupled_ms)
+          {
+            // Solve for initial field and phi values
+            magnetostatics_solve();
+          }
+
         calculate_energies(false);
       }
 
@@ -624,16 +686,124 @@ namespace oomph
         }
     }
 
+    /// ??ds this is a total hack, I should integrate and divide by volume
+    /// or something, but instead I've just averaged it element-wise..
+    Vector<double> average_magnetostatic_field() const
+    {
+      if(Decoupled_ms)
+        {
+          const unsigned nodal_dim = checked_dynamic_cast<MagnetostaticFieldEquations*>
+            (phi_problem_pt()->mesh_pt()->element_pt(0))->node_pt(0)->ndim();
+
+          // Pick a point in the middle of the element
+          const Vector<double> s(nodal_dim, 0.3);
+          Vector<double> total_ms(3, 0.0);
+
+          // // Loop over all elements calculating the value in the middle of the element
+          // for(unsigned e=0, ne=phi_problem_pt()->mesh_pt()->nelement(); e < ne; e++)
+          //   {
+          //     MagnetostaticFieldEquations* ele_pt
+          //       = checked_dynamic_cast<MagnetostaticFieldEquations*>
+          //       (phi_problem_pt()->mesh_pt()->element_pt(e));
+
+          //     // Get the shape function and eulerian coordinate derivative at
+          //     // position s.
+          //     unsigned n_node = ele_pt->nnode();
+          //     Shape psi(n_node); DShape dpsidx(n_node,nodal_dim);
+          //     ele_pt->dshape_eulerian(s,psi,dpsidx);
+
+          //     // Interpolate grad phi
+          //     Vector<double> interpolated_dphidx(nodal_dim,0.0);
+          //     for(unsigned l=0;l<n_node;l++)
+          //       {
+          //         double phi_value = ele_pt->raw_nodal_value(l,0);
+          //         for(unsigned i=0; i<nodal_dim; i++)
+          //           {interpolated_dphidx[i] += phi_value*dpsidx(l,i);}
+          //       }
+
+          //     // Add this grad phi to the sum
+          //     for(unsigned j=0; j<nodal_dim; j++)
+          //       {
+          //         total_dphidx[j] += interpolated_dphidx[j];
+          //       }
+          //   }
+
+          // Loop over all elements calculating the value in the middle of the element
+          for(unsigned e=0, ne=mesh_pt()->nelement(); e < ne; e++)
+            {
+              SemiImplicitMicromagEquations* ele_pt
+                = checked_dynamic_cast<SemiImplicitMicromagEquations*>
+                (mesh_pt()->element_pt(e));
+
+              // Interpolate
+              Vector<double> ms;
+              MMInterpolator intp(ele_pt, s);
+              ele_pt->get_magnetostatic_field(&intp, ms);
+
+              // Add this to the sum
+              for(unsigned j=0; j<3; j++)
+                {
+                  total_ms[j] += ms[j];
+                }
+            }
+
+          // Divide sum by number of elements to get the average. Take the
+          // negative to get the field.
+          double nele = double(phi_problem_pt()->mesh_pt()->nelement());
+          Vector<double> average_magnetostatic_field(3,0.0);
+          for(unsigned j=0; j<nodal_dim; j++)
+            {
+              average_magnetostatic_field[j] = total_ms[j] / nele;
+            }
+
+          return average_magnetostatic_field;
+        }
+      else
+        {
+          throw OomphLibError("Function not yet implemented for fully coupled ms",
+                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+        }
+
+
+    }
+
     // Access functions
     // ============================================================
 
     unsigned m_index(const unsigned &j) const
     {return this->ele_pt()->m_index_micromag(j);}
 
-    unsigned phi_index() const {return this->ele_pt()->phi_index_micromag();}
+    unsigned phi_index() const
+    {
+      if(Decoupled_ms)
+        {
+          // TFPoissonEquations* p_pt = checked_dynamic_cast<TFPoissonEquations*>
+          //   (phi_problem_pt()->mesh_pt()->element_pt(0));
+          // return p_pt->u_index_poisson();
+          //??ds fix eventually?
+          return 0;
+        }
+      else
+        {
+          return this->ele_pt()->phi_index_micromag();
+        }
+    }
 
     unsigned phi_1_index() const
-    {return this->ele_pt()->phi_1_index_micromag();}
+    {
+      if(Decoupled_ms)
+        {
+          // TFPoissonEquations* p_pt = checked_dynamic_cast<TFPoissonEquations*>
+          //   (phi_1_problem_pt()->mesh_pt()->element_pt(0));
+          // return p_pt->u_index_poisson();
+          //??ds fix eventually?
+          return 0;
+        }
+      else
+        {
+          return this->ele_pt()->phi_1_index_micromag();
+        }
+    }
 
     /// \short Non-const access function for Applied_field_fct_pt.
     HApp::HAppFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
@@ -687,16 +857,19 @@ namespace oomph
       return Flux_mesh_factory_pt(mesh_pt, boundaries);
     }
 
+    bool implicit_ms_flag() const
+      {
+        return (!Decoupled_ms) && (!Disable_ms);
+      }
+
     /// Can we check the solution using Mallinson's exact time + phi
     /// solutions?
     bool Compare_with_mallinson;
 
-    /// \short Should we swap to superlu for large dt solves?
-    bool Swap_solver_large_dt;
+    bool Disable_ms;
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
-    bool Use_implicit_ms;
 
     LLGResidualCalculator* Residual_calculator_pt;
 
@@ -735,12 +908,13 @@ namespace oomph
     /// \short Mesh for flux elements to impose boundary condition on phi1.
     Mesh* Flux_mesh_pt;
 
+public:
+
     /// \short Pointer to function for creating the flux mesh (can't be
     /// hard coded becuase it depends on the element type, which depends on
     /// dimension etc.)
     FluxMeshFactoryFctPt Flux_mesh_factory_pt;
 
-public:
     /// \short Recomputed effective damping constant for the last time step
     /// (based on actual change in energy).
     double Effective_damping_constant;
@@ -756,6 +930,110 @@ public:
     /// Inaccessible assignment operator
     void operator=(const LLGProblem &dummy)
     {BrokenCopy::broken_assign("LLGProblem");}
+
+
+    // Decoupled ms code
+    // ============================================================
+
+  private:
+
+    /// Sub problems for the magnetostatics solve
+    GenericPoissonProblem* Phi_1_problem_pt;
+    GenericPoissonProblem* Phi_problem_pt;
+
+    /// Intermediate storage for results of bem (ideally we would have it
+    /// call a function to get the boundary values filled in but c++ member
+    /// functions pointers are useless...)
+    Vector<DoubleVector*> Phi_boundary_values_pts;
+
+
+  public:
+
+    /// Are we solving for ms "properly" or using a separate solve?
+    bool Decoupled_ms;
+
+    BEMElementFactoryFctPt Bem_element_factory_pt;
+
+    GenericPoissonProblem::FluxMeshFactoryFctPt Phi_1_flux_mesh_factory_fct_pt;
+
+    void build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
+                            Vector<Mesh*>& phi_mesh_pts,
+                            Vector<Mesh*>& phi_1_mesh_pts);
+
+    /// \short Solve for the magnetostatic field.
+    void magnetostatics_solve()
+    {
+      if(Decoupled_ms)
+        {
+          oomph_info << std::endl
+                    << "BEM solve" << std::endl
+                    << "--------------------------" <<std::endl;
+
+          // solve for phi1
+          oomph_info << "solving phi1" << std::endl;
+          phi_1_problem_pt()->newton_solve();
+
+          // update boundary values of phi
+          oomph_info << "solving BEM" << std::endl;
+          double t_start = TimingHelpers::timer();
+          Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
+          double t_end = TimingHelpers::timer();
+          oomph_info << "BEM time taken: " << t_end - t_start << std::endl;
+
+          // push old phi values back in time (so that we can use them later to
+          // get time derivatives of the field). Note that we don't use the
+          // problem's shift time values function because we don't want to
+          // shift the timestepper (that has been done by the llg problem
+          // already) and we don't have any external data to shift.
+          phi_problem_pt()->mesh_pt()->shift_time_values();
+
+          // solve for phi
+          oomph_info << "solving phi" << std::endl;
+          phi_problem_pt()->newton_solve();
+
+          oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
+        }
+      else
+        {
+          std::string err = "requested magnetostatics solve but problem is not ";
+          err += "decoupled, so we can't do it, doing nothing instead.";
+          throw OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+        }
+    }
+
+    GenericPoissonProblem* phi_1_problem_pt() const
+    {
+#ifdef PARANOID
+      if(Phi_1_problem_pt == 0)
+        {
+          std::string error_msg = "Phi 1 problem pointer is null!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Phi_1_problem_pt;
+    }
+
+    void set_phi_1_problem_pt(GenericPoissonProblem* p)
+    { Phi_1_problem_pt = p;}
+
+    GenericPoissonProblem* phi_problem_pt() const
+    {
+#ifdef PARANOID
+      if(Phi_problem_pt == 0)
+        {
+          std::string error_msg = "Phi problem pointer is null!";
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Phi_problem_pt;
+    }
+
+    void set_phi_problem_pt(GenericPoissonProblem* p)
+    { Phi_problem_pt = p;}
+
 
   };
 
@@ -780,15 +1058,10 @@ public:
     /// types.
     Integral* variable_order_integrator_factory(const FiniteElement* const el_pt);
 
-
-    /// \short Function pointer type for function which returns a BEM
-    /// element.
-    typedef MicromagBEMElementEquations*
-    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
-
-    typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
-                                          const Vector<unsigned> &boundaries);
-
+    /// \short Create a function to create bem elements based on the
+    /// elements used in the bulk mesh.
+    BEMElementFactoryFctPt bem_element_factory_factory
+    (const FiniteElement* bulk_ele_pt);
 
     /// \short very simple function: create a new face element of type
     /// ELEMENT.
@@ -798,12 +1071,6 @@ public:
     {
       return new ELEMENT(ele, face);
     }
-
-
-    /// \short Create a function to create bem elements based on the
-    /// elements used in the bulk mesh.
-    BEMElementFactoryFctPt bem_element_factory_factory
-    (const FiniteElement* bulk_ele_pt);
 
     FluxMeshFactoryFctPt
     mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
@@ -873,11 +1140,34 @@ public:
 
       specify_command_line_flag("-dampc", &dampc);
       dampc = -10;
+
+      // Flags automatically default to false
+      specify_command_line_flag("-numerical-BEM");
+      specify_command_line_flag("-decoupled-ms");
+      specify_command_line_flag("-disable-ms");
+      specify_command_line_flag("-pin-boundary-m");
     }
 
 
     virtual void run_factories()
     {
+      using namespace SemiImplicitFactories;
+      using namespace LLGFactories;
+      using namespace Factories;
+
+      decoupled_ms = command_line_flag_has_been_set("-decoupled-ms");
+
+      // Figure out how to build meshes
+      if(decoupled_ms)
+        {
+          mesh_factory_pt = &llg_mesh_factory;
+        }
+      else
+        {
+          mesh_factory_pt = &mesh_factory;
+        }
+
+
       MyCliArgs::run_factories();
 
       initial_m_name = to_lower(initial_m_name);
@@ -887,13 +1177,54 @@ public:
       initial_condition_fpt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       magnetic_parameters_pt =
-        Factories::magnetic_parameters_factory(magnetic_parameters_name);
+        magnetic_parameters_factory(magnetic_parameters_name);
 
       if(command_line_flag_has_been_set("-dampc"))
         {
           magnetic_parameters_pt->gilbert_damping() = dampc;
         }
+
+      // Copy flags into bools in this class
+      use_numerical_integration_bem = command_line_flag_has_been_set("-numerical-BEM");
+      disable_ms = command_line_flag_has_been_set("-disable-ms");
+      pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
+
+      // Only want one of these to be true at once ??ds enumeration instead?
+      if(decoupled_ms && disable_ms)
+        {
+          std::string err = "Requested decoupled ms and disabled ms, ";
+          err += "I'm just going to disabled it.";
+            throw OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+          decoupled_ms = false;
+        }
+
+
+      if(decoupled_ms)
+        {
+          // Pick the factory function for creating the phi 1 surface mesh
+          phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_factory
+            (phi_1_mesh_pts[0]->finite_element_pt(0));
+
+          // Pick the factory function for creating the BEM elements
+          bem_element_factory_fct_pt = bem_element_factory_factory
+            (mesh_pts[0]->finite_element_pt(0));
+        }
     }
+
+    void build_meshes()
+      {
+        // Build the main mesh(es)
+        MyCliArgs::build_meshes();
+
+        if(decoupled_ms)
+          {
+            // Also build separate poisson meshes if needed
+            using namespace SemiImplicitFactories;
+            phi_mesh_pts = build_meshes_helper(phi_mesh_factory);
+            phi_1_mesh_pts = build_meshes_helper(phi_mesh_factory);
+          }
+      }
 
     virtual void assign_specific_parameters(MyProblem* problem_pt) const
     {
@@ -901,9 +1232,26 @@ public:
       llg_pt->applied_field_fct_pt() = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(magnetic_parameters_pt);
       llg_pt->renormalise_each_time_step() = renormalise_flag();
+      llg_pt->Pin_boundary_m = pin_boundary_m;
+      llg_pt->Decoupled_ms = decoupled_ms;
+      llg_pt->Disable_ms = disable_ms;
 
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds
+
+      // Set exact solution if we have one
+      if((h_app_name == "minus_z")
+         && (initial_m_name == "z")
+         && (magnetic_parameters_pt->gilbert_damping() != 0.0)
+         && disable_ms)
+        {
+          llg_pt->Compare_with_mallinson = true;
+        }
+
+      llg_pt->Phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_fct_pt;
+
+      llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
+
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -917,6 +1265,10 @@ public:
         << "mag_params " << magnetic_parameters_name << std::endl
         << "Renormalise " << Renormalise << std::endl
         << "damping_parameter_override " << dampc << std::endl
+        << "numerical-BEM " << use_numerical_integration_bem << std::endl
+        << "decoupled_ms " << decoupled_ms << std::endl
+        << "disable_ms " << disable_ms << std::endl
+        << "pin_boundary_m " << pin_boundary_m << std::endl
         ;
     }
 
@@ -951,73 +1303,21 @@ public:
 
     double dampc;
 
-  };
+    bool use_numerical_integration_bem;
 
 
-  /// Command line args class for llg problems. Just add the mesh
-  /// stuff.
-  class LLGArgs : public MMArgs
-  {
-  public:
-
-    /// Constructor: use llg mesh factory to make base meshes
-    LLGArgs()
-    {
-      mesh_factory_pt = LLGFactories::mesh_factory;
-    }
-
-    virtual void set_flags()
-    {
-      MMArgs::set_flags();
-
-      specify_command_line_flag("-implicit-ms");
-
-      specify_command_line_flag("-pin-boundary-m");
-    }
-
-
-    virtual void run_factories()
-    {
-      MMArgs::run_factories();
-
-      use_implicit_ms = command_line_flag_has_been_set("-implicit-ms");
-
-      pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
-    }
-
-
-    /// Write out all args (in a parseable format) to a stream.
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      MMArgs::dump_args(out_stream);
-      out_stream << "use_implicit_ms " << use_implicit_ms << std::endl
-                 << "pin_boundary_m " << pin_boundary_m << std::endl
-        ;
-    }
-
-    virtual void assign_specific_parameters(MyProblem* problem_pt) const
-      {
-        // Assign general micromagnetics ones
-        MMArgs::assign_specific_parameters(problem_pt);
-
-        LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
-        llg_pt->Pin_boundary_m = pin_boundary_m;
-        llg_pt->Use_implicit_ms = use_implicit_ms;
-
-        // Set exact solution if we have one
-        if((h_app_name == "minus_z")
-           && (initial_m_name == "z")
-           && (magnetic_parameters_pt->gilbert_damping() != 0.0)
-           && !use_implicit_ms)
-          {
-            llg_pt->Compare_with_mallinson = true;
-          }
-      }
-
-
-    bool use_implicit_ms;
+    bool decoupled_ms;
+    bool disable_ms;
     bool pin_boundary_m;
+
+    Vector<Mesh*> phi_1_mesh_pts;
+    Vector<Mesh*> phi_mesh_pts;
+
+    GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
+    BEMElementFactoryFctPt bem_element_factory_fct_pt;
+
   };
+
 
 }
 
