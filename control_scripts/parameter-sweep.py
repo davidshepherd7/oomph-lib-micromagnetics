@@ -63,27 +63,27 @@ endColour = '\033[0m'
 #                 print(f)
 #                 raise Exception("Tried to delete non whitelisted file: \""+f+"\"")
 
+def boolean_flags():
+    """A list of flags which are just either enabled or not. Inside function so
+    it's global but harder to accidentally modify.
+    """
+    return ['decoupled-ms', 'fd-jac']
 
 def execute_oomph_driver(args_dict, output_root):
 
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
     for key, value in args_dict.items():
-        if key not in ['mpi_ncores', 'driver', 'outdir', 'implicit-ms', 'fd-jac']:
+        if key not in ['mpi_ncores', 'binary', 'driver', 'outdir'] + boolean_flags():
             processed_kwargs.append('-'+str(key))
             processed_kwargs.append(str(value))
 
-    # Handle implicit ms: append to args list if true in dict and driver is llg
-    # driver.
-    implicit_ms = args_dict.get('implicit-ms')
-    if (implicit_ms is not None) and args_dict['driver'] == "./llg_driver/llg_driver":
-        if implicit_ms:
-            processed_kwargs.append('-implicit-ms')
-
-    # Handle fd jac: append to args list if true in dict
-    fd_jac = args_dict.get('fd-jac')
-    if (fd_jac is not None) and fd_jac:
-        processed_kwargs.append('-fd-jac')
+        # If it's a bool flag then either add it or don't
+        elif key in boolean_flags():
+            if value:
+                processed_kwargs.append('-'+str(key))
+            else:
+                pass
 
 
     # Construct an output directory name based on inputs if not specified.
