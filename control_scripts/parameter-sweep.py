@@ -102,6 +102,7 @@ def execute_oomph_driver(args_dict, output_root):
 
     # Construct argument list
     arglist = (['mpirun', '-np', str(args_dict.get('mpi_ncores', 1)),
+                str(args_dict['binary']),
                 str(args_dict['driver']),
                 '-outdir', final_outdir]
                + processed_kwargs)
@@ -114,8 +115,7 @@ def execute_oomph_driver(args_dict, output_root):
         script_file.write("\n")
 
 
-    # Run with specified args in the driver directory, put output (stdout
-    # and stderr) into a file.
+    # Run with specified args, put output (stdout and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
         err_code = subp.call(arglist,
                              stdout = stdout_file,
@@ -191,7 +191,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
     # Construct lists of args
     if parameter_set == "initial":
         args_dict = {
-            'driver' : "./llg_driver/llg_driver",
+            'binary' : "./llg_driver/llg_driver",
             'dt' : [0.1, 0.05, 0.01, 0.001],
             'tmax' : [0.001],
             'tol' : [0.0],
@@ -219,7 +219,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     if parameter_set == 'nmag_cubeoid':
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-4],
             'tmax' : [60.0],
             'tol' : [1e-3, 1e-4, 1e-5],
@@ -234,7 +234,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'const_dt_nmag_cubeoid':
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-2, 5e-3],
             'tmax' : [20.0],
             'tol' : [0.0],
@@ -249,7 +249,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'nmag_cubeoid_llg_prec':
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [5e-4],
             'tmax' : [20.0],
             'tol' : [1e-4],
@@ -268,7 +268,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'script_test':
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'dt' : [1e-4],
             'tmax' : [1.0],
             'tol' : [1e-3],
@@ -277,7 +277,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'unsteady_heat_midpoint_vs_bdf2':
         args_dict = {
-            'driver' : ["./unsteady_heat_driver/unsteady_heat_driver"],
+            'binary' : ["./unsteady_heat_driver/unsteady_heat_driver"],
             'dt' : [1e-4],
             'tmax' : [10.0],
             'tol' : [1e-2, 5e-3, 1e-3],
@@ -286,7 +286,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'cubeoid-timestep-newton-convergence':
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'dt' : [1e-4, 1e-5, 1e-6, 1e-7, 1e-8],
             'tmax' : [1e-8],
             'tol' : [0.0],
@@ -300,7 +300,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'oscillating_fields':
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'dt' : [1e-4],
             'tmax' : [200],
             'tol' : [1e-3, 5e-4, 1e-4, 1e-5],
@@ -315,7 +315,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "prec_fast":
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'dt' : [0.01],
             'ref' : [2],
             'tmax' : [1.0],
@@ -333,7 +333,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "prec":
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'dt' : [0.1, 0.05, 0.01, 0.001],
             'ref' : [1, 2, 3, 4],
             'tmax' : [1.0],
@@ -350,7 +350,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "adaptive-midpoint-conservation":
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-5],
             'tol' : [1e-2, 1e-3, 1e-4],
             'ref' : [3, 4, 5],
@@ -364,7 +364,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "fixed-step-midpoint-conservation":
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
             'ref' : [3],
             'tmax' : [5.0],
@@ -377,7 +377,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "zero-damping":
         args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
             'ref' : [3],
             'tmax' : [5.0],
@@ -389,7 +389,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "adaptive-midpoint":
         args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'tol' : [1e-2, 1e-3, 1e-4],
             'ref' : [1],
             'tmax' : [4.0],
@@ -402,7 +402,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "ode-test":
          args_dict = {
-            'driver' : ["./ode_problem/ode_problem"],
+            'binary' : ["./ode_problem/ode_problem"],
             'tol' : [1e-2, 1e-3],
             'tmax' : [10.0],
             'ts' : ["bdf2", "midpoint"],
@@ -411,7 +411,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "multi-domain-failures":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'dt' : [1e-4, 1e-5],
             'tmax' : [1.0],
             'ts' : ["bdf2", "midpoint"],
@@ -423,7 +423,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "multi-domain-squares":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'tmax' : [1e-10],
             'ts' : ["midpoint"],
             'mesh' : ['multi_sq_square', 'sq_square'],
@@ -433,7 +433,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "multi-domain-spheres-energy-test":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'tmax' : [1e-10],
             'ts' : ["midpoint"],
             'mesh' : ['multi_ut_sphere', 'ut_sphere'],
@@ -443,7 +443,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "compare-implicitness-semi":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'tmax' : [20],
             'ts' : ["bdf2"],
             'mesh' : ['many_ut_square'],
@@ -454,7 +454,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "compare-implicitness-implicit":
          args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'tmax' : [20],
             'ts' : ["bdf2"],
             'mesh' : ['many_ut_square'],
@@ -468,7 +468,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "check-single-ele-mesh":
          args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'tmax' : [10],
             'ts' : ["bdf2", "rk4"],
             'mesh' : ['single-element'],
@@ -480,7 +480,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "coarse-blocked-ut-preconditioner":
          args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'tmax' : [10.0],
             'ts' : ["bdf2"],
             'mesh' : ['sq_square', 'ut_sphere'],
@@ -495,7 +495,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "blah":
          args_dict = {
-            'driver' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
             'tmax' : [20],
             'ts' : ["rk2"],
             'dt' : [0.1, 1e-2, 1e-3, 1e-4],
@@ -506,7 +506,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "blah2":
          args_dict = {
-            'driver' : ["./llg_driver/llg_driver"],
+            'binary' : ["./llg_driver/llg_driver"],
             'tmax' : [20],
             'ts' : ["bdf2"],
             'tol' : [1e-3, 1e-4],
@@ -514,6 +514,33 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             'implicit-ms' : [True],
             'solver' : ['som-gmres'],
             'prec' : ['som-main-blockut'],
+            }
+
+    elif parameter_set == "implicit-vs-explicit-ms":
+         args_dict = {
+            'binary' : ["./driver/driver"],
+            'driver' : ['llg'],
+            'tmax' : [10.0],
+            'ts' : ["bdf2"],
+            'mesh' : ['sq_cubeoid'],
+            'tol' : [1e-3],
+            'ref' : [0, 1],
+            'decoupled-ms' : [True, False],
+            'solver' : ['som-gmres'],
+            'prec' : ['som-main-blockut'],
+            'blocking' : ['group-m-phi-phi-boundary'],
+            }
+
+    elif parameter_set == "decoupled-ms-debug":
+         args_dict = {
+            'binary' : ["./driver/driver"],
+            'driver' : ['llg'],
+            'max-steps' : [1],
+            'solver' : ['fdlu', 'superlu'],
+            'ts' : ["bdf2", 'midpoint-bdf'],
+            'mesh' : ["ut_square"],
+            'ref' : [1, 2, 3, 4],
+            'decoupled-ms' : [True],
             }
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
@@ -537,7 +564,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
                      'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
     # Make sure the driver binaries are up to date
-    driver_folders = [os.path.dirname(d) for d in args_dict['driver']]
+    driver_folders = [os.path.dirname(d) for d in args_dict['binary']]
     for f in driver_folders:
         build_driver(f)
 
