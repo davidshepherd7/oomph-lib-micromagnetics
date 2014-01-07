@@ -47,7 +47,7 @@ def generate_triangle_meshes(initial_poly_file):
     return
 
 
-def generate_tetgen_meshes(initial_poly_file, poly_volume):
+def generate_tetgen_meshes(initial_poly_file):
     """Generate a set of mesh refinements using tegen.
     """
 
@@ -57,7 +57,7 @@ def generate_tetgen_meshes(initial_poly_file, poly_volume):
     basename, ext = os.path.splitext(fname)
 
     # Initial mesh generation
-    initial_vol = 0.02 * poly_volume
+    initial_vol = 0.02
     subp.check_call(['tetgen', '-q', '-a' + str(initial_vol), '-p',
                      initial_poly_file])
 
@@ -153,14 +153,13 @@ def main():
     # ============================================================
 
     triangle_poly_files = ['square.poly', 'circle.poly']
-    tetgen_poly_files = [('cubeoid.poly', 30*30*100)]
+    tetgen_poly_files = ['cubeoid.poly']
 
     for poly_file in triangle_poly_files:
         generate_triangle_meshes(os.path.join(args.mesh_dir, poly_file))
 
-    for poly_file, poly_volume in tetgen_poly_files:
-        generate_tetgen_meshes(os.path.join(args.mesh_dir, poly_file),
-                               poly_volume)
+    for poly_file in tetgen_poly_files:
+        generate_tetgen_meshes(os.path.join(args.mesh_dir, poly_file))
 
     # Sphere meshes are special
     generate_sphere_meshes(args.mesh_dir, 1.0)

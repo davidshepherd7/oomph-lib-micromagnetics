@@ -1,17 +1,17 @@
 # A 30x30x100 cubeoid
 
 # Part 1 - node list
-# node count, 3 dim, no attribute, no boundary marker
+# First line: <# of points> <dimension (3)> <# of attributes> <boundary markers (0 or 1)>
 8  3  0  1
-# Node index, node coordinates
+# <point #> <x> <y> <z> [attributes] [boundary marker]
 1  0.0 0.0 0.0 1
-2  30.0 0.0 0.0 1
-3  30.0 30.0 0.0 1
-4  0.0 30.0 0.0 1
-5  0.0 0.0 100.0 1
-6  30.0 0.0 100.0 1
-7  30.0 30.0 100.0 1
-8  0.0 30.0 100.0 1
+2  1.0 0.0 0.0 1
+3  1.0 1.0 0.0 1
+4  0.0 1.0 0.0 1
+5  0.0 0.0 3.0 1
+6  1.0 0.0 3.0 1
+7  1.0 1.0 3.0 1
+8  0.0 1.0 3.0 1
 
 # Part 2 - facet list
 # First line: <# of facets> <boundary markers (0 or 1)>
