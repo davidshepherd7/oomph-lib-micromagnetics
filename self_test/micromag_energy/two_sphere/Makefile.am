@@ -1,1 +1,1 @@
-SUBDIRS = close well_separated
+SUBDIRS = well_separated
