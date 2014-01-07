@@ -125,16 +125,18 @@ namespace oomph
         // output eulerian coordinates of plot point
         for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x(i) << " ";
 
-        // Output the magnetostatic field (= - dphidx) at this point
-        Vector<double> intp_dphidx = intp.dphidx();
-        intp_dphidx.resize(3, 0.0); // make sure it has a 3rd entry
-        for(unsigned i=0; i<3; i++) outfile << -intp_dphidx[i] << " ";
+        // Output the magnetostatic at this point (for both decoupled and
+        // fully coupled methods).
+        Vector<double> h_magnetostatic;
+        get_magnetostatic_field(s, h_magnetostatic);
+        h_magnetostatic.resize(3, 0.0); // make sure it has a 3rd entry
+        for(unsigned i=0; i<3; i++) outfile << h_magnetostatic[i] << " ";
 
         // Phi 1 at this point
-        outfile << intp.phi() << " ";
+        outfile << intp.phi1() << " ";
 
         // Phi total at this point
-        outfile << intp.phi1() << " ";
+        outfile << intp.phi() << " ";
 
         // Output m at this point
         for(unsigned i=0; i<3; i++) outfile << intp.m()[i] << " ";
