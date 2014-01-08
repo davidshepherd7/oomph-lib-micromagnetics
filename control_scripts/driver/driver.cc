@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
   problem_pt->linear_solver_pt() = args_pt->solver_pt;
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
+  problem_pt->Error_norm_limit = args_pt->error_norm_limit;
 
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string(args_pt);

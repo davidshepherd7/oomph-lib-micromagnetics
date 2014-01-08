@@ -891,6 +891,9 @@ namespace oomph
 
         specify_command_line_flag("-max-steps", &max_steps);
         max_steps = UINT_MAX; // can't get bigger than this or we overflow
+
+        specify_command_line_flag("-error-norm-limit", &error_norm_limit);
+        error_norm_limit = -1.0;
       }
 
     void parse(int argc, char *argv[])
@@ -1012,6 +1015,7 @@ namespace oomph
         << "tol " << tol << std::endl
         << "refinement " << refinement << std::endl
         << "newton-tol " << newton_tol << std::endl
+        << "error-norm-limit " << error_norm_limit << std::endl
 
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
@@ -1113,6 +1117,7 @@ namespace oomph
     double newton_tol;
     bool use_fd_jacobian;
     unsigned max_steps;
+    double error_norm_limit;
 
     std::string outdir;
     std::string output_jacobian;

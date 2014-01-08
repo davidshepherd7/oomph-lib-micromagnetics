@@ -80,6 +80,7 @@ namespace oomph
     {
       Dim = 0;
       Output_precision = 8;
+      Error_norm_limit = -1.0;
     }
 
     /// Destructor
@@ -169,7 +170,15 @@ namespace oomph
     {MyProblem::actions_before_newton_solve();}
 
     virtual void actions_after_explicit_timestep()
-      {MyProblem::actions_after_newton_solve();}
+      {
+        MyProblem::actions_after_newton_solve();
+        check_error_norm_limits();
+      }
+
+    virtual void actions_after_implicit_timestep()
+      {
+        check_error_norm_limits();
+      }
 
     virtual void actions_after_newton_step()
       {
@@ -200,6 +209,24 @@ namespace oomph
         Solver_times.clear();
         Solver_iterations.clear();
         Preconditioner_setup_times.clear();
+      }
+
+    void check_error_norm_limits()
+      {
+        // If a limit has been set
+        if(Error_norm_limit != -1.0)
+          {
+            double error_norm = get_error_norm();
+
+            if((error_norm != Dummy_doc_data)
+               && (error_norm > Error_norm_limit))
+              {
+                std::string err = "Error norm " + to_string(error_norm);
+                err += " exceeds the limit " + to_string(Error_norm_limit);
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+              }
+          }
       }
 
     /// \short Write some general data about the previous time step to a
@@ -691,6 +718,8 @@ namespace oomph
 
     std::string Trace_filename;
     std::string Info_filename;
+
+    double Error_norm_limit;
 
   protected:
 
