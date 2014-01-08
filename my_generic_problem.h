@@ -229,6 +229,28 @@ namespace oomph
           }
       }
 
+    double min_element_size()
+      {
+        double min_size = mesh_pt(0)->finite_element_pt(0)->size();
+
+        // Loop over all meshes in problem
+        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+          {
+            Mesh* mesh_pt = this->mesh_pt(msh);
+            for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+              {
+                FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
+                double new_size = ele_pt->size();
+                if(new_size < min_size)
+                  {
+                    min_size = new_size;
+                  }
+              }
+          }
+
+        return min_size;
+      }
+
     /// \short Write some general data about the previous time step to a
     /// trace file. Extend by overloading write_additional_trace_data(...).
     void write_trace()
@@ -255,9 +277,9 @@ namespace oomph
         << Trace_seperator << trace_value()
 
         << Trace_seperator << std::time(0)
+        << Trace_seperator << min_element_size()
 
         // Reserved slots in case I think of more things to add later
-        << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
@@ -351,9 +373,9 @@ namespace oomph
           << Trace_seperator << "trace_values"
 
           << Trace_seperator << "unix_timestamp"
+          << Trace_seperator << "min_element_size"
 
           // Reserved slots in case I think of more things to add later
-          << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
