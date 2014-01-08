@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Future proofing
 from __future__ import print_function
@@ -160,8 +160,8 @@ def main():
 
     # Set of parameters to test the Jacobians for. Use varying initial m to
     # get mostly non-zeros in J. Only first entry is used for "fast mode".
-    jacobian_params = [{'mesh': 'ut_square',
-                        'ref': 3,
+    jacobian_params = [{'mesh': 'sq_square',
+                        'ref': 2,
                         'dt': 1e-4,
                         'tmax': 3e-4,
                         'initm': 'smoothly_varying_5',
@@ -174,6 +174,12 @@ def main():
                         'initm': 'smoothly_varying_500',
                         'outdir': 'Validation/J2'},
                         ]
+
+
+    # If its a fast check just do the first one
+    if args.fast:
+        jacobian_params = [jacobian_params[0]]
+
 
     # If we are updating the data just do that then exit
     if args.update_data:
@@ -208,10 +214,6 @@ def main():
 
         return 0
 
-
-    # If its a fast check just do the first one
-    if args.fast:
-        jacobian_params = [jacobian_params[0]]
 
     # Otherwise calculate and compare all the Jacobians
     if args.serial:

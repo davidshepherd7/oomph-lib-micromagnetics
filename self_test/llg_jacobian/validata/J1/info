@@ -1,6 +1,12 @@
+real_time 2014-01-08-12-02-01
+unix_time 1389182521
+git_version 835b3a5f42fbd262ca4eced5f13684ae49197ee6
+driver_name ../../control_scripts/driver/driver
+initial_dt 0.0001
 tmax 0.0003
+max_steps 4294967295
 tol 0
-refinement 3
+refinement 2
 newton-tol 1e-08
 outdir Validation/J1
 output_jacobian always
@@ -10,7 +16,7 @@ solver_name gmres
 preconditioner_name amg
 blocking_name none
 doc_times_interval 0
-mesh ut_square
+mesh sq_square
 nnode1d 2
 xshift 1.5
 yshift 1.5
@@ -18,7 +24,9 @@ scale 1
 initial_m smoothly_varying_5
 h_app minus_z
 mag_params simple-llg
-residual_to_use llg
 Renormalise -1
 damping_parameter_override -10
-use_implicit_ms 0
+numerical-BEM 0
+decoupled_ms 0
+disable_ms 1
+pin_boundary_m 0
