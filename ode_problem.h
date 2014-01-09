@@ -280,11 +280,16 @@ namespace oomph
       oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
-    void set_initial_condition()
+    void set_initial_condition(InitialConditionFctPt ic_fpt)
     {
-      // Past history needs to be established for t=time0-deltat, ...
-      // Then provide current values (at t=time0) which will also form
-      // the initial guess for the first solve at t=time0+deltat
+#ifdef PARANOID
+      if(ic_fpt == 0)
+        {
+          std::string err = "Null initial condition function pointer.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
 
       // Loop over current & previous timesteps
       for (int t=time_stepper_pt()->nprev_values(); t>=0; t--)
@@ -294,8 +299,10 @@ namespace oomph
           std::cout << "setting IC at time =" << time << std::endl;
 
           // Get + set the (only) value
-          double val = exact_solution(time);
-          mesh_pt()->element_pt(0)->internal_data_pt(0)->set_value(t, 0, val);
+          Vector<double> dummy;
+          Vector<double> values = ic_fpt(time, dummy);
+          mesh_pt()->element_pt(0)->internal_data_pt(0)
+            ->set_value(t, 0, values[0]);
         }
     }
 
