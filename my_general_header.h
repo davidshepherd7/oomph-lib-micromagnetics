@@ -894,6 +894,9 @@ namespace oomph
 
         specify_command_line_flag("-error-norm-limit", &error_norm_limit);
         error_norm_limit = -1.0;
+
+        specify_command_line_flag("-disable-explicit-solver-optimisations");
+
       }
 
     void parse(int argc, char *argv[])
@@ -999,7 +1002,10 @@ namespace oomph
 
       doc_times = doc_times_factory(doc_times_interval, tmax);
 
+      // Store boolean flags
       use_fd_jacobian = command_line_flag_has_been_set("-fd-jac");
+      disable_explicit_solver_optimisations =
+        command_line_flag_has_been_set("-disable-explicit-solver-optimisations");
 
       // Build the meshes using whatever function the sub class defines
       build_meshes();
@@ -1016,6 +1022,8 @@ namespace oomph
         << "refinement " << refinement << std::endl
         << "newton-tol " << newton_tol << std::endl
         << "error-norm-limit " << error_norm_limit << std::endl
+        << "disable-explicit-solver-optimisations "
+        << disable_explicit_solver_optimisations << std::endl
 
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
@@ -1118,6 +1126,7 @@ namespace oomph
     bool use_fd_jacobian;
     unsigned max_steps;
     double error_norm_limit;
+    bool disable_explicit_solver_optimisations;
 
     std::string outdir;
     std::string output_jacobian;

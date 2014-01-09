@@ -658,24 +658,27 @@ namespace oomph
             Dim = 0;
           }
 
-        // Set the solver for explicit timesteps (mass matrix) to CG with a
-        // diagonal predconditioner.
-        IterativeLinearSolver* expl_solver_pt = new CG<CRDoubleMatrix>;
-        expl_solver_pt->preconditioner_pt() =
-          new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
+        if(!Disable_explicit_solver_optimisations)
+          {
+            // Set the solver for explicit timesteps (mass matrix) to CG with a
+            // diagonal predconditioner.
+            IterativeLinearSolver* expl_solver_pt = new CG<CRDoubleMatrix>;
+            expl_solver_pt->preconditioner_pt() =
+              new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
 
-        // If it takes more than 100 iterations then something has almost
-        // certainly gone wrong!
-        expl_solver_pt->max_iter() = 100;
-        expl_solver_pt->enable_error_after_max_iter();
-        explicit_solver_pt() = expl_solver_pt;
+            // If it takes more than 100 iterations then something has almost
+            // certainly gone wrong!
+            expl_solver_pt->max_iter() = 100;
+            expl_solver_pt->enable_error_after_max_iter();
+            explicit_solver_pt() = expl_solver_pt;
 
-        // expl_solver_pt->enable_doc_convergence_history();
+            // expl_solver_pt->enable_doc_convergence_history();
 
-        // Store + re-use the mass matrix used in explicit steps (since we
-        // are almost certainly not going to do spatially adaptivity
-        // anytime soon this is safe).
-        this->enable_mass_matrix_reuse();
+            // Store + re-use the mass matrix used in explicit steps (since we
+            // are almost certainly not going to do spatially adaptivity
+            // anytime soon this is safe).
+            this->enable_mass_matrix_reuse();
+          }
       }
 
     /// \short Get problem dimension (nodal dimension).
@@ -742,6 +745,10 @@ namespace oomph
     std::string Info_filename;
 
     double Error_norm_limit;
+
+    /// Option to turn off optimisation of the linear solves needed for
+    /// explicit timestepping (for debugging purposes).
+    bool Disable_explicit_solver_optimisations;
 
   protected:
 
