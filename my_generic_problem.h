@@ -231,24 +231,40 @@ namespace oomph
 
     double min_element_size()
       {
-        double min_size = mesh_pt(0)->finite_element_pt(0)->size();
+        // Check that we have finite elements ??ds this will still go wrong
+        // if there are only some none finite elements in the mesh...
 
-        // Loop over all meshes in problem
-        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        //??ds what happens with face elements?
+        FiniteElement* test_pt = dynamic_cast<FiniteElement*>
+          (mesh_pt(0)->element_pt(0));
+
+        if(test_pt != 0)
           {
-            Mesh* mesh_pt = this->mesh_pt(msh);
-            for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+            double min_size = mesh_pt(0)->finite_element_pt(0)->size();
+
+            // Loop over all meshes in problem
+            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
               {
-                FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
-                double new_size = ele_pt->size();
-                if(new_size < min_size)
+                Mesh* mesh_pt = this->mesh_pt(msh);
+                for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
                   {
-                    min_size = new_size;
+                    FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
+                    double new_size = ele_pt->size();
+                    if(new_size < min_size)
+                      {
+                        min_size = new_size;
+                      }
                   }
               }
-          }
 
-        return min_size;
+            return min_size;
+          }
+        // If it's not a finite element then we can't get a size so return
+        // a dummy value.
+        else
+          {
+            return Dummy_doc_data;
+          }
       }
 
     /// \short Write some general data about the previous time step to a
