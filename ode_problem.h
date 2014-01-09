@@ -316,6 +316,11 @@ namespace oomph
       trace_file << Trace_seperator << exact_solution(time());
     }
 
+    double get_error_norm() const
+    {
+      return std::abs(trace_value() - exact_solution(time()));
+    }
+
     double exact_solution(const double& time) const
     {
       ODEElement* el_pt = checked_dynamic_cast<ODEElement*>
