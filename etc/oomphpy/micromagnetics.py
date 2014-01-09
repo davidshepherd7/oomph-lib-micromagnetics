@@ -24,6 +24,21 @@ from os.path import join as pjoin
 from pprint import pprint
 
 
+def cleandir(dirname):
+    """(Re)make a directory called dirname.
+    """
+
+    # If it exists then delete all files (won't touch subdirs though) and
+    # the folder itself. This will fail if we have any subdirs (for safety).
+    if os.path.isdir(dirname):
+        for f in os.listdir(dirname):
+            os.unlink(pjoin(dirname, f))
+        os.rmdir(dirname)
+
+    # Make the directory and any parents needed
+    os.makedirs(dirname)
+
+
 def _is_iterable(item):
     # Add types here you don't want to mistake as iterables
     if isinstance(item, basestring):
@@ -115,3 +130,74 @@ def parse_trace_file(filename):
     data['unix_timestamp_diffs'] = differences(data['unix_timestamp'])
 
     return data
+
+
+def boolean_flags():
+    """A list of flags which are just either enabled or not. Inside function so
+    it's global but harder to accidentally modify.
+    """
+    return ['decoupled-ms', 'disable-ms', 'fd-jac']
+
+
+def argdict2list(argdict):
+    """Convert a dictionary of arguments into a command line list ready to be
+    run.
+    """
+
+    special_keys = ['mpi_ncores', 'binary', 'driver'] + boolean_flags()
+
+    # Convert any keyword args into correct format for command line input.
+    processed_kwargs = []
+    for key, value in argdict.items():
+        if key not in special_keys:
+            processed_kwargs.append('-'+str(key))
+            processed_kwargs.append(str(value))
+
+        # If it's a bool flag then either add it or don't, depending on the
+        # boolean value
+        elif key in boolean_flags():
+            if value:
+                processed_kwargs.append('-'+str(key))
+            else:
+                pass
+
+
+    # If mpi_ncores is in the dict then run with mpi and that many cores,
+    # otherwise don't use mpi.
+    maybe_mpi = []
+    mpi_cores = argdict.get('mpi_ncores')
+    if mpi_cores is not None:
+        maybe_mpi = ['mpirun', '-np', str(mpi_cores)]
+
+
+    # Construct argument list
+    arglist = (maybe_mpi
+               + [str(argdict['binary']), str(argdict['driver'])]
+               + processed_kwargs)
+
+    return arglist
+
+
+def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
+    """Run function with all combinations of parameters in parallel using
+    all available cores.
+
+    parameter_lists should be a list of lists of parameters,
+    """
+
+    import multiprocessing
+
+    # Generate a complete set of combinations of parameters
+    parameter_sets = [dict(zip(parameter_dictionary, x))
+                      for x in it.product(*parameter_dictionary.values())]
+
+    # For debugging we often need to run in serial (to get useful stack
+    # traces).
+    if serial_mode:
+        results = map(function, parameter_sets)
+
+    else:
+        # Run in all parameter sets in parallel
+        results = multiprocessing.Pool().map(function, parameter_sets, 1)
+
+    return results

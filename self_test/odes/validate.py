@@ -46,27 +46,13 @@ def fail_message(outdirname, maxerror=None, maxlteerror=None):
             print(hstdout.read())
 
 
-def cleandir(dirname):
-    """(Re)make a directory called dirname.
-    """
-
-    # If it exists then delete all files (won't touch subdirs though) and
-    # the folder itself. This will fail if we have any subdirs (for safety).
-    if os.path.isdir(dirname):
-        for f in os.listdir(dirname):
-            os.unlink(pjoin(dirname, f))
-        os.rmdir(dirname)
-
-    # Make the directory and any parents needed
-    os.makedirs(dirname)
-
 
 def constant_dt_test(exact, timestepper):
     maxerrortol = 0.1
 
     outdir = pjoin("Validation", exact + "_" + timestepper)
 
-    cleandir(outdir)
+    mm.cleandir(outdir)
 
     # Run the command, put stdout + stderr into a file
     with open(pjoin(outdir, "stdout"), 'w') as hstdout:
@@ -106,7 +92,7 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
     outdir = pjoin("Validation", exact + "_adaptive" + timestepper
                    + "_" + predictor)
 
-    cleandir(outdir)
+    mm.cleandir(outdir)
 
     # Run the command, put stdout + stderr into a file
     with open(pjoin(outdir, "stdout"), 'w') as hstdout:

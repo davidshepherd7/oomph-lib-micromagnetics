@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Future proofing
 from __future__ import print_function
@@ -21,6 +21,10 @@ import itertools as it
 import functools as ft
 import scipy as sp
 
+# My code
+import oomphpy
+import oomphpy.micromagnetics as mm
+
 # Imports for specific functions
 from functools import partial as par
 from os.path import join as pjoin
@@ -37,75 +41,23 @@ redColour = '\033[01;31m'
 endColour = '\033[0m'
 
 
-# def recursive_check_filenames_rm_safe(root_dir):
-#     """Check that all files inside a directory are only output from my drivers,
-#     and so safe to be deleted.
-#     """
-#     whitelist = ["info", "trace", "stdout", "soln.pvd", "run_script.sh",
-#                  ".dummy_check.dat", "FAILED",
-#                  "info.gz", "trace.gz", "stdout.gz", ".dummy_check.dat.gz",
-#                  "FAILED.gz", "averages", "errors", "field_averages",
-#                  "solndatfiles.tar.bz2"]
-
-#     regex_whitelist = map(re.compile,
-#                           [r"\A(soln|phione|field)(\d*)\.(dat|dat\.gz|vtu)$",
-#                            r"jacobian.*", r"residual.*", r".*~"])
-
-#     def safe(f):
-#         safe_wl = f in whitelist
-#         safe_re = any([(r.match(f) is not None) for r in regex_whitelist])
-#         print(safe_wl, safe_re)
-#         return safe_wl or safe_re
-
-#     for root, dirs, files in os.walk(root_dir):
-#         for f in files:
-#             if not safe(f):
-#                 print(f)
-#                 raise Exception("Tried to delete non whitelisted file: \""+f+"\"")
-
-def boolean_flags():
-    """A list of flags which are just either enabled or not. Inside function so
-    it's global but harder to accidentally modify.
-    """
-    return ['decoupled-ms', 'fd-jac']
-
 def execute_oomph_driver(args_dict, output_root):
 
-    # Convert any keyword args into correct format for command line input.
-    processed_kwargs = []
-    for key, value in args_dict.items():
-        if key not in ['mpi_ncores', 'binary', 'driver', 'outdir'] + boolean_flags():
-            processed_kwargs.append('-'+str(key))
-            processed_kwargs.append(str(value))
+    # Convert the dict to a list
+    arglist = mm.argdict2list(args_dict)
 
-        # If it's a bool flag then either add it or don't
-        elif key in boolean_flags():
-            if value:
-                processed_kwargs.append('-'+str(key))
-            else:
-                pass
-
-
-    # Construct an output directory name based on inputs if not specified.
-    if args_dict.get('outdir') is None:
+    # Construct an output directory name based on inputs if one has not
+    # been specified.
+    outdir = args_dict.get('outdir')
+    if outdir is None:
         # Create a hash of the inputs and use it to label the folder
         h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.items()]).encode())
         outdir = ("results_" + h.hexdigest())
+
     final_outdir = pjoin(output_root, outdir)
 
     # Make sure the directory is empty and exists
-    try:
-        os.makedirs(final_outdir)
-    except OSError:
-        for result_file in glob(pjoin(final_outdir, "*")):
-            os.remove(result_file)
-
-    # Construct argument list
-    arglist = (['mpirun', '-np', str(args_dict.get('mpi_ncores', 1)),
-                str(args_dict['binary']),
-                str(args_dict['driver']),
-                '-outdir', final_outdir]
-               + processed_kwargs)
+    mm.cleandir(final_outdir)
 
     # Write the command used to a file
     with open(pjoin(final_outdir, "run_script.sh"), 'w') as script_file:
@@ -147,42 +99,6 @@ def build_driver(folder):
                     'LIBTOOLFLAGS=--silent'], cwd=folder)
 
 
-def _apply_to_list(function, list_of_args):
-    """Does what it says. Should really be a lambda function but
-    multiprocessing requires named functions
-    """
-    return function(*list_of_args)
-
-
-def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
-    """Run function with all combinations of parameters in parallel using
-    all available cores.
-
-    parameter_lists should be a list of lists of parameters,
-    """
-
-    import multiprocessing
-
-    # Generate a complete set of combinations of parameters
-    parameter_sets = [dict(zip(parameter_dictionary, x))
-                      for x in it.product(*parameter_dictionary.values())]
-
-    # multiprocessing doesn't include a "starmap", requires all functions
-    # to take a single argument. Use a function wrapper to fix this. Also
-    # print the list of args while we're in there.
-
-    # For debugging we often need to run in serial (to get useful stack
-    # traces).
-    if serial_mode:
-        results = map(function, parameter_sets)
-
-    else:
-        # Run in all parameter sets in parallel
-        results = multiprocessing.Pool().map(function, parameter_sets, 1)
-
-    return results
-
-
 def milan_jacobians(parameter_set, serial_mode=False):
 
     # Presumably we will always be using the implicit driver...
@@ -211,7 +127,7 @@ def milan_jacobians(parameter_set, serial_mode=False):
               output_root='../experiments/jacobian_sweeps')
 
     # Run the parameter sweep!
-    parallel_parameter_sweep(fun, args_dict, serial_mode)
+    mm.parallel_parameter_sweep(fun, args_dict, serial_mode)
 
     return 0
 
@@ -573,7 +489,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     # Run the parameter sweep!
     fun = par(execute_oomph_driver, output_root=output_root)
-    parallel_parameter_sweep(fun, args_dict, serial_mode)
+    mm.parallel_parameter_sweep(fun, args_dict, serial_mode)
 
     return 0
 
