@@ -48,7 +48,7 @@ def execute_oomph_driver(args_dict, output_root):
 
     # Construct an output directory name based on inputs if one has not
     # been specified.
-    outdir = args_dict.get('outdir')
+    outdir = args_dict.get('-outdir')
     if outdir is None:
         # Create a hash of the inputs and use it to label the folder
         h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.items()]).encode())
@@ -107,16 +107,16 @@ def milan_jacobians(parameter_set, serial_mode=False):
     # Construct lists of args
     if parameter_set == "initial":
         args_dict = {
-            'binary' : "./llg_driver/llg_driver",
-            'dt' : [0.1, 0.05, 0.01, 0.001],
-            'tmax' : [0.001],
-            'tol' : [0.0],
-            'ref' : [1, 2, 3, 4, 5],
-            'ts' : ["bdf2"],
-            'initm' : ['smoothly_varying'],
-            'happ' : ['x', 'y', 'z'],
-            'mesh' : ['sq_square', 'ut_square'],
-            'output-jac' : ['at_end']
+            '-binary' : "./llg_driver/llg_driver",
+            '-dt' : [0.1, 0.05, 0.01, 0.001],
+            '-tmax' : [0.001],
+            '-tol' : [0.0],
+            '-ref' : [1, 2, 3, 4, 5],
+            '-ts' : ["bdf2"],
+            '-initm' : ['smoothly_varying'],
+            '-happ' : ['x', 'y', 'z'],
+            '-mesh' : ['sq_square', 'ut_square'],
+            '-output-jac' : ['at_end']
             }
         # more parameter sets go here
     else:
@@ -135,48 +135,48 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     if parameter_set == 'nmag_cubeoid':
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-4],
-            'tmax' : [60.0],
-            'tol' : [1e-3, 1e-4, 1e-5],
-            'ref' : [4],
-            'ts' : ['midpoint', 'bdf2'],
-            'initm' : ['xz'],
-            'happ' : ['zero'],
-            'mesh' : ['sq_cubeoid'],
-            'solver' : ['gmres'],
-            'prec' : ['amg']
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-4],
+            '-tmax' : [60.0],
+            '-tol' : [1e-3, 1e-4, 1e-5],
+            '-ref' : [4],
+            '-ts' : ['midpoint', 'bdf2'],
+            '-initm' : ['xz'],
+            '-happ' : ['zero'],
+            '-mesh' : ['sq_cubeoid'],
+            '-solver' : ['gmres'],
+            '-prec' : ['amg']
             }
 
     elif parameter_set == 'const_dt_nmag_cubeoid':
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-2, 5e-3],
-            'tmax' : [20.0],
-            'tol' : [0.0],
-            'ref' : [2, 3, 4],
-            'ts' : ['midpoint', 'bdf2'],
-            'initm' : ['xz'],
-            'happ' : ['zero'],
-            'mesh' : ['sq_cubeoid'],
-            'solver' : ['gmres'],
-            'prec' : ['amg']
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-2, 5e-3],
+            '-tmax' : [20.0],
+            '-tol' : [0.0],
+            '-ref' : [2, 3, 4],
+            '-ts' : ['midpoint', 'bdf2'],
+            '-initm' : ['xz'],
+            '-happ' : ['zero'],
+            '-mesh' : ['sq_cubeoid'],
+            '-solver' : ['gmres'],
+            '-prec' : ['amg']
             }
 
     elif parameter_set == 'nmag_cubeoid_llg_prec':
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [5e-4],
-            'tmax' : [20.0],
-            'tol' : [1e-4],
-            'ref' : [4],
-            'ts' : ['bdf2'],
-            'initm' : ['xz'],
-            'happ' : ['zero'],
-            'mag-params' :["simple-llg"],
-            'mesh' : ['sq_cubeoid'],
-            'solver' : ['gmres'],
-            'prec' : ['blockllg-uppertriangular-blockexact-xy-exact',
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [5e-4],
+            '-tmax' : [20.0],
+            '-tol' : [1e-4],
+            '-ref' : [4],
+            '-ts' : ['bdf2'],
+            '-initm' : ['xz'],
+            '-happ' : ['zero'],
+            '-mag-params' :["simple-llg"],
+            '-mesh' : ['sq_cubeoid'],
+            '-solver' : ['gmres'],
+            '-prec' : ['blockllg-uppertriangular-blockexact-xy-exact',
                                 'blockllg-uppertriangular-blockexact-xz-exact',
                                 'blockllg-uppertriangular-blockexact-yz-exact',
                                 ]
@@ -184,63 +184,63 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'script_test':
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-4],
-            'tmax' : [1.0],
-            'tol' : [1e-3],
-            'ref' : [2],
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-dt' : [1e-4],
+            '-tmax' : [1.0],
+            '-tol' : [1e-3],
+            '-ref' : [2],
             }
 
     elif parameter_set == 'unsteady_heat_midpoint_vs_bdf2':
         args_dict = {
-            'binary' : ["./unsteady_heat_driver/unsteady_heat_driver"],
-            'dt' : [1e-4],
-            'tmax' : [10.0],
-            'tol' : [1e-2, 5e-3, 1e-3],
-            'ts' : ['midpoint', 'bdf2'],
+            '-binary' : ["./unsteady_heat_driver/unsteady_heat_driver"],
+            '-dt' : [1e-4],
+            '-tmax' : [10.0],
+            '-tol' : [1e-2, 5e-3, 1e-3],
+            '-ts' : ['midpoint', 'bdf2'],
             }
 
     elif parameter_set == 'cubeoid-timestep-newton-convergence':
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-4, 1e-5, 1e-6, 1e-7, 1e-8],
-            'tmax' : [1e-8],
-            'tol' : [0.0],
-            'ref' : [3],
-            'ts' : ['bdf2'],
-            'initm' : ['z'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
-            'solver' : ['superlu'],
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-dt' : [1e-4, 1e-5, 1e-6, 1e-7, 1e-8],
+            '-tmax' : [1e-8],
+            '-tol' : [0.0],
+            '-ref' : [3],
+            '-ts' : ['bdf2'],
+            '-initm' : ['z'],
+            '-happ' : ['minus_z'],
+            '-mesh' : ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
+            '-solver' : ['superlu'],
             }
 
     elif parameter_set == 'oscillating_fields':
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'dt' : [1e-4],
-            'tmax' : [200],
-            'tol' : [1e-3, 5e-4, 1e-4, 1e-5],
-            'ref' : [2,3,4],
-            'ts' : ['bdf2', 'midpoint'],
-            'initm' : ['z'],
-            'happ' : ['z_oscillating_p20'],
-            'mesh' : ['sq_square'],
-            'mag-params' :["simple-llg-max-damped"]
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-dt' : [1e-4],
+            '-tmax' : [200],
+            '-tol' : [1e-3, 5e-4, 1e-4, 1e-5],
+            '-ref' : [2,3,4],
+            '-ts' : ['bdf2', 'midpoint'],
+            '-initm' : ['z'],
+            '-happ' : ['z_oscillating_p20'],
+            '-mesh' : ['sq_square'],
+            '-mag-params' :["simple-llg-max-damped"]
             }
 
 
     elif parameter_set == "prec_fast":
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'dt' : [0.01],
-            'ref' : [2],
-            'tmax' : [1.0],
-            'ts' : ["bdf2"],
-            'initm' : ['smoothly_varying_50'],
-            'happ' : ['x', 'y', 'z'],
-            'mesh' : ['sq_square', 'ut_square'],
-            'solver' : ['gmres'],
-            'prec': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-dt' : [0.01],
+            '-ref' : [2],
+            '-tmax' : [1.0],
+            '-ts' : ["bdf2"],
+            '-initm' : ['smoothly_varying_50'],
+            '-happ' : ['x', 'y', 'z'],
+            '-mesh' : ['sq_square', 'ut_square'],
+            '-solver' : ['gmres'],
+            '-prec': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
                      'blockllg-uppertriangular-blockantidiagonal-xz-exact',
                      'blockllg-uppertriangular-blockantidiagonal-yz-exact',
                      ]
@@ -249,16 +249,16 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "prec":
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'dt' : [0.1, 0.05, 0.01, 0.001],
-            'ref' : [1, 2, 3, 4],
-            'tmax' : [1.0],
-            'ts' : ["bdf2"],
-            'initm' : ['smoothly_varying_50'],
-            'happ' : ['x', 'y', 'z', 'all_directions'],
-            'mesh' : ['sq_square', 'ut_square', 'ut_sphere'],
-            'solver' : ['gmres'],
-            'prec': ['blockllg-uppertriangular-blockexact-xy-exact',
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-dt' : [0.1, 0.05, 0.01, 0.001],
+            '-ref' : [1, 2, 3, 4],
+            '-tmax' : [1.0],
+            '-ts' : ["bdf2"],
+            '-initm' : ['smoothly_varying_50'],
+            '-happ' : ['x', 'y', 'z', 'all_directions'],
+            '-mesh' : ['sq_square', 'ut_square', 'ut_sphere'],
+            '-solver' : ['gmres'],
+            '-prec': ['blockllg-uppertriangular-blockexact-xy-exact',
                      'blockllg-uppertriangular-blockexact-xz-exact',
                      'blockllg-uppertriangular-blockexact-yz-exact',
                      ]
@@ -266,197 +266,197 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == "adaptive-midpoint-conservation":
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-5],
-            'tol' : [1e-2, 1e-3, 1e-4],
-            'ref' : [3, 4, 5],
-            'tmax' : [10.0],
-            'ts' : ["bdf2", "midpoint"],
-            'initm' : ['smoothly_varying_50'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_square'],
-            'renorm_m' : [0]
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-5],
+            '-tol' : [1e-2, 1e-3, 1e-4],
+            '-ref' : [3, 4, 5],
+            '-tmax' : [10.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-initm' : ['smoothly_varying_50'],
+            '-happ' : ['minus_z'],
+            '-mesh' : ['ut_square'],
+            '-renorm_m' : [0]
             }
 
     elif parameter_set == "fixed-step-midpoint-conservation":
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
-            'ref' : [3],
-            'tmax' : [5.0],
-            'ts' : ["bdf2", "midpoint"],
-            'initm' : ['z'],
-            'happ' : ['minus_z'],
-            'mesh' : ['ut_sphere'],
-            'renorm_m' : [1]
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-1, 1e-2, 1e-3, 5e-3],
+            '-ref' : [3],
+            '-tmax' : [5.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-initm' : ['z'],
+            '-happ' : ['minus_z'],
+            '-mesh' : ['ut_sphere'],
+            '-renorm_m' : [1]
             }
 
     elif parameter_set == "zero-damping":
         args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-1, 1e-2, 1e-3, 5e-3],
-            'ref' : [3],
-            'tmax' : [5.0],
-            'ts' : ["bdf2", "midpoint"],
-            'mesh' : ['sq_square'],
-            'renorm_m' : [1],
-            'dampc' : [0]
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-1, 1e-2, 1e-3, 5e-3],
+            '-ref' : [3],
+            '-tmax' : [5.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-mesh' : ['sq_square'],
+            '-renorm_m' : [1],
+            '-dampc' : [0]
             }
 
     elif parameter_set == "adaptive-midpoint":
         args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'tol' : [1e-2, 1e-3, 1e-4],
-            'ref' : [1],
-            'tmax' : [4.0],
-            'ts' : ["bdf2", "midpoint"],
-            'mesh' : ['sq_square'],
-            'renorm_m' : [1],
-            'dampc' : [0.5],
-            'resi' : ["ll"]
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-tol' : [1e-2, 1e-3, 1e-4],
+            '-ref' : [1],
+            '-tmax' : [4.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-mesh' : ['sq_square'],
+            '-renorm_m' : [1],
+            '-dampc' : [0.5],
+            '-resi' : ["ll"]
             }
 
     elif parameter_set == "ode-test":
          args_dict = {
-            'binary' : ["./ode_problem/ode_problem"],
-            'tol' : [1e-2, 1e-3],
-            'tmax' : [10.0],
-            'ts' : ["bdf2", "midpoint"],
-            'mp-pred' : ["edbdf3", "rk4"]
+            '-binary' : ["./ode_problem/ode_problem"],
+            '-tol' : [1e-2, 1e-3],
+            '-tmax' : [10.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-mp-pred' : ["edbdf3", "rk4"]
             }
 
     elif parameter_set == "multi-domain-failures":
          args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'dt' : [1e-4, 1e-5],
-            'tmax' : [1.0],
-            'ts' : ["bdf2", "midpoint"],
-            'mesh' : ['multi_ut_square', 'multi_sq_square'],
-            'renorm_m' : [1],
-            'ref' : [3],
-            'doc-interval' : ["all"]
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-dt' : [1e-4, 1e-5],
+            '-tmax' : [1.0],
+            '-ts' : ["bdf2", "midpoint"],
+            '-mesh' : ['multi_ut_square', 'multi_sq_square'],
+            '-renorm_m' : [1],
+            '-ref' : [3],
+            '-doc-interval' : ["all"]
             }
 
     elif parameter_set == "multi-domain-squares":
          args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'tmax' : [1e-10],
-            'ts' : ["midpoint"],
-            'mesh' : ['multi_sq_square', 'sq_square'],
-            'ref' : [1],
-            'happ' : ['zero'],
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-tmax' : [1e-10],
+            '-ts' : ["midpoint"],
+            '-mesh' : ['multi_sq_square', 'sq_square'],
+            '-ref' : [1],
+            '-happ' : ['zero'],
             }
 
     elif parameter_set == "multi-domain-spheres-energy-test":
          args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'tmax' : [1e-10],
-            'ts' : ["midpoint"],
-            'mesh' : ['multi_ut_sphere', 'ut_sphere'],
-            'ref' : [3],
-            'happ' : ['zero'],
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-tmax' : [1e-10],
+            '-ts' : ["midpoint"],
+            '-mesh' : ['multi_ut_sphere', 'ut_sphere'],
+            '-ref' : [3],
+            '-happ' : ['zero'],
             }
 
     elif parameter_set == "compare-implicitness-semi":
          args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'tmax' : [20],
-            'ts' : ["bdf2"],
-            'mesh' : ['many_ut_square'],
-            'ref' : [3, 4],
-            'tol' : [1e-1, 1e-3, 1e-5],
-            'dt' : [1e-6],
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-tmax' : [20],
+            '-ts' : ["bdf2"],
+            '-mesh' : ['many_ut_square'],
+            '-ref' : [3, 4],
+            '-tol' : [1e-1, 1e-3, 1e-5],
+            '-dt' : [1e-6],
             }
 
     elif parameter_set == "compare-implicitness-implicit":
          args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'tmax' : [20],
-            'ts' : ["bdf2"],
-            'mesh' : ['many_ut_square'],
-            'ref' : [3, 4],
-            'tol' : [1e-1, 1e-3, 1e-5],
-            'dt' : [1e-6],
-            'implicit-ms' : [True],
-            'solver' : ['som-gmres'],
-            'prec' : ['som-main-exact']
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-tmax' : [20],
+            '-ts' : ["bdf2"],
+            '-mesh' : ['many_ut_square'],
+            '-ref' : [3, 4],
+            '-tol' : [1e-1, 1e-3, 1e-5],
+            '-dt' : [1e-6],
+            '-implicit-ms' : [True],
+            '-solver' : ['som-gmres'],
+            '-prec' : ['som-main-exact']
             }
 
     elif parameter_set == "check-single-ele-mesh":
          args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'tmax' : [10],
-            'ts' : ["bdf2", "rk4"],
-            'mesh' : ['single-element'],
-            'dt' : [1e-2, 1e-1, 1e-3],
-            'resi' : ['ll'],
-            'fd-jac' : [True],
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-tmax' : [10],
+            '-ts' : ["bdf2", "rk4"],
+            '-mesh' : ['single-element'],
+            '-dt' : [1e-2, 1e-1, 1e-3],
+            '-resi' : ['ll'],
+            '-fd-jac' : [True],
             }
 
 
     elif parameter_set == "coarse-blocked-ut-preconditioner":
          args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'tmax' : [10.0],
-            'ts' : ["bdf2"],
-            'mesh' : ['sq_square', 'ut_sphere'],
-            'dt' : [0.5, 0.1],
-            'ref' : [2, 4, 5],
-            'implicit-ms' : [True],
-            'solver' : ['som-gmres'],
-            'prec' : ['som-main-blockut'],
-            'blocking' : ['group-m-phi-phi-boundary'],
-            'scale' : [1, 1000],
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-tmax' : [10.0],
+            '-ts' : ["bdf2"],
+            '-mesh' : ['sq_square', 'ut_sphere'],
+            '-dt' : [0.5, 0.1],
+            '-ref' : [2, 4, 5],
+            '-implicit-ms' : [True],
+            '-solver' : ['som-gmres'],
+            '-prec' : ['som-main-blockut'],
+            '-blocking' : ['group-m-phi-phi-boundary'],
+            '-scale' : [1, 1000],
             }
 
     elif parameter_set == "blah":
          args_dict = {
-            'binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            'tmax' : [20],
-            'ts' : ["rk2"],
-            'dt' : [0.1, 1e-2, 1e-3, 1e-4],
-            'scale' : [10],
-            'resi' : ['ll'],
+            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
+            '-tmax' : [20],
+            '-ts' : ["rk2"],
+            '-dt' : [0.1, 1e-2, 1e-3, 1e-4],
+            '-scale' : [10],
+            '-resi' : ['ll'],
             }
 
 
     elif parameter_set == "blah2":
          args_dict = {
-            'binary' : ["./llg_driver/llg_driver"],
-            'tmax' : [20],
-            'ts' : ["bdf2"],
-            'tol' : [1e-3, 1e-4],
-            'scale' : [10],
-            'implicit-ms' : [True],
-            'solver' : ['som-gmres'],
-            'prec' : ['som-main-blockut'],
+            '-binary' : ["./llg_driver/llg_driver"],
+            '-tmax' : [20],
+            '-ts' : ["bdf2"],
+            '-tol' : [1e-3, 1e-4],
+            '-scale' : [10],
+            '-implicit-ms' : [True],
+            '-solver' : ['som-gmres'],
+            '-prec' : ['som-main-blockut'],
             }
 
     elif parameter_set == "implicit-vs-explicit-ms":
          args_dict = {
-            'binary' : ["./driver/driver"],
-            'driver' : ['llg'],
-            'tmax' : [10.0],
-            'ts' : ["bdf2"],
-            'mesh' : ['sq_cubeoid'],
-            'tol' : [1e-3],
-            'ref' : [0, 1],
-            'decoupled-ms' : [True, False],
-            'solver' : ['som-gmres'],
-            'prec' : ['som-main-blockut'],
-            'blocking' : ['group-m-phi-phi-boundary'],
+            '-binary' : ["./driver/driver"],
+            '-driver' : ['llg'],
+            '-tmax' : [10.0],
+            '-ts' : ["bdf2"],
+            '-mesh' : ['sq_cubeoid'],
+            '-tol' : [1e-3],
+            '-ref' : [0, 1],
+            '-decoupled-ms' : [True, False],
+            '-solver' : ['som-gmres'],
+            '-prec' : ['som-main-blockut'],
+            '-blocking' : ['group-m-phi-phi-boundary'],
             }
 
     elif parameter_set == "decoupled-ms-debug":
          args_dict = {
-            'binary' : ["./driver/driver"],
-            'driver' : ['llg'],
-            'max-steps' : [1],
-            'solver' : ['fdlu', 'superlu'],
-            'ts' : ["bdf2", 'midpoint-bdf'],
-            'mesh' : ["ut_square"],
-            'ref' : [1, 2, 3, 4],
-            'decoupled-ms' : [True],
+            '-binary' : ["./driver/driver"],
+            '-driver' : ['llg'],
+            '-max-steps' : [1],
+            '-solver' : ['fdlu', 'superlu'],
+            '-ts' : ["bdf2", 'midpoint-bdf'],
+            '-mesh' : ["ut_square"],
+            '-ref' : [1, 2, 3, 4],
+            '-decoupled-ms' : [True],
             }
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
