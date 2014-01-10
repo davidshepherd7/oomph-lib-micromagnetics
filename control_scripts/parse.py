@@ -139,8 +139,19 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     if keys_to_split_on is None:
        keys_to_split_on = []
 
-    parameter_sets = [{k: bigdict[k] for k in keys_to_split_on}
-                      for bigdict in big_dict_list]
+    parameter_sets = []
+    for bigdict in big_dict_list:
+        thisdict = {}
+        for k in keys_to_split_on:
+
+            # If key does not exist then ignore it
+            try:
+                thisdict[k] = bigdict[k]
+            except KeyError:
+                pass
+
+        parameter_sets.append(thisdict)
+
 
     # Use a set to get a unique list of parameter sets. Dictionaries cannot
     # be put into sets so we have to go via a tuple, i.e. list(dicts) ->
@@ -393,10 +404,21 @@ def multi_plot(data, keys_to_split_on, plot_function):
         # Plot this one
         fig = plot_function(dataset)
 
+
+        labels = []
+        for k in keys_to_split_on:
+            try:
+                this_str = str(dataset[0][k])
+                labels.append(this_str)
+
+            # Ignore keys that don't exist
+            except KeyError:
+                pass
+
         # Make a title based on the keys which specify this data set (all
         # data in dataset have the same value for the keys in
         # keys_to_split_on so we just get it from the first one).
-        fig.suptitle(' '.join([str(dataset[0][k]) for k in keys_to_split_on]))
+        fig.suptitle(' '.join(labels))
 
     return
 
