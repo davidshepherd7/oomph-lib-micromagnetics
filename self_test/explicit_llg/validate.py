@@ -14,11 +14,15 @@ import os.path
 import subprocess as subp
 import itertools as it
 import scipy as sp
+import functools as ft
+import glob
 
 from os.path import join as pjoin
+from functools import partial as par
 
 import oomphpy
 import oomphpy.micromagnetics as mm
+import fpdiff
 
 
 _driver_location = pjoin(os.path.abspath(os.path.curdir), "..",
@@ -42,19 +46,22 @@ def fail_message(outdirname, maxerror=None):
             print(hstdout.read())
 
 
-def _selftestrun(argdict):
+def selftestrun(argdict):
+
+    outdir = argdict.get("-outdir")
+    if outdir is None:
+        outdir = pjoin("Validation", argdict['-ts'] + str(argdict.get('-decoupled-ms')))
+        argdict['-outdir'] = outdir
 
     arglist = mm.argdict2list(argdict)
-
-    outdir = pjoin("Validation", argdict['-ts'])
 
     mm.cleandir(outdir)
 
     # Run the command, put stdout + stderr into a file
     with open(pjoin(outdir, "stdout"), 'w') as hstdout:
-        flag = subp.call(arglist + [ "-outdir", outdir],
-                                stdout=hstdout,
-                                stderr=subp.STDOUT)
+        flag = subp.call(arglist,
+                         stdout=hstdout,
+                         stderr=subp.STDOUT)
 
     try:
         data = mm.parse_trace_file(pjoin(outdir, "trace"))
@@ -64,14 +71,15 @@ def _selftestrun(argdict):
     return data, outdir, flag
 
 
-def selftestrun(argdict):
+def test_error_norms(argdict):
 
-    maxerrortol = 1e-3
+    maxerrortol = 3e-3
 
-    data, outdir, flag = _selftestrun(argdict)
+    data, outdir, flag = selftestrun(argdict)
 
     if flag != 0:
         fail_message(outdir)
+        return False
 
     errors = data['error_norms']
     assert all(errors >= 0)
@@ -86,9 +94,48 @@ def selftestrun(argdict):
         return True
 
 
+def test_vs_implicit(argdict):
+
+    implicit_dir = "validata"
+    implicit_data = mm.parse_trace_file(pjoin(implicit_dir, "trace"))
+    maxerrortol = 1e-3
+
+    data, outdir, flag = selftestrun(argdict)
+
+    if flag != 0:
+        fail_message(outdir)
+        return False
+
+    mx_diffs = implicit_data['mean_mxs'] - data['mean_mxs']
+    my_diffs = implicit_data['mean_mys'] - data['mean_mys']
+    mz_diffs = implicit_data['mean_mzs'] - data['mean_mzs']
+
+    maxerror = max(it.chain(mx_diffs, my_diffs, mz_diffs))
+
+    if maxerror > maxerrortol:
+        fail_message(outdir, maxerror)
+        return False
+    else:
+        pass_message(outdir)
+        return True
+
+
 def main():
 
-    argdicts = {
+    # Parse arguments
+    # ============================================================
+    parser = argparse.ArgumentParser(description=main.__doc__,
+    # Don't mess up my formating in the help message
+    formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--generate-validata', action = "store_true")
+    args = parser.parse_args()
+
+
+    # Run tests
+    # ============================================================
+
+    # Test without magnetostatics by comparison with Mallinson solution
+    noms_argdicts = {
         "-binary" : [_driver_location],
         "-driver" : ["ll"],
         "-dt": [0.05],
@@ -96,27 +143,47 @@ def main():
         "-mesh": ["sq_square"],
         "-disable-ms" : [True],
         "-ts" : ["rk2", "rk4"],
+        "-tmax" : [3],
         }
-
-    passes = mm.parallel_parameter_sweep(selftestrun, argdicts,
+    noms_passes = mm.parallel_parameter_sweep(test_error_norms, noms_argdicts,
                                          serial_mode=True)
 
-    # argdicts = {
-    #     "-binary" : [_driver_location],
-    #     "-driver" : ["ll"],
-    #     "-dt": [0.05],
-    #     "-scale": [5],
-    #     "-mesh": ["sq_square"],
-    #     "-disable-ms" : [True],
-    #     "-ts" : ["rk2", "rk4"],
-    #     }
+    # If requested then run fully implicit version to generate validata for
+    # magnetostatics test.
+    if args.generate_validata:
+        implicit_argdict = {
+            "-binary" : _driver_location,
+            "-driver" : "ll",
+            "-dt": 0.01,
+            "-scale": 5,
+            "-mesh": "sq_square",
+            "-decoupled-ms" : True,
+            "-ts" : "midpoint-bdf",
+            "-fd-jac" : True,
+            "-outdir" : "validata",
+            }
+        selftestrun(implicit_argdict)
 
-    # passes = mm.parallel_parameter_sweep(selftestrun, argdicts,
-    #                                      serial_mode=True)
 
-    # ??ds compare with implict!
+    # Test with magnetostatics by comparison with (fully) implicit
+    # timesteppers.
+    ms_argdicts = {
+        "-binary" : [_driver_location],
+        "-driver" : ["ll"],
+        "-dt": [0.01],
+        "-scale": [5],
+        "-mesh": ["sq_square"],
+        "-decoupled-ms" : [True],
+        "-ts" : ["rk2"], # Don't run rk4 because 4th order makes it
+                         # hard to compare with implicit methods (no
+                         # A-stable 4th order methods).
+        }
 
-    if all(passes):
+    # Now run explicit ones and compare
+    ms_passes = mm.parallel_parameter_sweep(test_vs_implicit, ms_argdicts,
+                                                      serial_mode=True)
+
+    if all(noms_passes) and all(ms_passes):
         return 0
     else:
         return 1

@@ -44,6 +44,19 @@ callgrind*
 *.edge
 sphere.0
 
+# Other outputs
+soln*.dat
+soln*.vtu
+soln*.dat.gz
+soln*.vtu.gz
+info.gz
+info
+trace
+trace.gz
+soln.pvd
+stdout
+stdout.gz
+
 # Generated headers
 git_version.h
 micromag.h
