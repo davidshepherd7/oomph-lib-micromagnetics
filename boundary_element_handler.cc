@@ -106,64 +106,8 @@ void BoundaryElementHandler::build_bem_matrix()
 //======================================================================
 void BoundaryElementHandler::build_bem_mesh()
 {
-#ifdef PARANOID
-  // Check list of BEM boundaries is not empty
-  if(Bem_boundaries.size() == 0)
-    {
-      std::ostringstream error_msg;
-      error_msg << "No BEM boundaries are set so there is no need"
-                << " to call build_bem_mesh().";
-      throw OomphLibWarning(error_msg.str(),
-                            "BoundaryElementHandler::build_bem_mesh",
-                            OOMPH_EXCEPTION_LOCATION);
-    }
-#endif
-
-  // Create a set to temporarily store the list of boundary nodes (we use a
-  // set because they automatically detect duplicates).
-  std::set<Node*> node_set;
-
-  // Loop over entries in Bem_boundaries vector.
-  for(unsigned i=0; i < Bem_boundaries.size(); i++)
-    {
-      // Get mesh pointer and boundary number from vector.
-      const unsigned b = Bem_boundaries[i].first;
-      const Mesh* mesh_pt = Bem_boundaries[i].second;
-
-      // Loop over the nodes on boundary b adding to the set of nodes.
-      for(unsigned n=0, nnd=mesh_pt->nboundary_node(b); n<nnd;n++)
-        {
-          node_set.insert(mesh_pt->boundary_node_pt(b,n));
-        }
-
-      // Loop over the elements on boundary b creating bem elements
-      for(unsigned e=0, ne=mesh_pt->nboundary_element(b); e<ne;e++)
-        {
-          int face_index = mesh_pt->face_index_at_boundary(b,e);
-
-          // Create the corresponding BEM Element
-          MicromagBEMElementEquations* bem_element_pt =
-            bem_element_factory(mesh_pt->boundary_element_pt(b,e),
-                                face_index);
-
-          // Add the new BEM element to the BEM mesh
-          Bem_mesh_pt->add_element_pt(bem_element_pt);
-
-          // Set integration pointer
-          bem_element_pt->set_integration_scheme(integration_scheme_pt());
-
-          // Set the mesh pointer
-          bem_element_pt->set_boundary_mesh_pt(bem_mesh_pt());
-        }
-    }
-
-  // Iterate over all nodes in the set and add them to the BEM mesh
-  std::set<Node*>::iterator it;
-  for(it=node_set.begin(); it!=node_set.end(); it++)
-    {
-      Bem_mesh_pt->add_node_pt(*it);
-    }
-
+  build_bem_mesh_helper(Bem_boundaries, Bem_element_factory_fpt,
+                        integration_scheme_pt(), *Bem_mesh_pt);
 }
 
 // =================================================================

@@ -199,7 +199,7 @@ namespace oomph
         // Figure out which element type we should use in the bem mesh
         // (based on the element type used in the bulk mesh) and store the
         // function needed to create them.
-        Bem_handler_pt->Bem_element_factory = LLGFactories::
+        Bem_handler_pt->Bem_element_factory_fpt = LLGFactories::
           bem_element_factory_factory(bulk_mesh_pts[0]->finite_element_pt(0));
 
         // Create an integration scheme ??ds move this outside somewhere...
@@ -408,7 +408,7 @@ namespace oomph
     // Only treat cases where the corners are rectangle-like for now
     Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
 
-    Bem_handler_pt->Bem_element_factory = Bem_element_factory_pt;
+    Bem_handler_pt->Bem_element_factory_fpt = Bem_element_factory_pt;
 
     oomph_info << "Creating BEM handler" << std::endl;
     Bem_handler_pt->build();

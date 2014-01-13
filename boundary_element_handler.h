@@ -30,6 +30,87 @@
 namespace oomph
 {
 
+
+  /// \short function pointer type for function to create a new BEM
+  /// element.
+  typedef MicromagBEMElementEquations*
+  (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
+
+
+  inline void build_bem_mesh_helper
+  (const Vector<std::pair<unsigned, const Mesh*> >& bem_boundaries,
+   BEMElementFactoryFctPt bem_element_factory_fpt,
+   Integral* integration_scheme_pt,
+   Mesh& bem_mesh)
+  {
+#ifdef PARANOID
+    // Check list of BEM boundaries is not empty
+    if(bem_boundaries.size() == 0)
+      {
+        std::ostringstream error_msg;
+        error_msg << "No BEM boundaries are set so there is no need"
+                  << " to call build_bem_mesh().";
+        throw OomphLibWarning(error_msg.str(),
+                              "BoundaryElementHandler::build_bem_mesh",
+                              OOMPH_EXCEPTION_LOCATION);
+      }
+
+
+    if(bem_element_factory_fpt == 0)
+      {
+        throw OomphLibError("BEM factory function is null",
+                            OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
+    // Create a set to temporarily store the list of boundary nodes (we use a
+    // set because they automatically detect duplicates).
+    std::set<Node*> node_set;
+
+    // Loop over entries in bem_boundaries vector.
+    for(unsigned i=0; i < bem_boundaries.size(); i++)
+      {
+        // Get mesh pointer and boundary number from vector.
+        const unsigned b = bem_boundaries[i].first;
+        const Mesh* mesh_pt = bem_boundaries[i].second;
+
+        // Loop over the nodes on boundary b adding to the set of nodes.
+        for(unsigned n=0, nnd=mesh_pt->nboundary_node(b); n<nnd;n++)
+          {
+            node_set.insert(mesh_pt->boundary_node_pt(b,n));
+          }
+
+        // Loop over the elements on boundary b creating bem elements
+        for(unsigned e=0, ne=mesh_pt->nboundary_element(b); e<ne;e++)
+          {
+            int face_index = mesh_pt->face_index_at_boundary(b,e);
+
+            // Create the corresponding BEM Element
+            MicromagBEMElementEquations* bem_element_pt =
+              bem_element_factory_fpt(mesh_pt->boundary_element_pt(b,e),
+                                      face_index);
+
+            // Add the new BEM element to the BEM mesh
+            bem_mesh.add_element_pt(bem_element_pt);
+
+            // Set integration pointer
+            bem_element_pt->set_integration_scheme(integration_scheme_pt);
+
+            // Set the mesh pointer
+            bem_element_pt->set_boundary_mesh_pt(&bem_mesh);
+          }
+      }
+
+    // Iterate over all nodes in the set and add them to the BEM mesh
+    std::set<Node*>::iterator it;
+    for(it=node_set.begin(); it!=node_set.end(); it++)
+      {
+        bem_mesh.add_node_pt(*it);
+      }
+
+  }
+
   // =================================================================
   /// Simple class to store a list of angles associated with nodes of the
   /// boundary element mesh for assembly of the matrix.
@@ -252,14 +333,9 @@ namespace oomph
 
   public:
 
-    /// \short function pointer type for function to create a new BEM
-    /// element.
-    typedef MicromagBEMElementEquations*
-    (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
-
     /// Default constructor
     BoundaryElementHandler() :
-      Bem_element_factory(0),
+      Bem_element_factory_fpt(0),
       Integration_scheme_pt(0), Bem_mesh_pt(0),
       Input_index(0), Output_index(0),
       Input_corner_data_pt(0)
@@ -447,17 +523,17 @@ namespace oomph
                                                      const int& face) const
     {
 #ifdef PARANOID
-      if(Bem_element_factory == 0)
+      if(Bem_element_factory_fpt == 0)
         {
           throw OomphLibError("No BEM factory function has been specified! Can't create BEM elements.",
                               OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return Bem_element_factory(fe_pt, face);
+      return Bem_element_factory_fpt(fe_pt, face);
     }
 
-    BEMElementFactoryFctPt Bem_element_factory;
+    BEMElementFactoryFctPt Bem_element_factory_fpt;
 
     /// \short Integrate BEM integrals by adaptive numerical integration or
     /// analytical integration.
