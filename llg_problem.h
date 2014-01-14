@@ -77,6 +77,7 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
+      Use_hlib = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -848,6 +849,7 @@ namespace oomph
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
+    bool Use_hlib;
 
     LLGResidualCalculator* Residual_calculator_pt;
 

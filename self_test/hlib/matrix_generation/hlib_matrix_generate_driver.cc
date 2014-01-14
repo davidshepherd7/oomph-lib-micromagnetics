@@ -27,6 +27,7 @@
 // the same as the one I'm using...
 
 using namespace TimingHelpers;
+using namespace factories;
 
 namespace hlib
 {
@@ -373,13 +374,11 @@ int main()
     hlib::HMatrix hmat;
   }
 
-  // Now build a real h-matrix and do some multiplication
+  // Make the bem mesh etc.
   // ============================================================
 
   // Make a mesh
   const std::string refinement_level = "1";
-  bool run_old_bem = false; // old version is very slow by comparison
-
   TetgenMesh<TMicromagElement<3, 2> > bulk_mesh
     ("./meshes/sphere." + to_string(refinement_level) + ".node",
      "./meshes/sphere." + to_string(refinement_level) + ".ele",
@@ -402,56 +401,29 @@ int main()
   build_bem_mesh_helper(bem_boundaries, bem_element_factory_fpt,
                         0, surface_mesh);
 
+
+  // Vectors for multiply test
+  // ============================================================
   const unsigned nbemnodes = surface_mesh.nnode();
-
-  // Use the bem mesh to make a h-matrix
-  double hbuildstart = timer();
-  hlib::HMatrix hmat;
-  hmat.build(surface_mesh);
-  double hbuildstop = timer();
-
-  outputrank_supermatrix(hmat.supermatrix_pt(), (const char*)"rank.ps");
-
-  // for(unsigned j=0; j<hmat.nrow(); j++)
-  //   {
-  //     std::cout << hmat(j, j) << std::endl;
-  //   }
-
-
-  Vector<double> v = VectorOps::random_vector(nbemnodes);
   LinearAlgebraDistribution dist(0, nbemnodes, false);
   DoubleVector x(dist), soln(dist), oomphsoln(dist), oldbemsoln(dist);
+  // Random entries for x vector
+  Vector<double> v = VectorOps::random_vector(nbemnodes);
   x.initialise(v);
 
-  double hstart = timer();
-  hmat.multiply(x, soln);
-  double hstop = timer();
 
-
-  // Copy into an oomph-lib matrix
-  double dbuildstart = timer();
-  DenseDoubleMatrix double_matrix;
-  hmat.todense(double_matrix);
-  double dbuildstop = timer();
-
-  double dstart = timer();
-  double_matrix.multiply(x, oomphsoln);
-  double dstop = timer();
-
+  // Make a bem matrix the old way
+  // ============================================================
   double oldbembuildstart, oldbembuildstop, oldbemstart, oldbemstop;
+
   oldbembuildstart = timer();
   BoundaryElementHandler bem_handler;
-  bem_handler.Bem_element_factory_fpt = bem_element_factory_fpt;
-  bem_handler.integration_scheme_pt() = LLGFactories::
-    variable_order_integrator_factory(bulk_mesh.finite_element_pt(0));
-  bem_handler.set_input_index(1);
-  bem_handler.set_output_index(0);
-  bem_handler.set_bem_all_boundaries(&bulk_mesh);
-  bem_handler.input_corner_data_pt() = 0;
-  bem_handler.build();
-  DenseDoubleMatrix* old_bem_matrix_pt = bem_handler.bem_matrix_pt();
+  CornerDataInput corner_data; //??ds no corners...
+  bem_handler_factory(bem_boundaries, 0, 1, corner_data, false, bem_handler);
   oldbembuildstop = timer();
+  DenseDoubleMatrix* old_bem_matrix_pt = bem_handler.bem_matrix_pt();
 
+  // and multiply with it
   oldbemstart = timer();
   old_bem_matrix_pt->multiply(x, oldbemsoln);
   oldbemstop = timer();
@@ -468,12 +440,46 @@ int main()
   DoubleVector corner_soln_contribution(dist);
   corner_matrix.multiply(x, corner_soln_contribution);
 
-  // Add to the solutions
-  soln += corner_soln_contribution;
+
+  // Make a H matrix and use it in a multiply
+  // ============================================================
+
+  // Use the bem mesh to make a h-matrix
+  double hbuildstart = timer();
+  hlib::HMatrix hmat;
+  hmat.build(surface_mesh);
+  double hbuildstop = timer();
+
+  // Dump info
+  outputrank_supermatrix(hmat.supermatrix_pt(), (const char*)"rank.ps");
+
+
+  // Do the multiply and add corner contributions (??ds not sure how to do
+  // this properly within a h matrix yet...)
+  double hstart = timer();
+  hmat.multiply(x, soln);
+  // soln -= corner_soln_contribution;
+  double hstop = timer();
+
+  // Make a dense matrix from the H matrix and try multiplying with that
+  // ============================================================
+
+  // Copy into an oomph-lib matrix
+  double dbuildstart = timer();
+  DenseDoubleMatrix double_matrix;
+  hmat.todense(double_matrix);
+  // bem_handler.corner_list_pt()->add_corner_contributions(double_matrix);
+  double dbuildstop = timer();
+
+  // Multiply
+  double dstart = timer();
+  double_matrix.multiply(x, oomphsoln);
+  double dstop = timer();
 
 
 
-
+  // Output the timing and error results
+  // ============================================================
   std::cout << "h build time " << hbuildstop - hbuildstart << std::endl;
   std::cout << "dense build time " << dbuildstop - dbuildstart << std::endl;
   std::cout << "oldbem build time " << oldbembuildstop - oldbembuildstart << std::endl;
@@ -491,7 +497,7 @@ int main()
 
 
   // Dump matrices to files
-  bem_handler.corner_list_pt()->add_corner_contributions(double_matrix);
+  // ============================================================
   double_matrix.output("Validation/new_bem_matrix");
   old_bem_matrix_pt->output("Validation/old_bem_matrix");
 

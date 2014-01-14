@@ -30,13 +30,19 @@
 namespace oomph
 {
 
-
   /// \short function pointer type for function to create a new BEM
   /// element.
   typedef MicromagBEMElementEquations*
   (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
 
+  /// Type to hold data on which boundaries of which meshes should be
+  /// included in the bem.
+  typedef Vector<std::pair<unsigned, const Mesh*> > BemBoundaryData;
 
+  /// Type to hold data on the locations of sharp corners in the mesh
+  typedef Vector<std::pair<Vector<double>, double> > CornerDataInput;
+
+  /// Helper function to construct a bem mesh
   inline void build_bem_mesh_helper
   (const Vector<std::pair<unsigned, const Mesh*> >& bem_boundaries,
    BEMElementFactoryFctPt bem_element_factory_fpt,
@@ -337,8 +343,7 @@ namespace oomph
     BoundaryElementHandler() :
       Bem_element_factory_fpt(0),
       Integration_scheme_pt(0), Bem_mesh_pt(0),
-      Input_index(0), Output_index(0),
-      Input_corner_data_pt(0)
+      Input_index(0), Output_index(0)
     {
       // Boundary meshes do not "own" their nodes. However the Mesh
       // destructor doesn't know that and so will try to delete the
@@ -383,7 +388,7 @@ namespace oomph
     void get_bem_values_and_copy_into_values() const;
 
     /// Build the mesh, lookup schemes and matrix in that order.
-    void build()
+    void build(const CornerDataInput& input_corner_data)
     {
       // Force use of numerical integration if needed (if nodal dimension
       // of meshes is not 3).
@@ -403,10 +408,10 @@ namespace oomph
       Output_lookup.build(bem_mesh_pt(), output_index());
 
       // Set up the corner angle data
-      if(input_corner_data_pt() != 0)
+      if(input_corner_data.size() > 0)
         {
           corner_list_pt()->set_up_from_input_data(bem_mesh_pt(),
-                                                   input_corner_data_pt());
+                                                   &input_corner_data);
         }
       // If none has been provided then assume rectangular mesh ??ds
       // generalise?
@@ -421,22 +426,6 @@ namespace oomph
       oomph_info << "Building dense BEM matrix, this may take some time"
                  << std::endl;
       build_bem_matrix();
-    }
-
-    /// Use BEM on boundary b of the mesh.
-    void set_bem_boundary(const unsigned& b, const Mesh* const mesh_pt)
-    {
-      std::pair<unsigned, const Mesh*> bound = std::make_pair(b, mesh_pt);
-      Bem_boundaries.push_back(bound);
-    }
-
-    /// Use BEM on all boundaries in the mesh
-    void set_bem_all_boundaries(const Mesh* mesh_pt)
-    {
-      for(unsigned b = 0; b < mesh_pt->nboundary(); b++)
-        {
-          set_bem_boundary(b, mesh_pt);
-        }
     }
 
     /// \short Get the (nodal) dimension of the boundary meshes
@@ -511,14 +500,6 @@ namespace oomph
     /// \short Const access function for Integration_scheme.
     const Integral* integration_scheme_pt() const {return Integration_scheme_pt;}
 
-    //??ds move this into a mesh class?
-    const Vector<std::pair<Vector<double>,double> >* const input_corner_data_pt() const
-    {return Input_corner_data_pt;}
-
-    Vector<std::pair<Vector<double>,double> >* &input_corner_data_pt()
-    {return Input_corner_data_pt;}
-
-
     MicromagBEMElementEquations* bem_element_factory(FiniteElement* const fe_pt,
                                                      const int& face) const
     {
@@ -539,6 +520,11 @@ namespace oomph
     /// analytical integration.
     bool Use_numerical_integration;
 
+    /// A list of the boundaries (on various meshes) to which the boundary
+    /// element method should be applied. ??ds will multiple meshes work?
+    /// are they needed? probably not for anything I do...
+    BemBoundaryData Bem_boundaries;
+
   private:
 
     /// \short Lookup between output value global equation numbers and node
@@ -556,11 +542,6 @@ namespace oomph
     /// not finite elements on the boundary).
     Mesh* Bem_mesh_pt;
 
-    /// A list of the boundaries (on various meshes) to which the boundary
-    /// element method should be applied. ??ds will multiple meshes work?
-    /// are they needed? probably not for anything I do...
-    Vector<std::pair<unsigned, const Mesh*> > Bem_boundaries;
-
     /// Pointer to storage for the list of nodal angles/solid angles.
     CornerAngleList Corner_list;
 
@@ -573,9 +554,6 @@ namespace oomph
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DenseDoubleMatrix Bem_matrix;
-
-    /// Temporary storage for corner data (before processing).
-    Vector<std::pair<Vector<double>,double> >* Input_corner_data_pt;
 
     /// Construct BEM elements on boundaries listed in Bem_boundaries and add
     /// to the Bem_mesh.

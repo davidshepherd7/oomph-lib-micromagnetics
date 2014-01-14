@@ -14,7 +14,8 @@ sources = micromagnetics_element.cc \
 	generic_poisson_problem.cc \
 	boundary_element_handler.cc \
 	template_free_poisson_flux.cc \
-	residual_calculator.cc
+	residual_calculator.cc \
+	micromag_factories.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
@@ -49,7 +50,8 @@ headers = array_interpolator.h \
 	sum_of_matrices_preconditioner.h \
 	single_element_mesh.h \
 	ode_problem.h \
-	unsteady_heat_problem.h
+	unsteady_heat_problem.h \
+	micromag_factories.h
 
 
 # Define name of library

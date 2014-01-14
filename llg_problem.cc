@@ -1,6 +1,7 @@
 
 
 #include "llg_problem.h"
+#include "micromag_factories.h"
 
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"
@@ -38,6 +39,15 @@ namespace oomph
         throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
+
+
+    if(Bem_handler_pt != 0)
+      {
+        std::string err = "Already have a bem handler!? Maybe you already built this?";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+
 #endif
 
     // Call the underlying build to deal with adding meshes
@@ -194,19 +204,6 @@ namespace oomph
     // ============================================================
     if(implicit_ms_flag())
       {
-        Bem_handler_pt = new BoundaryElementHandler;
-
-        // Figure out which element type we should use in the bem mesh
-        // (based on the element type used in the bulk mesh) and store the
-        // function needed to create them.
-        Bem_handler_pt->Bem_element_factory_fpt = LLGFactories::
-          bem_element_factory_factory(bulk_mesh_pts[0]->finite_element_pt(0));
-
-        // Create an integration scheme ??ds move this outside somewhere...
-        Bem_handler_pt->integration_scheme_pt() = LLGFactories::
-          variable_order_integrator_factory(bulk_mesh_pts[0]->finite_element_pt(0));
-
-
         // Get phi indicies as appropriate for bem. If bem calculations are
         // decoupled then we actually want the phi indicies in the
         // sub-problems, not the phi indicies in the main llg elements.
@@ -219,21 +216,24 @@ namespace oomph
             bem_phi_1_index = 0;
           }
 
-        // Set indexes to look in for phi/phi1 variables
-        Bem_handler_pt->set_input_index(bem_phi_1_index);
-        Bem_handler_pt->set_output_index(bem_phi_index);
-
-        // Loop over all meshes in problem adding to bem list
+        // Add all boundaries of all meshes to bem boundary list
+        BemBoundaryData bem_boundaries;
         for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)
           {
-            Bem_handler_pt->set_bem_all_boundaries(bulk_mesh_pts[msh]);
+            Mesh* mesh_pt = bulk_mesh_pts[msh];
+            for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+              {
+                bem_boundaries.push_back(std::make_pair(b, mesh_pt));
+              }
           }
 
-        // ??ds no corners apart from boundary joins for now
-        Bem_handler_pt->input_corner_data_pt() = 0;
+        // Create the bem handler
+        //??ds no corner data yet...
+        CornerDataInput input_corner_data;
+        Bem_handler_pt = factories::bem_handler_factory
+          (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+           Use_hlib);
 
-        // Now build it
-        Bem_handler_pt->build();
 
         // // Calculate the (initial) bem boundary conditions on phi
         // // ??ds might not need this? ok to wait until after a step?
@@ -246,6 +246,15 @@ namespace oomph
                                       Vector<Mesh*>& phi_mesh_pts,
                                       Vector<Mesh*>& phi_1_mesh_pts)
   {
+
+#ifdef PARANOID
+    if(Bem_handler_pt != 0)
+      {
+        std::string err = "Already have a bem handler!? Maybe you already built this?";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
 
     //??ds duplicated code? Generalise?
     // Get phi indicies as appropriate for decoupled bem.
@@ -374,44 +383,26 @@ namespace oomph
     // ============================================================
     // Construct the BEM (must be done before pinning phi values)
 
-#ifdef PARANOID
-    if(Bem_handler_pt != 0)
-      {
-        std::string err = "Already have a bem handler!?";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-#endif
-
-    //??ds create outside?
-    Bem_handler_pt = new BoundaryElementHandler;
-
-
-    // Set list of boundaries to use bem on
+    // Add all boundaries of all meshes to bem boundary list
+    BemBoundaryData bem_boundaries;
     for(unsigned msh=0, nmsh=phi_1_mesh_pts.size(); msh<nmsh; msh++)
       {
-        for(unsigned b = 0; b < phi_1_mesh_pts[msh]->nboundary(); b++)
+        Mesh* mesh_pt = phi_1_mesh_pts[msh];
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
           {
-            Bem_handler_pt->set_bem_boundary(b, phi_1_mesh_pts[msh]);
+            bem_boundaries.push_back(std::make_pair(b, mesh_pt));
           }
       }
 
-    // Set indexes to look in for phi/phi1 variables
-    Bem_handler_pt->set_input_index(bem_phi_1_index);
-    Bem_handler_pt->set_output_index(bem_phi_index);
-
-    // Create an integration scheme ??ds move this outside somewhere...
-    Bem_handler_pt->integration_scheme_pt() = LLGFactories::
-      variable_order_integrator_factory
-      (phi_1_problem_pt()->mesh_pt()->finite_element_pt(0));
-
-    // Only treat cases where the corners are rectangle-like for now
-    Bem_handler_pt->input_corner_data_pt() = 0; //??Ds
-
-    Bem_handler_pt->Bem_element_factory_fpt = Bem_element_factory_pt;
+    // ??ds not adding any corner data yet, wrong for more complex meshes
+    // than rectangular or smooth...
+    CornerDataInput input_corner_data;
 
     oomph_info << "Creating BEM handler" << std::endl;
-    Bem_handler_pt->build();
+    Bem_handler_pt = factories::bem_handler_factory
+      (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+       Use_hlib);
+
 
     // Phi problem
     // ============================================================
