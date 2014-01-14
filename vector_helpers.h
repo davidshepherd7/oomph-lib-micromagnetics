@@ -307,6 +307,14 @@ namespace VectorOps
     return two_norm(diff);
   }
 
+  inline double two_norm_diff(const DoubleVector& a, const DoubleVector& b)
+  {
+    DoubleVector diff;
+    diff = a;
+    diff -= b;
+    return diff.norm();
+  }
+
   inline void normalise(Vector<double>& a)
   {
     double length = two_norm(a);
