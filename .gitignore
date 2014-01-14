@@ -89,3 +89,4 @@ self_test/vector_helpers/vector_helpers_test
 self_test/micromag_energy/micromag_energy_test
 self_test/mallinson_regression/mallinson_test
 self_test/hlib/linking/hlib_test_driver
+self_test/hlib/matrix_generation/hlib_matrix_generate_driver

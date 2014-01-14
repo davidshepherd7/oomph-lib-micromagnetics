@@ -1,1 +1,1 @@
-SUBDIRS = linking
+SUBDIRS = linking matrix_generation
