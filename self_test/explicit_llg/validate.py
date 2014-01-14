@@ -134,6 +134,11 @@ def main():
     # Run tests
     # ============================================================
 
+    # Check we can find the driver binary!
+    if not os.path.isfile(_driver_location):
+        print("all FAILED, driver not found at", driver)
+        return 2
+
     # Test without magnetostatics by comparison with Mallinson solution
     noms_argdicts = {
         "-binary" : [_driver_location],

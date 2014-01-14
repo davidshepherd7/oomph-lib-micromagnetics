@@ -145,6 +145,12 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
 
 
 def main():
+
+    # Check we can find the driver binary!
+    if not os.path.isfile(driver):
+        print("all FAILED, driver not found at", driver)
+        return 2
+
     passes = []
 
     exacts = ["sin", "cos", "poly3", "poly2"]
