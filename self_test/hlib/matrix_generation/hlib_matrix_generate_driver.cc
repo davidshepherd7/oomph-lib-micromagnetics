@@ -27,7 +27,7 @@
 // the same as the one I'm using...
 
 using namespace TimingHelpers;
-using namespace factories;
+using namespace Factories;
 
 namespace hlib
 {

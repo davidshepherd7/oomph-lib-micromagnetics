@@ -2,6 +2,8 @@
 #define OOMPH_SUM_OF_MATRICES_PRECONDITIONER_H
 
 #include "../../src/generic/preconditioner.h"
+#include "../../src/generic/sum_of_matrices.h"
+
 
 using namespace oomph;
 

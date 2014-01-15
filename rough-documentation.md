@@ -32,6 +32,10 @@ really be fixed):
 * Possibly others, as indicated by compile warnings...
 
 
+* Make doesn't actually include all dependencies properly yet... Need to
+  set it up to automatically rebuild meshes and build git version header!
+
+
 Use of factory methods
 --------------------
 

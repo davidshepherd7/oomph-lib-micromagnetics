@@ -231,7 +231,7 @@ namespace oomph
         // Create the bem handler
         //??ds no corner data yet...
         CornerDataInput input_corner_data;
-        Bem_handler_pt = factories::bem_handler_factory
+        Bem_handler_pt = Factories::bem_handler_factory
           (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
            Use_hlib);
 
@@ -400,7 +400,7 @@ namespace oomph
     CornerDataInput input_corner_data;
 
     oomph_info << "Creating BEM handler" << std::endl;
-    Bem_handler_pt = factories::bem_handler_factory
+    Bem_handler_pt = Factories::bem_handler_factory
       (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
        Use_hlib);
 
