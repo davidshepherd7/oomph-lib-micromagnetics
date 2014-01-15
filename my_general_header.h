@@ -39,6 +39,7 @@
 
 #include "./magnetics_helpers.h"
 #include "./sum_of_matrices_preconditioner.h"
+#include "micromag_types.h"
 
 #include "micromagnetics_element.h" //??ds try to get rid of this?
 
@@ -84,12 +85,6 @@ namespace oomph
     return 0;
   }
 
-  /// Function type for use as initial condition. Slight overhead of
-  /// vectors is worth it even in cases with one dof/space dimensions for
-  /// the generality. No overhead for returning a vector due to return
-  /// value optimisation.
-  typedef Vector<double> (*InitialConditionFctPt)(const double& t,
-                                                  const Vector<double>&x);
 
   namespace Factories
   {
@@ -219,10 +214,6 @@ namespace oomph
       double yshift;
       double zshift;
     };
-
-    /// function pointer type to create a mesh
-    typedef Mesh* (*MeshFactoryFctPt)(const std::string&, int,
-                                     TimeStepper*, double, unsigned);
 
 
     /// Create a vector of meshes with the names given in mesh details and

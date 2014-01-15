@@ -27,7 +27,7 @@
 
 #include "./energy_functions.h"
 #include "./array_interpolator.h"
-
+#include "micromag_types.h"
 #include "./residual_calculator.h"
 
 
@@ -174,14 +174,6 @@ namespace oomph
     /// boundary phi values.
     unsigned ndof_types()
     {return required_nvalue(0) + 2;}
-
-    typedef double (*TimeSpaceToDoubleFctPt)(const double& t, const Vector<double>&x);
-
-    typedef Vector<double> (*TimeSpaceToDoubleVectFctPt)
-    (const double& t, const Vector<double>&x);
-
-    // typedef void (*TimeSpaceMagToDoubleVectFctPt)
-    // (const double& t, const Vector<double>&x, const Vector<double>& M, Vector<double>& out);
 
     bool Use_fd_jacobian;
     LLGResidualCalculator* Residual_calculator_pt;

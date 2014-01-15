@@ -2,6 +2,7 @@
 
 #include "llg_problem.h"
 #include "micromag_factories.h"
+#include "micromag_types.h"
 
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"

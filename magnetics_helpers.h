@@ -5,7 +5,8 @@
 description of file goes here
 */
 
-#include "./vector_helpers.h"
+#include "vector_helpers.h"
+#include "micromag_types.h"
 
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
@@ -17,8 +18,6 @@ namespace HApp
   using namespace MathematicalConstants;
   using namespace StringConversion;
   using namespace VectorOps;
-
-  typedef Vector<double> (*HAppFctPt)(const double& t, const Vector<double>&x);
 
   inline Vector<double> zero(const double& t, const Vector<double> &x)
   {
@@ -206,8 +205,6 @@ namespace InitialM
 
   // Note that dof storage in micromag elements is actually in the order
   // [phi, phi1, mx, my, mz], so we put mx in element 2 of the vector etc.
-
-  typedef Vector<double> (*InitialMFctPt)(const double& t, const Vector<double>&x);
 
   inline Vector<double> x(const double& t, const Vector<double> &x)
   {

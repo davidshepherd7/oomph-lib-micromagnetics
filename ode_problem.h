@@ -3,19 +3,12 @@
 
 #include "my_general_header.h"
 #include "my_generic_problem.h"
+#include "micromag_types.h"
 
 namespace oomph
 {
   using namespace MathematicalConstants;
   using namespace StringConversion;
-
-
-
-  // Our derivative function type
-  typedef double (*FunctionOfTimeValPt)(const double& t, const double& u);
-
-  // Our exact solution function type
-  typedef InitialConditionFctPt FunctionOfTimePt;
 
 
   namespace deriv_functions
@@ -73,7 +66,7 @@ namespace oomph
   {
 
     // Pick an exact solution using a name
-    inline FunctionOfTimePt exact_solutions_factory(const std::string& exact_name)
+    inline TimeSpaceToDoubleVectFctPt exact_solutions_factory(const std::string& exact_name)
     {
       if(exact_name == "sin") return &deriv_functions::sin;
       else if(exact_name == "cos") return &deriv_functions::cos;
@@ -89,7 +82,7 @@ namespace oomph
     }
 
     // Pick a derivative function using a name
-    inline FunctionOfTimeValPt derivative_function_factory(const std::string& exact_name)
+    inline TimeValueToDoubleFctPt derivative_function_factory(const std::string& exact_name)
     {
       if(exact_name == "sin") return &deriv_functions::dsin;
       else if(exact_name == "cos") return &deriv_functions::dcos;
@@ -119,8 +112,8 @@ namespace oomph
 
     /// Constructor: Pass timestepper
     ODEElement(TimeStepper* timestepper_pt,
-               FunctionOfTimePt exact_solution_pt,
-               FunctionOfTimeValPt derivative_function_pt)
+               TimeSpaceToDoubleVectFctPt exact_solution_pt,
+               TimeValueToDoubleFctPt derivative_function_pt)
     {
       add_internal_data(new Data(timestepper_pt, 1));
       Exact_solution_pt = exact_solution_pt;
@@ -207,8 +200,8 @@ namespace oomph
 
   private:
 
-    FunctionOfTimePt Exact_solution_pt;
-    FunctionOfTimeValPt Derivative_function_pt;
+    TimeSpaceToDoubleVectFctPt Exact_solution_pt;
+    TimeValueToDoubleFctPt Derivative_function_pt;
   };
 
 
@@ -256,8 +249,8 @@ namespace oomph
     }
 
     std::string exact_name;
-    FunctionOfTimePt exact_solution_pt;
-    FunctionOfTimeValPt derivative_function_pt;
+    TimeSpaceToDoubleVectFctPt exact_solution_pt;
+    TimeValueToDoubleFctPt derivative_function_pt;
   };
 
 

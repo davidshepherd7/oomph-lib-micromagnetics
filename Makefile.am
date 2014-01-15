@@ -51,7 +51,8 @@ headers = array_interpolator.h \
 	single_element_mesh.h \
 	ode_problem.h \
 	unsteady_heat_problem.h \
-	micromag_factories.h
+	micromag_factories.h \
+	micromag_types.h
 
 
 # Define name of library

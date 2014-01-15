@@ -1,21 +1,10 @@
 #ifndef OOMPH_MICROMAG_FACTORIES_H
 #define OOMPH_MICROMAG_FACTORIES_H
 
-#include "../../src/generic/Vector.h"
+#include "micromag_types.h"
 
 namespace oomph
 {
-
-  // Move into types header?
-
-  /// Type to hold data on which boundaries of which meshes should be
-  /// included in the bem.
-  class Mesh;
-  typedef Vector<std::pair<unsigned, const Mesh*> > BemBoundaryData;
-
-  /// Type to hold data on the locations of sharp corners in bem meshes
-  typedef Vector<std::pair<Vector<double>, double> > CornerDataInput;
-
 
   // Try to only use forward decls (rather than #includes) in this header
   // because otherwise it will end up huge as it will need to include

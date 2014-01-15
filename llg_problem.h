@@ -16,23 +16,10 @@
 #include "micromagnetics_flux_element.h"
 #include "residual_swapping_explicit_timestepper.h"
 #include "generic_poisson_problem.h"
+#include "micromag_types.h"
 
 namespace oomph
 {
-
-  // Function types
-  // ============================================================
-
-  /// \short Function pointer type for function which returns a BEM
-  /// element.
-  typedef MicromagBEMElementEquations*
-  (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
-
-  /// Function pointer type for function to create flux meshes
-  typedef Mesh* (*FluxMeshFactoryFctPt)(Mesh* bulk_mesh_pt,
-                                        const Vector<unsigned> &boundaries);
-
-
 
   class ResidualCalculator;
 

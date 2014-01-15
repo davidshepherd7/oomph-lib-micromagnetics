@@ -25,22 +25,11 @@
 #include "vector_helpers.h"
 
 #include "micromagnetics_boundary_element.h"
+#include "micromag_types.h"
 
 
 namespace oomph
 {
-
-  /// \short function pointer type for function to create a new BEM
-  /// element.
-  typedef MicromagBEMElementEquations*
-  (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);
-
-  /// Type to hold data on which boundaries of which meshes should be
-  /// included in the bem.
-  typedef Vector<std::pair<unsigned, const Mesh*> > BemBoundaryData;
-
-  /// Type to hold data on the locations of sharp corners in the mesh
-  typedef Vector<std::pair<Vector<double>, double> > CornerDataInput;
 
   /// Helper function to construct a bem mesh
   inline void build_bem_mesh_helper
