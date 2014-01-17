@@ -287,13 +287,17 @@ namespace oomph
     const unsigned node_dim = nodal_dimension();
 
 #ifdef PARANOID
-    // Check that n is a unit vector
-    if(std::abs(two_norm(n) - 1.0) > 1e-10)
-      {
-        throw OomphLibError("n is not a unit vector",
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
+    {
+      // Check that n is a unit vector
+      double lengthn = two_norm(n);
+      if(std::abs(lengthn - 1.0) > 1e-10)
+        {
+          std::string err = "n is not a unit vector, it has length "
+            + to_string(lengthn);
+            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+        }
+    }
 #endif
 
     // Calculate the distance r from x to y.
@@ -498,13 +502,25 @@ namespace oomph
     return(0);
   }
 
-
+  /// Check that if the normal that will be calculated by Lindholm's formula
+  /// will be the outer unit normal.
   bool MicromagBEMElementEquations::
   normals_match(const Vector<unsigned> &node_list) const
   {
-
-#warning using a long, expensive test to check if nodes need to be swapped
-    // ??Ds fix this!
+#ifdef PARANOID
+    if(nodal_dimension() != 3)
+      {
+        std::string err = "Lindholm only works in 3D";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+    if(nnode() != 3)
+      {
+        std::string err = "Lindholm only works for linear triangle elements";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
 
     // Get global nodal positions
     Vector<Vector<double> > x_tn(3);
@@ -513,7 +529,6 @@ namespace oomph
         x_tn[l].assign(3,0.0);
         node_pt(node_list[l])->position(x_tn[l]);
       }
-
 
     // Only works in 3D and for triangles (3 nodes)
     const unsigned node_dim = 3;
@@ -539,7 +554,7 @@ namespace oomph
     Vector<double> normal(node_dim,0.0);
     cross(side_direction[0],side_direction[1],normal);
 
-    //??ds
+    // Get oomph normal
     Vector<double> oomph_normal(node_dim, 0.0);
     Vector<double> s(dim(), 0.3);
     outer_unit_normal(s, oomph_normal);
@@ -580,20 +595,25 @@ namespace oomph
 
     // List of the node numbers for the three nodes that we are taking to
     // be the three corners of the triangle.
-    Vector<unsigned> node_list(3,0);
+    Vector<unsigned> node_list(3, 0);
     node_list[0] = 0; node_list[1] = 1; node_list[2] = 2;
 
-    //??ds should be possible to get rid of this!
-    if(!(normals_match(node_list)))
+    // Normal direction depends on node ordering. This seems to make sure
+    // we get the right one...
+    if(normal_sign() < 0)
       {
         std::swap(node_list[0], node_list[1]);
-        // std::cout << "swapping" << std::endl;
       }
 
-    if(!(normals_match(node_list)))
+    // Check that the normal direction is correct now
+#ifdef PARANOID
+    if(!normals_match(node_list))
       {
-        std::cout <<  "!!! still not the same normal!" << std::endl;
+        std::string err = "Node order means that Lindholm normal is not directed outwards ";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
       }
+#endif
 
     // Get global nodal positions
     Vector<Vector<double> > x_nds(3);
