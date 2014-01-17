@@ -112,7 +112,8 @@ namespace oomph
                                                 const unsigned& phi_1_index,
                                                 const CornerDataInput& input_corner_data,
                                                 bool use_hlib=false,
-                                                bool disable_corner_angles=false);
+                                                bool disable_corner_angles=false,
+                                                bool use_numerical_integration=false);
 
     /// Fill in and build an existing bem handler object
     void bem_handler_factory(BoundaryElementHandler& new_bem_handler,
@@ -121,7 +122,9 @@ namespace oomph
                              const unsigned& phi_1_index,
                              const CornerDataInput& input_corner_data,
                              bool use_hlib=false,
-                             bool disable_corner_angles=false);
+                             bool disable_corner_angles=false,
+                             bool use_numerical_integration=false);
+
 
     /// Create an llg block preconditioner based on a string. Possibly
     /// obsolete ??ds

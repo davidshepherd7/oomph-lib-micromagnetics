@@ -345,9 +345,8 @@ namespace oomph
 
       Bem_mesh_pt = new Mesh;
 
-      // By default evaluate BEM integrals using numerical integration.
-      Use_numerical_integration = true;
-
+      // By default evaluate BEM integrals analytically.
+      Use_numerical_integration = false;
 
       Debug_disable_corner_contributions=false;
     }
@@ -416,6 +415,12 @@ namespace oomph
       // Construct the (dense) matrix
       oomph_info << "Building dense BEM matrix, this may take some time"
                  << std::endl;
+      if(Use_numerical_integration)
+        oomph_info << "Using numerical integration." << std::endl;
+      else
+        oomph_info << "Using analytical integration." << std::endl;
+
+
       build_bem_matrix();
     }
 

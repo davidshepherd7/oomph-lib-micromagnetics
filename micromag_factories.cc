@@ -40,7 +40,8 @@ namespace oomph
                              const unsigned& phi_1_index,
                              const CornerDataInput& input_corner_data,
                              bool use_hlib,
-                             bool disable_corner_angles)
+                             bool disable_corner_angles,
+                             bool use_numerical_integration)
     {
 
       if(use_hlib)
@@ -73,8 +74,9 @@ namespace oomph
       // Copy in the list of boundaries to operate on
       new_bem_handler.Bem_boundaries = bem_boundaries;
 
-      // Maybe disable corners
+      // Set debug parameters
       new_bem_handler.Debug_disable_corner_contributions = disable_corner_angles;
+      new_bem_handler.Use_numerical_integration = use_numerical_integration;
 
       // Now build it
       new_bem_handler.build(input_corner_data);
@@ -87,13 +89,15 @@ namespace oomph
      const unsigned& phi_1_index,
      const CornerDataInput& input_corner_data,
      bool use_hlib,
-     bool disable_corner_angles)
+     bool disable_corner_angles,
+     bool use_numerical_integration)
     {
       // Create with new, fill in with factory
       BoundaryElementHandler* bem_handler_pt = new BoundaryElementHandler;
       bem_handler_factory(*bem_handler_pt,
                           bem_boundaries, phi_index, phi_1_index,
-                          input_corner_data, use_hlib, disable_corner_angles);
+                          input_corner_data, use_hlib, disable_corner_angles,
+                          use_numerical_integration);
       return bem_handler_pt;
     }
 

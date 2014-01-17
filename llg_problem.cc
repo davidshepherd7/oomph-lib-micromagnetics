@@ -233,7 +233,7 @@ namespace oomph
         CornerDataInput input_corner_data;
         Bem_handler_pt = Factories::bem_handler_factory
           (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
-           Use_hlib, Disable_bem_corners);
+           Use_hlib, Disable_bem_corners, Use_numerical_bem);
 
 
         // // Calculate the (initial) bem boundary conditions on phi
@@ -402,7 +402,7 @@ namespace oomph
     oomph_info << "Creating BEM handler" << std::endl;
     Bem_handler_pt = Factories::bem_handler_factory
       (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
-       Use_hlib, Disable_bem_corners);
+       Use_hlib, Disable_bem_corners, Use_numerical_bem);
 
 
     // Phi problem

@@ -66,6 +66,7 @@ namespace oomph
       Use_fd_jacobian = false;
       Use_hlib = false;
       Disable_bem_corners = false;
+      Use_numerical_bem = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -839,6 +840,7 @@ namespace oomph
     bool Use_fd_jacobian;
     bool Use_hlib;
     bool Disable_bem_corners;
+    bool Use_numerical_bem;
 
     LLGResidualCalculator* Residual_calculator_pt;
 
@@ -1204,6 +1206,7 @@ public:
       llg_pt->Pin_boundary_m = pin_boundary_m;
       llg_pt->Decoupled_ms = decoupled_ms;
       llg_pt->Disable_ms = disable_ms;
+      llg_pt->Use_numerical_bem = use_numerical_integration_bem;
 
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds
