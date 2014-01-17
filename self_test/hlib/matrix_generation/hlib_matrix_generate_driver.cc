@@ -129,7 +129,7 @@ namespace hlib
   {
   public:
 
-    HMatrix()
+    HMatrix(const unsigned& _nmin)
     {
 #ifdef OOMPH_HAS_MPI
       throw OomphLibError("Not implemented for MPI, it might work for non-distributed memory though... But untested",
@@ -138,10 +138,10 @@ namespace hlib
 #endif
 
       // Random numbers for parameters, some taken from Knittel's thesis
-      nmin = 5000;
+      nmin = _nmin;
       eps_aca = 1e-7;
       kmax = 500;
-      eps = 1e-8;
+      eps = 1e-3;
       algorithm = HLIB_HCAII;
       eta = 0.25;
       quadorder = 3;
@@ -222,8 +222,6 @@ namespace hlib
           edges_set.insert(ordered_make_pair(nd2, nd0));
         }
 
-      std::cout << edges_set << std::endl;
-
       unsigned vertices = mesh.nnode();
       unsigned triangles = mesh.nelement();
       unsigned edges = edges_set.size();
@@ -243,8 +241,6 @@ namespace hlib
           Node* nd_pt = nodes[nd];
           unsigned nd_num = nodept2node.find(nd_pt)->second;
 
-          std::cout << nd << " " << nd_num << std::endl;
-
           bem_grid_pt->x[nd_num][0] = nd_pt->x(0);
           bem_grid_pt->x[nd_num][1] = nd_pt->x(1);
           bem_grid_pt->x[nd_num][2] = nd_pt->x(2);
@@ -254,11 +250,19 @@ namespace hlib
       // hlib grid.
       for(unsigned ele=0, nele=mesh.nelement(); ele<nele; ele++)
         {
-          FiniteElement* ele_pt = mesh.finite_element_pt(ele);
+          FaceElement* ele_pt = dynamic_cast<FaceElement*>(mesh.element_pt(ele));
           for(unsigned nd=0, nnd=ele_pt->nnode(); nd<nnd; nd++)
             {
               Node* nd_pt = ele_pt->node_pt(nd);
               bem_grid_pt->t[ele][nd] = nodept2node.find(nd_pt)->second;
+            }
+
+          // Order nodes such that Lindholm formula will get the right sign
+          // of the unit normal.
+          if(ele_pt->normal_sign() > 0)
+            {
+              std::swap(bem_grid_pt->t[ele][0],
+                        bem_grid_pt->t[ele][1]);
             }
         }
 
@@ -324,12 +328,11 @@ namespace hlib
          surface_bem_factory_pt,
          eps_aca, kmax, eps, 1, algorithm, 0, eta, 0);
 
-
-      for(unsigned j=0; j<Cluster_tree_pt->ndof; j++)
-        {
-          std::cout << j << " " << Cluster_tree_pt->dof2idx[j] << std::endl;
-        }
-
+      // // Output idx2dof map
+      // for(unsigned j=0; j<Cluster_tree_pt->ndof; j++)
+      //   {
+      //     std::cout << j << " " << Cluster_tree_pt->idx2dof[j] << std::endl;
+      //   }
 
 
       // Clean up auxilary data structures
@@ -410,6 +413,8 @@ namespace hlib
 
       // Do the multiplication
       eval_supermatrix(This_hmatrix_pt, x.values_pt(), soln.values_pt());
+
+      //??ds reorder result?
     }
 
     void multiply_transpose(const DoubleVector& x, DoubleVector& soln) const
@@ -452,10 +457,10 @@ int main(int argc, char *argv[])
   // First make sure that we can create/destroy empty h matrices correctly
   // ============================================================
   {
-    hlib::HMatrix hmat;
+    hlib::HMatrix hmat(50);
   }
 
-  // Make the bem mesh etc.
+  // Make the problem to get bem mesh etc.
   // ============================================================
 
   // Need a dummy problem so that we can get equation numbers :(
@@ -466,94 +471,56 @@ int main(int argc, char *argv[])
     = LLGFactories::residual_calculator_factory("llg");
   problem.add_time_stepper_pt(args.time_stepper_pt);
   args.assign_specific_parameters(&problem);
-
-  // disable corner angles in bem matrx, to makre matrices easier to matech
+  // disable corner angles in bem matrx, to make matrices easier to compare
   problem.Disable_bem_corners = true;
-
   problem.build(args.mesh_pts);
-
-  // // Make a mesh
-  // const std::string refinement_level = "1";
-  // TetgenMesh<TMicromagElement<3, 2> > bulk_mesh
-  //   ("./meshes/sphere." + to_string(refinement_level) + ".node",
-  //    "./meshes/sphere." + to_string(refinement_level) + ".ele",
-  //    "./meshes/sphere." + to_string(refinement_level) + ".face");
-  // bulk_mesh.setup_boundary_element_info();
-
-  // // Loop over boundaries, create a list of boundaries to include in bem
-  // // (all of them).
-  // Vector<std::pair<unsigned, const Mesh*> > bem_boundaries;
-  // for(unsigned b=0, nb=bulk_mesh.nboundary(); b<nb; b++)
-  //   {
-  //     bem_boundaries.push_back(std::make_pair(b, &bulk_mesh));
-  //   }
-
-
-  // Make a bem matrix the old way
-  // ============================================================
-  double oldbembuildstart, oldbembuildstop, oldbemstart, oldbemstop;
-
-  // // ??ds this doesn't work because the mesh element don't have any
-  // // equation numbers :(
-  // oldbembuildstart = timer();
-  // BoundaryElementHandler bem_handler;
-  // CornerDataInput corner_data; //??ds no corners...
-  // bem_handler_factory(bem_boundaries, 0, 1, corner_data, false, bem_handler);
-  // oldbembuildstop = timer();
 
   // Some useful pointers
   DenseDoubleMatrix* old_bem_matrix_pt = problem.Bem_handler_pt->bem_matrix_pt();
   const Mesh* surface_mesh_pt = problem.Bem_handler_pt->bem_mesh_pt();
 
-
   // Vectors for multiply test
   const unsigned nbemnodes = surface_mesh_pt->nnode();
   LinearAlgebraDistribution dist(0, nbemnodes, false);
-  DoubleVector x(dist), soln(dist), oomphsoln(dist), oldbemsoln(dist);
+  DoubleVector x(dist), H_soln(dist), dense_H_soln(dist), oomph_soln(dist);
+
   // Random entries for x vector
   Vector<double> v = VectorOps::random_vector(nbemnodes);
   x.initialise(v);
 
 
-  // and multiply with it
-  oldbemstart = timer();
-  old_bem_matrix_pt->multiply(x, oldbemsoln);
-  oldbemstop = timer();
+  // Multiply with pure-oomph bem matrix
+  old_bem_matrix_pt->multiply(x, oomph_soln);
 
 
   // Make a H matrix and use it in a multiply
   // ============================================================
 
   // Use the bem mesh to make a h-matrix
-  double hbuildstart = timer();
-  hlib::HMatrix hmat;
-  hmat.build(*surface_mesh_pt, problem.Bem_handler_pt);
-  double hbuildstop = timer();
 
-  // Dump info
+  unsigned nmin = 500; // ??ds works
+  // unsigned nmin = 5;
+  hlib::HMatrix hmat(nmin);
+  hmat.build(*surface_mesh_pt, problem.Bem_handler_pt);
+
+  // Dump rank info
   outputrank_supermatrix(hmat.supermatrix_pt(), (const char*)"rank.ps");
 
+  // Do the multiply
+  hmat.multiply(x, H_soln);
 
-  // Do the multiply and add corner contributions (??ds not sure how to do
-  // this properly within a h matrix yet...)
-  double hstart = timer();
-  hmat.multiply(x, soln);
-  // soln -= corner_soln_contribution;
-  double hstop = timer();
+  // Flip the sign ??ds not sure why we need to do this
+  H_soln *= -1;
 
 
   // Make a dense matrix from the H matrix and try multiplying with that
   // ============================================================
 
-  // Copy into an oomph-lib matrix
-  double dbuildstart = timer();
+  // Copy H matrix into an oomph-lib matrix
   DenseDoubleMatrix double_matrix;
   hmat.todense(double_matrix);
-  // bem_handler.corner_list_pt()->add_corner_contributions(double_matrix);
-  double dbuildstop = timer();
 
-  //??ds
-  // Flip sign
+  // Flip sign ??ds not sure why we need this to make it match
   for(unsigned i=0; i<double_matrix.nrow(); i++)
     {
       for(unsigned j=0; j<double_matrix.ncol(); j++)
@@ -562,47 +529,63 @@ int main(int argc, char *argv[])
         }
     }
 
-
-
   // Multiply
-  double dstart = timer();
-  double_matrix.multiply(x, oomphsoln);
-  double dstop = timer();
+  double_matrix.multiply(x, dense_H_soln);
 
 
 
-  // Output the timing and error results
-  // ============================================================
-  std::cout << "H-matrix build time " << hbuildstop - hbuildstart << std::endl;
-  std::cout << "dense build time " << dbuildstop - dbuildstart << std::endl;
-  std::cout << "oldbem build time " << oldbembuildstop - oldbembuildstart << std::endl;
-  std::cout << std::endl;
-  std::cout << "H-matrix multiply time " <<  hstop - hstart << std::endl;
-  std::cout << "dense multiply time " << dstop - dstart << std::endl;
-  std::cout << "old bem dense multiply time " << oldbemstop - oldbemstart
-            << std::endl;
-
-  std::cout << std::endl;
-  std::cout << "2 norm : H-matrix vs dense "
-            << two_norm_diff(soln, oomphsoln) << std::endl;
-  std::cout << "2 norm : H-matrix vs old bem "
-            << two_norm_diff(soln, oldbemsoln) << std::endl;
+  // // Output the timing and error results
+  // // ============================================================
+  // std::cout << "H-matrix build time " << hbuildstop - hbuildstart << std::endl;
+  // std::cout << "dense build time " << dbuildstop - dbuildstart << std::endl;
+  // std::cout << "oldbem build time " << oldbembuildstop - oldbembuildstart << std::endl;
+  // std::cout << std::endl;
+  // std::cout << "H-matrix multiply time " <<  hstop - hstart << std::endl;
+  // std::cout << "dense multiply time " << dstop - dstart << std::endl;
+  // std::cout << "old bem dense multiply time " << oldbemstop - oldbemstart
+  //           << std::endl;
 
 
   // Dump matrices to files
   // ============================================================
-  // problem.Bem_handler_pt->corner_list_pt()->add_corner_contributions(double_matrix);
   double_matrix.output("Validation/new_bem_matrix");
   old_bem_matrix_pt->output("Validation/old_bem_matrix");
 
-  DoubleVector sold, snew, rhs(dist, 1.0);
-  double_matrix.solve(rhs, snew);
-  old_bem_matrix_pt->solve(rhs, sold);
 
-  // for(unsigned j=0; j<snew.nrow(); j++)
+  double H_soln_vs_dense = two_norm_diff(H_soln, dense_H_soln);
+  double H_soln_vs_oomph = two_norm_diff(H_soln, oomph_soln);
+
+
+  // Some analysis
+  // ============================================================
+  std::cout << std::endl;
+  std::cout << "muliplication 2 norm of H-matrix vs dense version: "
+            << H_soln_vs_dense << std::endl;
+  std::cout << "muliplication 2 norm of H-matrix vs oomph bem: "
+            << H_soln_vs_oomph << std::endl;
+
+  //??ds need to fix ordering of H-matrix multiply output (and input?)
+  // if(H_soln_vs_dense > 1e-8)
   //   {
-  //     std::cout << j << ": " << snew[j] << " " << sold[j] << std::endl;
+  //     std::cout << "Test failed due to error in dense H." << std::endl;
+  //     return 1;
   //   }
+
+  // if(H_soln_vs_oomph > 1e-8)
+  //   {
+  //     std::cout << "Test failed due to error in oomph vs H." << std::endl;
+  //     return 2;
+  //   }
+
+
+  // DoubleVector sold, snew, rhs(dist, 1.0);
+  // double_matrix.solve(rhs, snew);
+  // old_bem_matrix_pt->solve(rhs, sold);
+
+  // // for(unsigned j=0; j<snew.nrow(); j++)
+  // //   {
+  // //     std::cout << j << ": " << snew[j] << " " << sold[j] << std::endl;
+  // //   }
 
   return 0;
 }
