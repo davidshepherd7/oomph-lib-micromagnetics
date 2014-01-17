@@ -94,9 +94,12 @@ void BoundaryElementHandler::build_bem_matrix()
         }
     }
 
-  // Lindholm formula/adaptive integral does not contain the solid angle
-  // contribution so add it now.
-  corner_list_pt()->add_corner_contributions(Bem_matrix);
+  if(!Debug_disable_corner_contributions)
+    {
+      // Lindholm formula/adaptive integral does not contain the solid angle
+      // contribution so add it now.
+      corner_list_pt()->add_corner_contributions(Bem_matrix);
+    }
 
 }
 

@@ -65,6 +65,7 @@ namespace oomph
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
       Use_hlib = false;
+      Disable_bem_corners = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -837,6 +838,7 @@ namespace oomph
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
     bool Use_hlib;
+    bool Disable_bem_corners;
 
     LLGResidualCalculator* Residual_calculator_pt;
 
@@ -869,13 +871,13 @@ namespace oomph
     /// \short Magnetostatic energy, computed after previous Newton solve.
     double Magnetostatic_energy;
 
-    /// \short Pointer to class for handling BEM
-    BoundaryElementHandler* Bem_handler_pt;
-
     /// \short Mesh for flux elements to impose boundary condition on phi1.
     Mesh* Flux_mesh_pt;
 
 public:
+
+    /// \short Pointer to class for handling BEM
+    BoundaryElementHandler* Bem_handler_pt;
 
     /// \short Pointer to function for creating the flux mesh (can't be
     /// hard coded becuase it depends on the element type, which depends on

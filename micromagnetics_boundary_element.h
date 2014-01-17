@@ -187,7 +187,7 @@ namespace oomph
 
   template<unsigned DIM, unsigned NNODE_1D>
   class QMicromagBEMElement : public virtual FaceGeometry<QElement<DIM, NNODE_1D> >,
-                                     public virtual MicromagBEMElementEquations
+                              public virtual MicromagBEMElementEquations
   {
 
   public:
@@ -202,7 +202,7 @@ namespace oomph
 
   template<unsigned DIM, unsigned NNODE_1D>
   class TMicromagBEMElement : public virtual FaceGeometry<TElement<DIM, NNODE_1D> >,
-                                     public virtual MicromagBEMElementEquations
+                              public virtual MicromagBEMElementEquations
   {
 
   public:

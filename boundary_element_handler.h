@@ -348,6 +348,8 @@ namespace oomph
       // By default evaluate BEM integrals using numerical integration.
       Use_numerical_integration = true;
 
+
+      Debug_disable_corner_contributions=false;
     }
 
     /// Destructor
@@ -513,6 +515,9 @@ namespace oomph
     /// element method should be applied. ??ds will multiple meshes work?
     /// are they needed? probably not for anything I do...
     BemBoundaryData Bem_boundaries;
+
+    /// Debugging flag: don't add sharp corner solid angles to bem matrix.
+    bool Debug_disable_corner_contributions;
 
   private:
 
