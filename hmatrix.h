@@ -23,93 +23,83 @@
 
 
 
-// A matrix class for hierarchical matrices for 3D BEM on triangular
-// elements. Could probably be extended to work with other types of
-// H-matrix fairly easily.
 
+// TODO:
 
+// handle 2d bemgrids as well? Not so easy because would have to implement
+// integration etc. myself, can't use Lindholm...
 
-// TODO
+// Figure out parameters and provide access functions!
 
-// handle 2d bemgrids as well?
-
-// Figure out parameters and maybe provide access functions
-
-// Play with higher optimisation levels for hlib?
-
-// This might only be valid for one potential (Laplace), might not be quite
-// the same as the one I'm using... at least factor of -1 different
 
 namespace hlib_helpers
 {
-/// Helper function: Given a mesh create a lookup from node pointer to
-/// node numbers in the mesh.
-inline std::map<Node*, unsigned> build_nodept2node
-(const Mesh& mesh, const BoundaryElementHandler& bem_handler,
- bool use_output=true)
-{
-  std::map<Node*, unsigned> lookup;
+  /// Helper function: Given a mesh create a lookup from node pointer to
+  /// node numbers in the mesh. ??ds still not entirely sure how this
+  /// interacts with my bem equation numbering. Might break on multiple
+  /// processors when the equation numbers are not just the number of the
+  /// node in the mesh...
+  inline std::map<Node*, unsigned> build_nodept2node
+  (const Mesh& mesh, const BoundaryElementHandler& bem_handler,
+   bool use_output=true)
+  {
+    std::map<Node*, unsigned> lookup;
 
-  unsigned index = 99999;
-  if(use_output)
-    {
-      index = bem_handler.output_index();
-    }
-  else
-    {
-      index = bem_handler.input_index();
-    }
+    unsigned index;
+    if(use_output)
+      {
+        index = bem_handler.output_index();
+      }
+    else
+      {
+        index = bem_handler.input_index();
+      }
 
-  for(unsigned nd=0, nnd=mesh.nnode(); nd<nnd; nd++)
-    {
-      Node* nd_pt = mesh.node_pt(nd);
+    for(unsigned nd=0, nnd=mesh.nnode(); nd<nnd; nd++)
+      {
+        Node* nd_pt = mesh.node_pt(nd);
 
-      // Get bem-local-equation-number (i.e. the index of this node's
-      // dof in the bem matrix). ??ds should we use input or output? both?
-      int g_eq = nd_pt->eqn_number(index);
-      unsigned eq = 99999;
-      if(use_output)
-        {
-          eq = bem_handler.output_lookup_pt()->global_to_node(g_eq);
-        }
-      else
-        {
-          eq = bem_handler.input_lookup_pt()->global_to_node(g_eq);
-        }
+        // Get bem-local-equation-number (i.e. the index of this node's
+        // dof in the bem matrix).
+        int g_eq = nd_pt->eqn_number(index);
+        unsigned eq;
+        if(use_output)
+          {
+            eq = bem_handler.output_lookup_pt()->global_to_node(g_eq);
+          }
+        else
+          {
+            eq = bem_handler.input_lookup_pt()->global_to_node(g_eq);
+          }
 
-      lookup[nd_pt] = eq;
-    }
+        lookup[nd_pt] = eq;
+      }
 
-  return lookup;
-}
+    return lookup;
+  }
 
 
-/// Make a pair of integers which always has the first entry as the
-/// smaller of the two. Needed because pair(a, b) != pair(b, a)
-/// otherwise.
-inline std::pair<int, int> ordered_make_pair(int a, int b)
-{
-  if(a < b)
-    {
-      return std::make_pair(a, b);
-    }
-  else
-    {
-      return std::make_pair(b, a);
-    }
-}
-
-/// Convert a (dense or hierarchical) matrix in hlib format to a dense
-/// matrix in oomph-lib format.
-inline void hlib_supermatrix2densedoublematrix (supermatrix& in,
-                                                clustertree ct,
-                                                DenseDoubleMatrix& out)
-{
+  /// Make a pair of integers which always has the first entry as the
+  /// smaller of the two. Needed because pair(a, b) != pair(b, a)
+  /// otherwise, so we can't use std::set to easily get a unique list.
+  inline std::pair<int, int> ordered_make_pair(int a, int b)
+  {
+    if(a < b)
+      {
+        return std::make_pair(a, b);
+      }
+    else
+      {
+        return std::make_pair(b, a);
+      }
+  }
 
 }
-}
 
 
+// A matrix class for hierarchical matrices for 3D BEM on triangular
+// elements. Could probably be extended to work with other types of
+// H-matrix fairly easily.
 class HMatrix : public DoubleMatrixBase
 {
 public:
@@ -134,6 +124,7 @@ public:
 
     // Null pointers
     This_hmatrix_pt = 0;
+    Cluster_tree_pt = 0;
   }
 
   virtual ~HMatrix()
@@ -147,10 +138,16 @@ public:
         del_supermatrix(This_hmatrix_pt);
         This_hmatrix_pt = 0;
       }
+
+    if(Cluster_tree_pt != 0)
+      {
+        del_clustertree(Cluster_tree_pt);
+        Cluster_tree_pt = 0;
+      }
   }
 
 
-  /// Create an equivalent dense matrix
+  /// Create an equivalent dense matrix.
   void todense(DenseDoubleMatrix& out) const
   {
     // Create a full (dense) hlib matrix in a temporary data structure
@@ -178,7 +175,8 @@ public:
     del_fullmatrix(full_pt);
   }
 
-  /// Build the hmatrix for a given mesh
+  /// Build the hmatrix for a given mesh and bem handler (needed for
+  /// equation lookup at the moment...).
   void build(const Mesh& mesh, const BoundaryElementHandler* bem_handler_pt)
   {
 #ifdef PARANOID
@@ -189,6 +187,8 @@ public:
         std::string err = "Only works for 2D triangles in 3D space";
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                             OOMPH_CURRENT_FUNCTION);
+        // Implementing anything else will probably be hard, you would need
+        // to write integration routines in hlib itself.
       }
 
     if(This_hmatrix_pt != 0)
@@ -213,7 +213,7 @@ public:
     std::map<Node*, unsigned> nodept2node =
       build_nodept2node(mesh, *bem_handler_pt, false);
 
-    // Get a (unique) list of all the edges in the mesh
+    // Get a unique list (using std::set) of all the edges in the mesh
     std::set<std::pair<int, int> > edges_set;
     for(unsigned ele=0, nele=mesh.nelement(); ele<nele; ele++)
       {
@@ -238,21 +238,12 @@ public:
     bemgrid3d* bem_grid_pt = new_bemgrid3d(vertices, edges, triangles);
 
     // Copy vertex data (nodal positions) into the hlib grid
-    std::vector<Node*> nodes(vertices);
     for(unsigned nd=0, nnd=mesh.nnode(); nd<nnd; nd++)
       {
-        nodes[nd] = mesh.node_pt(nd);
-      }
-
-    std::random_shuffle(nodes.begin(), nodes.end());
-    for(unsigned nd=0, nnd=nodes.size(); nd<nnd; nd++)
-      {
-        Node* nd_pt = nodes[nd];
-        unsigned nd_num = nodept2node.find(nd_pt)->second;
-
-        bem_grid_pt->x[nd_num][0] = nd_pt->x(0);
-        bem_grid_pt->x[nd_num][1] = nd_pt->x(1);
-        bem_grid_pt->x[nd_num][2] = nd_pt->x(2);
+        Node* nd_pt = mesh.node_pt(nd);
+        bem_grid_pt->x[nd][0] = nd_pt->x(0);
+        bem_grid_pt->x[nd][1] = nd_pt->x(1);
+        bem_grid_pt->x[nd][2] = nd_pt->x(2);
       }
 
     // Copy data on which vertices make up each triangle (element) into
@@ -260,6 +251,7 @@ public:
     for(unsigned ele=0, nele=mesh.nelement(); ele<nele; ele++)
       {
         FaceElement* ele_pt = dynamic_cast<FaceElement*>(mesh.element_pt(ele));
+
         for(unsigned nd=0, nnd=ele_pt->nnode(); nd<nnd; nd++)
           {
             Node* nd_pt = ele_pt->node_pt(nd);
@@ -269,7 +261,7 @@ public:
         // Order nodes such that Lindholm formula will get the right sign
         // of the unit normal. If the oomph-lib normal_sign() is negative
         // then the nodes are in the wrong order to get the outer unit
-        // normal via cross products, so swap them.
+        // normal via cross products, so swap two of them.
         if(ele_pt->normal_sign() < 0)
           {
             std::swap(bem_grid_pt->t[ele][0],
@@ -277,58 +269,30 @@ public:
           }
       }
 
-    //??ds remove this debugging code
-
-    // std::random_shuffle(bem_grid_pt->t, bem_grid_pt->t+triangles);
-
-    std::vector<std::pair<int, int> > edges_vec(edges_set.begin(),
-                                                edges_set.end());
-    // std::set<std::pair<int, int> >::const_iterator it;
-    // unsigned i_edge = 0;
-    // for(it = edges_set.begin(); it != edges_set.end(); ++it)
-    //   {
-    //     bem_grid_pt->e[i_edge][0] = it->first;
-    //     bem_grid_pt->e[i_edge][1] = it->second;
-    //     i_edge++;
-    //   }
-
-    // shuffle vector
-    // std::random_shuffle(edges_vec.begin(), edges_vec.end());
-
-    //??ds remove this debugging code
-
     // copy to array
-    std::vector<std::pair<int, int> >::const_iterator it;
+    std::set<std::pair<int, int> >::const_iterator it;
     unsigned i_edge = 0;
-    for(it = edges_vec.begin(); it != edges_vec.end(); ++it)
+    for(it = edges_set.begin(); it != edges_set.end(); ++it)
       {
         bem_grid_pt->e[i_edge][0] = it->first;
         bem_grid_pt->e[i_edge][1] = it->second;
         i_edge++;
       }
 
-    // Calculate required values in the grid
+    // Fill in some required geometrical values
     prepare_bemgrid3d(bem_grid_pt);
+
 
     // Construct the matrix itself, via some other intermediate data
     // structures.
     // ============================================================
 
-    // Build the cluster tree ??ds what are 0 and HLIB_REGULAR?
+    // Build the cluster tree
     Cluster_tree_pt = buildvertexcluster_bemgrid3d(bem_grid_pt,
                                                    HLIB_REGULAR,
                                                    nmin, 0);
 
     // Build the factory which will finally create the hmatrix
-    // ??ds parameter list?
-
-    // #warning "Using galerkin H-bem"
-    //       surfacebemfactory* surface_bem_factory_pt = new_surfacebemfactory_dlp
-    //         (bem_grid_pt, HLIB_LINEAR_BASIS, Cluster_tree_pt,
-    //          HLIB_LINEAR_BASIS, Cluster_tree_pt,
-    //          quadorder, quadorder,
-    //          polyorder, 0.0);
-
     surfacebemfactory* surface_bem_factory_pt = new_surfacebemfactory_dlp_collocation
       (bem_grid_pt, HLIB_LINEAR_BASIS, Cluster_tree_pt,
        bem_grid_pt, HLIB_LINEAR_BASIS, Cluster_tree_pt,
@@ -337,54 +301,40 @@ public:
 
 
     // Finally build the matrix itself, with adaptive recompression
-    // ??ds parameter list?
     This_hmatrix_pt = onthefly_hca_coarsen_supermatrix
       (Cluster_tree_pt->root, Cluster_tree_pt->root,
        surface_bem_factory_pt,
        eps_aca, kmax, eps, 1, algorithm, 0, eta, 0);
 
-    // // Output idx2dof map
-    // for(unsigned j=0; j<Cluster_tree_pt->ndof; j++)
-    //   {
-    //     std::cout << j << " " << Cluster_tree_pt->idx2dof[j] << std::endl;
-    //   }
-
 
     // Clean up auxilary data structures
     // ============================================================
 
-    // Since theses are all C data types they don't have destructors to do
-    // this for us, so do it manually now.
+    // Since theses are C data types they don't have destructors to do this
+    // for us, so do it manually now:
     del_bemgrid3d(bem_grid_pt);
     bem_grid_pt = 0;
-
-    // Used to get mapping between hlib-dofs and real dofs
-    // del_clustertree(cluster_tree_pt);
-    // cluster_tree_pt = 0;
-
     del_surfacebemfactory(surface_bem_factory_pt);
     surface_bem_factory_pt = 0;
-
-    // It's plausible that some of these data structures could actually
-    // be needed later if operations other than multiplication are used
-    // (and I'm not going to try to test them all!)... if so feel free to
-    // make these data structres class variables and to not delete them
-    // until the destructor.
   }
 
-
+  /// Get number of rows in the matrix
   long unsigned int nrow() const {return This_hmatrix_pt->rows;}
 
-
+  /// Get number of cols in the matrix
   long unsigned int ncol() const {return This_hmatrix_pt->cols;}
 
-
+  /// Get an entry from the matrix (note: don't implement things using this
+  /// inside a loop: that removes the entire point of using H-matrices!)
   double operator()(const long unsigned int& i,
                     const long unsigned int& j) const
   {
     return getentry_supermatrix(This_hmatrix_pt, i, j);
   }
 
+  /// Calculate sol = M.x. x is in the geometrical order defined by the
+  /// order of the nodes in the mesh that was given to build. Soln is in
+  /// the same order.
   void multiply(const DoubleVector& x, DoubleVector& soln) const
   {
     matrix_vector_multiply_build_check(x, soln);
@@ -411,17 +361,19 @@ public:
   }
 
   /// Calculate soln = M.x, but *without* doing the permutations to x and
-  /// soln which bring them back to the original geometric ordering.
+  /// soln which bring them back to the original geometrical
+  /// ordering. Useful if there are two permutations be done which can be
+  /// combined or if you need to do a large number of operations before
+  /// returning values to other oomph-lib code.
   void unpermuted_multiply(const DoubleVector& x, DoubleVector& soln) const
   {
     matrix_vector_multiply_build_check(x, soln);
-
-    // Do the multiplication
     eval_supermatrix(This_hmatrix_pt, x.values_pt(), soln.values_pt());
-
-    //??ds reorder result?
   }
 
+  /// Mutliply a vector by the transpose of the matrix. Broken function for
+  /// this because it's pure virtual in DoubleMatrixBase but I don't need
+  /// it...
   void multiply_transpose(const DoubleVector& x, DoubleVector& soln) const
   {
     // Probably have this function if needed, look in supermatrix.h...
@@ -429,7 +381,7 @@ public:
                         OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
   }
 
-  // Parameters
+  // Parameters for H matrix compression
   unsigned nmin;
   double eps_aca;
   unsigned kmax;
@@ -440,9 +392,16 @@ public:
   unsigned polyorder;
 
   /// Access function to the underlying hlib matrix representation.
-  supermatrix* supermatrix_pt()
+  supermatrix* supermatrix_pt() const
   {
     return This_hmatrix_pt;
+  }
+
+  /// Access function to cluster tree (contains the map between mesh's
+  /// geometrical ordering and the H matrix's ordering).
+  clustertree* cluster_tree_pt() const
+  {
+    return Cluster_tree_pt;
   }
 
 private:
@@ -451,6 +410,7 @@ private:
   supermatrix* This_hmatrix_pt;
   clustertree* Cluster_tree_pt;
 
+  /// Run pre-multiply paranoid tests and maybe build soln.
   void matrix_vector_multiply_build_check(const DoubleVector& x,
                                           DoubleVector& soln) const
   {
