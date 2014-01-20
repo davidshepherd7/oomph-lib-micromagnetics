@@ -183,16 +183,13 @@ public:
   {
 #ifdef PARANOID
     if(mesh.finite_element_pt(0)->nnode() != 3 ||
-       mesh.finite_element_pt(0)->dim() != 2)
+       mesh.finite_element_pt(0)->dim() != 2 ||
+       mesh.finite_element_pt(0)->nodal_dimension() != 3)
       {
-        std::string err = "Only works for triangles";
+        std::string err = "Only works for 2D triangles in 3D space";
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                             OOMPH_CURRENT_FUNCTION);
       }
-#endif
-
-    // Get some helper functions
-    using namespace hlib_helpers;
 
     if(This_hmatrix_pt != 0)
       {
@@ -202,6 +199,10 @@ public:
         // To implement this just make sure you delete all the data
         // structures (only if pointers non-null) and null their pointers.
       }
+#endif
+
+    // Get some helper functions
+    using namespace hlib_helpers;
 
 
     // Copy the oomph mesh data into hlib data structures

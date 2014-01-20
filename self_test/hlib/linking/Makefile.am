@@ -9,6 +9,6 @@ hlib_test_driver_SOURCES=hlib_test_driver.cc
 
 # Required libraries:
 # $(FLIBS) is included in case the solver involves fortran sources.
-hlib_test_driver_LDADD = -L@libdir@ -lgeneric -lmicromag -lhmatrix $(EXTERNAL_LIBS) $(FLIBS)
+hlib_test_driver_LDADD = -L@libdir@ -lgeneric -lmicromag $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -isystem @includedir@ -I /usr/local/include/HLib/
+INCLUDES = -isystem @includedir@

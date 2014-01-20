@@ -41,7 +41,15 @@ dirichlet_quadratic(const double *x, const double *n)
 int main()
 {
 
+#ifndef OOMPH_HAS_HLIB
+  std::cout << "OOMPH_HAS_HLIB is not defined" << std::endl;
+  return 5;
+#endif
+
   std::cout << "working" << std::endl;
+
+
+  // Run one of the hlib examples:
 
   pmacrogrid3d mg;
   pbemgrid3d gr;
@@ -131,12 +139,6 @@ int main()
     assert(split >= 0);
     filename[0] = '\0';
     geometry = 'b';
-  }
-  else if(tolower(buf[0]) == 'k') {
-    sscanf(buf+1, "%d", &split);
-    assert(split >= 0);
-    (void) strcpy(filename,"kurbel25744.tri");
-    geometry = 'f';
   }
   else if(buf[0] != '\0') {
     split = 0;
@@ -384,14 +386,7 @@ int main()
     t2 = times(&buffer);
     (void) printf("  M*v: %.3f sec.\n",
 		  (double) (t2-t1) / clk_tck / maxiter);
-    if(output>0 && reference==0){
-      (void) printf("# Print matrix structure to \"M.ps\"\n");
-      if(output==2){
-	outputsvd_supermatrix(M, "M.ps");
-      }else{
-	outputrank_supermatrix(M, "M.ps");
-      }
-    }
+
     if(reference==0) M_compress = M;
     if(reference==1) M_full = M;
   }

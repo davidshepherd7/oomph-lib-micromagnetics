@@ -55,9 +55,9 @@ headers = array_interpolator.h \
 	micromag_types.h
 
 # If we have hlib then compile that header too
-# if OOMPH_HAS_HLIB
+if OOMPH_HAS_HLIB
 headers += hmatrix.h
-# endif
+endif
 
 
 # Define name of library
