@@ -68,9 +68,6 @@ int main(int argc, char *argv[])
   // Do the multiply
   hmat.multiply(x, H_soln);
 
-  // Flip the sign ??ds not sure why we need to do this
-  H_soln *= -1;
-
 
   // Make a dense matrix from the H matrix and try multiplying with that
   // ============================================================
@@ -78,15 +75,6 @@ int main(int argc, char *argv[])
   // Copy H matrix into an oomph-lib matrix
   DenseDoubleMatrix double_matrix;
   hmat.todense(double_matrix);
-
-  // Flip sign ??ds not sure why we need this to make it match
-  for(unsigned i=0; i<double_matrix.nrow(); i++)
-    {
-      for(unsigned j=0; j<double_matrix.ncol(); j++)
-        {
-          double_matrix(i,j) *= -1;
-        }
-    }
 
   // Multiply
   double_matrix.multiply(x, dense_H_soln);

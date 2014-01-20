@@ -267,8 +267,10 @@ public:
           }
 
         // Order nodes such that Lindholm formula will get the right sign
-        // of the unit normal.
-        if(ele_pt->normal_sign() > 0)
+        // of the unit normal. If the oomph-lib normal_sign() is negative
+        // then the nodes are in the wrong order to get the outer unit
+        // normal via cross products, so swap them.
+        if(ele_pt->normal_sign() < 0)
           {
             std::swap(bem_grid_pt->t[ele][0],
                       bem_grid_pt->t[ele][1]);
