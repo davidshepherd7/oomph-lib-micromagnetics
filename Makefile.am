@@ -54,6 +54,11 @@ headers = array_interpolator.h \
 	micromag_factories.h \
 	micromag_types.h
 
+# If we have hlib then compile that header too
+# if OOMPH_HAS_HLIB
+headers += hmatrix.h
+# endif
+
 
 # Define name of library
 libname = micromag
@@ -81,6 +86,11 @@ library_includedir=$(includedir)/$(libname)
 
 #These are the header files that are to be placed in subdirectory
 library_include_HEADERS=$(headers) $(incl_cc_files)
+
+# Required libraries
+#-------------------
+# Include path for library headers
+INCLUDES = -I/usr/local/include/HLib/
 
 # Combined header file
 #---------------------
