@@ -24,7 +24,7 @@
 // Play with higher optimisation levels for hlib?
 
 // This might only be valid for one potential (Laplace), might not be quite
-// the same as the one I'm using...
+// the same as the one I'm using... at least factor of -1 different
 
 using namespace TimingHelpers;
 using namespace Factories;
@@ -57,7 +57,7 @@ namespace hlib
           // Get bem-local-equation-number (i.e. the index of this node's
           // dof in the bem matrix). ??ds should we use input or output? both?
           int g_eq = nd_pt->eqn_number(index);
-          unsigned eq = 9999999999;
+          unsigned eq = 99999;
           if(use_output)
             {
               eq = bem_handler.output_lookup_pt()->global_to_node(g_eq);
@@ -95,8 +95,6 @@ namespace hlib
                                                   clustertree ct,
                                                   DenseDoubleMatrix& out)
     {
-#warning "not sure which permutation of the supermatrix brings us back to our ordering..."
-
       // hlib uses pointers for everything...
       supermatrix* in_pt = &in;
 
@@ -139,9 +137,9 @@ namespace hlib
 
       // Random numbers for parameters, some taken from Knittel's thesis
       nmin = _nmin;
-      eps_aca = 1e-7;
+      eps_aca = 1e-5;
       kmax = 500;
-      eps = 1e-3;
+      eps = 1e-4;
       algorithm = HLIB_HCAII;
       eta = 0.25;
       quadorder = 3;
@@ -370,8 +368,74 @@ namespace hlib
       return getentry_supermatrix(This_hmatrix_pt, i, j);
     }
 
+   void multiply(const DoubleVector& x, DoubleVector& soln) const
+    {
+      matrix_vector_multiply_build_check(x, soln);
 
-    void multiply(const DoubleVector& x, DoubleVector& soln) const
+      // intermediate storage vectors
+      DoubleVector permuted_x(x.distribution_pt()),
+        permuted_soln(x.distribution_pt());
+
+      // permute x into this H-matrix's ordering
+      for(unsigned j=0; j<x.nrow(); j++)
+        {
+          permuted_x[j] = x[Cluster_tree_pt->dof2idx[j]];
+        }
+
+      // actually multiply
+      this->unpermuted_multiply(permuted_x, permuted_soln);
+
+      // permute soln from this H-matrix's ordering back to the geometrical
+      // ordering
+      for(unsigned j=0; j<soln.nrow(); j++)
+        {
+          soln[j] = permuted_soln[Cluster_tree_pt->idx2dof[j]];
+        }
+    }
+
+    /// Calculate soln = M.x, but *without* doing the permutations to x and
+    /// soln which bring them back to the original geometric ordering.
+    void unpermuted_multiply(const DoubleVector& x, DoubleVector& soln) const
+    {
+      matrix_vector_multiply_build_check(x, soln);
+
+      // Do the multiplication
+      eval_supermatrix(This_hmatrix_pt, x.values_pt(), soln.values_pt());
+
+      //??ds reorder result?
+    }
+
+    void multiply_transpose(const DoubleVector& x, DoubleVector& soln) const
+    {
+      // Probably have this function if needed, look in supermatrix.h...
+      throw OomphLibError("Function not yet implemented",
+                          OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+    }
+
+    // Parameters
+    unsigned nmin;
+    double eps_aca;
+    unsigned kmax;
+    double eps;
+    HLIB_HCA_VARIANT algorithm;
+    double eta;
+    unsigned quadorder;
+    unsigned polyorder;
+
+    /// Access function to the underlying hlib matrix representation.
+    supermatrix* supermatrix_pt()
+      {
+        return This_hmatrix_pt;
+      }
+
+  private:
+
+    /// Data storage for hlib data structures
+    supermatrix* This_hmatrix_pt;
+    clustertree* Cluster_tree_pt;
+
+    void matrix_vector_multiply_build_check(const DoubleVector& x,
+                                            DoubleVector& soln) const
     {
       // If soln is not setup then setup the distribution
       if(!soln.built())
@@ -410,41 +474,7 @@ namespace hlib
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
-
-      // Do the multiplication
-      eval_supermatrix(This_hmatrix_pt, x.values_pt(), soln.values_pt());
-
-      //??ds reorder result?
     }
-
-    void multiply_transpose(const DoubleVector& x, DoubleVector& soln) const
-    {
-      // Probably have this function if needed, look in supermatrix.h...
-      throw OomphLibError("Function not yet implemented",
-                          OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-    }
-
-    // Parameters
-    unsigned nmin;
-    double eps_aca;
-    unsigned kmax;
-    double eps;
-    HLIB_HCA_VARIANT algorithm;
-    double eta;
-    unsigned quadorder;
-    unsigned polyorder;
-
-    /// Access function to the underlying hlib matrix representation.
-    supermatrix* supermatrix_pt()
-      {
-        return This_hmatrix_pt;
-      }
-
-  private:
-
-    /// Data storage for hlib data structures
-    supermatrix* This_hmatrix_pt;
-    clustertree* Cluster_tree_pt;
 
   };
 
@@ -498,13 +528,15 @@ int main(int argc, char *argv[])
 
   // Use the bem mesh to make a h-matrix
 
-  unsigned nmin = 500; // ??ds works
-  // unsigned nmin = 5;
+  // unsigned nmin = 500; // ??ds works
+  unsigned nmin = 30;
   hlib::HMatrix hmat(nmin);
   hmat.build(*surface_mesh_pt, problem.Bem_handler_pt);
 
-  // Dump rank info
-  outputrank_supermatrix(hmat.supermatrix_pt(), (const char*)"rank.ps");
+  // Dump rank info (needs to be in a variable, not a string constant
+  // beacuse the C code could technical write to the string [not const]).
+  char rank_file_name[] = "rank.ps";
+  outputrank_supermatrix(hmat.supermatrix_pt(), rank_file_name);
 
   // Do the multiply
   hmat.multiply(x, H_soln);
@@ -552,8 +584,9 @@ int main(int argc, char *argv[])
   old_bem_matrix_pt->output("Validation/old_bem_matrix");
 
 
-  double H_soln_vs_dense = two_norm_diff(H_soln, dense_H_soln);
-  double H_soln_vs_oomph = two_norm_diff(H_soln, oomph_soln);
+  double H_soln_vs_dense = rel_two_norm_diff(H_soln, dense_H_soln);
+  double H_soln_vs_oomph = rel_two_norm_diff(H_soln, oomph_soln);
+  double dense_vs_oomph = rel_two_norm_diff(dense_H_soln, oomph_soln);
 
 
   // Some analysis
@@ -563,29 +596,21 @@ int main(int argc, char *argv[])
             << H_soln_vs_dense << std::endl;
   std::cout << "muliplication 2 norm of H-matrix vs oomph bem: "
             << H_soln_vs_oomph << std::endl;
+  std::cout << "muliplication 2 norm of dense version of H-matrix vs oomph bem: "
+            << dense_vs_oomph << std::endl;
 
-  //??ds need to fix ordering of H-matrix multiply output (and input?)
-  // if(H_soln_vs_dense > 1e-8)
-  //   {
-  //     std::cout << "Test failed due to error in dense H." << std::endl;
-  //     return 1;
-  //   }
+  // ??ds need to fix ordering of H-matrix multiply output (and input?)
+  if(H_soln_vs_dense > 1e-5)
+    {
+      std::cout << "Test failed due to error in dense H." << std::endl;
+      return 1;
+    }
 
-  // if(H_soln_vs_oomph > 1e-8)
-  //   {
-  //     std::cout << "Test failed due to error in oomph vs H." << std::endl;
-  //     return 2;
-  //   }
-
-
-  // DoubleVector sold, snew, rhs(dist, 1.0);
-  // double_matrix.solve(rhs, snew);
-  // old_bem_matrix_pt->solve(rhs, sold);
-
-  // // for(unsigned j=0; j<snew.nrow(); j++)
-  // //   {
-  // //     std::cout << j << ": " << snew[j] << " " << sold[j] << std::endl;
-  // //   }
+  if(H_soln_vs_oomph > 1e-5)
+    {
+      std::cout << "Test failed due to error in oomph vs H." << std::endl;
+      return 2;
+    }
 
   return 0;
 }
