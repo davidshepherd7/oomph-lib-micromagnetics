@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     HMatrix hmat(50);
   }
 
+
   // Make the problem to get bem mesh etc.
   // ============================================================
 
@@ -36,25 +37,26 @@ int main(int argc, char *argv[])
   DenseDoubleMatrix* old_bem_matrix_pt = problem.Bem_handler_pt->bem_matrix_pt();
   const Mesh* surface_mesh_pt = problem.Bem_handler_pt->bem_mesh_pt();
 
-  // Vectors for multiply test
+
+  // Test the differences in the matrices by multiplying them each with a
+  // random vector
+  // ============================================================
+
+
+  // Vectors for multiplication test
   const unsigned nbemnodes = surface_mesh_pt->nnode();
   LinearAlgebraDistribution dist(0, nbemnodes, false);
   DoubleVector x(dist), H_soln(dist), dense_H_soln(dist), oomph_soln(dist);
 
-  // Random entries for x vector
+  // Fill x vector with random entries
   Vector<double> v = VectorOps::random_vector(nbemnodes);
   x.initialise(v);
-
 
   // Multiply with pure-oomph bem matrix
   old_bem_matrix_pt->multiply(x, oomph_soln);
 
 
-  // Make a H matrix and use it in a multiply
-  // ============================================================
-
   // Use the bem mesh to make a h-matrix
-
   // unsigned nmin = 500; // ??ds works
   unsigned nmin = 30;
   HMatrix hmat(nmin);
@@ -69,9 +71,6 @@ int main(int argc, char *argv[])
   hmat.multiply(x, H_soln);
 
 
-  // Make a dense matrix from the H matrix and try multiplying with that
-  // ============================================================
-
   // Copy H matrix into an oomph-lib matrix
   DenseDoubleMatrix double_matrix;
   hmat.todense(double_matrix);
@@ -81,31 +80,19 @@ int main(int argc, char *argv[])
 
 
 
-  // // Output the timing and error results
-  // // ============================================================
-  // std::cout << "H-matrix build time " << hbuildstop - hbuildstart << std::endl;
-  // std::cout << "dense build time " << dbuildstop - dbuildstart << std::endl;
-  // std::cout << "oldbem build time " << oldbembuildstop - oldbembuildstart << std::endl;
-  // std::cout << std::endl;
-  // std::cout << "H-matrix multiply time " <<  hstop - hstart << std::endl;
-  // std::cout << "dense multiply time " << dstop - dstart << std::endl;
-  // std::cout << "old bem dense multiply time " << oldbemstop - oldbemstart
-  //           << std::endl;
-
-
   // Dump matrices to files
-  // ============================================================
   double_matrix.output("Validation/new_bem_matrix");
   old_bem_matrix_pt->output("Validation/old_bem_matrix");
 
+
+
+  // Some analysis of how good the approximation is
+  // ============================================================
 
   double H_soln_vs_dense = rel_two_norm_diff(H_soln, dense_H_soln);
   double H_soln_vs_oomph = rel_two_norm_diff(H_soln, oomph_soln);
   double dense_vs_oomph = rel_two_norm_diff(dense_H_soln, oomph_soln);
 
-
-  // Some analysis
-  // ============================================================
   std::cout << std::endl;
   std::cout << "muliplication 2 norm of H-matrix vs dense version: "
             << H_soln_vs_dense << std::endl;
@@ -114,7 +101,6 @@ int main(int argc, char *argv[])
   std::cout << "muliplication 2 norm of dense version of H-matrix vs oomph bem: "
             << dense_vs_oomph << std::endl;
 
-  // ??ds need to fix ordering of H-matrix multiply output (and input?)
   if(H_soln_vs_dense > 1e-5)
     {
       std::cout << "Test failed due to error in dense H." << std::endl;
@@ -126,6 +112,7 @@ int main(int argc, char *argv[])
       std::cout << "Test failed due to error in oomph vs H." << std::endl;
       return 2;
     }
+
 
   return 0;
 }
