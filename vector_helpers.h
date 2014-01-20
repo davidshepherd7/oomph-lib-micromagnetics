@@ -315,6 +315,11 @@ namespace VectorOps
     return diff.norm();
   }
 
+  inline double rel_two_norm_diff(const DoubleVector& a, const DoubleVector& b)
+    {
+      return two_norm_diff(a, b) / std::max(a.norm(), b.norm());
+    }
+
   inline void normalise(Vector<double>& a)
   {
     double length = two_norm(a);
