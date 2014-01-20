@@ -96,6 +96,8 @@ dummy_$(libname).h:  $(headers)
 	rm all_$(libname).aux
 	./generate_git_version_header.sh
 
+git_header.h: ./generate_git_version_header.sh
+
 
 # Extra hook for install: Optionally replace headers by symbolic links
 #---------------------------------------------------------------------
@@ -112,6 +114,6 @@ endif
 
 # Cleanup: Kill automatically generated combined header file
 clean-local:
-	rm -f $(libname).h *~
+	rm -f $(libname).h *~ git_version.h
 distclean-local:
-	rm -f $(libname).h *~
+	rm -f $(libname).h *~ git_version.h
