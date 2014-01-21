@@ -249,6 +249,12 @@ namespace oomph
         }
     }
 
+    /// Create diagonal matrix just containing the corner contributions.
+    void make_diagonal_corner_matrix(CRDoubleMatrix& corner_matrix) const
+    {
+      VectorOps::diag_cr_matrix(corner_matrix, Corners);
+    }
+
 
     void set_up_from_input_data
     (const Mesh* const mesh_pt,
@@ -363,6 +369,7 @@ namespace oomph
       // Null pointers
       Bem_matrix_pt = 0;
       Integration_scheme_pt = 0;
+      Hmatrix_dof2idx_mapping_pt = 0;
     }
 
     /// Destructor
@@ -382,6 +389,9 @@ namespace oomph
       // Delete the matrix
       delete Bem_matrix_pt;
       Bem_matrix_pt = 0;
+
+      delete Hmatrix_dof2idx_mapping_pt;
+      Hmatrix_dof2idx_mapping_pt = 0;
     }
 
     /// Put the (output) values of the bem into a vector.
@@ -556,6 +566,12 @@ namespace oomph
     /// Use a hierarchical representation of the BEM matrix. Much faster
     /// but requires external library.
     bool Use_hierarchical_bem;
+
+    /// Mapping from Hmatrix dofs (equivalent to the nodal numbering
+    /// scheme) to Hmatrix indices (internal Hmatrix ordering used to
+    /// improve hierarchical properties). Null pointer unless we are using
+    /// Hmatrix bem.
+    NodeGlobalNumbersLookup* Hmatrix_dof2idx_mapping_pt;
 
     /// A list of the boundaries (on various meshes) to which the boundary
     /// element method should be applied. ??ds will multiple meshes work?

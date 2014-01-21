@@ -1,6 +1,7 @@
 
 
 #include "boundary_element_handler.h"
+#include "hmatrix.h"
 
 namespace oomph
 {
@@ -113,14 +114,57 @@ void BoundaryElementHandler::build_bem_matrix()
       corner_list_pt()->add_corner_contributions(*dense_matrix_pt);
     }
 
+  // dense_matrix_pt->output("dense_oomph_mat");
+
 }
 
+/// Build the bem_matrix as a sum of the hierarchical matrix and the corner
+/// contributions. If hlib is not installed and linked then throw an error
+/// instead.
+void BoundaryElementHandler::build_hierarchical_bem_matrix()
+#ifdef OOMPH_HAS_HLIB
+{
+  // Note: we can't include the corner contributions directly into the
+  // H-matrix because it would no longer be purely a discretised double
+  // layer potential, and hence some of the hierarchical properties
+  // may/would be lost.
 
-  void BoundaryElementHandler::build_hierarchical_bem_matrix()
-  {
-    throw OomphLibError("Function not yet implemented",
-                        OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-  }
+  // Generate the hierarchical part of the bem matrix.
+  HMatrix* h_matrix_pt = new HMatrix;
+  h_matrix_pt->build(*Bem_mesh_pt, this);
+
+  // Put h matrix in total matrix, set it to be deleted when the total
+  // matrix is.
+  SumOfMatrices* total_bem_matrix_pt = new SumOfMatrices;
+  total_bem_matrix_pt->main_matrix_pt() = h_matrix_pt;
+  total_bem_matrix_pt->set_delete_main_matrix();
+
+  // Create the lookup scheme between hlib indicies and our numbering
+  // scheme.
+  Hmatrix_dof2idx_mapping_pt =
+    new NodeGlobalNumbersLookup(h_matrix_pt->cluster_tree_pt()->dof2idx,
+                                h_matrix_pt->nrow());
+
+  // Put matrix containing the bem sharp corner contributions into the
+  // total matrix, also set it to be deleted when the main matrix is. The
+  // mapping between the two is the H matrix's dof2idx mapping.
+  CRDoubleMatrix* corners_matrix_pt = new CRDoubleMatrix;
+  corner_list_pt()->make_diagonal_corner_matrix(*corners_matrix_pt);
+  total_bem_matrix_pt->add_matrix(corners_matrix_pt,
+                                  Hmatrix_dof2idx_mapping_pt,
+                                  Hmatrix_dof2idx_mapping_pt,
+                                  true);
+
+  // Set the total as the bem matrix
+  Bem_matrix_pt = total_bem_matrix_pt;
+}
+#else
+{
+  throw OomphLibError("Cannot build H matrix without Hlib library installed",
+                      OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+}
+#endif
+
 
 //======================================================================
 /// Build the mesh of bem elements.
