@@ -1118,7 +1118,7 @@ public:
       specify_command_line_flag("-disable-ms");
       specify_command_line_flag("-pin-boundary-m");
 
-      specify_command_line_flag("-hierarchical_bem", &hierarchical_bem);
+      specify_command_line_flag("-hierarchical-bem", &hierarchical_bem);
       hierarchical_bem = -1;
     }
 
@@ -1257,7 +1257,7 @@ public:
         << "damping_parameter_override " << dampc << std::endl
         << "numerical-BEM " << use_numerical_integration_bem << std::endl
         << "decoupled_ms " << decoupled_ms << std::endl
-        << "hierarchical_bem " << hierarchical_bem << std::endl
+        << "hierarchical-bem " << hierarchical_bem << std::endl
         << "disable_ms " << disable_ms << std::endl
         << "pin_boundary_m " << pin_boundary_m << std::endl
         ;
