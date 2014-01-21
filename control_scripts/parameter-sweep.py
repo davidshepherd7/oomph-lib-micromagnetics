@@ -480,7 +480,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
                      'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
     # Make sure the driver binaries are up to date
-    driver_folders = [os.path.dirname(d) for d in args_dict['binary']]
+    driver_folders = [os.path.dirname(d) for d in args_dict['-binary']]
     for f in driver_folders:
         build_driver(f)
 
