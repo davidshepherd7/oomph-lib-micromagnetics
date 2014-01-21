@@ -458,6 +458,21 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             '-ref' : [1, 2, 3, 4],
             '-decoupled-ms' : [True],
             }
+
+    elif parameter_set == "hlib-speed":
+         args_dict = {
+            '-binary' : ["./driver/driver"],
+            '-driver' : ['llg'],
+            '-ts' : ['bdf2'],
+            '-mesh' : ["ut_sphere"],
+            '-ref' : [1, 2, 3, 4, 5],
+            '-tol' : [1e-4],
+            '-tmax' : [0.01],
+            '-solver' : ['som-gmres'],
+            '-prec' : ['som-main-blockut'],
+            '-hierarchical-bem' : ['0', '1'],
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
