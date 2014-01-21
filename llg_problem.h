@@ -106,7 +106,7 @@ namespace oomph
           for(unsigned nd=0; nd<bem_nnode; nd++)
             {
               unsigned i = Bem_handler_pt->output_lookup_pt()
-                ->node_to_global(nd);
+                ->added_to_main(nd);
               row_index[nd] = i;
             }
 

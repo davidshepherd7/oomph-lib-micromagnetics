@@ -67,7 +67,7 @@ int main()
       // ============================================================
       CRDoubleMatrix id_matrix(&dist);
       VectorOps::diag_cr_matrix(id_matrix, mat_size, 2*max_val);
-      NodeGlobalNumbersLookup row_map, col_map;
+      AddedMainNumberingLookup row_map, col_map;
       row_map.build_identity_map(mat_size);
       col_map.build_identity_map(mat_size);
       sum_matrix.add_matrix(&id_matrix,&row_map,&col_map);
@@ -83,7 +83,7 @@ int main()
               dense_block(i,j) = rand() % max_val;
             }
         }
-      NodeGlobalNumbersLookup dense_row_map, dense_col_map;
+      AddedMainNumberingLookup dense_row_map, dense_col_map;
       dense_row_map.build_identity_map(dense_block_size);
       dense_col_map.build_identity_map(dense_block_size);
 

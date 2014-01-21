@@ -65,11 +65,11 @@ namespace hlib_helpers
         unsigned eq;
         if(use_output)
           {
-            eq = bem_handler.output_lookup_pt()->global_to_node(g_eq);
+            eq = bem_handler.output_lookup_pt()->main_to_added(g_eq);
           }
         else
           {
-            eq = bem_handler.input_lookup_pt()->global_to_node(g_eq);
+            eq = bem_handler.input_lookup_pt()->main_to_added(g_eq);
           }
 
         lookup[nd_pt] = eq;

@@ -515,22 +515,22 @@ namespace oomph
 
     /// \short Pointer to a lookup between output value global equation
     /// numbers and node numbers within mesh.
-    const NodeGlobalNumbersLookup* output_lookup_pt() const
+    const AddedMainNumberingLookup* output_lookup_pt() const
     {return &Output_lookup;}
 
     /// \short Alias of output_lookup_pt for when we are working with Jacobians
     /// (they are the same lookup).
-    const NodeGlobalNumbersLookup* row_lookup_pt() const
+    const AddedMainNumberingLookup* row_lookup_pt() const
     {return output_lookup_pt();}
 
     /// \short Pointer to a lookup between input value global equation
     /// numbers and node numbers within mesh.
-    const NodeGlobalNumbersLookup* input_lookup_pt() const
+    const AddedMainNumberingLookup* input_lookup_pt() const
     {return &Input_lookup;}
 
     /// \short Alias of input_lookup_pt for when we are working with Jacobians
     /// (they are the same lookup).
-    const NodeGlobalNumbersLookup* col_lookup_pt() const
+    const AddedMainNumberingLookup* col_lookup_pt() const
     {return input_lookup_pt();}
 
     /// \short Get an appropriate linear algebra distribution for working
@@ -571,7 +571,7 @@ namespace oomph
     /// scheme) to Hmatrix indices (internal Hmatrix ordering used to
     /// improve hierarchical properties). Null pointer unless we are using
     /// Hmatrix bem.
-    NodeGlobalNumbersLookup* Hmatrix_dof2idx_mapping_pt;
+    AddedMainNumberingLookup* Hmatrix_dof2idx_mapping_pt;
 
     /// A list of the boundaries (on various meshes) to which the boundary
     /// element method should be applied. ??ds will multiple meshes work?
@@ -583,13 +583,13 @@ namespace oomph
 
   private:
 
-    /// \short Lookup between output value global equation numbers and node
-    /// numbers within mesh.
-    NodeGlobalNumbersLookup Output_lookup;
+    /// \short Lookup between output value's global equation numbers and
+    /// node numbers within mesh.
+    AddedMainNumberingLookup Output_lookup;
 
-    /// \short Lookup between input value global equation numbers and node
-    /// numbers within mesh.
-    NodeGlobalNumbersLookup Input_lookup;
+    /// \short Lookup between input value's global equation numbers and
+    /// node numbers within mesh.
+    AddedMainNumberingLookup Input_lookup;
 
     /// \short Storage for the adaptive integration scheme to be used.
     Integral* Integration_scheme_pt;

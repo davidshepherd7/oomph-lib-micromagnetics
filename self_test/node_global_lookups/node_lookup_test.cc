@@ -11,9 +11,9 @@ using namespace oomph;
 
 
 // =================================================================
-/// Node lookup test
+/// Added lookup test
 // =================================================================
-int node_lookup_test()
+int added_lookup_test()
 {
   // Build a test problem
   GenericPoissonForTests test_poisson;
@@ -39,32 +39,32 @@ int node_lookup_test()
 
 
   // Build lookup
-  NodeGlobalNumbersLookup nd_lookup(&test_mesh, pdof);
+  AddedMainNumberingLookup lookup(&test_mesh, pdof);
 
-  // std::cout << *(nd_lookup.node_to_global_mapping_pt()) << std::endl;
+  // std::cout << *(lookup.added_to_main_mapping_pt()) << std::endl;
   // std::cout << std::endl;
-  // std::cout << *(nd_lookup.global_to_node_mapping_pt()) << std::endl;
+  // std::cout << *(lookup.main_to_added_mapping_pt()) << std::endl;
 
   // Check lookup works
   for(unsigned nd=0, nnode=test_mesh.nnode(); nd<nnode; nd++)
     {
       Node* nd_pt = test_mesh.node_pt(nd);
 
-      unsigned global_from_node = nd_pt->eqn_number(pdof);
-      unsigned global_from_lookup = nd_lookup.node_to_global(nd);
-      if(global_from_lookup != global_from_node)
+      unsigned main_from_added = nd_pt->eqn_number(pdof);
+      unsigned main_from_lookup = lookup.added_to_main(nd);
+      if(main_from_lookup != main_from_added)
         {
-          std::cout << "Forward (node to global) lookup failed"<< std::endl;
-          std::cout << nd_lookup.node_to_global(nd) << " vs "
-                    << global_from_node << std::endl;
+          std::cout << "Forward (added to main) lookup failed"<< std::endl;
+          std::cout << lookup.added_to_main(nd) << " vs "
+                    << main_from_added << std::endl;
           return 1;
         }
 
-      int local_from_lookup = nd_lookup.global_to_node(global_from_node);
+      int local_from_lookup = lookup.main_to_added(main_from_added);
       if((local_from_lookup < 0) || (unsigned(local_from_lookup) != nd))
         {
-          std::cout << "Reverse (global to node) lookup failed" << std::endl;
-          std::cout << nd_lookup.global_to_node(global_from_node) << " vs "
+          std::cout << "Reverse (main to added) lookup failed" << std::endl;
+          std::cout << lookup.main_to_added(main_from_added) << " vs "
                     << nd << std::endl;
           return 2;
         }
@@ -78,12 +78,12 @@ int main()
   // Enable some floating point error checkers
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 
-  int result = node_lookup_test();
+  int result = added_lookup_test();
 
   if(result == 0)
     {
       std::cout << "***" <<std::endl;
-      std::cout << "*** node_lookup_test() passed" << std::endl;
+      std::cout << "*** added_lookup_test() passed" << std::endl;
       std::cout << "***" <<std::endl;
     }
 
