@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
   problem.build(args.mesh_pts);
 
   // Some useful pointers
-  DenseDoubleMatrix* old_bem_matrix_pt = problem.Bem_handler_pt->bem_matrix_pt();
+  DoubleMatrixBase* old_bem_matrix_pt = problem.Bem_handler_pt->bem_matrix_pt();
   const Mesh* surface_mesh_pt = problem.Bem_handler_pt->bem_mesh_pt();
 
 
@@ -82,7 +82,8 @@ int main(int argc, char *argv[])
 
   // Dump matrices to files
   double_matrix.output("Validation/new_bem_matrix");
-  old_bem_matrix_pt->output("Validation/old_bem_matrix");
+  dynamic_cast<DenseDoubleMatrix*>(old_bem_matrix_pt)
+    ->output("Validation/old_bem_matrix");
 
 
 

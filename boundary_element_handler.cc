@@ -37,15 +37,26 @@ void BoundaryElementHandler::build_bem_matrix()
         }
     }
 
+  if(Bem_matrix_pt != 0)
+    {
+      std::string err = "Already have a bem matrix, delete before rebuilding.";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+    }
 #endif
+
+  // Create the matrix
+  DenseDoubleMatrix* dense_matrix_pt = new DenseDoubleMatrix;
+  Bem_matrix_pt = dense_matrix_pt;
+
 
   // Get the number of nodes in the boundary problem
   unsigned long n_node = bem_mesh_pt()->nnode();
 
   // Initialise and resize the boundary matrix ??ds this wastes some time
   // copying over old values. Write a new resize function?
-  Bem_matrix.resize(n_node, n_node);
-  Bem_matrix.initialise(0.0);
+  dense_matrix_pt->resize(n_node, n_node);
+  dense_matrix_pt->initialise(0.0);
 
   // Loop over all elements in the BEM mesh
   unsigned long n_bem_element = bem_mesh_pt()->nelement();
@@ -86,7 +97,8 @@ void BoundaryElementHandler::build_bem_matrix()
 
               // Rows are indexed by output (source node) number, columns
               // are indexed by input (l) number.
-              Bem_matrix(s_number, l_number) += element_boundary_matrix(l,s_nd);
+              dense_matrix_pt->operator()(s_number, l_number)
+                += element_boundary_matrix(l,s_nd);
 
               //??ds I think elemental bem matrices are currently actually
               //the transpose, so we needed to switch them back here. Fix this?
@@ -98,7 +110,7 @@ void BoundaryElementHandler::build_bem_matrix()
     {
       // Lindholm formula/adaptive integral does not contain the solid angle
       // contribution so add it now.
-      corner_list_pt()->add_corner_contributions(Bem_matrix);
+      corner_list_pt()->add_corner_contributions(*dense_matrix_pt);
     }
 
 }

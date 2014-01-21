@@ -210,10 +210,15 @@ namespace oomph
 
     /// Add the contribution due to corners to the diagonal of the boundary
     /// matrix.
-    void add_corner_contributions(DenseDoubleMatrix& bem_matrix) const
+    void add_corner_contributions(DoubleMatrixBase& bem_matrix) const
     {
       // Assume that the bem matrix is a densedoublematrix so that we can write
       // to it with operator().
+
+      //??ds fix for h matrix
+      DenseDoubleMatrix* bem_matrix_pt =
+        checked_dynamic_cast<DenseDoubleMatrix*>(&bem_matrix);
+
 
 #ifdef PARANOID
       // Check that the list has been set up
@@ -227,7 +232,7 @@ namespace oomph
         }
 
       // Check that it is the correct size
-      if(bem_matrix.nrow() != Corners.size())
+      if(bem_matrix_pt->nrow() != Corners.size())
         {
           std::ostringstream error_msg;
           error_msg << "Corners list is the wrong size for the matrix.";
@@ -240,7 +245,7 @@ namespace oomph
       // Add the fractional angles
       for(unsigned nd=0, s=Corners.size(); nd<s; nd++)
         {
-          bem_matrix(nd,nd) += Corners[nd];
+          bem_matrix_pt->operator()(nd,nd) += Corners[nd];
         }
     }
 
@@ -330,9 +335,7 @@ namespace oomph
 
     /// Default constructor
     BoundaryElementHandler() :
-      Bem_element_factory_fpt(0),
-      Integration_scheme_pt(0), Bem_mesh_pt(0),
-      Input_index(0), Output_index(0)
+      Bem_element_factory_fpt(0), Input_index(0), Output_index(0)
     {
       // Boundary meshes do not "own" their nodes. However the Mesh
       // destructor doesn't know that and so will try to delete the
@@ -342,7 +345,6 @@ namespace oomph
       // The proper way to do this would probably be to create a new
       // MeshDontDeleteNodes class which changes the destructor. Or maybe
       // add a flag to mesh?
-
       Bem_mesh_pt = new Mesh;
 
       // By default evaluate BEM integrals analytically.
@@ -357,6 +359,10 @@ namespace oomph
 
       // Debugging flags
       Debug_disable_corner_contributions=false;
+
+      // Null pointers
+      Bem_matrix_pt = 0;
+      Integration_scheme_pt = 0;
     }
 
     /// Destructor
@@ -372,6 +378,10 @@ namespace oomph
       // Delete the integrator
       delete Integration_scheme_pt;
       Integration_scheme_pt = 0;
+
+      // Delete the matrix
+      delete Bem_matrix_pt;
+      Bem_matrix_pt = 0;
     }
 
     /// Put the (output) values of the bem into a vector.
@@ -466,11 +476,11 @@ namespace oomph
     const Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
     /// Const access to the boundary matrix
-    const DenseDoubleMatrix* bem_matrix_pt() const
-    {return &Bem_matrix;}
+    const DoubleMatrixBase* bem_matrix_pt() const
+    {return Bem_matrix_pt;}
 
     /// Non-const access to the boundary matrix
-    DenseDoubleMatrix* bem_matrix_pt() {return &Bem_matrix;}
+    DoubleMatrixBase* bem_matrix_pt() {return Bem_matrix_pt;}
 
     /// \short Set function for Input_index.
     void set_input_index(unsigned input_index) {Input_index = input_index;}
@@ -583,7 +593,7 @@ namespace oomph
     unsigned Output_index;
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
-    DenseDoubleMatrix Bem_matrix;
+    DoubleMatrixBase* Bem_matrix_pt;
 
     /// Construct BEM elements on boundaries listed in Bem_boundaries and add
     /// to the Bem_mesh.
