@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
   // First make sure that we can create/destroy empty h matrices correctly
   // ============================================================
   {
-    HMatrix hmat(50);
+    HMatrix hmat;
   }
 
 
@@ -57,9 +57,7 @@ int main(int argc, char *argv[])
 
 
   // Use the bem mesh to make a h-matrix
-  // unsigned nmin = 500; // ??ds works
-  unsigned nmin = 30;
-  HMatrix hmat(nmin);
+  HMatrix hmat;
   hmat.build(*surface_mesh_pt, problem.Bem_handler_pt);
 
   // Dump rank info (needs to be in a variable, not a string constant

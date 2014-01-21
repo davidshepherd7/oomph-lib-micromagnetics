@@ -104,7 +104,7 @@ class HMatrix : public DoubleMatrixBase
 {
 public:
 
-  HMatrix(const unsigned& _nmin)
+  HMatrix()
   {
 #ifdef OOMPH_HAS_MPI
     throw OomphLibError("Not implemented for MPI, it might work for non-distributed memory though... But untested",
@@ -113,7 +113,7 @@ public:
 #endif
 
     // Random numbers for parameters, some taken from Knittel's thesis
-    nmin = _nmin;
+    nmin = 30;
     eps_aca = 1e-5;
     kmax = 500;
     eps = 1e-4;
