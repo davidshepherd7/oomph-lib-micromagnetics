@@ -646,9 +646,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
@@ -850,9 +847,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
@@ -939,9 +933,6 @@ namespace oomph
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          std::string err = "ut mesh edge/corners not right";
-          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
           mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
