@@ -148,7 +148,7 @@ public:
 
 
   /// Create an equivalent dense matrix.
-  void todense(DenseDoubleMatrix& out) const
+  void to_dense(DenseDoubleMatrix& out) const
   {
     // Create a full (dense) hlib matrix in a temporary data structure
     fullmatrix* full_pt = new_fullmatrix(This_hmatrix_pt->rows,

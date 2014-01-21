@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
   // Copy H matrix into an oomph-lib matrix
   DenseDoubleMatrix double_matrix;
-  hmat.todense(double_matrix);
+  hmat.to_dense(double_matrix);
 
   // Multiply
   double_matrix.multiply(x, dense_H_soln);
