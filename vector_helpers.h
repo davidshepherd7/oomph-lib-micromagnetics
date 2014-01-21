@@ -431,6 +431,29 @@ namespace VectorOps
     cr_matrix.build(n, values, col_index, row_start);
   }
 
+  inline void diag_cr_matrix(CRDoubleMatrix& cr_matrix,
+                             const Vector<double>& values)
+  {
+    const unsigned n = values.size();
+    Vector<int> row_index(n), col_index(n), row_start;
+
+    // Create diagonal indicies vectors
+    for(unsigned i=0; i<n; i++)
+      {
+        row_index[i] = i;
+        col_index[i] = i;
+      }
+
+    // Create dummy distribution just containing nrows.
+    LinearAlgebraDistribution dist(0, n, false);
+
+    // Convert to rowindex form
+    rowindex2rowstart(row_index, n, row_start);
+
+    // Build the matrix
+    cr_matrix.build(&dist, n, values, col_index, row_start);
+  }
+
   inline Vector<double> random_vector(unsigned length, double max_value=100)
     {
       Vector<double> a(length);
