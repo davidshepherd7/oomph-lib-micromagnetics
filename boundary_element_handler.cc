@@ -104,6 +104,12 @@ void BoundaryElementHandler::build_bem_matrix()
 }
 
 
+  void BoundaryElementHandler::build_hierarchical_bem_matrix()
+  {
+    throw OomphLibError("Function not yet implemented",
+                        OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+  }
+
 //======================================================================
 /// Build the mesh of bem elements.
 //======================================================================

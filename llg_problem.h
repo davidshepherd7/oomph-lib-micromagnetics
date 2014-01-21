@@ -64,7 +64,7 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
-      Use_hlib = false;
+      Use_hierarchical_bem = false;
       Disable_bem_corners = false;
       Use_numerical_bem = false;
     }
@@ -838,7 +838,7 @@ namespace oomph
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
-    bool Use_hlib;
+    bool Use_hierarchical_bem;
     bool Disable_bem_corners;
     bool Use_numerical_bem;
 
@@ -1117,6 +1117,9 @@ public:
       specify_command_line_flag("-decoupled-ms");
       specify_command_line_flag("-disable-ms");
       specify_command_line_flag("-pin-boundary-m");
+
+      specify_command_line_flag("-hierarchical_bem", &hierarchical_bem);
+      hierarchical_bem = -1;
     }
 
 
@@ -1181,6 +1184,7 @@ public:
           bem_element_factory_fct_pt = bem_element_factory_factory
             (mesh_pts[0]->finite_element_pt(0));
         }
+
     }
 
     void build_meshes()
@@ -1207,6 +1211,20 @@ public:
       llg_pt->Decoupled_ms = decoupled_ms;
       llg_pt->Disable_ms = disable_ms;
       llg_pt->Use_numerical_bem = use_numerical_integration_bem;
+
+      if(hierarchical_bem != -1)
+        {
+          if(hierarchical_bem == 0) llg_pt->Use_hierarchical_bem = false;
+          else if(hierarchical_bem == 1) llg_pt->Use_hierarchical_bem = true;
+          else
+            {
+              std::string err = "Hierarchical bem setting must be -1, 0 or 1 ";
+              err += "but it is " ;
+              err += to_string(hierarchical_bem);
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
+        }
 
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds
@@ -1239,6 +1257,7 @@ public:
         << "damping_parameter_override " << dampc << std::endl
         << "numerical-BEM " << use_numerical_integration_bem << std::endl
         << "decoupled_ms " << decoupled_ms << std::endl
+        << "hierarchical_bem " << hierarchical_bem << std::endl
         << "disable_ms " << disable_ms << std::endl
         << "pin_boundary_m " << pin_boundary_m << std::endl
         ;
@@ -1276,6 +1295,7 @@ public:
     double dampc;
 
     bool use_numerical_integration_bem;
+    int hierarchical_bem;
 
 
     bool decoupled_ms;

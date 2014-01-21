@@ -348,6 +348,14 @@ namespace oomph
       // By default evaluate BEM integrals analytically.
       Use_numerical_integration = false;
 
+      // Use hlib if we have it
+#ifdef OOMPH_HAS_HLIB
+      Use_hierarchical_bem = true;
+#else
+      Use_hierarchical_bem = false;
+#endif
+
+      // Debugging flags
       Debug_disable_corner_contributions=false;
     }
 
@@ -390,6 +398,15 @@ namespace oomph
           Use_numerical_integration = true;
         }
 
+      // Can't force numerical integration in hlib
+      if(Use_hierarchical_bem && Use_numerical_integration)
+        {
+          std::string err = "Can't control integration method in hlib, so we";
+          err += "can't use numerical integration.";
+          OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+        }
+
       // Construct the mesh using on boundaries specified in Bem_boundaries
       build_bem_mesh();
 
@@ -412,16 +429,26 @@ namespace oomph
           corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
         }
 
-      // Construct the (dense) matrix
-      oomph_info << "Building dense BEM matrix, this may take some time"
-                 << std::endl;
-      if(Use_numerical_integration)
-        oomph_info << "Using numerical integration." << std::endl;
+      if(!Use_hierarchical_bem)
+        {
+          // Say what we're doing
+          oomph_info << "Building dense BEM matrix, this may take some time"
+                     << std::endl;
+          if(Use_numerical_integration)
+            oomph_info << "Using numerical integration." << std::endl;
+          else
+            oomph_info << "Using analytical integration." << std::endl;
+
+          // Construct the (dense) matrix
+          build_bem_matrix();
+        }
       else
-        oomph_info << "Using analytical integration." << std::endl;
+        {
+          oomph_info << "Building hierarchical BEM matrix" << std::endl;
+          build_hierarchical_bem_matrix();
+        }
 
 
-      build_bem_matrix();
     }
 
     /// \short Get the (nodal) dimension of the boundary meshes
@@ -516,6 +543,10 @@ namespace oomph
     /// analytical integration.
     bool Use_numerical_integration;
 
+    /// Use a hierarchical representation of the BEM matrix. Much faster
+    /// but requires external library.
+    bool Use_hierarchical_bem;
+
     /// A list of the boundaries (on various meshes) to which the boundary
     /// element method should be applied. ??ds will multiple meshes work?
     /// are they needed? probably not for anything I do...
@@ -558,8 +589,12 @@ namespace oomph
     /// to the Bem_mesh.
     void build_bem_mesh();
 
-    /// Construct the boundary matrix using the Bem_mesh.
+    /// Construct a dense boundary matrix in Bem_matrix using pure
+    /// oomph-lib code.
     void build_bem_matrix();
+
+    /// Construct a hierarchical boundary matrix in Bem_matrix using hlib.
+    void build_hierarchical_bem_matrix();
 
     /// \short Get the mapping between the global equation numbering and
     /// the boundary equation numbering.
