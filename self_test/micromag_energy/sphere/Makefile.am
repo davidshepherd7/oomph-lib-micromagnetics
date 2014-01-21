@@ -1,1 +1,1 @@
-SUBDIRS = standard midpoint fully_implicit
+SUBDIRS = standard midpoint fully_implicit h_matrix
