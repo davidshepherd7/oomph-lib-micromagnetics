@@ -5,9 +5,7 @@
 #include "generic.h"
 #include <fenv.h>
 
-#include "../../my_assert.h"
 #include "../../prettyprint98.hpp"
-
 
 
 using namespace oomph;
@@ -64,12 +62,23 @@ int main()
   input::vec_function(eval_point, exact);
 
   // Check that they are the same
-  my_assert(almost_equal(output, exact, 1e-10));
+  if(!almost_equal(output, exact, 1e-10))
+    {
+      std::string err = "Test failed!";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+    }
 
   Vector<double> output_deriv, exact_deriv;
   b.eval_derivative(eval_point, 1, output_deriv);
   input::d_vec_function(eval_point, exact_deriv);
-  my_assert(almost_equal(output_deriv, exact_deriv, 1e-10));
+
+  if(!almost_equal(output_deriv, exact_deriv, 1e-10))
+    {
+      std::string err = "Test failed!";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+    }
 
   std::cout << output << exact << std::endl;
 

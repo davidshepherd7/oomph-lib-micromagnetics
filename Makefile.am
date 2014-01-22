@@ -28,7 +28,6 @@ headers = array_interpolator.h \
 	generic_poisson_problem.h \
 	micromagnetics_flux_element.h \
 	git_version.h \
-	my_assert.h \
 	my_general_header.h \
 	my_generic_problem.h \
 	llg_problem.h \
