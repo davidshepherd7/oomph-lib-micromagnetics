@@ -60,10 +60,8 @@ int main(int argc, char *argv[])
   HMatrix hmat;
   hmat.build(*surface_mesh_pt, problem.Bem_handler_pt);
 
-  // Dump rank info (needs to be in a variable, not a string constant
-  // beacuse the C code could technical write to the string [not const]).
-  char rank_file_name[] = "rank.ps";
-  outputrank_supermatrix(hmat.supermatrix_pt(), rank_file_name);
+  // Dump rank info
+  outputrank_supermatrix(hmat.supermatrix_pt(), "rank.ps");
 
   // Do the multiply
   hmat.multiply(x, H_soln);
