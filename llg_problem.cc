@@ -652,6 +652,14 @@ namespace oomph
              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+      else if(mesh_name == "ut_mumag4" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/mumag4." + to_string(refinement_level) + ".node",
+             "./meshes/mumag4." + to_string(refinement_level) + ".ele",
+             "./meshes/mumag4." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
@@ -853,6 +861,14 @@ namespace oomph
              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+      else if(mesh_name == "ut_mumag4" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+            ("./meshes/mumag4." + to_string(refinement_level) + ".node",
+             "./meshes/mumag4." + to_string(refinement_level) + ".ele",
+             "./meshes/mumag4." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
@@ -937,6 +953,14 @@ namespace oomph
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "ut_mumag4" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMagnetostaticFieldElement<3, 2> >
+            ("./meshes/mumag4." + to_string(refinement_level) + ".node",
+             "./meshes/mumag4." + to_string(refinement_level) + ".ele",
+             "./meshes/mumag4." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
