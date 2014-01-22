@@ -233,6 +233,25 @@ namespace InitialM
     return m;
   }
 
+  inline Vector<double> xyz(const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(5, 0.0);
+    m[2] = 1.0;
+    m[3] = 1.0;
+    m[4] = 1.0;
+    normalise(m);
+    return m;
+  }
+
+  inline Vector<double> xy(const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(5, 0.0);
+    m[2] = 1.0;
+    m[3] = 1.0;
+    normalise(m);
+    return m;
+  }
+
   inline Vector<double> exactly_z(const double& t, const Vector<double> &x)
   {
     Vector<double> m(5, 0.0);
@@ -284,6 +303,14 @@ namespace InitialM
     else if(m_name == "z")
       {
         return &InitialM::z;
+      }
+    else if(m_name == "xyz")
+      {
+        return &InitialM::xyz;
+      }
+    else if(m_name == "xy")
+      {
+        return &InitialM::xy;
       }
     else if(m_name == "xz")
       {
