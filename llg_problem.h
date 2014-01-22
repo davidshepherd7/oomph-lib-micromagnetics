@@ -58,6 +58,7 @@ namespace oomph
 
       Decoupled_ms = false;
       Disable_ms = false;
+      Inside_explicit_timestep = false;
       Phi_problem_pt = 0;
       Phi_1_problem_pt = 0;
 
@@ -247,6 +248,15 @@ namespace oomph
       maybe_update_bem_boundary_conditions();
     }
 
+    virtual void actions_before_explicit_timestep()
+    {
+      MyProblem::actions_before_explicit_timestep();
+
+      // Set this variable to avoid getting BEM in mass matrix (due to a
+      // hack in oomph core.. fix that instead?)
+      Inside_explicit_timestep = true;
+    }
+
     virtual void actions_after_explicit_timestep()
       {
         MyProblem::actions_after_explicit_timestep();
@@ -254,6 +264,9 @@ namespace oomph
         // We need to keep M normalised...
         oomph_info << "Renormalising nodal magnetisations." << std::endl;
         renormalise_magnetisation();
+
+        // Explicit timestep is over now
+        Inside_explicit_timestep = false;
       }
 
     virtual void actions_after_explicit_stage()
@@ -836,7 +849,7 @@ namespace oomph
 
     bool implicit_ms_flag() const
       {
-        return (!Decoupled_ms) && (!Disable_ms);
+        return (!Decoupled_ms) && (!Disable_ms) && (!Inside_explicit_timestep);
       }
 
     /// Can we check the solution using Mallinson's exact time + phi
@@ -931,6 +944,12 @@ public:
 
     /// Are we solving for ms "properly" or using a separate solve?
     bool Decoupled_ms;
+
+    /// Boolean to be set in explicit predictor steps to avoid
+    /// get_jacobian(..) getting the BEM wrapped up in its mass
+    /// matrix. ??ds should probably modify how explicit time stepping
+    /// works instead to avoid this.
+    bool Inside_explicit_timestep;
 
     BEMElementFactoryFctPt Bem_element_factory_pt;
 
