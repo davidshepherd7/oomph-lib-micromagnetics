@@ -69,7 +69,7 @@ def execute_oomph_driver(args_dict, output_root):
 
     # Run with specified args, put output (stdout and stderr) into a file.
     with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
-        err_code = subp.call(arglist,
+        err_code = subp.call(arglist + ["-outdir", final_outdir],
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
