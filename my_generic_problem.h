@@ -81,6 +81,10 @@ namespace oomph
       Dim = 0;
       Output_precision = 8;
       Error_norm_limit = -1.0;
+
+      // Throw a real error (not just a warning) if the output directory
+      // does not exist.
+      Doc_info.enable_error_if_directory_does_not_exist();
     }
 
     /// Destructor
