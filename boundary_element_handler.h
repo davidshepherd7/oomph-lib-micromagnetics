@@ -479,6 +479,13 @@ namespace oomph
       return Bem_boundaries[0].second->node_pt(0)->ndim();
     }
 
+    /// If we are using H-matrix for bem then write out some data on
+    /// it. Otherwise do nothing. (Wrapped up in a function so that
+    /// llg_problem.h doesn't need to know anything about hlib, HMatrix
+    /// etc.)
+    void maybe_write_h_matrix_data(const std::string& outdir) const;
+
+
     // Access functions:
     // ============================================================
 

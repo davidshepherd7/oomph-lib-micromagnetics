@@ -580,6 +580,15 @@ namespace oomph
 
     }
 
+    void initial_doc_additional() const
+    {
+      // If we have a H matrix then write out its rank data
+      if(Bem_handler_pt != 0)
+        {
+          Bem_handler_pt->maybe_write_h_matrix_data(Doc_info.directory());
+        }
+    }
+
     /// \short Return a vector of the maximum angle variation in each
     /// element.
     Vector<double> elemental_max_m_angle_variations() const
