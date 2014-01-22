@@ -356,7 +356,7 @@ namespace oomph
       // By default evaluate BEM integrals analytically.
       Use_numerical_integration = false;
 
-      // Use hlib if we have it
+      // By default use hlib if we have it
 #ifdef OOMPH_HAS_HLIB
       Use_hierarchical_bem = true;
 #else

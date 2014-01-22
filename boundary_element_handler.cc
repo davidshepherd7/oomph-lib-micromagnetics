@@ -122,8 +122,8 @@ void BoundaryElementHandler::build_bem_matrix()
 /// contributions. If hlib is not installed and linked then throw an error
 /// instead.
 void BoundaryElementHandler::build_hierarchical_bem_matrix()
-#ifdef OOMPH_HAS_HLIB
 {
+#ifdef OOMPH_HAS_HLIB
   // Note: we can't include the corner contributions directly into the
   // H-matrix because it would no longer be purely a discretised double
   // layer potential, and hence some of the hierarchical properties
@@ -157,14 +157,11 @@ void BoundaryElementHandler::build_hierarchical_bem_matrix()
 
   // Set the total as the bem matrix
   Bem_matrix_pt = total_bem_matrix_pt;
-}
 #else
-{
   throw OomphLibError("Cannot build H matrix without Hlib library installed",
                       OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-}
 #endif
-
+}
 
 //======================================================================
 /// Build the mesh of bem elements.
@@ -284,8 +281,7 @@ get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
 
 }
 
-void BoundaryElementHandler::
-get_bem_values_and_copy_into_values() const
+void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
   {
     // Get as one big vector
     DoubleVector full_vector;

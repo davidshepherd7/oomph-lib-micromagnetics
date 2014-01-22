@@ -8,18 +8,19 @@
 // hlib code
 #include "bem3d.h"
 #include "cluster.h"
-// #include "hca.h"
 #include "laplacebem.h"
 #include "supermatrix.h"
 #include "hcoarsening.h"
 
-#include "boundary_element_handler.h"
-// #include ""
-
+// oomph-lib core code
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/sum_of_matrices.h"
 #include "../../src/generic/nodes.h"
 #include "../../src/generic/matrices.h"
+
+// micromag code
+#include "boundary_element_handler.h"
+
 
 
 
@@ -38,7 +39,7 @@ namespace hlib_helpers
   /// node numbers in the mesh. ??ds still not entirely sure how this
   /// interacts with my bem equation numbering. Might break on multiple
   /// processors when the equation numbers are not just the number of the
-  /// node in the mesh...
+  /// node in the mesh... but not handling mpi yet anyway!
   inline std::map<Node*, unsigned> build_nodept2node
   (const Mesh& mesh, const BoundaryElementHandler& bem_handler,
    bool use_output=true)
@@ -107,12 +108,11 @@ public:
   HMatrix()
   {
 #ifdef OOMPH_HAS_MPI
-    throw OomphLibError("Not implemented for MPI, it might work for non-distributed memory though... But untested",
+    throw OomphLibError("Not implemented for MPI",
                         OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-
 #endif
 
-    // Random numbers for parameters, some taken from Knittel's thesis
+    // Parameters taken from Andreas Knittel's thesis
     nmin = 30;
     eps_aca = 1e-5;
     kmax = 500;

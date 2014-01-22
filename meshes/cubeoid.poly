@@ -1,4 +1,4 @@
-# A 30x30x100 cubeoid
+# 1x1x3 cubeoid
 
 # Part 1 - node list
 # First line: <# of points> <dimension (3)> <# of attributes> <boundary markers (0 or 1)>
