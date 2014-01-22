@@ -159,6 +159,9 @@ int main(int argc, char *argv[])
   // Assign general purpose parameters
   problem_pt->linear_solver_pt() = args_pt->solver_pt;
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
+  problem_pt->max_residuals() = args_pt->newton_max_residual;
+  problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
+
   // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
   problem_pt->Error_norm_limit = args_pt->error_norm_limit;
   problem_pt->Disable_explicit_solver_optimisations =

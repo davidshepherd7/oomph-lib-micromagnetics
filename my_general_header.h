@@ -166,6 +166,12 @@ namespace oomph
         specify_command_line_flag("-newton-tol", &newton_tol);
         newton_tol = 1e-8;
 
+        specify_command_line_flag("-newton-max-residual", &newton_max_residual);
+        newton_max_residual = 10.0;
+
+        specify_command_line_flag("-newton-max-iterations", &newton_max_iterations);
+        newton_max_iterations = 10;
+
         specify_command_line_flag("-fd-jac");
 
         specify_command_line_flag("-outdir", &outdir);
@@ -338,10 +344,13 @@ namespace oomph
         << "max_steps " << max_steps << std::endl
         << "tol " << tol << std::endl
         << "refinement " << refinement << std::endl
-        << "newton-tol " << newton_tol << std::endl
         << "error-norm-limit " << error_norm_limit << std::endl
         << "disable-explicit-solver-optimisations "
         << disable_explicit_solver_optimisations << std::endl
+
+        << "newton-tol " << newton_tol << std::endl
+        << "newton-max-residual " << newton_max_residual << std::endl
+        << "newton-max-iterations " << newton_max_iterations << std::endl
 
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
@@ -440,11 +449,14 @@ namespace oomph
     double tmax;
     double tol;
     int refinement;
-    double newton_tol;
     bool use_fd_jacobian;
     unsigned max_steps;
     double error_norm_limit;
     bool disable_explicit_solver_optimisations;
+
+    double newton_tol;
+    double newton_max_residual;
+    unsigned newton_max_iterations;
 
     std::string outdir;
     std::string output_jacobian;
