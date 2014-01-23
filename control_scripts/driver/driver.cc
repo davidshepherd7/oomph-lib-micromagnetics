@@ -186,9 +186,6 @@ int main(int argc, char *argv[])
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
 
-      //??ds temp hack for this commit (to make tests pass)
-      mm_args_pt->hierarchical_bem = false;
-
       //??ds no corner data yet...
       CornerDataInput input_corner_data;
 

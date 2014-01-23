@@ -21,7 +21,8 @@ new_clean_dir $CUBEOID_DIR
 cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
 ./driver llg -decoupled-ms -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
     -solver superlu -happ zero -initm xz -mag-params 'simple-llg' \
-     -outdir $CUBEOID_DIR > $CUBEOID_DIR/stdout
+    -hierarchical-bem 0 \
+    -outdir $CUBEOID_DIR > $CUBEOID_DIR/stdout
 
 # Extract + check energies
 final_energy $CUBEOID_DIR/trace > $CUBEOID_DIR/energies
