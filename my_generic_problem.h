@@ -85,6 +85,8 @@ namespace oomph
       // Throw a real error (not just a warning) if the output directory
       // does not exist.
       Doc_info.enable_error_if_directory_does_not_exist();
+
+      Disable_explicit_solver_optimisations = false;
     }
 
     /// Destructor
