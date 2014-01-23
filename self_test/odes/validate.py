@@ -46,7 +46,6 @@ def fail_message(outdirname, maxerror=None, maxlteerror=None):
             print(hstdout.read())
 
 
-
 def constant_dt_test(exact, timestepper):
     maxerrortol = 0.1
 
@@ -54,18 +53,16 @@ def constant_dt_test(exact, timestepper):
 
     mm.cleandir(outdir)
 
-    # Run the command, put stdout + stderr into a file
-    with open(pjoin(outdir, "stdout"), 'w') as hstdout:
-        flag = subp.call([driver, "ode",
-                         "-disable-explicit-solver-optimisations", # bugs? :(
-                         "-outdir", outdir,
-                         "-dt", "0.05",
-                         "-tmax", "4",
-                         "-ts", timestepper,
-                         "-exact", exact],
-                        stdout=hstdout,
-                        stderr=subp.STDOUT)
+    arglist = ["-disable-explicit-solver-optimisations",
+               "-outdir", outdir,
+                "-dt", "0.05",
+                 "-tmax", "4",
+                  "-ts", timestepper,
+                   "-exact", exact]
 
+    # Run the command, put stdout + stderr into a file, put exact command
+    # into another file
+    flag = mm.run_driver("ode", arglist, outdir)
 
     data = mm.parse_trace_file(pjoin(outdir, "trace"))
     maxerror = max(data['error_norms'])

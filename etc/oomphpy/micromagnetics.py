@@ -24,6 +24,9 @@ from os.path import join as pjoin
 from pprint import pprint
 
 
+_DRIVER_PATH = os.path.abspath("../../control_scripts/driver/driver")
+
+
 def cleandir(dirname):
     """(Re)make a directory called dirname.
     """
@@ -201,3 +204,29 @@ def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
         results = multiprocessing.Pool().map(function, parameter_sets, 1)
 
     return results
+
+
+def run_driver(problem, arglist, outdir, binary=_DRIVER_PATH):
+    """Run a driver, put all output in the right places, write a script giving
+    the exact command used.
+    """
+
+    command = ' '.join([binary, problem] + arglist)
+
+    print(command)
+    print(outdir)
+
+    # Write the command used to a file
+    with open(pjoin(outdir, "run_script"), 'w') as script_file:
+        script_file.write("#!/bin/sh\n")
+        script_file.write("# Command used in run\n")
+        script_file.write(command)
+        script_file.write("\n")
+
+    # Run with specified args, put output (stdout and stderr) into a file.
+    with open(pjoin(outdir, "stdout"), 'w') as stdout_file:
+        err_code = subp.call([binary, problem] + arglist,
+                             stdout = stdout_file,
+                             stderr = subp.STDOUT)
+
+    return err_code
