@@ -430,6 +430,20 @@ namespace oomph
       // Construct the mesh using on boundaries specified in Bem_boundaries
       build_bem_mesh();
 
+#ifdef PARANOID
+      // Try to check if equation numbering has been set up. If it hasn't
+      // then all equation numbers are -10 (Data::Is_unclassified). Just
+      // check the first one, don't think it can legally be -10 at this
+      // point.
+      if(bem_mesh_pt()->node_pt(0)->eqn_number(0) == Data::Is_unclassified)
+        {
+          std::string err = "An equation number is unclassified, you probably";
+          err += " haven't set up the equation numbering yet.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
       // Construct the lookup schemes
       Input_lookup.build(bem_mesh_pt(), input_index());
       Output_lookup.build(bem_mesh_pt(), output_index());
