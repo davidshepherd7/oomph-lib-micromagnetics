@@ -180,16 +180,21 @@ public:
   void build(const Mesh& mesh, const BoundaryElementHandler* bem_handler_pt)
   {
 #ifdef PARANOID
-    if(mesh.finite_element_pt(0)->nnode() != 3 ||
-       mesh.finite_element_pt(0)->dim() != 2 ||
-       mesh.finite_element_pt(0)->nodal_dimension() != 3)
-      {
-        std::string err = "Only works for 2D triangles in 3D space";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-        // Implementing anything else will probably be hard, you would need
-        // to write integration routines in hlib itself.
-      }
+    {
+      FiniteElement* fe_pt = mesh.finite_element_pt(0);
+      if(fe_pt->nnode() != 3 || fe_pt->dim() != 2 || fe_pt->nodal_dimension() != 3)
+        {
+          std::string err = "Only works for 2D triangles in 3D space ";
+          err += "you appear to have " + to_string(fe_pt->dim())
+            + "D elements with " + to_string(fe_pt->nnode())
+            + " nodes in " + to_string(fe_pt->nodal_dimension())
+            +"D space.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+          // Implementing anything else will probably be hard, you would need
+          // to write integration routines in hlib itself.
+        }
+    }
 
     if(This_hmatrix_pt != 0)
       {
