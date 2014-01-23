@@ -11,18 +11,13 @@ import argparse
 import os
 import shutil
 import os.path
-import subprocess as subp
-import itertools as it
 import scipy as sp
+import itertools as it
 
 from os.path import join as pjoin
 
 import oomphpy
 import oomphpy.micromagnetics as mm
-
-
-driver = pjoin(os.path.abspath(os.path.curdir), "..",
-                "..", "control_scripts", "driver", "driver")
 
 
 def pass_message(outdirname):
@@ -53,7 +48,8 @@ def constant_dt_test(exact, timestepper):
 
     mm.cleandir(outdir)
 
-    arglist = ["-disable-explicit-solver-optimisations",
+    arglist = ["ode",
+               "-disable-explicit-solver-optimisations",
                "-outdir", outdir,
                 "-dt", "0.05",
                  "-tmax", "4",
@@ -62,7 +58,7 @@ def constant_dt_test(exact, timestepper):
 
     # Run the command, put stdout + stderr into a file, put exact command
     # into another file
-    flag = mm.run_driver("ode", arglist, outdir)
+    flag = mm.run_driver(arglist, outdir)
 
     data = mm.parse_trace_file(pjoin(outdir, "trace"))
     maxerror = max(data['error_norms'])
@@ -91,18 +87,15 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
 
     mm.cleandir(outdir)
 
-    # Run the command, put stdout + stderr into a file
-    with open(pjoin(outdir, "stdout"), 'w') as hstdout:
-        flag = subp.call([driver, "ode",
-                         "-disable-explicit-solver-optimisations", # bugs? :(
-                         "-outdir", outdir,
-                         "-tol", str(tol),
-                         "-tmax", "4",
-                         "-ts", timestepper,
-                         "-mp-pred", predictor,
-                         "-exact", exact],
-                        stdout=hstdout,
-                        stderr=subp.STDOUT)
+    arglist = ["ode",
+               "-disable-explicit-solver-optimisations", # bugs? :(
+               "-outdir", outdir,
+               "-tol", str(tol),
+               "-tmax", "4",
+               "-ts", timestepper,
+               "-mp-pred", predictor,
+               "-exact", exact]
+    flag = mm.run_driver(arglist, outdir)
 
     data = mm.parse_trace_file(pjoin(outdir, "trace"))
     maxerror = max(data['error_norms'])
@@ -142,11 +135,6 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
 
 
 def main():
-
-    # Check we can find the driver binary!
-    if not os.path.isfile(driver):
-        print("all FAILED, driver not found at", driver)
-        return 2
 
     passes = []
 

@@ -44,37 +44,27 @@ endColour = '\033[0m'
 def execute_oomph_driver(args_dict, output_root):
 
     # Convert the dict to a list
-    arglist = mm.argdict2list(args_dict)
+    arglist, binary, mpi = mm.argdict2list(args_dict)
 
     # Construct an output directory name based on inputs if one has not
     # been specified.
     outdir = args_dict.get('-outdir')
-    if outdir is None:
-        # Create a hash of the inputs and use it to label the folder
-        h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.items()]).encode())
-        outdir = ("results_" + h.hexdigest())
+    if outdir is not None:
+        error("Don't specify an outdir, it will be automatically generated")
 
-    final_outdir = pjoin(output_root, outdir)
+    # Create a hash of the inputs and use it to label the folder
+    h = hashlib.sha224( ''.join([str(v) for _, v in args_dict.items()]).encode())
+    outdir = pjoin(output_root,"results_" + h.hexdigest())
+    arglist = arglist + ['-outdir', outdir]
 
     # Make sure the directory is empty and exists
-    mm.cleandir(final_outdir)
+    mm.cleandir(outdir)
 
-    # Write the command used to a file
-    with open(pjoin(final_outdir, "run_script.sh"), 'w') as script_file:
-        script_file.write("#!/bin/sh\n")
-        script_file.write("# Command used in run\n")
-        script_file.write(' '.join(arglist))
-        script_file.write("\n")
-
-
-    # Run with specified args, put output (stdout and stderr) into a file.
-    with open(pjoin(final_outdir, "stdout"), 'w') as stdout_file:
-        err_code = subp.call(arglist + ["-outdir", final_outdir],
-                             stdout = stdout_file,
-                             stderr = subp.STDOUT)
+    # Run and write stdout, stderr, command details
+    err_code  = mm.run_driver(arglist, outdir, binary=binary, mpi_command=mpi)
 
     # Compress the output data files (but not info or trace).
-    for datfilename in glob(pjoin(final_outdir, "*.dat")):
+    for datfilename in glob(pjoin(outdir, "*.dat")):
         subp.check_call(['gzip', datfilename])
 
     # Report result
@@ -85,10 +75,10 @@ def execute_oomph_driver(args_dict, output_root):
         # Print failure message to screen
         print('\n', redColour, command , endColour)
         print(redColour, "FAILED with exit code", err_code, "see",
-              pjoin(final_outdir, "stdout"), endColour)
+              pjoin(outdir, "stdout"), endColour)
 
         # Print failure message into file in ouput directory
-        print('This run failed!', file=open(pjoin(final_outdir, "FAILED"), 'w'))
+        print('This run failed!', file=open(pjoin(outdir, "FAILED"), 'w'))
 
     return 0
 
@@ -184,7 +174,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
     elif parameter_set == 'script_test':
         args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
+            '-driver' : ["ode"],
             '-dt' : [1e-4],
             '-tmax' : [1.0],
             '-tol' : [1e-3],
@@ -494,10 +484,13 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
     subp.check_call(['make', 'install', '--silent', '--keep-going',
                      'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
-    # Make sure the driver binaries are up to date
-    driver_folders = [os.path.dirname(d) for d in args_dict['-binary']]
-    for f in driver_folders:
-        build_driver(f)
+    # Make sure the driver binaries are up to date (if they aren't just the
+    # default)
+    binaries = args_dict.get('-binary')
+    if binaries is not None:
+        driver_folders = [os.path.abspath(os.path.dirname(d)) for d in binaries]
+        for f in driver_folders:
+            build_driver(f)
 
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)

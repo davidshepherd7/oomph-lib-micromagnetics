@@ -23,8 +23,10 @@ from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
 
-
-_DRIVER_PATH = os.path.abspath("../../control_scripts/driver/driver")
+# The (absolute) location of the driver. Using its path relative to this
+# file, valid unless you've done something weird...
+_DRIVER_PATH = os.path.abspath(pjoin(os.path.dirname(__file__),
+                                     "../../control_scripts/driver/driver"))
 
 
 def cleandir(dirname):
@@ -167,18 +169,18 @@ def argdict2list(argdict):
 
     # If mpi_ncores is in the dict then run with mpi and that many cores,
     # otherwise don't use mpi.
-    maybe_mpi = []
+    mpi_command = []
     mpi_cores = argdict.get('-mpi-ncores')
     if mpi_cores is not None:
-        maybe_mpi = ['mpirun', '-np', str(mpi_cores)]
+        mpi_command = ['mpirun', '-np', str(mpi_cores)]
 
+    # Pull out binary path
+    binary_path = argdict.get('-binary')
 
-    # Construct argument list
-    arglist = (maybe_mpi
-               + [str(argdict['-binary']), str(argdict['-driver'])]
-               + processed_kwargs)
+    # Construct argument list and command
+    arglist = [str(argdict['-driver'])] + processed_kwargs
 
-    return arglist
+    return arglist, binary_path, mpi_command
 
 
 def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
@@ -206,26 +208,34 @@ def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
     return results
 
 
-def run_driver(problem, arglist, outdir, binary=_DRIVER_PATH):
+def run_driver(arglist, outdir, binary=None, mpi_command=None):
     """Run a driver, put all output in the right places, write a script giving
     the exact command used.
     """
 
-    command = ' '.join([binary, problem] + arglist)
+    # Defaults: default driver and no mpi
+    if binary is None:
+        binary = _DRIVER_PATH
+    if mpi_command is None:
+        mpi_command = []
 
-    print(command)
-    print(outdir)
+    # Check that the binary exists
+    if not os.path.isfile(binary):
+        print("Can't find binary", binary)
+        raise OSError;
 
     # Write the command used to a file
     with open(pjoin(outdir, "run_script"), 'w') as script_file:
         script_file.write("#!/bin/sh\n")
         script_file.write("# Command used in run\n")
-        script_file.write(command)
+        script_file.write(' '.join(mpi_command + [binary] + arglist))
         script_file.write("\n")
+        script_file.write("# stdout and stderr go into "
+                          + pjoin(outdir, "stdout") + "\n")
 
     # Run with specified args, put output (stdout and stderr) into a file.
     with open(pjoin(outdir, "stdout"), 'w') as stdout_file:
-        err_code = subp.call([binary, problem] + arglist,
+        err_code = subp.call(mpi_command + [binary] + arglist,
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 

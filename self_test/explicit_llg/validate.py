@@ -11,7 +11,6 @@ import argparse
 import os
 import shutil
 import os.path
-import subprocess as subp
 import itertools as it
 import scipy as sp
 import functools as ft
@@ -53,15 +52,10 @@ def selftestrun(argdict):
         outdir = pjoin("Validation", argdict['-ts'] + str(argdict.get('-decoupled-ms')))
         argdict['-outdir'] = outdir
 
-    arglist = mm.argdict2list(argdict)
+    arglist, _, _ = mm.argdict2list(argdict)
 
     mm.cleandir(outdir)
-
-    # Run the command, put stdout + stderr into a file
-    with open(pjoin(outdir, "stdout"), 'w') as hstdout:
-        flag = subp.call(arglist,
-                         stdout=hstdout,
-                         stderr=subp.STDOUT)
+    flag = mm.run_driver(arglist, outdir)
 
     try:
         data = mm.parse_trace_file(pjoin(outdir, "trace"))
@@ -141,7 +135,6 @@ def main():
 
     # Test without magnetostatics by comparison with Mallinson solution
     noms_argdicts = {
-        "-binary" : [_driver_location],
         "-driver" : ["ll"],
         "-dt": [0.05],
         "-scale": [5],
@@ -157,7 +150,6 @@ def main():
     # magnetostatics test.
     if args.generate_validata:
         implicit_argdict = {
-            "-binary" : _driver_location,
             "-driver" : "ll",
             "-dt": 0.01,
             "-scale": 5,
@@ -173,7 +165,6 @@ def main():
     # Test with magnetostatics by comparison with (fully) implicit
     # timesteppers.
     ms_argdicts = {
-        "-binary" : [_driver_location],
         "-driver" : ["ll"],
         "-dt": [0.01],
         "-scale": [5],
