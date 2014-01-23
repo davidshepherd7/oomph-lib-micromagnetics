@@ -205,7 +205,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
                         '_'.join(parameter_set.split()))
 
 
-    if cleanup:
+    if cleanup and os.path.isdir(output_root):
         print("Cleaning out", output_root)
         # recursive_check_filenames_rm_safe(output_root)
         shutil.rmtree(output_root)
