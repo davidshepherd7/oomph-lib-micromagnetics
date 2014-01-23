@@ -35,18 +35,20 @@ namespace oomph
   {
 
     void bem_handler_factory(BoundaryElementHandler& new_bem_handler,
-                             const BemBoundaryData& bem_boundaries,
-                             const unsigned& phi_index,
-                             const unsigned& phi_1_index,
-                             const CornerDataInput& input_corner_data,
+                             const Vector<Mesh*>& output_mesh_pts,
+                             const CornerDataInput* input_corner_data_pt,
                              int use_hierarchical_bem,
                              bool disable_corner_angles,
                              int use_numerical_integration)
     {
-      // Figure out what defaults to use if any bool options are -1
+      // Figure out what defaults to use if any bool-like options are -1
       // ============================================================
 
-      FiniteElement* bulk_fe_pt = bem_boundaries[0].second->finite_element_pt(0);
+
+      // Get the first finite element we can find in the a bulk mesh on
+      // which we are going to construct our bem mesh. Assuimg that all
+      // elements in all the meshes are the same type...
+      FiniteElement* bulk_fe_pt = output_mesh_pts[0]->finite_element_pt(0);
 
       // Use H-lib if possible (have it and surface mesh is triangular)
       if(use_hierarchical_bem == -1)
@@ -97,25 +99,49 @@ namespace oomph
         }
       new_bem_handler.Use_hierarchical_bem = use_hierarchical_bem;
 
-      // Get the first finite element we can find in the a bulk mesh on
-      // which we are going to construct our bem mesh. Assuimg that all
-      // elements in all the meshes are the same type...
-      FiniteElement* sample_fele_pt =
-        bem_boundaries[0].second->finite_element_pt(0);
-
       // Figure out which element type we should use in the bem mesh
       // (based on the element type used in the bulk mesh) and store the
       // function needed to create them.
       new_bem_handler.Bem_element_factory_fpt = LLGFactories::
-        bem_element_factory_factory(sample_fele_pt);
+        bem_element_factory_factory(bulk_fe_pt);
 
-      // Create an integration scheme ??ds move this outside somewhere...
+      // Create an integration scheme
       new_bem_handler.integration_scheme_pt() = LLGFactories::
-        variable_order_integrator_factory(sample_fele_pt);
+        variable_order_integrator_factory(bulk_fe_pt);
 
-      // Set indexes to look in for phi/phi1 variables
-      new_bem_handler.set_input_index(phi_1_index);
-      new_bem_handler.set_output_index(phi_index);
+      // Figure out if we are doing phi/phi1 in separate meshes (and
+      // problems) or all in one by checking what type of element we
+      // have. Set the indicies accordingly.
+      MicromagEquations* mele_pt = dynamic_cast<MicromagEquations*>
+        (output_mesh_pts[0]->element_pt(0));
+      TFPoissonEquations* pele_pt = dynamic_cast<TFPoissonEquations*>
+        (output_mesh_pts[0]->element_pt(0));
+      if(mele_pt != 0)
+        {
+          // Fully implicit/all in one mesh
+          new_bem_handler.set_input_index(mele_pt->phi_1_index_micromag());
+          new_bem_handler.set_output_index(mele_pt->phi_index_micromag());
+        }
+      else if(pele_pt != 0)
+        {
+          // Fully implicit/all in one mesh
+          new_bem_handler.set_input_index(pele_pt->u_index_poisson());
+          new_bem_handler.set_output_index(pele_pt->u_index_poisson());
+        }
+
+      // Add all boundaries of all meshes to bem boundary list. Not likely
+      // to want to make use of bem on only some boundaries anytime soon so
+      // just add them all. If you want it on only some boundaries write a
+      // different factory (sorry).
+      BemBoundaryData bem_boundaries;
+      for(unsigned msh=0, nmsh=output_mesh_pts.size(); msh<nmsh; msh++)
+        {
+          Mesh* mesh_pt = output_mesh_pts[msh];
+          for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+            {
+              bem_boundaries.push_back(std::make_pair(b, mesh_pt));
+            }
+        }
 
       // Copy in the list of boundaries to operate on
       new_bem_handler.Bem_boundaries = bem_boundaries;
@@ -125,24 +151,30 @@ namespace oomph
       new_bem_handler.Use_numerical_integration = use_numerical_integration;
 
       // Now build it
-      new_bem_handler.build(input_corner_data);
+      if(input_corner_data_pt == 0)
+        {
+          CornerDataInput dummy;
+          new_bem_handler.build(dummy);
+        }
+      else
+        {
+          new_bem_handler.build(*input_corner_data_pt);
+        }
     }
 
 
     BoundaryElementHandler* bem_handler_factory
-    (const BemBoundaryData& bem_boundaries,
-     const unsigned& phi_index,
-     const unsigned& phi_1_index,
-     const CornerDataInput& input_corner_data,
+    (const Vector<Mesh*>& output_mesh_pts,
+     const CornerDataInput* input_corner_data_pt,
      int use_hierarchical_bem,
      bool disable_corner_angles,
      int use_numerical_integration)
     {
       // Create with new, fill in with factory
       BoundaryElementHandler* bem_handler_pt = new BoundaryElementHandler;
-      bem_handler_factory(*bem_handler_pt,
-                          bem_boundaries, phi_index, phi_1_index,
-                          input_corner_data, use_hierarchical_bem, disable_corner_angles,
+      bem_handler_factory(*bem_handler_pt, output_mesh_pts,
+                          input_corner_data_pt,
+                          use_hierarchical_bem, disable_corner_angles,
                           use_numerical_integration);
       return bem_handler_pt;
     }

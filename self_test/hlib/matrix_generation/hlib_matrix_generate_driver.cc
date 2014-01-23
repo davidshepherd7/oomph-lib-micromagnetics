@@ -31,34 +31,11 @@ int main(int argc, char *argv[])
   args.assign_specific_parameters(&problem);
   problem.build(args.mesh_pts);
 
-  // No corner data
-  CornerDataInput input_corner_data;
-
-  // Add all boundaries of all meshes to bem boundary list
-  BemBoundaryData bem_boundaries;
-  for(unsigned msh=0, nmsh=args.mesh_pts.size(); msh<nmsh; msh++)
-    {
-      Mesh* mesh_pt = args.mesh_pts[msh];
-      for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-        {
-          bem_boundaries.push_back(std::make_pair(b, mesh_pt));
-        }
-    }
-
-  // Get the phi/phi1 indicies
-  MicromagEquations* e_pt = checked_dynamic_cast<MicromagEquations*>
-    (args.mesh_pts[0]->element_pt(0));
-  unsigned bem_phi_index = e_pt->phi_index_micromag();
-  unsigned bem_phi_1_index = e_pt->phi_1_index_micromag();
-
   // Build the handler. Disable corner angles in bem matrix, to make
   // matrices easier to compare.
   BoundaryElementHandler Bem_handler;
-  Factories::bem_handler_factory(Bem_handler, bem_boundaries,
-                                 bem_phi_index,
-                                 bem_phi_1_index,
-                                 input_corner_data,
-                                 false, true, -1);
+  Factories::bem_handler_factory(Bem_handler, args.mesh_pts,
+                                 0, false, true);
 
 
   // Some useful pointers

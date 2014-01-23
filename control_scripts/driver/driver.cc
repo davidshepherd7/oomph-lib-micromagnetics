@@ -186,9 +186,6 @@ int main(int argc, char *argv[])
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
 
-      //??ds no corner data yet...
-      CornerDataInput input_corner_data;
-
       if(mm_args_pt->disable_ms)
         {
           llg_pt->Bem_handler_pt = 0;
@@ -201,48 +198,18 @@ int main(int argc, char *argv[])
                                      mm_args_pt->phi_mesh_pts,
                                      mm_args_pt->phi_1_mesh_pts);
 
-          // Add all boundaries of all meshes to bem boundary list
-          BemBoundaryData bem_boundaries;
-          for(unsigned msh=0, nmsh=mm_args_pt->phi_1_mesh_pts.size(); msh<nmsh; msh++)
-            {
-              Mesh* mesh_pt = mm_args_pt->phi_1_mesh_pts[msh];
-              for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-                {
-                  bem_boundaries.push_back(std::make_pair(b, mesh_pt));
-                }
-            }
-
-          unsigned bem_phi_index = 0;
-          unsigned bem_phi_1_index = 0;
-
           // Create the bem handler
           llg_pt->Bem_handler_pt = Factories::bem_handler_factory
-            (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+            (mm_args_pt->phi_1_mesh_pts, 0,
              mm_args_pt->hierarchical_bem,
              false,
              mm_args_pt->numerical_int_bem);
         }
       else
         {
-          // Add all boundaries of all meshes to bem boundary list
-          BemBoundaryData bem_boundaries;
-          for(unsigned msh=0, nmsh=mm_args_pt->mesh_pts.size(); msh<nmsh; msh++)
-            {
-              Mesh* mesh_pt = mm_args_pt->mesh_pts[msh];
-              for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-                {
-                  bem_boundaries.push_back(std::make_pair(b, mesh_pt));
-                }
-            }
-          // Get the phi/phi1 indicies
-          MicromagEquations* e_pt = checked_dynamic_cast<MicromagEquations*>
-            (args_pt->mesh_pts[0]->element_pt(0));
-          unsigned bem_phi_index = e_pt->phi_index_micromag();
-          unsigned bem_phi_1_index = e_pt->phi_1_index_micromag();
-
           // Create the bem handler
           llg_pt->Bem_handler_pt = Factories::bem_handler_factory
-            (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+            (args_pt->mesh_pts, 0,
              mm_args_pt->hierarchical_bem,
              false,
              mm_args_pt->numerical_int_bem);

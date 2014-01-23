@@ -108,24 +108,17 @@ namespace oomph
 
     /// Make a bem handler object via new. Integers not bools in some
     /// places so that we can use -1 as "unset" and determine a good
-    /// default.
-    BoundaryElementHandler* bem_handler_factory(const BemBoundaryData& bem_boundaries,
-                                                const unsigned& phi_index,
-                                                const unsigned& phi_1_index,
-                                                const CornerDataInput& input_corner_data,
-                                                int use_hlib=-1,
-                                                bool disable_corner_angles=false,
-                                                int use_numerical_integration=-1);
+    /// default. Only required argument is the meshes.
+    BoundaryElementHandler* bem_handler_factory
+    (const Vector<Mesh*>& output_mesh_pts, const CornerDataInput* input_corner_data_pt=0,
+     int use_hierarchical_bem=-1, bool disable_corner_angles=false,
+     int use_numerical_integration=-1);
 
-    /// Fill in and build an existing bem handler object. Integers not
-    /// bools in some places so that we can use -1 as "unset" and determine
-    /// a good default.
+    /// Fill in and build an existing bem handler object.
     void bem_handler_factory(BoundaryElementHandler& new_bem_handler,
-                             const BemBoundaryData& bem_boundaries,
-                             const unsigned& phi_index,
-                             const unsigned& phi_1_index,
-                             const CornerDataInput& input_corner_data,
-                             int use_hlib=-1,
+                             const Vector<Mesh*>& output_mesh_pts,
+                             const CornerDataInput* input_corner_data_pt=0,
+                             int use_hierarchical_bem=-1,
                              bool disable_corner_angles=false,
                              int use_numerical_integration=-1);
 
