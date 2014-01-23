@@ -85,14 +85,22 @@ def execute_oomph_driver(args_dict, output_root):
 
 def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
 
-    if parameter_set == 'script_test':
+    if parameter_set == 'self_test':
         args_dict = {
             '-driver' : ["ode"],
             '-dt' : [1e-4],
             '-tmax' : [1.0],
             '-tol' : [1e-3],
-            '-ref' : [2],
             }
+
+    elif parameter_set == 'fail_test':
+        args_dict = {
+            '-driver' : ["ode"],
+            '-dt' : [-10],
+            '-tmax' : [1.0],
+            '-tol' : [1e-3],
+            }
+
     elif parameter_set == "compare-implicitness-implicit":
          args_dict = {
             '-binary' : ["./llg_driver/llg_driver"],
