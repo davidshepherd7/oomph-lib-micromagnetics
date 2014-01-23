@@ -83,7 +83,7 @@ def execute_oomph_driver(args_dict, output_root):
     return 0
 
 
-def standard_sweep(parameter_set, cleanup, serial_mode=False):
+def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
 
     if parameter_set == 'script_test':
         args_dict = {
@@ -211,18 +211,10 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
         shutil.rmtree(output_root)
         os.mkdir(output_root)
 
-    # Make sure micromag library is up to date
-    library_folder = os.path.abspath("../")
-    print("Building and installing libraries from", library_folder)
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
-    subp.check_call(['make', 'install', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
-
-    # Make sure the driver binaries are up to date (if they aren't just the
+    # Make sure the binaries are up to date (if they aren't just the
     # default)
     binaries = args_dict.get('-binary')
-    if binaries is not None:
+    if binaries is not None and not no_build:
         driver_folders = [os.path.abspath(os.path.dirname(d)) for d in binaries]
         for f in driver_folders:
             build_driver(f)
@@ -259,10 +251,29 @@ def main():
     parser.add_argument('--clean', action='store_true',
                         help='clean up old results from the target folder')
 
+    parser.add_argument('--no-build', action='store_true',
+                        help="Don't rebuild anything")
+
     args = parser.parse_args()
 
 
-    standard_sweep(args.parameters, args.clean, args.debug_mode)
+    if not args.no_build:
+        # Make sure micromag library is up to date
+        driver_folder = os.path.dirname(mm._DRIVER_PATH)
+        library_folder = pjoin(driver_folder, "../../")
+        print("Building and installing libraries from", library_folder)
+        subp.check_call(['make', '--silent', '--keep-going',
+                         'LIBTOOLFLAGS=--silent'], cwd=library_folder)
+        subp.check_call(['make', 'install', '--silent', '--keep-going',
+                         'LIBTOOLFLAGS=--silent'], cwd=library_folder)
+
+        print("Building driver in", driver_folder)
+        subp.check_call(['make', '--silent', '--keep-going',
+                         'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
+
+
+    standard_sweep(args.parameters, args.clean, args.debug_mode,
+                   args.no_build)
 
     return 0
 
