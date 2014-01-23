@@ -201,7 +201,7 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
-    output_root = pjoin('../experiments/parameter_sweeps',
+    output_root = pjoin(mm.rootdir(), "experiments", "parameter_sweeps",
                         '_'.join(parameter_set.split()))
 
 
@@ -255,7 +255,6 @@ def main():
                         help="Don't rebuild anything")
 
     args = parser.parse_args()
-
 
     if not args.no_build:
         # Make sure micromag library is up to date

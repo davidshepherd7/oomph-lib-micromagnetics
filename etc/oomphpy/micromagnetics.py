@@ -23,10 +23,13 @@ from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
 
-# The (absolute) location of the driver. Using its path relative to this
-# file, valid unless you've done something weird...
-_DRIVER_PATH = os.path.abspath(pjoin(os.path.dirname(__file__),
-                                     "../../control_scripts/driver/driver"))
+def rootdir():
+    """Get the micromagnetics root directory"""
+    return os.path.abspath(pjoin(os.path.dirname(__file__), "../../"))
+
+def driver_path():
+    """The location of the main driver binary"""
+    return pjoin(rootdir(), "control_scripts/driver/driver")
 
 
 def cleandir(dirname):
@@ -215,7 +218,7 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
 
     # Defaults: default driver and no mpi
     if binary is None:
-        binary = _DRIVER_PATH
+        binary = driver_path()
     if mpi_command is None:
         mpi_command = []
 
