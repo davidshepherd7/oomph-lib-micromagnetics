@@ -83,96 +83,9 @@ def execute_oomph_driver(args_dict, output_root):
     return 0
 
 
-def build_driver(folder):
-    print("Building in", folder)
-    subp.check_call(['make', '--silent', '--keep-going',
-                    'LIBTOOLFLAGS=--silent'], cwd=folder)
-
-
-def milan_jacobians(parameter_set, serial_mode=False):
-
-    # Presumably we will always be using the implicit driver...
-
-
-    # Construct lists of args
-    if parameter_set == "initial":
-        args_dict = {
-            '-binary' : "./llg_driver/llg_driver",
-            '-dt' : [0.1, 0.05, 0.01, 0.001],
-            '-tmax' : [0.001],
-            '-tol' : [0.0],
-            '-ref' : [1, 2, 3, 4, 5],
-            '-ts' : ["bdf2"],
-            '-initm' : ['smoothly_varying'],
-            '-happ' : ['x', 'y', 'z'],
-            '-mesh' : ['sq_square', 'ut_square'],
-            '-output-jac' : ['at_end']
-            }
-        # more parameter sets go here
-    else:
-        raise NotImplementedError
-
-    # Fill in some function args that should always be the same.
-    fun = par(execute_oomph_driver,
-              output_root='../experiments/jacobian_sweeps')
-
-    # Run the parameter sweep!
-    mm.parallel_parameter_sweep(fun, args_dict, serial_mode)
-
-    return 0
-
 def standard_sweep(parameter_set, cleanup, serial_mode=False):
 
-    if parameter_set == 'nmag_cubeoid':
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-4],
-            '-tmax' : [60.0],
-            '-tol' : [1e-3, 1e-4, 1e-5],
-            '-ref' : [4],
-            '-ts' : ['midpoint', 'bdf2'],
-            '-initm' : ['xz'],
-            '-happ' : ['zero'],
-            '-mesh' : ['sq_cubeoid'],
-            '-solver' : ['gmres'],
-            '-prec' : ['amg']
-            }
-
-    elif parameter_set == 'const_dt_nmag_cubeoid':
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-2, 5e-3],
-            '-tmax' : [20.0],
-            '-tol' : [0.0],
-            '-ref' : [2, 3, 4],
-            '-ts' : ['midpoint', 'bdf2'],
-            '-initm' : ['xz'],
-            '-happ' : ['zero'],
-            '-mesh' : ['sq_cubeoid'],
-            '-solver' : ['gmres'],
-            '-prec' : ['amg']
-            }
-
-    elif parameter_set == 'nmag_cubeoid_llg_prec':
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [5e-4],
-            '-tmax' : [20.0],
-            '-tol' : [1e-4],
-            '-ref' : [4],
-            '-ts' : ['bdf2'],
-            '-initm' : ['xz'],
-            '-happ' : ['zero'],
-            '-mag-params' :["simple-llg"],
-            '-mesh' : ['sq_cubeoid'],
-            '-solver' : ['gmres'],
-            '-prec' : ['blockllg-uppertriangular-blockexact-xy-exact',
-                                'blockllg-uppertriangular-blockexact-xz-exact',
-                                'blockllg-uppertriangular-blockexact-yz-exact',
-                                ]
-            }
-
-    elif parameter_set == 'script_test':
+    if parameter_set == 'script_test':
         args_dict = {
             '-driver' : ["ode"],
             '-dt' : [1e-4],
@@ -180,184 +93,6 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False):
             '-tol' : [1e-3],
             '-ref' : [2],
             }
-
-    elif parameter_set == 'unsteady_heat_midpoint_vs_bdf2':
-        args_dict = {
-            '-binary' : ["./unsteady_heat_driver/unsteady_heat_driver"],
-            '-dt' : [1e-4],
-            '-tmax' : [10.0],
-            '-tol' : [1e-2, 5e-3, 1e-3],
-            '-ts' : ['midpoint', 'bdf2'],
-            }
-
-    elif parameter_set == 'cubeoid-timestep-newton-convergence':
-        args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
-            '-dt' : [1e-4, 1e-5, 1e-6, 1e-7, 1e-8],
-            '-tmax' : [1e-8],
-            '-tol' : [0.0],
-            '-ref' : [3],
-            '-ts' : ['bdf2'],
-            '-initm' : ['z'],
-            '-happ' : ['minus_z'],
-            '-mesh' : ['ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
-            '-solver' : ['superlu'],
-            }
-
-    elif parameter_set == 'oscillating_fields':
-        args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
-            '-dt' : [1e-4],
-            '-tmax' : [200],
-            '-tol' : [1e-3, 5e-4, 1e-4, 1e-5],
-            '-ref' : [2,3,4],
-            '-ts' : ['bdf2', 'midpoint'],
-            '-initm' : ['z'],
-            '-happ' : ['z_oscillating_p20'],
-            '-mesh' : ['sq_square'],
-            '-mag-params' :["simple-llg-max-damped"]
-            }
-
-
-    elif parameter_set == "prec_fast":
-        args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
-            '-dt' : [0.01],
-            '-ref' : [2],
-            '-tmax' : [1.0],
-            '-ts' : ["bdf2"],
-            '-initm' : ['smoothly_varying_50'],
-            '-happ' : ['x', 'y', 'z'],
-            '-mesh' : ['sq_square', 'ut_square'],
-            '-solver' : ['gmres'],
-            '-prec': ['blockllg-uppertriangular-blockantidiagonal-xy-exact',
-                     'blockllg-uppertriangular-blockantidiagonal-xz-exact',
-                     'blockllg-uppertriangular-blockantidiagonal-yz-exact',
-                     ]
-
-            }
-
-    elif parameter_set == "prec":
-        args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
-            '-dt' : [0.1, 0.05, 0.01, 0.001],
-            '-ref' : [1, 2, 3, 4],
-            '-tmax' : [1.0],
-            '-ts' : ["bdf2"],
-            '-initm' : ['smoothly_varying_50'],
-            '-happ' : ['x', 'y', 'z', 'all_directions'],
-            '-mesh' : ['sq_square', 'ut_square', 'ut_sphere'],
-            '-solver' : ['gmres'],
-            '-prec': ['blockllg-uppertriangular-blockexact-xy-exact',
-                     'blockllg-uppertriangular-blockexact-xz-exact',
-                     'blockllg-uppertriangular-blockexact-yz-exact',
-                     ]
-            }
-
-    elif parameter_set == "adaptive-midpoint-conservation":
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-5],
-            '-tol' : [1e-2, 1e-3, 1e-4],
-            '-ref' : [3, 4, 5],
-            '-tmax' : [10.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-initm' : ['smoothly_varying_50'],
-            '-happ' : ['minus_z'],
-            '-mesh' : ['ut_square'],
-            '-renorm_m' : [0]
-            }
-
-    elif parameter_set == "fixed-step-midpoint-conservation":
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-1, 1e-2, 1e-3, 5e-3],
-            '-ref' : [3],
-            '-tmax' : [5.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-initm' : ['z'],
-            '-happ' : ['minus_z'],
-            '-mesh' : ['ut_sphere'],
-            '-renorm_m' : [1]
-            }
-
-    elif parameter_set == "zero-damping":
-        args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-1, 1e-2, 1e-3, 5e-3],
-            '-ref' : [3],
-            '-tmax' : [5.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-mesh' : ['sq_square'],
-            '-renorm_m' : [1],
-            '-dampc' : [0]
-            }
-
-    elif parameter_set == "adaptive-midpoint":
-        args_dict = {
-            '-binary' : ["./llg_driver/llg_driver"],
-            '-tol' : [1e-2, 1e-3, 1e-4],
-            '-ref' : [1],
-            '-tmax' : [4.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-mesh' : ['sq_square'],
-            '-renorm_m' : [1],
-            '-dampc' : [0.5],
-            '-resi' : ["ll"]
-            }
-
-    elif parameter_set == "ode-test":
-         args_dict = {
-            '-binary' : ["./ode_problem/ode_problem"],
-            '-tol' : [1e-2, 1e-3],
-            '-tmax' : [10.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-mp-pred' : ["edbdf3", "rk4"]
-            }
-
-    elif parameter_set == "multi-domain-failures":
-         args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-dt' : [1e-4, 1e-5],
-            '-tmax' : [1.0],
-            '-ts' : ["bdf2", "midpoint"],
-            '-mesh' : ['multi_ut_square', 'multi_sq_square'],
-            '-renorm_m' : [1],
-            '-ref' : [3],
-            '-doc-interval' : ["all"]
-            }
-
-    elif parameter_set == "multi-domain-squares":
-         args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-tmax' : [1e-10],
-            '-ts' : ["midpoint"],
-            '-mesh' : ['multi_sq_square', 'sq_square'],
-            '-ref' : [1],
-            '-happ' : ['zero'],
-            }
-
-    elif parameter_set == "multi-domain-spheres-energy-test":
-         args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-tmax' : [1e-10],
-            '-ts' : ["midpoint"],
-            '-mesh' : ['multi_ut_sphere', 'ut_sphere'],
-            '-ref' : [3],
-            '-happ' : ['zero'],
-            }
-
-    elif parameter_set == "compare-implicitness-semi":
-         args_dict = {
-            '-binary' : ["./semi_implicit_mm_driver/semi_implicit_mm_driver"],
-            '-tmax' : [20],
-            '-ts' : ["bdf2"],
-            '-mesh' : ['many_ut_square'],
-            '-ref' : [3, 4],
-            '-tol' : [1e-1, 1e-3, 1e-5],
-            '-dt' : [1e-6],
-            }
-
     elif parameter_set == "compare-implicitness-implicit":
          args_dict = {
             '-binary' : ["./llg_driver/llg_driver"],
@@ -518,33 +253,16 @@ def main():
     parser.add_argument('--debug-mode', action='store_true',
                         help = 'Enable debugging mode (run in serial).')
 
-    parser.add_argument('--jacobians', dest='j_parameter_set',
-                        help = 'Do a parameter sweep just dumping jacobians.')
-
     parser.add_argument('--parameters', '-p', dest='parameters',
                         help = 'Do a standard parameter sweep with the specified parameter set.')
 
     parser.add_argument('--clean', action='store_true',
                         help='clean up old results from the target folder')
 
-    # parser.add_argument('-ncores', '-j', dest='ncores',
-    #                     help='Set number of cores to use.')
-
     args = parser.parse_args()
 
-    # Main function
-    # ============================================================
 
-
-    # Do parameter sweep
-    if args.parameters is not None:
-        standard_sweep(args.parameters, args.clean, args.debug_mode)
-
-    # Or just dump some Jacobians
-    elif args.j_parameter_set is not None:
-        print("Running Jacobian generation parameter sweep",
-              "with parameter set", args.j_parameter_set)
-        milan_jacobians(args.j_parameter_set,args.debug_mode)
+    standard_sweep(args.parameters, args.clean, args.debug_mode)
 
     return 0
 
