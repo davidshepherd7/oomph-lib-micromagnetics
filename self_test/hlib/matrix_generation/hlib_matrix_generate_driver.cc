@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 
   // Dump matrices to files
   double_matrix.output("Validation/new_bem_matrix");
-  dynamic_cast<DenseDoubleMatrix*>(old_bem_matrix_pt)
+  checked_dynamic_cast<DenseDoubleMatrix*>(old_bem_matrix_pt)
     ->output("Validation/old_bem_matrix");
 
 
