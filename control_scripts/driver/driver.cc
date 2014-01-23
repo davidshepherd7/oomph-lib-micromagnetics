@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
             (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
              mm_args_pt->hierarchical_bem,
              false,
-             mm_args_pt->use_numerical_integration_bem);
+             mm_args_pt->numerical_int_bem);
         }
       else
         {
@@ -248,8 +248,7 @@ int main(int argc, char *argv[])
             (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
              mm_args_pt->hierarchical_bem,
              false,
-             mm_args_pt->use_numerical_integration_bem);
-
+             mm_args_pt->numerical_int_bem);
         }
     }
 

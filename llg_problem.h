@@ -1144,13 +1144,15 @@ public:
       dampc = -10;
 
       // Flags automatically default to false
-      specify_command_line_flag("-numerical-BEM");
       specify_command_line_flag("-decoupled-ms");
       specify_command_line_flag("-disable-ms");
       specify_command_line_flag("-pin-boundary-m");
 
       specify_command_line_flag("-hierarchical-bem", &hierarchical_bem);
       hierarchical_bem = -1;
+
+      specify_command_line_flag("-numerical-int-bem", &numerical_int_bem);
+      numerical_int_bem = -1;
     }
 
 
@@ -1190,7 +1192,6 @@ public:
         }
 
       // Copy flags into bools in this class
-      use_numerical_integration_bem = command_line_flag_has_been_set("-numerical-BEM");
       disable_ms = command_line_flag_has_been_set("-disable-ms");
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
 
@@ -1257,7 +1258,6 @@ public:
       llg_pt->Phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_fct_pt;
 
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
-
     }
 
     /// Write out all args (in a parseable format) to a stream.
@@ -1271,7 +1271,7 @@ public:
         << "mag_params " << magnetic_parameters_name << std::endl
         << "Renormalise " << Renormalise << std::endl
         << "damping_parameter_override " << dampc << std::endl
-        << "numerical-BEM " << use_numerical_integration_bem << std::endl
+        << "numerical-int-bem " << numerical_int_bem << std::endl
         << "decoupled_ms " << decoupled_ms << std::endl
         << "hierarchical-bem " << hierarchical_bem << std::endl
         << "disable_ms " << disable_ms << std::endl
@@ -1310,7 +1310,7 @@ public:
 
     double dampc;
 
-    bool use_numerical_integration_bem;
+    int numerical_int_bem;
     int hierarchical_bem;
 
 
