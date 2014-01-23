@@ -65,9 +65,6 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
-      Use_hierarchical_bem = false;
-      Disable_bem_corners = false;
-      Use_numerical_bem = false;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -231,6 +228,15 @@ namespace oomph
     {
       // Call base class version
       MyProblem::actions_before_newton_step();
+
+#ifdef PARANOID
+      if(Bem_handler_pt == 0 && !Disable_ms)
+        {
+          std::string err = "No bem handler pointer set but magnetostatics are enabled";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
 
       oomph_info << std::endl
                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
@@ -860,9 +866,6 @@ namespace oomph
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
-    bool Use_hierarchical_bem;
-    bool Disable_bem_corners;
-    bool Use_numerical_bem;
 
     LLGResidualCalculator* Residual_calculator_pt;
 
@@ -1238,21 +1241,6 @@ public:
       llg_pt->Pin_boundary_m = pin_boundary_m;
       llg_pt->Decoupled_ms = decoupled_ms;
       llg_pt->Disable_ms = disable_ms;
-      llg_pt->Use_numerical_bem = use_numerical_integration_bem;
-
-      if(hierarchical_bem != -1)
-        {
-          if(hierarchical_bem == 0) llg_pt->Use_hierarchical_bem = false;
-          else if(hierarchical_bem == 1) llg_pt->Use_hierarchical_bem = true;
-          else
-            {
-              std::string err = "Hierarchical bem setting must be -1, 0 or 1 ";
-              err += "but it is " ;
-              err += to_string(hierarchical_bem);
-              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-            }
-        }
 
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds

@@ -178,19 +178,81 @@ int main(int argc, char *argv[])
 
 
   // Build and initialise the problem
+  problem_pt->build(args_pt->mesh_pts);
+
+  //??ds temp hack for mm problems
   MMArgs* mm_args_pt = dynamic_cast<MMArgs*>(args_pt);
-  if(mm_args_pt !=0 && mm_args_pt->decoupled_ms)
+  if(mm_args_pt !=0)
     {
-      //?? clean this up
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
-      llg_pt->build_decoupled_ms(mm_args_pt->mesh_pts,
-                                 mm_args_pt->phi_mesh_pts,
-                                 mm_args_pt->phi_1_mesh_pts);
+
+      //??ds temp hack for this commit (to make tests pass)
+      mm_args_pt->hierarchical_bem = false;
+
+      //??ds no corner data yet...
+      CornerDataInput input_corner_data;
+
+      if(mm_args_pt->disable_ms)
+        {
+          llg_pt->Bem_handler_pt = 0;
+        }
+      else if(mm_args_pt->decoupled_ms)
+        {
+          //?? clean this up
+          // Build phi problems and link together
+          llg_pt->build_decoupled_ms(mm_args_pt->mesh_pts,
+                                     mm_args_pt->phi_mesh_pts,
+                                     mm_args_pt->phi_1_mesh_pts);
+
+          // Add all boundaries of all meshes to bem boundary list
+          BemBoundaryData bem_boundaries;
+          for(unsigned msh=0, nmsh=mm_args_pt->phi_1_mesh_pts.size(); msh<nmsh; msh++)
+            {
+              Mesh* mesh_pt = mm_args_pt->phi_1_mesh_pts[msh];
+              for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+                {
+                  bem_boundaries.push_back(std::make_pair(b, mesh_pt));
+                }
+            }
+
+          unsigned bem_phi_index = 0;
+          unsigned bem_phi_1_index = 0;
+
+          // Create the bem handler
+          llg_pt->Bem_handler_pt = Factories::bem_handler_factory
+            (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+             mm_args_pt->hierarchical_bem,
+             false,
+             mm_args_pt->use_numerical_integration_bem);
+        }
+      else
+        {
+          // Add all boundaries of all meshes to bem boundary list
+          BemBoundaryData bem_boundaries;
+          for(unsigned msh=0, nmsh=mm_args_pt->mesh_pts.size(); msh<nmsh; msh++)
+            {
+              Mesh* mesh_pt = mm_args_pt->mesh_pts[msh];
+              for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+                {
+                  bem_boundaries.push_back(std::make_pair(b, mesh_pt));
+                }
+            }
+          // Get the phi/phi1 indicies
+          MicromagEquations* e_pt = checked_dynamic_cast<MicromagEquations*>
+            (args_pt->mesh_pts[0]->element_pt(0));
+          unsigned bem_phi_index = e_pt->phi_index_micromag();
+          unsigned bem_phi_1_index = e_pt->phi_1_index_micromag();
+
+          // Create the bem handler
+          llg_pt->Bem_handler_pt = Factories::bem_handler_factory
+            (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
+             mm_args_pt->hierarchical_bem,
+             false,
+             mm_args_pt->use_numerical_integration_bem);
+
+        }
     }
-  else
-    {
-      problem_pt->build(args_pt->mesh_pts);
-    }
+
   problem_pt->initialise_dt(args_pt->dt); //??ds is this ok for steady state prob?
   problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
   problem_pt->initial_doc();

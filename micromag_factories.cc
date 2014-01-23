@@ -39,13 +39,55 @@ namespace oomph
                              const unsigned& phi_index,
                              const unsigned& phi_1_index,
                              const CornerDataInput& input_corner_data,
-                             bool use_hierarchical_matrix,
+                             int use_hierarchical_bem,
                              bool disable_corner_angles,
-                             bool use_numerical_integration)
+                             int use_numerical_integration)
     {
+      // Figure out what defaults to use if any bool options are -1
+      // ============================================================
+
+      FiniteElement* bulk_fe_pt = bem_boundaries[0].second->finite_element_pt(0);
+
+      // Use H-lib if possible (have it and surface mesh is triangular)
+      if(use_hierarchical_bem == -1)
+        {
+#ifdef OOMPH_HAS_HLIB
+          if((bulk_fe_pt->nodal_dimension() == 3)
+             && (bulk_fe_pt->nnode_1d() == 2)
+             && (bulk_fe_pt->nnode() == 4))
+            {
+              use_hierarchical_bem = true;
+            }
+          else
+            {
+              use_hierarchical_bem = false;
+            }
+#else
+          use_hierarchical_bem = false;
+#endif
+        }
+
+      // Use analytical integation if possible, numerical otherwise
+      if(use_numerical_integration == -1)
+        {
+          if((bulk_fe_pt->nodal_dimension() == 3)
+             && (bulk_fe_pt->nnode_1d() == 2)
+             && (bulk_fe_pt->nnode() == 4))
+            {
+              use_numerical_integration = false;
+            }
+          else
+            {
+              use_numerical_integration = true;
+            }
+        }
+
+
+      // Next assign the parameters
+      // ============================================================
 
       // Check that we can do hierarchical bem, if so set the parameter.
-      if(use_hierarchical_matrix)
+      if(use_hierarchical_bem)
         {
 #ifndef OOMPH_HAS_HLIB
           std::string err = "Hlib library required for hierarchical bem matrix";
@@ -53,7 +95,7 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION);
 #endif
         }
-      new_bem_handler.Use_hierarchical_bem = use_hierarchical_matrix;
+      new_bem_handler.Use_hierarchical_bem = use_hierarchical_bem;
 
       // Get the first finite element we can find in the a bulk mesh on
       // which we are going to construct our bem mesh. Assuimg that all
@@ -92,15 +134,15 @@ namespace oomph
      const unsigned& phi_index,
      const unsigned& phi_1_index,
      const CornerDataInput& input_corner_data,
-     bool use_hierarchical_matrix,
+     int use_hierarchical_bem,
      bool disable_corner_angles,
-     bool use_numerical_integration)
+     int use_numerical_integration)
     {
       // Create with new, fill in with factory
       BoundaryElementHandler* bem_handler_pt = new BoundaryElementHandler;
       bem_handler_factory(*bem_handler_pt,
                           bem_boundaries, phi_index, phi_1_index,
-                          input_corner_data, use_hierarchical_matrix, disable_corner_angles,
+                          input_corner_data, use_hierarchical_bem, disable_corner_angles,
                           use_numerical_integration);
       return bem_handler_pt;
     }

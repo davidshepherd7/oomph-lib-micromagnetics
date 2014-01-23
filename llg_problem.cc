@@ -40,15 +40,6 @@ namespace oomph
         throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
-
-
-    if(Bem_handler_pt != 0)
-      {
-        std::string err = "Already have a bem handler!? Maybe you already built this?";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-
 #endif
 
     // Call the underlying build to deal with adding meshes
@@ -199,71 +190,14 @@ namespace oomph
     oomph_info << "LLG Number of equations: " << ndof() << std::endl;
     oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
 
-
-
-    // Create bem_handler if we are doing fully implicit magnetostatics
-    // ============================================================
-    if(implicit_ms_flag())
-      {
-        // Get phi indicies as appropriate for bem. If bem calculations are
-        // decoupled then we actually want the phi indicies in the
-        // sub-problems, not the phi indicies in the main llg elements.
-        unsigned bem_phi_index = phi_index();
-        unsigned bem_phi_1_index = phi_1_index();
-        if(Decoupled_ms)
-          {
-            //??ds generalise this?
-            bem_phi_index = 0;
-            bem_phi_1_index = 0;
-          }
-
-        // Add all boundaries of all meshes to bem boundary list
-        BemBoundaryData bem_boundaries;
-        for(unsigned msh=0, nmsh=bulk_mesh_pts.size(); msh<nmsh; msh++)
-          {
-            Mesh* mesh_pt = bulk_mesh_pts[msh];
-            for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-              {
-                bem_boundaries.push_back(std::make_pair(b, mesh_pt));
-              }
-          }
-
-        // Create the bem handler
-        //??ds no corner data yet...
-        CornerDataInput input_corner_data;
-        Bem_handler_pt = Factories::bem_handler_factory
-          (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
-           Use_hierarchical_bem, Disable_bem_corners, Use_numerical_bem);
-
-
-        // // Calculate the (initial) bem boundary conditions on phi
-        // // ??ds might not need this? ok to wait until after a step?
-        // maybe_update_bem_boundary_conditions();
-      }
-
   }
 
   void LLGProblem::build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
                                       Vector<Mesh*>& phi_mesh_pts,
                                       Vector<Mesh*>& phi_1_mesh_pts)
   {
-
-#ifdef PARANOID
-    if(Bem_handler_pt != 0)
-      {
-        std::string err = "Already have a bem handler!? Maybe you already built this?";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-#endif
-
-    //??ds duplicated code? Generalise?
-    // Get phi indicies as appropriate for decoupled bem.
-    unsigned bem_phi_index = 0;
-    unsigned bem_phi_1_index = 0;
-
-    // First build the llg problem
-    build(llg_mesh_pts);
+    // // First build the llg problem
+    // build(llg_mesh_pts);
 
 
     // Throughout this function we need to be careful not to use each
@@ -293,8 +227,8 @@ namespace oomph
 
     // Check that all three types of mesh match up
 #ifdef PARANOID
-    if((nsub_mesh() != phi_mesh_pts.size())
-       || (nsub_mesh() != phi_1_mesh_pts.size()))
+    if((llg_mesh_pts.size() != phi_mesh_pts.size())
+       || (llg_mesh_pts.size() != phi_1_mesh_pts.size()))
       {
         std::string err = "All mesh lists must be the same size!";
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
@@ -305,10 +239,10 @@ namespace oomph
 
     // Assign bulk elements pointers to each other (and check that it is
     // safe).
-    for(unsigned msh=0; msh<nsub_mesh(); msh++)
+    for(unsigned msh=0; msh<llg_mesh_pts.size(); msh++)
       {
         Mesh* phi_mesh_pt = phi_mesh_pts[msh];
-        Mesh* llg_mesh_pt = mesh_pt(msh); // llg = main problem
+        Mesh* llg_mesh_pt = llg_mesh_pts[msh];
         Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
 
 #ifdef PARANOID
@@ -353,9 +287,6 @@ namespace oomph
                   }
               }
           }
-
-        //??ds check that element e in each mesh has the nodes in the same
-        //places?
 #endif
 
         // Assign the various elements pointers to each other
@@ -379,30 +310,6 @@ namespace oomph
           }
 
       }
-
-    // BEM handler:
-    // ============================================================
-    // Construct the BEM (must be done before pinning phi values)
-
-    // Add all boundaries of all meshes to bem boundary list
-    BemBoundaryData bem_boundaries;
-    for(unsigned msh=0, nmsh=phi_1_mesh_pts.size(); msh<nmsh; msh++)
-      {
-        Mesh* mesh_pt = phi_1_mesh_pts[msh];
-        for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-          {
-            bem_boundaries.push_back(std::make_pair(b, mesh_pt));
-          }
-      }
-
-    // ??ds not adding any corner data yet, wrong for more complex meshes
-    // than rectangular or smooth...
-    CornerDataInput input_corner_data;
-
-    oomph_info << "Creating BEM handler" << std::endl;
-    Bem_handler_pt = Factories::bem_handler_factory
-      (bem_boundaries, bem_phi_index, bem_phi_1_index, input_corner_data,
-       Use_hierarchical_bem, Disable_bem_corners, Use_numerical_bem);
 
 
     // Phi problem

@@ -106,24 +106,28 @@ namespace oomph
     // LLG specific factories
     // ============================================================
 
-    /// Make a bem handler object via new
+    /// Make a bem handler object via new. Integers not bools in some
+    /// places so that we can use -1 as "unset" and determine a good
+    /// default.
     BoundaryElementHandler* bem_handler_factory(const BemBoundaryData& bem_boundaries,
                                                 const unsigned& phi_index,
                                                 const unsigned& phi_1_index,
                                                 const CornerDataInput& input_corner_data,
-                                                bool use_hlib=false,
+                                                int use_hlib=-1,
                                                 bool disable_corner_angles=false,
-                                                bool use_numerical_integration=false);
+                                                int use_numerical_integration=-1);
 
-    /// Fill in and build an existing bem handler object
+    /// Fill in and build an existing bem handler object. Integers not
+    /// bools in some places so that we can use -1 as "unset" and determine
+    /// a good default.
     void bem_handler_factory(BoundaryElementHandler& new_bem_handler,
                              const BemBoundaryData& bem_boundaries,
                              const unsigned& phi_index,
                              const unsigned& phi_1_index,
                              const CornerDataInput& input_corner_data,
-                             bool use_hlib=false,
+                             int use_hlib=-1,
                              bool disable_corner_angles=false,
-                             bool use_numerical_integration=false);
+                             int use_numerical_integration=-1);
 
 
     /// Create an llg block preconditioner based on a string. Possibly
