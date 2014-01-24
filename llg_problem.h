@@ -1268,12 +1268,12 @@ public:
         << "h-app " << h_app_name << std::endl
         << "mag-params " << mag_params_name << std::endl
         << "renormalise " << renormalise << std::endl
-        << "damping_parameter_override " << damping << std::endl
+        << "damping " << damping << std::endl
         << "numerical-int-bem " << numerical_int_bem << std::endl
         << "decoupled_ms " << decoupled_ms << std::endl
         << "hierarchical-bem " << hierarchical_bem << std::endl
-        << "disable_ms " << disable_ms << std::endl
-        << "pin_boundary_m " << pin_boundary_m << std::endl
+        << "disable-ms " << disable_ms << std::endl
+        << "pin-boundary-m " << pin_boundary_m << std::endl
         ;
     }
 
