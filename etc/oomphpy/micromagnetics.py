@@ -34,7 +34,7 @@ def rootdir():
 
 def driver_path():
     """The location of the main driver binary"""
-    return pjoin(rootdir(), "control_scripts/driver/driver")
+    return os.path.abspath(pjoin(rootdir(), "control_scripts/driver/driver"))
 
 
 def boolean_flags():
@@ -308,6 +308,8 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
         binary = driver_path()
     if mpi_command is None:
         mpi_command = []
+
+    outdir = os.path.abspath(outdir)
 
     # Check that the binary exists
     if not os.path.isfile(binary):
