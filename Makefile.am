@@ -105,7 +105,7 @@ dummy_$(libname).h:  $(headers)
 	rm all_$(libname).aux
 	./generate_git_version_header.sh
 
-git_header.h: ./generate_git_version_header.sh
+git_version.h: ./generate_git_version_header.sh
 
 
 # Extra hook for install: Optionally replace headers by symbolic links
