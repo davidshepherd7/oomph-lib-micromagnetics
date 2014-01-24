@@ -82,6 +82,11 @@ def execute_oomph_driver(args_dict, output_root):
 
     return 0
 
+def build_driver(folder):
+    print("Building in", folder)
+    subp.check_call(['make', '--silent', '--keep-going',
+                    'LIBTOOLFLAGS=--silent'], cwd=folder)
+
 
 def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
 
@@ -206,6 +211,20 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
             '-hierarchical-bem' : ['0', '1'],
             }
 
+    elif parameter_set == "odblock-eigs":
+        args_dict = {
+            '-driver' : ['llg'],
+            '-dt' : [0.1],
+            '-solver' : ['gmres'],
+            '-prec' : ['blockexact'],
+            '-output-jac' : ['always'],
+            '-mesh' : ['sq_square'],
+            '-scale' : [10],
+            '-disable-ms' : [True, False],
+            '-ref' : [1, 2, 3 , 4, 5],
+            # anisotropy?
+            }
+
     else:
         raise NotImplementedError("no parameter set " + str(parameter_set))
 
@@ -266,7 +285,7 @@ def main():
 
     if not args.no_build:
         # Make sure micromag library is up to date
-        driver_folder = os.path.dirname(mm._DRIVER_PATH)
+        driver_folder = os.path.dirname(mm.driver_path())
         library_folder = pjoin(driver_folder, "../../")
         print("Building and installing libraries from", library_folder)
         subp.check_call(['make', '--silent', '--keep-going',
