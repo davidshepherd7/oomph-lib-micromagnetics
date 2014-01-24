@@ -2,6 +2,9 @@ import scipy as sp
 import scipy.sparse
 import scipy.sparse.linalg
 
+import os
+import os.path
+
 # For some reason numpy.object doesn't seem to be included in scipy
 # (yet?). Everything else is in scipy nowadays.
 import numpy
@@ -13,10 +16,21 @@ def ascii2coo(filename):
     """Convert from an ascii file "filename" contatining a matrix in coordinate
     notation to scipy sparse in coordinate notation."""
 
-    ascii_contents = scipy.loadtxt(filename,ndmin=2)
+    # Check the file exists
+    assert(os.path.isfile(filename))
+
+
+    # If it's empty then make an empty matrix
+    if os.path.getsize(filename) == 0:
+        return sp.zeros((0,0))
+
+    # Otherwise load it
+    ascii_contents = scipy.loadtxt(filename, ndmin=2)
+
+    # Convert to scipy coordinate sparse matrix format
     data = ascii_contents[:,2]
     ij = [ascii_contents[:,0], ascii_contents[:,1]]
-    return scipy.sparse.coo_matrix((data,ij));
+    return scipy.sparse.coo_matrix((data,ij))
 
 
 def ascii2array(filename):
@@ -35,7 +49,7 @@ def import_blocks(base_filename, nblocks):
         for j in range(nblocks):
             filename = "{0}_{1}_{2}".format(base_filename,i,j)
             block_array[i,j] = ascii2coo(filename)
-    return block_array;
+    return block_array
 
 
 # Functions to extract only some blocks
@@ -46,9 +60,24 @@ def throw_away_blocks(blocked_matrix, condition_function):
     coordinate list sparse matrices here for ease of modification. Convert to
     csr later."""
 
+    def dummy_matrix(shape):
+        """Compatability function to build an empty matrix. If it has no rows we
+        have to make an array rather than a sparse matrix in my version of
+        scipy...
+        """
+        if shape == (0,0):
+            # Hacky because I need a newer version of scipy! Create a 0x0
+            # matrix and monkey-patch it to have an nnz value. Might need
+            # to add more properties here.
+            m = sp.matrix(sp.zeros((0,0)))
+            m.nnz = 0
+            return m
+        else:
+            return scipy.sparse.coo_matrix(shape)
+
     for index, x in scipy.ndenumerate(blocked_matrix):
         if condition_function(index[0], index[1]):
-            blocked_matrix[index] = scipy.sparse.coo_matrix(blocked_matrix[index].get_shape())
+            blocked_matrix[index] = dummy_matrix(blocked_matrix[index].shape)
     return blocked_matrix
 
 
@@ -85,7 +114,7 @@ def off_diagonal_blocks(A):
 def mergeblocks(A):
     """To merge block matrices just use bmat(blocked_matrix) then convert to
     compressed row form ready for use in solvers."""
-    return scipy.sparse.csr_matrix(scipy.sparse.bmat(A));
+    return scipy.sparse.csr_matrix(scipy.sparse.bmat(A))
 
 
 def print_block_sparsity(A):
