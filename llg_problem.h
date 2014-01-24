@@ -34,7 +34,6 @@ namespace oomph
     LLGProblem() :
       Compare_with_mallinson(false),
       Applied_field_fct_pt(0),
-      Renormalise_each_time_step(false),
       Previous_energies(5, 0.0)
     {
       // Needed for if we want to switch solvers in runs
@@ -65,6 +64,7 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
+      Renormalise_each_time_step = -1;
     }
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -827,12 +827,6 @@ namespace oomph
       return Magnetic_parameters_pt;
     }
 
-    /// \short Non-const access function for Renormalise_each_time_step.
-    bool& renormalise_each_time_step() {return Renormalise_each_time_step;}
-
-    /// \short Const access function for Renormalise_each_time_step.
-    bool renormalise_each_time_step() const {return Renormalise_each_time_step;}
-
     /// \short Get a pointer to a MicromagEquations element.
     MicromagEquations* ele_pt() const
     {
@@ -858,11 +852,37 @@ namespace oomph
         return (!Decoupled_ms) && (!Disable_ms) && (!Inside_explicit_timestep);
       }
 
+
+    bool renormalise_each_time_step() const
+    {
+      // If flag not set then only do it for bdf timesteppers
+      if(Renormalise_each_time_step == -1)
+        {
+          return ((dynamic_cast<const BDF<2>*>(time_stepper_pt()) != 0)
+                  || (dynamic_cast<const BDF<1>*>(time_stepper_pt()) != 0));
+        }
+      // Otherwise do what the flag says
+      else if((Renormalise_each_time_step == +1) || (Renormalise_each_time_step == 0))
+        {
+          return bool(Renormalise_each_time_step);
+        }
+      else
+        {
+          std::string err = "Undefined state for renormalise ";
+          err += to_string(Renormalise_each_time_step);
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+    }
+
     /// Can we check the solution using Mallinson's exact time + phi
     /// solutions?
     bool Compare_with_mallinson;
 
     bool Disable_ms;
+
+    /// Normalise magnetisation problem after each step?
+    int Renormalise_each_time_step;
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
@@ -881,9 +901,6 @@ namespace oomph
 
     /// Magnetic parameters storage. ??ds should maybe go in meshes?
     MagneticParameters* Magnetic_parameters_pt;
-
-    /// Normalise magnetisation problem after each step?
-    bool Renormalise_each_time_step;
 
     /// \short Exchange_energy, computed after previous Newton solve.
     double Exchange_energy;
@@ -1236,13 +1253,13 @@ public:
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
       llg_pt->applied_field_fct_pt() = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(mag_params_pt);
-      llg_pt->renormalise_each_time_step() = renormalise_flag();
+      llg_pt->Renormalise_each_time_step = renormalise;
       llg_pt->Pin_boundary_m = pin_boundary_m;
       llg_pt->Decoupled_ms = decoupled_ms;
       llg_pt->Disable_ms = disable_ms;
 
       // ??ds this should maybe be a general one?
-      llg_pt->Use_fd_jacobian = use_fd_jacobian; //??ds
+      llg_pt->Use_fd_jacobian = use_fd_jacobian;
 
       // Set exact solution if we have one
       if((h_app_name == "minus_z")
@@ -1275,21 +1292,6 @@ public:
         << "disable-ms " << disable_ms << std::endl
         << "pin-boundary-m " << pin_boundary_m << std::endl
         ;
-    }
-
-
-    bool renormalise_flag() const
-    {
-      // If flag not set then only do it for bdf timesteppers
-      if(renormalise == -1)
-        {
-          return (ts_name == "bdf2") || (ts_name == "bdf1");
-        }
-      // Otherwise do what the flag says
-      else
-        {
-          return bool(renormalise);
-        }
     }
 
     HApp::HAppFctPt h_app_fct_pt;
