@@ -1121,27 +1121,26 @@ public:
   {
   public:
     /// Constructor: Initialise pointers to null.
-    MMArgs() : h_app_fct_pt(0),
-               magnetic_parameters_pt(0) {}
+    MMArgs() : h_app_fct_pt(0), mag_params_pt(0) {}
 
     virtual void set_flags()
     {
       MyCliArgs::set_flags();
 
-      specify_command_line_flag("-initm", &initial_m_name);
+      specify_command_line_flag("-initial-m", &initial_m_name);
       initial_m_name = "z";
 
-      specify_command_line_flag("-happ", &h_app_name);
+      specify_command_line_flag("-h-app", &h_app_name);
       h_app_name = "minus_z";
 
-      specify_command_line_flag("-mag-params", &magnetic_parameters_name);
-      magnetic_parameters_name = "simple-llg";
+      specify_command_line_flag("-mag-params", &mag_params_name);
+      mag_params_name = "simple-llg";
 
-      specify_command_line_flag("-renorm_m", &Renormalise);
-      Renormalise = -1;
+      specify_command_line_flag("-renormalise", &renormalise);
+      renormalise = -1;
 
-      specify_command_line_flag("-dampc", &dampc);
-      dampc = -10;
+      specify_command_line_flag("-damping", &damping);
+      damping = -10;
 
       // Flags automatically default to false
       specify_command_line_flag("-decoupled-ms");
@@ -1179,16 +1178,15 @@ public:
 
       initial_m_name = to_lower(initial_m_name);
       h_app_name = to_lower(h_app_name);
-      magnetic_parameters_name = to_lower(magnetic_parameters_name);
+      mag_params_name = to_lower(mag_params_name);
 
       initial_condition_fpt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
-      magnetic_parameters_pt =
-        magnetic_parameters_factory(magnetic_parameters_name);
+      mag_params_pt = magnetic_parameters_factory(mag_params_name);
 
-      if(command_line_flag_has_been_set("-dampc"))
+      if(command_line_flag_has_been_set("-damping"))
         {
-          magnetic_parameters_pt->gilbert_damping() = dampc;
+          mag_params_pt->gilbert_damping() = damping;
         }
 
       // Copy flags into bools in this class
@@ -1237,7 +1235,7 @@ public:
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
       llg_pt->applied_field_fct_pt() = h_app_fct_pt;
-      llg_pt->set_mag_parameters_pt(magnetic_parameters_pt);
+      llg_pt->set_mag_parameters_pt(mag_params_pt);
       llg_pt->renormalise_each_time_step() = renormalise_flag();
       llg_pt->Pin_boundary_m = pin_boundary_m;
       llg_pt->Decoupled_ms = decoupled_ms;
@@ -1249,7 +1247,7 @@ public:
       // Set exact solution if we have one
       if((h_app_name == "minus_z")
          && (initial_m_name == "z")
-         && (magnetic_parameters_pt->gilbert_damping() != 0.0)
+         && (mag_params_pt->gilbert_damping() != 0.0)
          && disable_ms)
         {
           llg_pt->Compare_with_mallinson = true;
@@ -1266,11 +1264,11 @@ public:
       MyCliArgs::dump_args(out_stream);
 
       out_stream
-        << "initial_m " << initial_m_name << std::endl
-        << "h_app " << h_app_name << std::endl
-        << "mag_params " << magnetic_parameters_name << std::endl
-        << "Renormalise " << Renormalise << std::endl
-        << "damping_parameter_override " << dampc << std::endl
+        << "initial-m " << initial_m_name << std::endl
+        << "h-app " << h_app_name << std::endl
+        << "mag-params " << mag_params_name << std::endl
+        << "renormalise " << renormalise << std::endl
+        << "damping_parameter_override " << damping << std::endl
         << "numerical-int-bem " << numerical_int_bem << std::endl
         << "decoupled_ms " << decoupled_ms << std::endl
         << "hierarchical-bem " << hierarchical_bem << std::endl
@@ -1283,32 +1281,31 @@ public:
     bool renormalise_flag() const
     {
       // If flag not set then only do it for bdf timesteppers
-      if(Renormalise == -1)
+      if(renormalise == -1)
         {
-          return (time_stepper_name == "bdf2")
-            || (time_stepper_name == "bdf1");
+          return (ts_name == "bdf2") || (ts_name == "bdf1");
         }
       // Otherwise do what the flag says
       else
         {
-          return bool(Renormalise);
+          return bool(renormalise);
         }
     }
 
     HApp::HAppFctPt h_app_fct_pt;
-    MagneticParameters* magnetic_parameters_pt;
+    MagneticParameters* mag_params_pt;
 
     // Strings for input to factory functions
     std::string initial_m_name;
     std::string h_app_name;
-    std::string magnetic_parameters_name;
+    std::string mag_params_name;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =
     /// default for timestepper, 0 = off, 1 = on.
-    int Renormalise;
+    int renormalise;
 
-    double dampc;
+    double damping;
 
     int numerical_int_bem;
     int hierarchical_bem;

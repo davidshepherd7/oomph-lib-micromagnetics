@@ -20,7 +20,7 @@ new_clean_dir $TWO_SPHERE_DIR
 # Run simulation
 cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
 ./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -ref 3 \
-    -solver superlu -happ minus_z -initm exactly_z  \
+    -solver superlu -h-app minus_z -initial-m exactly_z  \
     -mag-params 'simple-llg' -mesh multi_ut_sphere -xshift 20 \
     -hierarchical-bem 0 \
     -outdir $TWO_SPHERE_DIR > $TWO_SPHERE_DIR/stdout

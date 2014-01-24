@@ -354,13 +354,13 @@ namespace oomph
       Bem_mesh_pt = new Mesh;
 
       // By default evaluate BEM integrals analytically.
-      Use_numerical_integration = false;
+      Numerical_int_bem = false;
 
       // By default use hlib if we have it
 #ifdef OOMPH_HAS_HLIB
-      Use_hierarchical_bem = true;
+      Hierarchical_bem = true;
 #else
-      Use_hierarchical_bem = false;
+      Hierarchical_bem = false;
 #endif
 
       // Debugging flags
@@ -410,16 +410,16 @@ namespace oomph
     {
       // Force use of numerical integration if needed (if nodal dimension
       // of meshes is not 3).
-      if((!Use_numerical_integration) && (dimension() != 3))
+      if((!Numerical_int_bem) && (dimension() != 3))
         {
           OomphLibWarning("Problem appears to not be 3 dimensional. I'm forcing the use of numerical integration for boundary element calculations (analytical calculations only work for 3d).",
                           OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
-          Use_numerical_integration = true;
+          Numerical_int_bem = true;
         }
 
       // Can't force numerical integration in hlib
-      if(Use_hierarchical_bem && Use_numerical_integration)
+      if(Hierarchical_bem && Numerical_int_bem)
         {
           std::string err = "Can't control integration method in hlib, so we";
           err += "can't use numerical integration.";
@@ -463,12 +463,12 @@ namespace oomph
           corner_list_pt()->set_up_rectangular_corners(bem_mesh_pt());
         }
 
-      if(!Use_hierarchical_bem)
+      if(!Hierarchical_bem)
         {
           // Say what we're doing
           oomph_info << "Building dense BEM matrix, this may take some time"
                      << std::endl;
-          if(Use_numerical_integration)
+          if(Numerical_int_bem)
             oomph_info << "Using numerical integration." << std::endl;
           else
             oomph_info << "Using analytical integration." << std::endl;
@@ -582,11 +582,11 @@ namespace oomph
 
     /// \short Integrate BEM integrals by adaptive numerical integration or
     /// analytical integration.
-    bool Use_numerical_integration;
+    bool Numerical_int_bem;
 
     /// Use a hierarchical representation of the BEM matrix. Much faster
     /// but requires external library.
-    bool Use_hierarchical_bem;
+    bool Hierarchical_bem;
 
     /// Mapping from Hmatrix dofs (equivalent to the nodal numbering
     /// scheme) to Hmatrix indices (internal Hmatrix ordering used to

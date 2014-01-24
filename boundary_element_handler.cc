@@ -76,7 +76,7 @@ void BoundaryElementHandler::build_bem_matrix()
 
       // Fill the matrix
       elem_pt->fill_in_contribution_to_boundary_matrix(element_boundary_matrix,
-                                                       Use_numerical_integration);
+                                                       Numerical_int_bem);
 
       //??ds some of this stuff should be done using iterators to avoid
       // lookups in a map.
@@ -313,7 +313,7 @@ void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
 void BoundaryElementHandler::maybe_write_h_matrix_data(const std::string& outdir) const
 {
 #ifdef OOMPH_HAS_HLIB
-  if(Use_hierarchical_bem)
+  if(Hierarchical_bem)
     {
       // Fun with types...
       SumOfMatrices* sum_pt = checked_dynamic_cast<SumOfMatrices*>(Bem_matrix_pt);

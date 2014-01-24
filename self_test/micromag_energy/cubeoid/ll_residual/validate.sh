@@ -20,7 +20,7 @@ new_clean_dir $LL_CUBEOID_DIR
 # Run simulation
 cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
 ./driver ll -decoupled-ms -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 2 \
-    -solver superlu -happ zero -initm xz -mag-params 'simple-llg' \
+    -solver superlu -h-app zero -initial-m xz -mag-params 'simple-llg' \
     -fd-jac -hierarchical-bem 0 \
     -outdir $LL_CUBEOID_DIR> $LL_CUBEOID_DIR/stdout
 

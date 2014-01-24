@@ -180,8 +180,8 @@ namespace oomph
         specify_command_line_flag("-output-jac", &output_jacobian);
         output_jacobian = "never";
 
-        specify_command_line_flag("-ts", &time_stepper_name);
-        time_stepper_name = "bdf2";
+        specify_command_line_flag("-ts", &ts_name);
+        ts_name = "bdf2";
 
         specify_command_line_flag("-mp-pred", &mp_pred_name);
         mp_pred_name = "ebdf3";
@@ -243,16 +243,16 @@ namespace oomph
     virtual void run_factories()
     {
       // Make sure all strings are lower case
-      time_stepper_name = to_lower(time_stepper_name);
+      ts_name = to_lower(ts_name);
       mp_pred_name = to_lower(mp_pred_name);
 
       // Build all the pointers to stuff
-      time_stepper_pt = time_stepper_factory(time_stepper_name,
+      time_stepper_pt = time_stepper_factory(ts_name,
                                              mp_pred_name);
       if(time_stepper_pt == 0) // failed, so try explicit
         {
           explicit_time_stepper_pt =
-            explicit_time_stepper_factory(time_stepper_name);
+            explicit_time_stepper_factory(ts_name);
 
           // Still need a dummy timestepper to get everything set up
           // without segfaults (ts determines how much storage to create in
@@ -355,7 +355,7 @@ namespace oomph
         << "outdir " << outdir << std::endl
         << "output_jacobian " << output_jacobian << std::endl
 
-        << "time_stepper " << time_stepper_name << std::endl
+        << "time_stepper " << ts_name << std::endl
         << "mp_pred_name " << mp_pred_name << std::endl
         << "solver_name " << solver_name << std::endl
         << "preconditioner_name " << prec_name <<std::endl
@@ -469,7 +469,7 @@ namespace oomph
     Vector<unsigned> dof_to_block_map;
 
     // Strings for input to factory functions
-    std::string time_stepper_name;
+    std::string ts_name;
     std::string mp_pred_name;
     std::string solver_name;
     std::string prec_name;

@@ -21,7 +21,7 @@ new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
-    -ts midpoint-bdf -happ minus_z -initm z -output-jac always -disable-ms \
+    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always -disable-ms \
     -outdir $valdir 2>&1 > $valdir/stdout
 
 # Check that gmres converges in one step (i.e. block-exact == exact
@@ -49,7 +49,7 @@ new_clean_dir $valdir
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -decoupled-ms -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square \
     -solver gmres -prec blockexact \
-    -ts midpoint-bdf -happ minus_z -initm z -output-jac always \
+    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always \
     -outdir $valdir 2>&1 > $valdir/stdout
 
 # Check that gmres converges in one step (i.e. block-exact == exact
@@ -75,7 +75,7 @@ new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
-    -ts midpoint-bdf -happ minus_z -initm z -output-jac always \
+    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always \
     -outdir $valdir 2>&1 > $valdir/stdout
 
 # Check that gmres converges in one step (i.e. block-exact == exact
@@ -101,7 +101,7 @@ new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver gmres -prec blockexact \
-    -ts midpoint-bdf -happ minus_z -initm z -output-jac always \
+    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always \
     -blocking group-m \
     -outdir $valdir 2>&1 > $valdir/stdout
 
@@ -130,7 +130,7 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "25")
 # cd $CONTROL_SCRIPTS/driver/
 # ./driver llg -dt 0.001 -tmax 0.0009 -ref 0 -mesh sq_square -solver som-gmres \
 #     -prec som-main-blockexact \
-#     -ts midpoint-bdf -happ minus_z -initm z -implicit-ms -output-jac always \
+#     -ts midpoint-bdf -h-app minus_z -initial-m z -implicit-ms -output-jac always \
 #     -outdir $valdir 2>&1 > $valdir/stdout
 
 # # Check that gmres converges in one step (i.e. block-exact == exact

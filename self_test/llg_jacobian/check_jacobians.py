@@ -164,14 +164,14 @@ def main():
                         'ref': 2,
                         'dt': 1e-4,
                         'tmax': 3e-4,
-                        'initm': 'smoothly_varying_5',
+                        'initial-m': 'smoothly_varying_5',
                         'outdir': 'Validation/J1'},
 
                         {'mesh': 'sq_cubeoid',
                         'ref': 2,
                         'dt': 1e-4,
                         'tmax': 2e-4,
-                        'initm': 'smoothly_varying_500',
+                        'initial-m': 'smoothly_varying_500',
                         'outdir': 'Validation/J2'},
                         ]
 
