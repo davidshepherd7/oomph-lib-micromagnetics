@@ -73,6 +73,7 @@ meshes/generate_tetgen_sphere_input/generate_tetgen_sphere_input
 self_test/*/Validation*
 self_test/*/*/Validation*
 self_test/*/*/*/Validation*
+make_check_output
 
 
 # self test binaries
