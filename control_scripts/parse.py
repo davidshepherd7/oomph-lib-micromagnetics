@@ -28,86 +28,12 @@ from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
 
+
+# Various helper functions
+# ============================================================
+
 def identity(x):
     return x
-
-# Parsing functions
-# ============================================================
-
-def parse_info_file(filename):
-    """Read data from the info file into a dictionary.
-
-    Assuming info file is in the format
-
-        thing_name thing_value
-    """
-
-    info_dict = {}
-    with open(filename, 'r') as f:
-        for line in f:
-            (key, value) = line.split()
-            info_dict[key] = value
-
-    # Make sure the numbers are stored as numbers
-    info_dict['initial_dt'] = float(info_dict['initial_dt'])
-    info_dict['tol'] = float(info_dict['tol'])
-    info_dict['refinement'] = int(info_dict['refinement'])
-
-    return info_dict
-
-
-def parse_run(results_folder):
-    """Parse the info file, trace file and look for FAILED file in a folder
-    and put all data into a dict with keys taken from file data.
-    """
-
-    # If info file doesn't exist then it probably hasn't run yet...
-    try:
-        d = parse_info_file(pjoin(results_folder, "info"))
-    except IOError:
-        return None
-
-    trace_dict = mm.parse_trace_file(pjoin(results_folder, "trace"))
-
-    # Add the data from trace file into the dict (NOTE: if any fields have
-    # the same name then the trace file data will "win").
-    d.update(trace_dict)
-
-    # If there's only one time point then this run failed immediately and
-    # we can't calculate anything interesting.
-    if len(d['times']) == 1:
-        return None
-
-    # If there is a "FAILED" file then something didn't work
-    d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
-
-    return d
-
-
-def parse_parameter_sweep(root_dirs):
-    """Get a list of dictionaries of results in directories (recursively)
-    contained in the list of root_dirs.
-    """
-
-    results = []
-    for root_dir in root_dirs:
-        # Recursively parse directories inside the root_dir
-        for root, dirs, filenames in os.walk(root_dir):
-            for d in dirs:
-                print("Parsing", pjoin(root, d))
-                results.append(parse_run(pjoin(root, d)))
-
-        # Also parse the root directory if it contains results (i.e. at least
-        # an info file)
-        if os.path.isfile(pjoin(root_dir, "info")):
-            print("Parsing", root_dir)
-            results.append(parse_run(root_dir))
-
-    return results
-
-
-# Other helper functions
-# ============================================================
 
 
 def next_square_number(start):
@@ -515,7 +441,7 @@ def main():
     # ============================================================
 
     # Get the results that aren't just empty
-    really_all_results = parse_parameter_sweep(args.dir)
+    really_all_results = mm.parse_parameter_sweep(args.dir)
     all_results = [d for d in really_all_results if d is not None]
     print(len(all_results), "data sets out of", len(really_all_results), "used",
           "(any others didn't have enough time steps finished).")

@@ -23,30 +23,31 @@ from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
 
+
+# Globally accessible information functions
+# ============================================================
+
 def rootdir():
     """Get the micromagnetics root directory"""
     return os.path.abspath(pjoin(os.path.dirname(__file__), "../../"))
+
 
 def driver_path():
     """The location of the main driver binary"""
     return pjoin(rootdir(), "control_scripts/driver/driver")
 
 
-def cleandir(dirname):
-    """(Re)make a directory called dirname.
+def boolean_flags():
+    """A list of flags which are just either enabled or not. Inside function so
+    it's global but harder to accidentally modify.
     """
-
-    # If it exists then delete all files (won't touch subdirs though) and
-    # the folder itself. This will fail if we have any subdirs (for safety).
-    if os.path.isdir(dirname):
-        for f in os.listdir(dirname):
-            os.unlink(pjoin(dirname, f))
-        os.rmdir(dirname)
-
-    # Make the directory and any parents needed
-    os.makedirs(dirname)
+    return ['-decoupled-ms', '-disable-ms', '-fd-jac']
 
 
+
+
+# Helper functions
+# ============================================================
 def _is_iterable(item):
     # Add types here you don't want to mistake as iterables
     if isinstance(item, basestring):
@@ -79,6 +80,8 @@ def differences(arr):
     return [None] + [a - b for a, b in zip(arr[1:], arr[:-1])]
 
 
+# Parsing functions
+# ============================================================
 def parse_trace_file(filename):
     """Read data from a trace file into a dict of lists keyed on the column
     header.
@@ -140,12 +143,106 @@ def parse_trace_file(filename):
     return data
 
 
-def boolean_flags():
-    """A list of flags which are just either enabled or not. Inside function so
-    it's global but harder to accidentally modify.
-    """
-    return ['-decoupled-ms', '-disable-ms', '-fd-jac']
+def parse_info_file(filename):
+    """Read data from the info file into a dictionary.
 
+    Assuming info file is in the format
+
+        thing_name thing_value
+    """
+
+    info_dict = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            (key, value) = line.split()
+            info_dict[key] = value
+
+    # Make sure the numbers are stored as numbers
+    info_dict['initial_dt'] = float(info_dict['initial_dt'])
+    info_dict['tol'] = float(info_dict['tol'])
+    info_dict['refinement'] = int(info_dict['refinement'])
+
+    return info_dict
+
+
+
+def parse_run(results_folder):
+    """Parse the info file, trace file and look for FAILED file in a folder
+    and put all data into a dict with keys taken from file data.
+    """
+
+    # If info file doesn't exist then it probably hasn't run yet...
+    try:
+        d = parse_info_file(pjoin(results_folder, "info"))
+    except IOError:
+        return None
+
+    trace_dict = parse_trace_file(pjoin(results_folder, "trace"))
+
+    # Add the data from trace file into the dict (NOTE: if any fields have
+    # the same name then the trace file data will "win").
+    d.update(trace_dict)
+
+    # If there's only one time point then this run failed immediately and
+    # we can't calculate anything interesting.
+    if len(d['times']) == 1:
+        return None
+
+    # If there is a "FAILED" file then something didn't work
+    d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
+
+    return d
+
+
+def parse_parameter_sweep(root_dirs):
+    """Get a list of dictionaries of results in directories (recursively)
+    contained in the list of root_dirs.
+    """
+
+    results = []
+    for root_dir in root_dirs:
+        # Recursively parse directories inside the root_dir
+        for root, dirs, filenames in os.walk(root_dir):
+            for d in dirs:
+                print("Parsing", pjoin(root, d))
+                results.append(parse_run(pjoin(root, d)))
+
+        # Also parse the root directory if it contains results (i.e. at least
+        # an info file)
+        if os.path.isfile(pjoin(root_dir, "info")):
+            print("Parsing", root_dir)
+            results.append(parse_run(root_dir))
+
+    return results
+
+
+def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
+    """Run function with all combinations of parameters in parallel using
+    all available cores.
+
+    parameter_lists should be a list of lists of parameters,
+    """
+
+    import multiprocessing
+
+    # Generate a complete set of combinations of parameters
+    parameter_sets = [dict(zip(parameter_dictionary, x))
+                      for x in it.product(*parameter_dictionary.values())]
+
+    # For debugging we often need to run in serial (to get useful stack
+    # traces).
+    if serial_mode:
+        results = map(function, parameter_sets)
+
+    else:
+        # Run in all parameter sets in parallel
+        results = multiprocessing.Pool().map(function, parameter_sets, 1)
+
+    return results
+
+
+# Driver execution functions
+# ============================================================
 
 def argdict2list(argdict):
     """Convert a dictionary of arguments into a command line list ready to be
@@ -186,29 +283,19 @@ def argdict2list(argdict):
     return arglist, binary_path, mpi_command
 
 
-def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
-    """Run function with all combinations of parameters in parallel using
-    all available cores.
-
-    parameter_lists should be a list of lists of parameters,
+def cleandir(dirname):
+    """(Re)make a directory called dirname.
     """
 
-    import multiprocessing
+    # If it exists then delete all files (won't touch subdirs though) and
+    # the folder itself. This will fail if we have any subdirs (for safety).
+    if os.path.isdir(dirname):
+        for f in os.listdir(dirname):
+            os.unlink(pjoin(dirname, f))
+        os.rmdir(dirname)
 
-    # Generate a complete set of combinations of parameters
-    parameter_sets = [dict(zip(parameter_dictionary, x))
-                      for x in it.product(*parameter_dictionary.values())]
-
-    # For debugging we often need to run in serial (to get useful stack
-    # traces).
-    if serial_mode:
-        results = map(function, parameter_sets)
-
-    else:
-        # Run in all parameter sets in parallel
-        results = multiprocessing.Pool().map(function, parameter_sets, 1)
-
-    return results
+    # Make the directory and any parents needed
+    os.makedirs(dirname)
 
 
 def run_driver(arglist, outdir, binary=None, mpi_command=None):
