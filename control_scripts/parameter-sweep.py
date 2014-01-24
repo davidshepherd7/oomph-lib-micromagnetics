@@ -216,12 +216,14 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
             '-driver' : ['llg'],
             '-dt' : [0.1],
             '-solver' : ['gmres'],
-            '-prec' : ['blockexact'],
+            '-prec' : ['som-main-blockexact'],
             '-output-jac' : ['always'],
             '-mesh' : ['sq_square'],
             '-scale' : [10],
+            '-blocking' : ['none'],
             '-disable-ms' : [True, False],
-            '-ref' : [1, 2, 3 , 4, 5],
+            '-ref' : [1, 2, 3],
+            '-solver' : ['som-gmres']
             # anisotropy?
             }
 
