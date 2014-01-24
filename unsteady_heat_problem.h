@@ -364,17 +364,6 @@ public:
     exact_fct_pt = UnsteadyHeatFactories::exact_fct_pt_factory(source_fct_pt_name);
   }
 
-   /// Write out all args (in a parseable format) to a stream.
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      MyCliArgs::dump_args(out_stream);
-
-      out_stream
-        << "mesh " << "sq_square" << std::endl
-        << "source_function " << source_fct_pt_name << std::endl;
-    }
-
-
   std::string source_fct_pt_name;
 
   UnsteadyHeatEquationsBase::UnsteadyHeatSourceFctPt source_fct_pt;

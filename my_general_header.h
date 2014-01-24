@@ -229,7 +229,6 @@ namespace oomph
       setup(argc,argv);
       this->set_flags();
       parse_and_assign(argc, argv, true);
-      doc_specified_flags();
 
       // Run any processing that needs to be done on the arguments
       // (e.g. creating meshes).
@@ -333,42 +332,6 @@ namespace oomph
 
       // Build the meshes using whatever function the sub class defines
       build_meshes();
-    }
-
-    /// Write out all args (in a parseable format) to a stream.
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      out_stream
-        << "initial_dt " << dt << std::endl
-        << "tmax " << tmax << std::endl
-        << "max_steps " << max_steps << std::endl
-        << "tol " << tol << std::endl
-        << "refinement " << refinement << std::endl
-        << "error-norm-limit " << error_norm_limit << std::endl
-        << "disable-explicit-solver-optimisations "
-        << disable_explicit_solver_optimisations << std::endl
-
-        << "newton-tol " << newton_tol << std::endl
-        << "newton-max-residual " << newton_max_residual << std::endl
-        << "newton-max-iterations " << newton_max_iterations << std::endl
-
-        << "outdir " << outdir << std::endl
-        << "output_jacobian " << output_jacobian << std::endl
-
-        << "time_stepper " << ts_name << std::endl
-        << "mp_pred_name " << mp_pred_name << std::endl
-        << "solver_name " << solver_name << std::endl
-        << "preconditioner_name " << prec_name <<std::endl
-        << "blocking_name " << blocking_name << std::endl
-
-        << "doc_times_interval " << doc_times_interval << std::endl
-
-        << "mesh " << mesh_name << std::endl
-        << "nnode1d " << nnode1d << std::endl
-        << "xshift " << xshift << std::endl
-        << "yshift " << yshift << std::endl
-        << "scale " << scale << std::endl
-        ;
     }
 
     // Adaptive if a tolerance has been set

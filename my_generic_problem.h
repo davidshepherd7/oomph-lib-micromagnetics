@@ -56,10 +56,10 @@ namespace oomph
     MyDocInfo() : DocInfo(), output_jacobian("never") {}
 
     /// Copy dump of args into args_str.
-    void copy_args_string(MyCliArgs* args_pt)
+    void copy_args_string()
       {
         std::ostringstream stream;
-        args_pt->dump_args(stream);
+        doc_all_flags(stream);
         args_str.assign(stream.str());
       }
 

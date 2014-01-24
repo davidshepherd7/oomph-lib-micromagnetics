@@ -1275,25 +1275,6 @@ public:
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
     }
 
-    /// Write out all args (in a parseable format) to a stream.
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      MyCliArgs::dump_args(out_stream);
-
-      out_stream
-        << "initial-m " << initial_m_name << std::endl
-        << "h-app " << h_app_name << std::endl
-        << "mag-params " << mag_params_name << std::endl
-        << "renormalise " << renormalise << std::endl
-        << "damping " << damping << std::endl
-        << "numerical-int-bem " << numerical_int_bem << std::endl
-        << "decoupled_ms " << decoupled_ms << std::endl
-        << "hierarchical-bem " << hierarchical_bem << std::endl
-        << "disable-ms " << disable_ms << std::endl
-        << "pin-boundary-m " << pin_boundary_m << std::endl
-        ;
-    }
-
     HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* mag_params_pt;
 

@@ -233,12 +233,6 @@ namespace oomph
       initial_condition_fpt = exact_solution_pt;
     }
 
-    virtual void dump_args(std::ostream& out_stream) const
-    {
-      MyCliArgs::dump_args(out_stream);
-      out_stream << "exact_name " << exact_name << std::endl;
-    }
-
     /// Overloaded to just create a single ode element
     virtual void build_meshes()
     {

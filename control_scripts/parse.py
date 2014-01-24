@@ -124,7 +124,7 @@ def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
 
     # Make an array of subplots to put our data into
     subplt_size = next_square_number(len(p))
-    refines = [d['refinement'] for sublist in p for d in sublist]
+    refines = [d['-ref'] for sublist in p for d in sublist]
     fig, axarr = plt.subplots\
       (subplt_size, subplt_size,
        sharey=True, sharex=True, # share labels
@@ -135,7 +135,7 @@ def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
     for ax, data_set in zip(axarr.flatten(), p):
 
         # First plot ones that worked
-        refs = [d['refinement'] for d in data_set if not d['failed']]
+        refs = [d['-ref'] for d in data_set if not d['failed']]
         dts = [d[y_axis_data] for d in data_set if not d['failed']]
         vals = [normaliser(d[quantity_name]) for d in data_set if not d['failed']]
         im = ax.scatter(refs, dts, c=vals, s=80, marker = 'o',
@@ -143,7 +143,7 @@ def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
                         vmax=normaliser(max(values)))
 
         # Now plot ones that failed
-        refs = [d['refinement'] for d in data_set if d['failed']]
+        refs = [d['-ref'] for d in data_set if d['failed']]
         dts = [d[y_axis_data] for d in data_set if d['failed']]
         vals = [normaliser(d[quantity_name]) for d in data_set if d['failed']]
         ax.scatter(refs, dts, c=vals, s=80, marker = 'x',
@@ -155,8 +155,8 @@ def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
 
         # Write the (other) parameters in the title
         d = data_set[0]
-        ax.set_title(str(d['initial_m']) + " " + str(d['mesh']) + "\n"
-                     + str(d['h_app']) + " " + str(d['time_stepper']),
+        ax.set_title(str(d['-initial-m']) + " " + str(d['-mesh']) + "\n"
+                     + str(d['-h-app']) + " " + str(d['-ts']),
                      fontsize=10)
 
     # Blank out any spare spaces we have left over
@@ -200,17 +200,17 @@ def plot_vs_time(data, plot_values, operations_on_values=None):
 
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
-    if all([d['tol'] == 0 for d in data]):
-        dt_label = 'initial_dt'
+    if all([d['-tol'] == 0 for d in data]):
+        dt_label = '-dt'
     else:
-        dt_label = 'tol'
+        dt_label = '-tol'
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
         for d in data:
-            name = str(d[dt_label]) + " " + str(d['refinement'])\
-               + " " + str(d['time_stepper'])\
-               + " " + str(d.get('decoupled_ms') == "1")
+            name = str(d[dt_label]) + " " + str(d['-ref'])\
+               + " " + str(d['-ts'])\
+               + " " + str(d.get('-decoupled-ms') == "1")
 
             if op is not None:
                 vals = map(op, d[p])
@@ -249,8 +249,8 @@ def plot_vs_step(data, plot_values, operations=None):
     for axes, p, f in zip(axesarray, plot_values, operations):
 
         for d in data:
-            name = str(d['tol']) + " " + str(d['refinement']) + " " \
-              + str(d['time_stepper'])
+            name = str(d['-tol']) + " " + str(d['-ref']) + " " \
+              + str(d['-ts'])
 
             axes.plot([f(y) for y in d[p]], label=name)
 
@@ -279,9 +279,9 @@ def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean)
     colours = iter(['r', 'g', 'b', 'k', 'c'])
 
     # Plot each time stepper
-    for ts in set([d['time_stepper'] for d in data]):
+    for ts in set([d['-ts'] for d in data]):
 
-        fdata = [d for d in data if d['time_stepper'] == ts]
+        fdata = [d for d in data if d['-ts'] == ts]
 
         xs = [x_operation(d[x_value]) for d in fdata]
         ys = [y_operation(d[y_value]) for d in fdata]
@@ -351,24 +351,24 @@ def multi_plot(data, keys_to_split_on, plot_function):
 
 def nsteps_vs_tol(data):
 
-    p = split_up_stuff(data, ['initial_m', 'h_app', 'mesh'])
+    p = split_up_stuff(data, ['-initial-m', '-h-app', '-mesh'])
 
     for data_set in p:
         fig, axarr = plt.subplots(2, 1, sharex = True)
 
-        fig.suptitle(data_set[0]['initial_m']+ ' ' +data_set[0]['mesh'] + ' ' +
-                     data_set[0]['h_app']+ ' ' +data_set[0]['time_stepper'])
+        fig.suptitle(data_set[0]['-initial-m']+ ' ' +data_set[0]['-mesh'] + ' ' +
+                     data_set[0]['-h-app']+ ' ' +data_set[0]['-ts'])
 
-        for d in [d for d in data if d['refine'] == 2]:
-            axarr[0].scatter(d['tol'], sp.mean(d['error_norms']),
-                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+        for d in [d for d in data if d['-ref'] == 2]:
+            axarr[0].scatter(d['-tol'], sp.mean(d['error_norms']),
+                          label='-tol '+ str(d['-tol']) +', refine '+ str(d['-ref']))
             axarr[0].set_ylabel('error norm')
             axarr[0].legend(loc=0)
 
-            axarr[1].scatter(d['tol'], d['nsteps'],
-                          label='tol '+ str(d['tol']) +', refine '+ str(d['refinement']))
+            axarr[1].scatter(d['-tol'], d['nsteps'],
+                          label='-tol '+ str(d['-tol']) +', refine '+ str(d['-ref']))
             axarr[1].set_ylabel('nsteps')
-            axarr[1].set_xlabel('tol')
+            axarr[1].set_xlabel('-tol')
             axarr[1].legend(loc=0)
 
     return
@@ -377,7 +377,7 @@ def nsteps_vs_tol(data):
 def iterations_vs_dt(data):
 
     # Split up into separate data sets for each preconditioner
-    split_data = split_up_stuff(data, ['preconditioner_name'])
+    split_data = split_up_stuff(data, ['-prec'])
 
     # Create figure
     fig, axarr = plt.subplots(1, 1)
@@ -451,7 +451,7 @@ def main():
         pprint(all_results)
 
     # Good default keys to split..
-    keys_to_split_on = ['mesh', 'h_app', 'initial_m', 'mag_params', 'scale']
+    keys_to_split_on = ['-mesh', '-h-app', '-initial-m', '-mag-params', '-scale']
 
 
     # Do actual plots

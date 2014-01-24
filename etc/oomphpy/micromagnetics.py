@@ -158,9 +158,9 @@ def parse_info_file(filename):
             info_dict[key] = value
 
     # Make sure the numbers are stored as numbers
-    info_dict['initial_dt'] = float(info_dict['initial_dt'])
-    info_dict['tol'] = float(info_dict['tol'])
-    info_dict['refinement'] = int(info_dict['refinement'])
+    info_dict['-dt'] = float(info_dict['-dt'])
+    info_dict['-tol'] = float(info_dict['-tol'])
+    info_dict['-ref'] = int(info_dict['-ref'])
 
     return info_dict
 

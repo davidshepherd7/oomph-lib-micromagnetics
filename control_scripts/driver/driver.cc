@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   args_pt->parse(argc, argv);
 
   oomph_info << "With the following arguments:" << std::endl;
-  args_pt->dump_args(*oomph_info.stream_pt());
+  CommandLineArgs::doc_specified_flags();
   oomph_info << std::endl;
 
 
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     args_pt->disable_explicit_solver_optimisations;
 
   // Assign doc parameters
-  problem_pt->Doc_info.copy_args_string(args_pt);
+  problem_pt->Doc_info.copy_args_string();
   problem_pt->Doc_info.set_directory(args_pt->outdir);
   problem_pt->Doc_info.output_jacobian = args_pt->output_jacobian;
   problem_pt->set_doc_times(args_pt->doc_times);
