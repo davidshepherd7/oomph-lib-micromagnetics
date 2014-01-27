@@ -135,10 +135,10 @@ int main(int argc, char *argv[])
   // Start MPI if necessary
   MPI_Helpers::init(argc, argv);
 
-#ifdef PARANOID
-  // Enable some floating point error checkers
-  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
-#endif
+// #ifdef PARANOID
+//   // Enable some floating point error checkers
+//   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+// #endif
 
   // Create problem class and argument parser
   oomph_info << "Making " << problem_name << " problem." << std::endl;
