@@ -10,4 +10,4 @@ find_corresponding_knot_check_driver_SOURCES = find_corresponding_knot_check_dri
 find_corresponding_knot_check_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

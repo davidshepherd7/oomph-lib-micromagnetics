@@ -9,4 +9,4 @@ sum_matrix_operation_tests_SOURCES = sum_matrix_operation_tests.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 sum_matrix_operation_tests_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

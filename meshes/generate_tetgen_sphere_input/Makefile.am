@@ -7,4 +7,4 @@ generate_tetgen_sphere_input_SOURCES = generate_tetgen_sphere_input.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 generate_tetgen_sphere_input_LDADD = -L@libdir@ $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

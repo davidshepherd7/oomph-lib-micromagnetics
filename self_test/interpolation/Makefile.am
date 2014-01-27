@@ -12,4 +12,4 @@ polynomial_interpolation_test_SOURCES=polynomial_interpolation_test.cc
 polynomial_interpolation_test_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 # using -isystem rather than -I suppresses (most) warnings from files in includedir
-INCLUDES = -isystem @includedir@
+AM_CPPFLAGS += -isystem @includedir@

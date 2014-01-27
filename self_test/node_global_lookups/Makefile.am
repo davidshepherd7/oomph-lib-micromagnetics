@@ -12,4 +12,4 @@ node_lookup_test_SOURCES=node_lookup_test.cc
 node_lookup_test_LDADD = -L@libdir@ -lpoisson -lgeneric -lmicromag $(EXTERNAL_LIBS) $(FLIBS)
 
 # using -isystem rather than -I suppresses (most) warnings from files in includedir
-INCLUDES = -isystem @includedir@
+AM_CPPFLAGS += -isystem @includedir@

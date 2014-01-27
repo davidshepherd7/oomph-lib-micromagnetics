@@ -10,4 +10,4 @@ rigorous_degree_test_driver_SOURCES = rigorous_degree_test_driver.cc
 rigorous_degree_test_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

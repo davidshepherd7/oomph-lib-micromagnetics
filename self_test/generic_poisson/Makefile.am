@@ -12,4 +12,4 @@ generic_poisson_test_SOURCES=generic_poisson_test.cc
 generic_poisson_test_LDADD = -L@libdir@ -lpoisson -lgeneric -lmicromag $(EXTERNAL_LIBS) $(FLIBS)
 
 # using -isystem rather than -I suppresses (most) warnings from files in includedir
-INCLUDES = -isystem @includedir@
+AM_CPPFLAGS += -isystem @includedir@

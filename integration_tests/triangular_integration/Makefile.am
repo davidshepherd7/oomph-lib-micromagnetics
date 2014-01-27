@@ -8,4 +8,4 @@ triangular_integration_driver_SOURCES = triangular_integration_driver.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 triangular_integration_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

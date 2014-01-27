@@ -12,4 +12,4 @@ mallinson_test_SOURCES=mallinson_test.cc
 mallinson_test_LDADD = -L@libdir@ -lmicromag -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 # using -isystem rather than -I suppresses (most) warnings from files in includedir
-INCLUDES = -isystem @includedir@
+AM_CPPFLAGS += -isystem @includedir@

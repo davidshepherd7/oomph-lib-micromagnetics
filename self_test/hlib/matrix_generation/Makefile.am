@@ -11,4 +11,4 @@ hlib_matrix_generate_driver_SOURCES=hlib_matrix_generate_driver.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 hlib_matrix_generate_driver_LDADD = -L@libdir@ -lgeneric -lmicromag -lhmatrix $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -isystem @includedir@ -I /usr/local/include/HLib/
+AM_CPPFLAGS += -isystem @includedir@ -I /usr/local/include/HLib/

@@ -10,4 +10,4 @@ quadrature_accuracy_check_driver_SOURCES = quadrature_accuracy_check_driver.cc
 quadrature_accuracy_check_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

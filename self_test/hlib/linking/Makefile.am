@@ -11,4 +11,4 @@ hlib_test_driver_SOURCES=hlib_test_driver.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 hlib_test_driver_LDADD = -L@libdir@ -lgeneric -lmicromag $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -isystem @includedir@
+AM_CPPFLAGS += -isystem @includedir@

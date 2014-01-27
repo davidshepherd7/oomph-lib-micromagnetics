@@ -8,4 +8,4 @@ singular_quadrature_test_driver_SOURCES = singular_quadrature_test_driver.cc
 # $(FLIBS) is included in case the solver involves fortran sources.
 singular_quadrature_test_driver_LDADD = -L@libdir@ -lgeneric $(EXTERNAL_LIBS) $(FLIBS)
 
-INCLUDES = -I@includedir@
+AM_CPPFLAGS += -I@includedir@

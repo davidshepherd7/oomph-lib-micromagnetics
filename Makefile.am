@@ -89,7 +89,7 @@ library_include_HEADERS=$(headers) $(incl_cc_files)
 # Required libraries
 #-------------------
 # Include path for library headers
-INCLUDES = -I/usr/local/include/HLib/
+AM_CPPFLAGS += -I/usr/local/include/HLib/
 
 # Combined header file
 #---------------------
