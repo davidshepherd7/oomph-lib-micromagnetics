@@ -49,8 +49,16 @@ def boolean_flags():
 # Helper functions
 # ============================================================
 def _is_iterable(item):
-    # Add types here you don't want to mistake as iterables
-    if isinstance(item, basestring):
+    # Add checks for types you don't want to mistake as iterables here
+
+    # Name of string base class changed in python3, try both for
+    # compatability:
+    try:
+        isstring = isinstance(item, basestring)
+    except NameError:
+        isstring = isinstance(item, str)
+
+    if isstring:
         return False
 
     # Fake an iteration.

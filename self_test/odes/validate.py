@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Python 2/3 compatability
 from __future__ import print_function
@@ -111,7 +111,7 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
     # correct
     ltefail = False
     if exact == "poly2":
-        maxlteerror = max(it.imap(lambda a,b: a-b, data['LTE_norms'], it.repeat(0)))
+        maxlteerror = max(map(lambda a,b: a-b, data['LTE_norms'], it.repeat(0)))
         ltefail = (maxlteerror > 10e-8)
 
     # ??ds still not testing ltes for other odes... probably should

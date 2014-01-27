@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Future proofing
 from __future__ import print_function
@@ -193,10 +193,10 @@ def plot_vs_time(data, plot_values, operations_on_values=None):
     if operations_on_values is None:
         operations_on_values = [None]*len(plot_values)
 
+    # Construct axes
     fig, axesmatrix = plt.subplots(len(plot_values), 1, sharex = True,
                                    squeeze=False)
-    axesarray = axesmatrix.flat
-
+    axesarray = list(axesmatrix.flat)
 
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)

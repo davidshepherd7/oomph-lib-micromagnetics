@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Python 2/3 compatability
 from __future__ import print_function
@@ -40,7 +40,7 @@ def shelltest(args, expected_result):
 
     # Run as script
     with open(os.devnull, 'w') as fstdout:
-        script_code = subp.call([fpdiff_path] + map(str, args))
+        script_code = subp.call([fpdiff_path] + list(map(str, args)))
     actual_result = (script_code == 0)
 
     # Return true if ok, false otherwise
