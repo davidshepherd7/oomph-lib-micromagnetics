@@ -16,7 +16,6 @@
 #include "../../src/generic/matrices.h"
 #include "../../src/generic/block_preconditioner.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
-#include "../../src/generic/hypre_solver.h"
 #include "../../src/generic/general_purpose_preconditioners.h"
 
 

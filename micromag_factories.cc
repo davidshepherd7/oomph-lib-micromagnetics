@@ -14,8 +14,11 @@
 // solver factories
 #include "../../src/generic/linear_solver.h"
 #include "../../src/generic/iterative_linear_solver.h"
-#include "../../src/generic/hypre_solver.h"
 #include "../../src/generic/sum_of_matrices.h"
+
+#ifdef OOMPH_HAS_HYPRE
+#include "../../src/generic/hypre_solver.h"
+#endif
 
 // timestepper factories
 #include "../../src/generic/timesteppers.h"
