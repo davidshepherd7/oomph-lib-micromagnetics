@@ -221,6 +221,9 @@ namespace oomph
 
         specify_command_line_flag("-disable-explicit-solver-optimisations");
 
+        specify_command_line_flag("-predictor-as-initial-guess",
+                                  &predictor_as_initial_guess);
+        predictor_as_initial_guess = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -416,6 +419,7 @@ namespace oomph
     unsigned max_steps;
     double error_norm_limit;
     bool disable_explicit_solver_optimisations;
+    int predictor_as_initial_guess;
 
     double newton_tol;
     double newton_max_residual;
