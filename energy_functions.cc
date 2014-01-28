@@ -116,7 +116,7 @@ namespace oomph
 
     // Get the field
     Vector<double> h_ms;
-    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
 
     return -0.5 * VectorOps::dot(intp_pt->m(), h_ms);
   }
@@ -133,7 +133,7 @@ namespace oomph
 
     // Get the field
     Vector<double> h_ms;
-    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
 
     // Get the time derivative of the field
     Vector<double> dh_ms_dt;
@@ -171,7 +171,7 @@ namespace oomph
 
     // Get fields, coeffs at this point
     Vector<double> h_ms, h_app, h_ca;
-    m_ele_pt->get_magnetostatic_field(intp_pt, h_ms);
+    m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
     m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(),
                                 intp_pt->s(), h_app);
     m_ele_pt->get_H_cryst_anis_field(intp_pt->time(), intp_pt->x(),

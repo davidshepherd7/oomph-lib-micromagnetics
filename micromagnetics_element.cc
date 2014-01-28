@@ -203,12 +203,12 @@ namespace oomph
                           Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    MMInterpolator intp(this, s);
+    MMArrayInterpolator<5> intp(this, s);
     get_magnetostatic_field(&intp, h_magnetostatic);
   }
 
   void MicromagEquations::
-  get_magnetostatic_field(MMInterpolator* intp_pt,
+  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                           Vector<double> &hms) const
   {
 #ifdef PARANOID
@@ -220,25 +220,26 @@ namespace oomph
       }
 #endif
 
-    // Copy the derivative elements into the field vector (it only has
-    // [nodal dimension] entries).
-    hms = intp_pt->dvaluedx(this->phi_index_micromag());
-
     // Make sure the field has 3 dimensions (even if there are only two
     // spatial dimensions).
     hms.resize(3, 0.0);
 
+    const double* hms_temp;
+    // Copy the derivative elements into the field vector (it only has
+    // [nodal dimension] entries).
+    hms_temp = intp_pt->dvaluedx(this->phi_index_micromag());
+
     // Multiply by -1 and normalise
     for(unsigned j=0; j<3; j++)
       {
-        hms[j] *= -1 * magnetostatic_coeff();
+        hms[j] = -1 * magnetostatic_coeff() * hms_temp[j];
       }
   }
 
   /// For micromagnetics the source function is the divergence of the
   /// magnetisation.
   void SemiImplicitMicromagEquations::
-  get_magnetostatic_field(MMInterpolator* intp_pt,
+  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                           Vector<double> &h_ms) const
   {
     // Lots of checks because this is stupid really...
@@ -274,10 +275,11 @@ namespace oomph
       }
 #endif
 
-    // Get magnetostatic field from field element
-    magnetostatic_field_element_pt()->magnetostatic_field(intp_pt->s(),
-                                                          intp_pt->ts_pt(),
-                                                          h_ms);
+    // Get magnetostatic field from field element. Safe to assume that all
+    // nodes have the same time stepper becuase otherwise our interpolators
+    // don't work.
+    magnetostatic_field_element_pt()->magnetostatic_field
+      (intp_pt->s(), node_pt(0)->time_stepper_pt(), h_ms);
   }
 
   void MicromagEquations::

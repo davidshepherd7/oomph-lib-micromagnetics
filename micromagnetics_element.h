@@ -231,19 +231,19 @@ namespace oomph
     /// \short Helper function for calculation of magnetostatic field
     /// (overload the other version of this function for semi-implicit
     /// calculations).
-    void get_magnetostatic_field(const Vector<double> &s,
-                                 Vector<double> &h_magnetostatic) const;
+    virtual void get_magnetostatic_field(const Vector<double> &s,
+                                         Vector<double> &h_magnetostatic) const;
 
     /// \short Calculation of magnetostatic field (overload for
     /// semi-implicit calculations). Optimised version for calculations
     /// when we aleady have an interpolator (e.g. during residual
     /// calculations).
-    virtual void get_magnetostatic_field(MMInterpolator* intp_pt,
+    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                                          Vector<double> &h_magnetostatic) const;
 
     /// Get the time derivative of the magnetostatic field at a point.
-    virtual void get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
-                                                         Vector<double> &dh_ms_dt) const;
+    virtual void get_magnetostatic_field_time_derivative
+    (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
 
     // APPLIED FIELD
     /// Access function: Pointer to applied field function
@@ -1158,7 +1158,7 @@ namespace oomph
   {
   public:
 
-    void get_magnetostatic_field(MMInterpolator* intp_pt,
+    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative

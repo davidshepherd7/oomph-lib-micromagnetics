@@ -749,14 +749,12 @@ namespace oomph
           // Loop over all elements calculating the value in the middle of the element
           for(unsigned e=0, ne=mesh_pt()->nelement(); e < ne; e++)
             {
-              SemiImplicitMicromagEquations* ele_pt
-                = checked_dynamic_cast<SemiImplicitMicromagEquations*>
+              MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
                 (mesh_pt()->element_pt(e));
 
               // Interpolate
               Vector<double> ms;
-              MMInterpolator intp(ele_pt, s);
-              ele_pt->get_magnetostatic_field(&intp, ms);
+              ele_pt->get_magnetostatic_field(s, ms);
 
               // Add this to the sum
               for(unsigned j=0; j<3; j++)

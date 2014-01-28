@@ -73,7 +73,7 @@ namespace oomph
         Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
         e_pt->get_applied_field(intp.time(), xvec, s, h_applied);
         e_pt->get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
-        e_pt->get_magnetostatic_field(s, h_magnetostatic);
+        e_pt->get_magnetostatic_field(&intp, h_magnetostatic);
 
         Vector<double> h_simple(3, 0.0);
         h_simple[0] = h_applied[0] + h_cryst_anis[0] + h_magnetostatic[0];
