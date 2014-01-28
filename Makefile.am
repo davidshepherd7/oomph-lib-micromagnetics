@@ -27,7 +27,6 @@ headers = array_interpolator.h \
 	micromagnetics_element.h \
 	generic_poisson_problem.h \
 	micromagnetics_flux_element.h \
-	git_version.h \
 	my_general_header.h \
 	my_generic_problem.h \
 	llg_problem.h \
@@ -103,9 +102,6 @@ dummy_$(libname).h:  $(headers)
 		all_$(libname).aux > $(libname).h
 	sed -e 's/</ "/g' -e 's/>/"/g' -i $(libname).h
 	rm all_$(libname).aux
-	./generate_git_version_header.sh
-
-git_version.h: ./generate_git_version_header.sh
 
 
 # Extra hook for install: Optionally replace headers by symbolic links
@@ -123,6 +119,6 @@ endif
 
 # Cleanup: Kill automatically generated combined header file
 clean-local:
-	rm -f $(libname).h *~ git_version.h
+	rm -f $(libname).h *~
 distclean-local:
-	rm -f $(libname).h *~ git_version.h
+	rm -f $(libname).h *~

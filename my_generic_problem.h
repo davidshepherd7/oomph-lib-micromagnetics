@@ -21,7 +21,6 @@
 
 
 #include "./my_general_header.h"
-#include "./git_version.h"
 
 #include <ctime>
 #include <ostream>
@@ -420,7 +419,6 @@ namespace oomph
         info_file
           << "real_time " << real_date_time() << std::endl
           << "unix_time " << std::time(0) << std::endl
-          << "git_version " << GitVersion::VERSION << std::endl
           << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
         info_file << Doc_info.args_str;
         info_file.close();
