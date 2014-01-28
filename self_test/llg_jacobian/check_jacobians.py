@@ -26,74 +26,46 @@ import scipy as sp
 from functools import partial as pt
 from os.path import join as pjoin
 
+import oomphpy
+import oomphpy.micromagnetics as mm
+
 
 # Binaries (??ds globals are bad...)
-DRIVER = "../../control_scripts/driver/driver"
 FPDIFF = "../../../../bin/fpdiff.py"
 
 
-def dict2argslist(inputdict):
-    """For each entry in a dict convert it into a list of the form
-       ['-name', 'value', '-name2' 'value2', .... ]
-    for use as input to a subprocess command.
-    """
+def generate_jacobians(argdict):
 
-    # Support python 2 and 3
-    try:
-        # python 2 version
-        dict_iter = inputdict.iteritems()
-    except AttributeError:
-        # python 3 version
-        dict_iter = inputdict.items()
+    # Add fixed values to argument dictionary
+    dict2 = {'-driver' : 'llg',
+            '-disable-ms' : True,
+            '-output-jac' : 'always',
+            '-solver' : 'gmres',
+            '-prec' : 'amg',
+            '-doc-interval' : '0'}
+    argdict.update(dict2)
 
-    processed_kwargs = []
-    for key, value in dict_iter:
-        processed_kwargs.append('-'+str(key))
-        processed_kwargs.append(str(value))
+    # Get the arguments as a list
+    arglist, binary_path, _ = mm.argdict2list(argdict)
 
-    return processed_kwargs
+    # Make sure the output dir exists and is clean
+    outdir = argdict['-outdir']
+    mm.cleandir(outdir)
 
+    # Run the driver with the given arguments
+    err_code = mm.run_driver(arglist, outdir)
 
-def recreate_dir(dirname):
-    """Remove dir and remake it. Ignore errors from dir not existing before
-    removal. Automatically create parents if needed.
-    """
-    import shutil
-    shutil.rmtree(dirname, ignore_errors=True)
-    os.makedirs(dirname)
-
-
-def generate_jacobians(argsdict):
-
-    argslist = dict2argslist(argsdict)
-
-    outdir = argsdict['outdir']
-    recreate_dir(outdir)
-
-    validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
-
-    # Run the driver with the given arguments and outputting the Jacobian
-    l = [DRIVER, 'llg',
-          '-disable-ms',
-         '-output-jac', 'always',
-         '-solver', 'gmres',
-         '-prec', 'amg',
-         '-doc-interval', '0',
-         ] + argslist
-    print("Running", ' '.join(l))
-    try:
-        subp.check_call(l, stdout=open(pjoin(outdir, 'stdout'), 'w'),
-                        stderr=subp.STDOUT)
-    except subp.CalledProcessError:
-        print("FAILED", ' '.join(l))
+    # Return sucess/failure
+    if err_code != 0:
+        print("FAILED", ' '.join(arglist))
         return False
-
-    return True
+    else:
+        return True
 
 
 def check_jacobians(argsdict):
 
-    outdir = argsdict['outdir']
+    outdir = argsdict['-outdir']
     validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
 
     # Compare all Jacobians using fpdiff
@@ -152,27 +124,27 @@ def main():
     # Main function
     # ============================================================
 
-    # Build
-    print("Building driver")
-    subp.check_call(['make'],
-                    stdout=open(os.devnull, 'w'),
-                    cwd="../../control_scripts/driver/")
+    # # Build
+    # print("Building driver")
+    # subp.check_call(['make'],
+    #                 stdout=open(os.devnull, 'w'),
+    #                 cwd="../../control_scripts/driver/")
 
     # Set of parameters to test the Jacobians for. Use varying initial m to
     # get mostly non-zeros in J. Only first entry is used for "fast mode".
-    jacobian_params = [{'mesh': 'sq_square',
-                        'ref': 2,
-                        'dt': 1e-4,
-                        'tmax': 3e-4,
-                        'initial-m': 'smoothly_varying_5',
-                        'outdir': 'Validation/J1'},
+    jacobian_params = [{'-mesh': 'sq_square',
+                        '-ref': 2,
+                        '-dt': 1e-4,
+                        '-tmax': 3e-4,
+                        '-initial-m': 'smoothly_varying_5',
+                        '-outdir': 'Validation/J1'},
 
-                        {'mesh': 'sq_cubeoid',
-                        'ref': 2,
-                        'dt': 1e-4,
-                        'tmax': 2e-4,
-                        'initial-m': 'smoothly_varying_500',
-                        'outdir': 'Validation/J2'},
+                        {'-mesh': 'sq_cubeoid',
+                        '-ref': 2,
+                        '-dt': 1e-4,
+                        '-tmax': 2e-4,
+                        '-initial-m': 'smoothly_varying_500',
+                        '-outdir': 'Validation/J2'},
                         ]
 
 
