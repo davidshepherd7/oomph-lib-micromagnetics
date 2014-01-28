@@ -184,7 +184,7 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def plot_vs_time(data, plot_values, operations_on_values=None):
+def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
@@ -201,16 +201,25 @@ def plot_vs_time(data, plot_values, operations_on_values=None):
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
     if all([d['-tol'] == 0 for d in data]):
-        dt_label = '-dt'
+        dt_label = 'dt'
     else:
-        dt_label = '-tol'
+        dt_label = 'tol'
+
+
+    if labels is None:
+        labels = ['ref', 'ts', dt_label]
+    else:
+        labesl = ['ref', 'ts', dt_label] + labels
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
         for d in data:
-            name = str(d[dt_label]) + " " + str(d['-ref'])\
-               + " " + str(d['-ts'])\
-               + " " + str(d.get('-decoupled-ms') == "1")
+
+            # name = str(d[dt_label]) + " " + str(d['-ref'])\
+               # + " " + str(d['-ts'])\
+               # + " " + str(d.get('-decoupled-ms') == "1")
+
+            name = " ".join([str(d["-"+l]) for l in labels])
 
             if op is not None:
                 vals = map(op, d[p])
@@ -427,6 +436,9 @@ def main():
     parser.add_argument('--plots', '-p', action='append',
                         help='choose what to plot (default "m")')
 
+    parser.add_argument('--label', '-l', action='append',
+                        help='Add addtional labels to line')
+
     args = parser.parse_args()
 
     if args.plots is None:
@@ -460,32 +472,37 @@ def main():
 
     # Plot error norm vs time
     if 'err' in args.plots:
-        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'])
+        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'],
+                          labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_errors)
 
 
     # Plot m averages vs time
     if 'm' in args.plots:
         plot_m_averages = par(plot_vs_time,
-                              plot_values=['mean_mxs','mean_mys','mean_mzs','dts'])
+                              plot_values=['mean_mxs','mean_mys','mean_mzs','dts'],
+                              labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_m_averages)
 
 
     if 'newt' in args.plots:
         plot_newton_iters = par(plot_vs_time,
-                                plot_values=['n_newton_iters','dts'])
+                                plot_values=['n_newton_iters','dts'],
+                                labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_newton_iters)
 
     if 'soltimes' in args.plots:
         plot_sol_time_averages = par(plot_vs_time,
-                              plot_values=['solver_times','jacobian_setup_times'],
-                              operations_on_values=[sp.mean, sp.mean])
+                                plot_values=['solver_times','jacobian_setup_times'],
+                                operations_on_values=[sp.mean, sp.mean],
+                                labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_sol_time_averages)
 
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
-                                    plot_values=['m_length_error_means', 'dts'])
+                                    plot_values=['m_length_error_means', 'dts'],
+                                    labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_ml_error_vs_time)
 
 
@@ -494,7 +511,8 @@ def main():
         multi_plot(all_results, keys_to_split_on, iterations_vs_dt)
 
         plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
-                              operations_on_values=[identity, sp.mean])
+                              operations_on_values=[identity, sp.mean],
+                              labels=args.label)
         multi_plot(all_results, keys_to_split_on, plot_iters_step)
 
 
@@ -521,7 +539,8 @@ def main():
     if 'wc-time' in args.plots:
         plot_wall_time_vs_time = \
           par(plot_vs_time,
-              plot_values=['unix_timestamp_diffs', 'dts'])
+              plot_values=['unix_timestamp_diffs', 'dts'],
+              labels=args.label)
 
         multi_plot(all_results, keys_to_split_on, plot_wall_time_vs_time)
 
