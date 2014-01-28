@@ -31,7 +31,7 @@ import oomphpy.micromagnetics as mm
 
 
 # Binaries (??ds globals are bad...)
-FPDIFF = "../../../../bin/fpdiff.py"
+FPDIFF = "../../../../../bin/fpdiff.py"
 
 
 def generate_jacobians(argdict):
@@ -66,7 +66,7 @@ def generate_jacobians(argdict):
 def check_jacobians(argsdict):
 
     outdir = argsdict['-outdir']
-    validatadir = pjoin('validata', os.path.relpath(outdir, 'Validation'))
+    validatadir = 'validata'
 
     # Compare all Jacobians using fpdiff
     compare_files = (glob.glob(pjoin(validatadir, 'jacobian*'))
@@ -114,8 +114,6 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('--serial', action='store_true')
-    parser.add_argument('--fast', action='store_true')
     parser.add_argument('--update-data', action='store_true')
 
     args = parser.parse_args()
@@ -130,27 +128,13 @@ def main():
     #                 stdout=open(os.devnull, 'w'),
     #                 cwd="../../control_scripts/driver/")
 
-    # Set of parameters to test the Jacobians for. Use varying initial m to
-    # get mostly non-zeros in J. Only first entry is used for "fast mode".
-    jacobian_params = [{'-mesh': 'sq_square',
-                        '-ref': 2,
-                        '-dt': 1e-4,
-                        '-tmax': 3e-4,
-                        '-initial-m': 'smoothly_varying_5',
-                        '-outdir': 'Validation/J1'},
-
-                        {'-mesh': 'sq_cubeoid',
+    jacobian_params = {'-mesh': 'sq_cubeoid',
                         '-ref': 2,
                         '-dt': 1e-4,
                         '-tmax': 2e-4,
                         '-initial-m': 'smoothly_varying_500',
-                        '-outdir': 'Validation/J2'},
-                        ]
+                        '-outdir': 'Validation'}
 
-
-    # If its a fast check just do the first one
-    if args.fast:
-        jacobian_params = [jacobian_params[0]]
 
 
     # If we are updating the data just do that then exit
@@ -168,32 +152,26 @@ def main():
             print("Old Jacobians are moving to", old_jac_folder)
 
         # Make the new Jacobians etc.
-        list(Pool().map(generate_jacobians, jacobian_params))
+        generate_jacobians(jacobian_params)
 
         #  and move them to validata
-        files_needed = (glob.glob('Validation/*/jacobian*_1')
-                        + glob.glob('Validation/*/residual*_1')
-                        + glob.glob('Validation/*/info')
-                        + glob.glob('Validation/*/trace')
-                        + glob.glob('Validation/*/stdout'))
+        files_needed = (glob.glob('Validation/jacobian*_1')
+                        + glob.glob('Validation/residual*_1')
+                        + ['Validation/info', 'Validation/trace',
+                            'Validation/stdout'])
 
         for f in files_needed:
-            _, d = os.path.split(os.path.dirname(f))
-            os.renames(f, pjoin("validata", d, os.path.basename(f)))
+            os.renames(f, pjoin("validata", os.path.basename(f)))
 
         # Zip up all the files
-        subp.check_call('gzip validata/*/*', shell=True)
+        subp.check_call('gzip validata/*', shell=True)
 
         return 0
 
 
-    # Otherwise calculate and compare all the Jacobians
-    if args.serial:
-        results = list(map(jacobian_dump_check, jacobian_params))
-    else:
-        results = list(Pool().map(jacobian_dump_check, jacobian_params, chunksize=1))
+    result = jacobian_dump_check(jacobian_params)
 
-    if all(results):
+    if result:
         return 0
     else:
         return 2

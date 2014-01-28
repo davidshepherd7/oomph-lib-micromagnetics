@@ -3,4 +3,4 @@
 set -o errexit
 
 # Run the python script and return its error status
-./check_jacobians.py --serial
+./check_jacobians.py
