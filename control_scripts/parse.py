@@ -50,7 +50,7 @@ def existing_items_match(small_dict, full_dict):
     Surely there should be a function for this already?
     """
     for key in small_dict:
-        if full_dict[key] != small_dict[key]:
+        if full_dict.get(key) != small_dict.get(key):
             return False
 
     return True
