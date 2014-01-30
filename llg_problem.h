@@ -351,181 +351,6 @@ namespace oomph
         // then nothing to update.
       }
 
-    /// Integrate a function given by func_pt over every element in a mesh
-    /// and return the total. This should probably be in the mesh class but
-    /// that's core oomph-lib so I'll leave it here.
-    double integrate_over_mesh(const ElementalFunction* func_pt,
-                               const Mesh* const mesh_pt) const
-    {
-      double result = 0;
-      for(unsigned e=0, ne=mesh_pt->nelement(); e < ne; e++)
-        {
-          MicromagEquations* ele_pt
-            = checked_dynamic_cast<MicromagEquations*>
-            (mesh_pt->element_pt(e));
-          result += ele_pt->integrate_over_element(func_pt);
-        }
-      return result;
-    }
-
-    /// \short Integrate a function given by func_pt over every element
-    /// in every bulk mesh in this problem.
-    double integrate_over_problem(const ElementalFunction* func_pt) const
-      {
-        double result = 0;
-        for(unsigned j=0; j<this->nsub_mesh(); j++)
-        {
-          if(mesh_pt(j)->finite_element_pt(0)->dim() == this->dim())
-            {
-              result += integrate_over_mesh(func_pt, mesh_pt(j));
-            }
-        }
-        return result;
-      }
-
-    /// \short Calculate energies and store them for easy reference
-    /// (e.g. for output).
-    void calculate_energies(bool calculate_effective_damping=true)
-      {
-        // If you want to turn off energy calculations (e.g. for speed)
-        // this is the place to do it. Replace values with
-        // MyProblem::Dummy_doc_data.
-
-        // Calculate and store new values
-        Exchange_energy = exchange_energy();
-        Zeeman_energy = zeeman_energy();
-        Crystalline_anisotropy_energy = crystalline_anisotropy_energy();
-        Magnetostatic_energy = magnetostatic_energy();
-
-        // Store energy for damping calculations
-        Previous_energies.push_front(micromagnetic_energy());
-
-        // Keep the list of previous energies reasonably small (we only
-        // need N for any bdf<N> calculation).
-        if(Previous_energies.size() > 5) Previous_energies.pop_back();
-
-        // Calculate and store effective damping if not disabled.
-        if(calculate_effective_damping)
-          {
-            Effective_damping_constant = effective_damping_used();
-            Alt_eff_damp = alt_effective_damping_used();
-          }
-      }
-
-
-    /// \short Calculate the total (micromagnetic) energy for all meshes in
-    /// the problem.
-    double micromagnetic_energy() const
-    {
-      return Exchange_energy + Zeeman_energy +
-        Crystalline_anisotropy_energy + Magnetostatic_energy;
-    }
-
-
-    double exchange_energy() const
-    {
-      ExchangeEnergyFunction f;
-      return integrate_over_problem(&f);
-    }
-
-
-    double zeeman_energy() const
-    {
-      ZeemanEnergyFunction f;
-      return integrate_over_problem(&f);
-    }
-
-    double crystalline_anisotropy_energy() const
-    {
-      CrystallineAnisotropyEnergyFunction f;
-      return integrate_over_problem(&f);
-    }
-
-
-    double magnetostatic_energy() const
-    {
-      MagnetostaticEnergyFunction f;
-      return integrate_over_problem(&f);
-    }
-
-    double integral_of_dmdt_squared() const
-    {
-      DmdtSquaredFunction f;
-      return integrate_over_problem(&f);
-    }
-
-    double dEnergydt() const
-    {
-      dExchangeEnergydtFunction de_exdt;
-      double I_de_exdt = integrate_over_problem(&de_exdt);
-
-      dZeemanEnergydtFunction de_zeedt;
-      double I_de_zeedt = integrate_over_problem(&de_zeedt);
-
-      dCrystallineAnisotropydtEnergyFunction de_cadt;
-      double I_de_cadt = integrate_over_problem(&de_cadt);
-
-      dMagnetostaticEnergydtFunction de_ms;
-      double I_de_ms = integrate_over_problem(&de_ms);
-
-      return I_de_exdt + I_de_zeedt + I_de_cadt + I_de_ms;
-    }
-
-    double alt_dEnergydt() const
-    {
-      // Make a BDF2 time stepper to look up weights from (because I'm
-      // lazy...)
-      BDF<2> bdf;
-      TimeStepper* node_ts_pt = mesh_pt()->finite_element_pt(0)->node_pt(0)
-        ->time_stepper_pt();
-      bdf.time_pt() = node_ts_pt->time_pt();
-      bdf.set_weights();
-
-      // Calculate first derivative
-      double deriv = 0.0;
-      for(unsigned t=0;t<bdf.ntstorage();t++)
-        {
-          deriv += bdf.weight(1,t) * Previous_energies[t];
-        }
-
-      return deriv;
-    }
-
-    /// \short Compute the effective damping constant (alpha) for the
-    /// previous time step (see Albuquerque2001).
-    double alt_effective_damping_used() const
-      {
-        // Integral over all space of (dm/dt)^2 used in last step
-        double dmdt_squared = integral_of_dmdt_squared(); //??ds
-
-        // If no change then damping is undefined
-        if(dmdt_squared  == 0) return nan("");
-
-        // Forumla from Albuquerque2001 & dAquino2005
-        double dEdt = alt_dEnergydt();
-        double effective_alpha = - dEdt / dmdt_squared;
-
-        return effective_alpha;
-      }
-
-
-    /// \short Compute the effective damping constant (alpha) for the
-    /// previous time step (see Albuquerque2001).
-    double effective_damping_used() const
-      {
-        // Integral over all space of (dm/dt)^2 used in last step
-        double dmdt_squared = integral_of_dmdt_squared();
-
-        // If no change then damping is undefined
-        if(dmdt_squared  == 0) return nan("");
-
-        // Forumla from Albuquerque2001 & dAquino2005
-        double dEdt = dEnergydt();
-        double effective_alpha = - dEdt / dmdt_squared;
-
-        return effective_alpha;
-      }
-
 
     /// Output solution
     void doc_solution_additional(std::ofstream &some_file) const
@@ -871,6 +696,47 @@ namespace oomph
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
+    }
+
+    /// \short Calculate energies and store them for easy reference
+    /// (e.g. for output).
+    void calculate_energies(bool calculate_effective_damping=true)
+    {
+      // If you want to turn off energy calculations (e.g. for speed)
+      // this is the place to do it. Replace values with
+      // MyProblem::Dummy_doc_data.
+
+      // Calculate and store new values
+      Exchange_energy = MManipulation::exchange_energy(this);
+      Zeeman_energy = MManipulation::zeeman_energy(this);
+      Crystalline_anisotropy_energy =
+        MManipulation::crystalline_anisotropy_energy(this);
+      Magnetostatic_energy = MManipulation::magnetostatic_energy(this);
+
+      // Store energy for damping calculations
+      Previous_energies.push_front(micromagnetic_energy());
+
+      // Keep the list of previous energies reasonably small (we only
+      // need N for any bdf<N> calculation).
+      if(Previous_energies.size() > 5) Previous_energies.pop_back();
+
+      // Calculate and store effective damping if not disabled.
+      if(calculate_effective_damping)
+        {
+          Effective_damping_constant =
+            MManipulation::effective_damping_used(this);
+          Alt_eff_damp = MManipulation::
+            alt_effective_damping_used(this, Previous_energies);
+        }
+    }
+
+
+    /// \short Calculate the total (micromagnetic) energy for all meshes in
+    /// the problem.
+    double micromagnetic_energy() const
+    {
+      return Exchange_energy + Zeeman_energy +
+        Crystalline_anisotropy_energy + Magnetostatic_energy;
     }
 
     /// Can we check the solution using Mallinson's exact time + phi

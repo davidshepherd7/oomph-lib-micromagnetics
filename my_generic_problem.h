@@ -18,9 +18,12 @@
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 #include "../../src/generic/general_purpose_preconditioners.h"
 
+#include "micromag_types.h"
+#include "prettyprint98.hpp"
 
 
-#include "./my_general_header.h"
+
+// #include "./my_general_header.h"
 
 #include <ctime>
 #include <ostream>
@@ -28,6 +31,10 @@
 
 namespace oomph
 {
+
+using namespace StringConversion;
+
+  class ElementalFunction;
 
   inline std::string real_date_time()
   {
@@ -57,7 +64,7 @@ namespace oomph
     void copy_args_string()
       {
         std::ostringstream stream;
-        doc_all_flags(stream);
+        CommandLineArgs::doc_all_flags(stream);
         args_str.assign(stream.str());
       }
 
@@ -555,74 +562,7 @@ namespace oomph
       }
 
 
-    void dump_current_mm_or_jacobian_residuals(const std::string& label)
-    {
-      // We actually want the mass matrix if we are doing explicit steps
-      if(explicit_flag())
-        {
-          CRDoubleMatrix M;
-          DoubleVector residuals;
-
-          // This is how you get mass matrices, ugly...
-          AssemblyHandler* old_assembly_handler_pt = this->assembly_handler_pt();
-          ExplicitTimeStepHandler ehandler;
-          this->assembly_handler_pt() = &ehandler;
-          this->get_jacobian(residuals, M);
-          this->assembly_handler_pt() = old_assembly_handler_pt;
-
-          M.sparse_indexed_output(Doc_info.directory() + "/massmatrix_" + label,
-                                  Output_precision, true);
-          residuals.output(Doc_info.directory() + "/explicit_residual_" + label,
-                           Output_precision);
-        }
-      else
-        {
-          CRDoubleMatrix J, *J_pt;
-          SumOfMatrices J2;
-          DoubleVector residuals;
-
-          // Check if we are using som-gmres, if so we don't want to get
-          // the whole matrix because it will be very slow! Just do outputs
-          // with the main matrix instead (I'm assuming it's a CR matrix).
-          if(dynamic_cast<GMRES<SumOfMatrices>* >(linear_solver_pt()) != 0)
-            {
-              this->get_jacobian(residuals, J2);
-              J_pt = checked_dynamic_cast<CRDoubleMatrix*>(J2.main_matrix_pt());
-            }
-          else
-            {
-              this->get_jacobian(residuals, J);
-              J_pt = &J;
-            }
-
-          J_pt->sparse_indexed_output(Doc_info.directory() + "/jacobian_" + label,
-                                  Output_precision, true);
-          residuals.output(Doc_info.directory() + "/residual_" + label,
-                           Output_precision);
-
-          // Also dump blocks if we have a block preconditioner
-          IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
-          if(its_pt != 0)
-            {
-              // Try to get a block preconditioner from the preconditioner
-              BlockPreconditioner<CRDoubleMatrix>* bp_pt
-                = smart_cast_preconditioner<BlockPreconditioner<CRDoubleMatrix>*>
-                (its_pt->preconditioner_pt());
-
-              if(bp_pt != 0)
-                {
-                  // Set up blocks
-                  bp_pt->set_matrix_pt(J_pt);
-                  bp_pt->set_comm_pt(J_pt->distribution_pt()->communicator_pt());
-                  bp_pt->block_setup();
-
-                  // Dump the blocks
-                  std::string basefname = Doc_info.directory() + "/J_" + label;
-                  bp_pt->output_blocks_to_files(basefname, Output_precision);
-                }
-            }
-        }
-    }
+    void dump_current_mm_or_jacobian_residuals(const std::string& label);
 
 
     IterativeLinearSolver* iterative_linear_solver_pt() const
@@ -633,72 +573,7 @@ namespace oomph
 
 
     /// \short Perform set up of problem.
-    virtual void build(Vector<Mesh*>& bulk_mesh_pts)
-      {
-
-        // Push all the meshes into the problem's sub mesh list
-        for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
-          {
-            add_sub_mesh(bulk_mesh_pts[j]);
-          }
-
-        // If we have an iterative solver with a block preconditioner then
-        // add all the meshes to the block preconditioner as well.
-        IterativeLinearSolver* its_pt = iterative_linear_solver_pt();
-        if(its_pt != 0)
-          {
-            // Try to get a block preconditioner from the preconditioner
-            BlockPreconditioner<CRDoubleMatrix>* bp_pt
-              = smart_cast_preconditioner<BlockPreconditioner<CRDoubleMatrix>*>
-              (its_pt->preconditioner_pt());
-
-            if(bp_pt != 0)
-              {
-                // Set up meshes
-                bp_pt->set_nmesh(nsub_mesh());
-                for(unsigned i=0; i< nsub_mesh(); i++)
-                  {
-                    bp_pt->set_mesh(i, mesh_pt(i));
-                  }
-              }
-          }
-
-        // Get the problem dimension
-        FiniteElement* fele_pt = dynamic_cast<FiniteElement*>
-          (bulk_mesh_pts[0]->element_pt(0));
-        if(fele_pt != 0)
-          {
-            Dim = fele_pt->nodal_dimension();
-          }
-        else
-          {
-            // Presumably if a "bulk" mesh contains non-finite elements
-            // then this is not a pde, so no dimension as such.
-            Dim = 0;
-          }
-
-        if(!Disable_explicit_solver_optimisations)
-          {
-            // Set the solver for explicit timesteps (mass matrix) to CG with a
-            // diagonal predconditioner.
-            IterativeLinearSolver* expl_solver_pt = new CG<CRDoubleMatrix>;
-            expl_solver_pt->preconditioner_pt() =
-              new MatrixBasedLumpedPreconditioner<CRDoubleMatrix>;
-
-            // If it takes more than 100 iterations then something has almost
-            // certainly gone wrong!
-            expl_solver_pt->max_iter() = 100;
-            expl_solver_pt->enable_error_after_max_iter();
-            explicit_solver_pt() = expl_solver_pt;
-
-            // expl_solver_pt->enable_doc_convergence_history();
-
-            // Store + re-use the mass matrix used in explicit steps (since we
-            // are almost certainly not going to do spatially adaptivity
-            // anytime soon this is safe).
-            this->enable_mass_matrix_reuse();
-          }
-      }
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts);
 
     /// \short Get problem dimension (nodal dimension).
     const unsigned dim() const {return this->Dim;}
@@ -756,6 +631,17 @@ namespace oomph
     /// Hook to be overloaded with any calculations needed after setting of
     /// initial conditions.
     virtual void actions_after_set_initial_condition() {}
+
+
+    /// Integrate a function given by func_pt over every element in a mesh
+    /// and return the total. This should probably be in the mesh class but
+    /// that's core oomph-lib so I'll leave it here.
+    virtual double integrate_over_mesh(const ElementalFunction* func_pt,
+                                       const Mesh* const mesh_pt) const;
+
+    /// \short Integrate a function given by func_pt over every element
+    /// in every bulk mesh in this problem.
+    virtual double integrate_over_problem(const ElementalFunction* func_pt) const;
 
     MyDocInfo Doc_info;
     unsigned Output_precision;

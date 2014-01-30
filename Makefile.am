@@ -15,7 +15,9 @@ sources = micromagnetics_element.cc \
 	boundary_element_handler.cc \
 	template_free_poisson_flux.cc \
 	residual_calculator.cc \
-	micromag_factories.cc
+	micromag_factories.cc \
+	my_generic_problem.cc \
+	magnetics_helpers.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =

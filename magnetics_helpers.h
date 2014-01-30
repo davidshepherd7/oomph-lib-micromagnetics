@@ -8,9 +8,15 @@ description of file goes here
 #include "vector_helpers.h"
 #include "micromag_types.h"
 
+#include <deque>
+
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
 #include "../../src/generic/oomph_definitions.h"
+
+
+namespace oomph
+{
 
 namespace HApp
 {
@@ -345,6 +351,43 @@ namespace InitialM
   }
 }
 
+
+
+class MyProblem;
+
+namespace MManipulation
+{
+
+  /// \short Compute the effective damping constant (alpha) for the
+  /// previous time step (see Albuquerque2001).
+  double alt_effective_damping_used(MyProblem* problem_pt,
+                                    std::deque<double>& previous_energies);
+
+
+  /// \short Compute the effective damping constant (alpha) for the
+  /// previous time step (see Albuquerque2001).
+  double effective_damping_used(MyProblem* problem_pt);
+
+
+  double exchange_energy(MyProblem* problem_pt);
+
+
+  double zeeman_energy(MyProblem* problem_pt);
+
+  double crystalline_anisotropy_energy(MyProblem* problem_pt);
+
+
+  double magnetostatic_energy(MyProblem* problem_pt);
+
+  double integral_of_dmdt_squared(MyProblem* problem_pt);
+
+  double dEnergydt(MyProblem* problem_pt);
+
+  double alt_dEnergydt(MyProblem* problem_pt,
+                       std::deque<double>& previous_energies);
+}
+
+}
 
 
 #endif
