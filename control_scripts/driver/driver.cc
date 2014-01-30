@@ -72,6 +72,10 @@ namespace oomph
          {
            problem_pt = new ODEProblem;
          }
+       else if(problem_name == "llgode") //??ds temp hack...
+         {
+           problem_pt = new LLGODEProblem;
+         }
        else if(problem_name == "poisson")
          {
            problem_pt = new GenericPoissonProblem;
@@ -100,6 +104,10 @@ namespace oomph
           cli_args_pt = new MMArgs;
         }
       else if(cli_args_name == "ode")
+        {
+          cli_args_pt = new ODECliArgs;
+        }
+      else if(cli_args_name == "llgode") //??ds temp hack...
         {
           cli_args_pt = new ODECliArgs;
         }

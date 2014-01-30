@@ -47,11 +47,11 @@ namespace oomph
       Vector<double> mxh = cross(m, happ);
       Vector<double> mxmxh = cross(m, mxh);
 
-      double damping = 1.0;
+      double damping = 0.5;
 
       for(unsigned j=0; j<3; j++)
         {
-          deriv[j] = -(1/(1+damping*damping))*mxh[j] - damping* mxmxh[j];
+          deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping* mxmxh[j]);
         }
 
       return deriv;
@@ -398,12 +398,12 @@ namespace oomph
         }
     }
 
-    void write_additional_trace_headers(std::ofstream& trace_file) const
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
     {
       trace_file << Trace_seperator << "exact";
     }
 
-    void write_additional_trace_data(std::ofstream& trace_file) const
+    virtual void write_additional_trace_data(std::ofstream& trace_file) const
     {
       trace_file << Trace_seperator << exact_solution(time());
     }
@@ -455,15 +455,111 @@ namespace oomph
     // Output solution
     void doc_solution_additional(std::ofstream& soln_file) const
     {
-      Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
-        Vector<double> solution(nvalue(), 0.0);
-      dat_pt->value(solution);
-
-      std::cout << solution << std::endl;
-      soln_file << solution << std::endl;
+      std::cout << solution() << std::endl;
+      soln_file << solution() << std::endl;
     }
 
+    Vector<double> solution(const unsigned& timestep=0) const
+    {
+      Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
+      Vector<double> solution(nvalue(), 0.0);
+      dat_pt->value(timestep, solution);
+      return solution;
+    }
+
+
   };
+
+
+  class LLGODEProblem : public ODEProblem
+  {
+
+public:
+
+    LLGODEProblem()
+    {
+      Exchange_energy = MyProblem::Dummy_doc_data;
+      Zeeman_energy = MyProblem::Dummy_doc_data;
+      Crystalline_anisotropy_energy = MyProblem::Dummy_doc_data;
+      Magnetostatic_energy = MyProblem::Dummy_doc_data;
+      Effective_damping_constant = MyProblem::Dummy_doc_data;
+      Alt_eff_damp = MyProblem::Dummy_doc_data;
+
+    }
+
+    double m_length_error() const
+    {
+      return std::abs(1 - VectorOps::two_norm(solution()));
+    }
+
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
+    {
+      trace_file
+        << Trace_seperator << "m_length_error_means"
+        << Trace_seperator << "m_length_error_std_devs"
+        << Trace_seperator << "max_angle_errors"
+        << Trace_seperator << "mean_mxs"
+        << Trace_seperator << "mean_mys"
+        << Trace_seperator << "mean_mzs"
+        << Trace_seperator << "exchange_energy"
+        << Trace_seperator << "zeeman_energy"
+        << Trace_seperator << "crystalline_anisotropy_energy"
+        << Trace_seperator << "magnetostatic_energy"
+        << Trace_seperator << "total_energy"
+        << Trace_seperator << "effective_damping"
+        << Trace_seperator << "alt_effective_damping";
+  }
+
+    virtual void write_additional_trace_data(std::ofstream& trace_file) const
+    {
+
+      Vector<double> m = solution();
+
+      trace_file
+        << Trace_seperator << m_length_error()
+        << Trace_seperator << 0
+        << Trace_seperator << 0
+        << Trace_seperator << m[0]
+        << Trace_seperator << m[1]
+        << Trace_seperator << m[2]
+
+        << Trace_seperator << Exchange_energy
+        << Trace_seperator << Zeeman_energy
+        << Trace_seperator << Crystalline_anisotropy_energy
+        << Trace_seperator << Magnetostatic_energy
+        << Trace_seperator << MyProblem::Dummy_doc_data
+        << Trace_seperator << Effective_damping_constant
+        << Trace_seperator << Alt_eff_damp;
+    }
+
+    double get_error_norm() const
+    {
+      // Assumption: started with InitialM::z, damping = 0.5, happ =
+      // HApp::minus_z, Hk = 0
+
+      using namespace CompareSolutions;
+
+      MagneticParameters* mag_parameters_pt =
+        magnetic_parameters_factory("simple-llg");
+
+      double time = ts_pt()->time();
+      Vector<double> m_now = solution();
+      double exact_time = switching_time_wrapper(mag_parameters_pt, m_now);
+
+      return std::abs(exact_time - time);
+    }
+
+private:
+
+    double Exchange_energy;
+    double Zeeman_energy;
+    double Crystalline_anisotropy_energy;
+    double Magnetostatic_energy;
+    double Effective_damping_constant;
+    double Alt_eff_damp;
+
+};
+
 
 } // End of oomph namespace
 
