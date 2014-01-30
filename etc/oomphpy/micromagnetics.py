@@ -317,6 +317,8 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
     if mpi_command is None:
         mpi_command = []
 
+    arglist = [str(a) for a in arglist]
+
     outdir = os.path.abspath(outdir)
 
     # Check that the binary exists
