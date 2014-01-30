@@ -129,10 +129,10 @@ def main():
     #                 cwd="../../control_scripts/driver/")
 
     jacobian_params = {'-mesh': 'sq_cubeoid',
-                        '-ref': 2,
+                        '-ref': 1,
                         '-dt': 1e-4,
                         '-tmax': 2e-4,
-                        '-initial-m': 'smoothly_varying_500',
+                        '-initial-m': 'smoothly_varying_50',
                         '-outdir': 'Validation'}
 
 
