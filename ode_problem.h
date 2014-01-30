@@ -9,17 +9,67 @@ namespace oomph
 {
   using namespace MathematicalConstants;
   using namespace StringConversion;
+  using namespace VectorOps;
 
+
+  typedef TimeSpaceToDoubleVectFctPt TimeValueToDoubleVectFctPt;
 
   namespace deriv_functions
   {
+
+    inline Vector<double> llg(const double& time, const Vector<double>& x)
+    {
+      Vector<double> values(3, 0.0);
+      return values;
+    }
+    inline Vector<double> dllg(const double& t, const Vector<double>& u)
+    {
+      throw OomphLibError("Function not yet implemented",
+                          OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+      Vector<double> deriv(3, 0.0);
+      return deriv;
+    }
+
+
+    inline Vector<double> ll(const double& time, const Vector<double>& x)
+    {
+      Vector<double> m(3, 0.0);
+      m[2] = 1.0;
+      m[0] = 0.2;
+      normalise(m);
+      return m;
+    }
+    inline Vector<double> dll(const double& t, const Vector<double>& m)
+    {
+      Vector<double> deriv(3, 0.0), dummy;
+      Vector<double> happ = HApp::minus_z(t, dummy);
+
+      Vector<double> mxh = cross(m, happ);
+      Vector<double> mxmxh = cross(m, mxh);
+
+      double damping = 1.0;
+
+      for(unsigned j=0; j<3; j++)
+        {
+          deriv[j] = -(1/(1+damping*damping))*mxh[j] - damping* mxmxh[j];
+        }
+
+      return deriv;
+    }
+
+
     inline Vector<double> cos(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
       values[0] = std::cos(time);
       return values;
     }
-    inline double dcos(const double& t, const double& u) {return -1*std::sin(t);}
+    inline Vector<double> dcos(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(1, 0.0);
+      deriv[0] = -1*std::sin(t);
+      return deriv;
+    }
 
 
     inline Vector<double> sin(const double& time, const Vector<double>& x)
@@ -28,7 +78,12 @@ namespace oomph
       values[0] = std::sin(time);
       return values;
     }
-    inline double dsin(const double& t, const double& u) {return std::cos(t);}
+    inline Vector<double> dsin(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(1, 0.0);
+      deriv[0] = std::cos(t);
+      return deriv;
+    }
 
 
     inline Vector<double> exp(const double& time, const Vector<double>& x)
@@ -37,7 +92,12 @@ namespace oomph
       values[0] = std::exp(time);
       return values;
     }
-    inline double dexp(const double& t, const double& u) {return u;}
+    inline Vector<double> dexp(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(1, 0.0);
+      deriv[0] = u[0];
+      return deriv;
+    }
 
 
     // A polynomial of degree 2
@@ -48,7 +108,12 @@ namespace oomph
       values[0] =  b2*time*time + b1*time +b0;
       return values;
     }
-    inline double dpoly2(const double& t, const double& u) {return 2*t*b2 + b1;}
+    inline Vector<double> dpoly2(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(1, 0.0);
+      deriv[0] = 2*t*b2 + b1;
+      return deriv;
+    }
 
 
     // A polynomial of degree 3
@@ -59,20 +124,28 @@ namespace oomph
       values[0] = a3*time*time*time + a2*time*time + a1*time +a0;
       return values;
     }
-    inline double dpoly3(const double& t, const double& u) {return 3*t*t*a3 + 2*t*a2 + a1;}
+    inline Vector<double> dpoly3(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(1, 0.0);
+      deriv[0] = 3*t*t*a3 + 2*t*a2 + a1;
+      return deriv;
+    }
   }
 
   namespace ODEFactories
   {
 
     // Pick an exact solution using a name
-    inline TimeSpaceToDoubleVectFctPt exact_solutions_factory(const std::string& exact_name)
+    inline TimeSpaceToDoubleVectFctPt exact_solutions_factory
+    (const std::string& exact_name)
     {
       if(exact_name == "sin") return &deriv_functions::sin;
       else if(exact_name == "cos") return &deriv_functions::cos;
       else if(exact_name == "exp") return &deriv_functions::exp;
       else if(exact_name == "poly3") return &deriv_functions::poly3;
       else if(exact_name == "poly2") return &deriv_functions::poly2;
+      else if(exact_name == "ll") return &deriv_functions::ll;
+      else if(exact_name == "llg") return &deriv_functions::llg;
       else
         {
           throw OomphLibError("Unrecognised exact solution " + exact_name,
@@ -82,13 +155,16 @@ namespace oomph
     }
 
     // Pick a derivative function using a name
-    inline TimeValueToDoubleFctPt derivative_function_factory(const std::string& exact_name)
+    inline TimeValueToDoubleVectFctPt derivative_function_factory
+    (const std::string& exact_name)
     {
       if(exact_name == "sin") return &deriv_functions::dsin;
       else if(exact_name == "cos") return &deriv_functions::dcos;
       else if(exact_name == "exp") return &deriv_functions::dexp;
       else if(exact_name == "poly3") return &deriv_functions::dpoly3;
       else if(exact_name == "poly2") return &deriv_functions::dpoly2;
+      else if(exact_name == "ll") return &deriv_functions::dll;
+      else if(exact_name == "llg") return &deriv_functions::dllg;
       else
         {
           throw OomphLibError("Unrecognised exact solution " + exact_name,
@@ -113,11 +189,21 @@ namespace oomph
     /// Constructor: Pass timestepper
     ODEElement(TimeStepper* timestepper_pt,
                TimeSpaceToDoubleVectFctPt exact_solution_pt,
-               TimeValueToDoubleFctPt derivative_function_pt)
+               TimeValueToDoubleVectFctPt derivative_function_pt)
     {
-      add_internal_data(new Data(timestepper_pt, 1));
       Exact_solution_pt = exact_solution_pt;
       Derivative_function_pt = derivative_function_pt;
+
+      Vector<double> dummy(3, 1.0);
+      Vector<double> deriv = derivative_function(0, dummy);
+      unsigned nvalue = deriv.size();
+
+      add_internal_data(new Data(timestepper_pt, nvalue));
+    }
+
+    unsigned nvalue() const
+    {
+      return internal_data_pt(0)->nvalue();
     }
 
     /// Get residuals
@@ -126,8 +212,9 @@ namespace oomph
       // Get pointer to one-and-only internal data object
       Data* dat_pt = internal_data_pt(0);
 
-      // Get it's value
-      double u = dat_pt->value(0);
+      // Get it's values
+      Vector<double> u(nvalue(), 0.0);
+      dat_pt->value(u);
 
       // Get timestepper
       TimeStepper* timestepper_pt = dat_pt->time_stepper_pt();
@@ -135,12 +222,16 @@ namespace oomph
       // Get continuous time
       double t = timestepper_pt->time();
 
-      // Get dudt approximation from timestepper: 1st deriv of 0th value
-      double dudt = timestepper_pt->time_derivative(1, dat_pt, 0);
+      Vector<double> deriv = derivative_function(t, u);
+      for(unsigned j=0, nj=deriv.size(); j<nj; j++)
+        {
+          // Get dudt approximation from timestepper
+          double dudt = timestepper_pt->time_derivative(1, dat_pt, j);
 
-      // Residual is difference between the exact derivative and our
-      // timestepper's derivative estimate.
-      residuals[0] = derivative_function(t, u) - dudt;
+          // Residual is difference between the exact derivative and our
+          // timestepper's derivative estimate.
+          residuals[j] = deriv[j] - dudt;
+        }
     }
 
     void fill_in_contribution_to_jacobian(Vector<double>& residuals,
@@ -164,11 +255,14 @@ namespace oomph
                                              DenseMatrix<double>& mm)
     {
       fill_in_contribution_to_residuals(residuals);
-      mm(0,0) = 1;
+      for(unsigned j=0, nj=nvalue(); j<nj; j++)
+        {
+          mm(j, j) = 1;
+        }
     }
 
     /// Exact solution
-    double exact_solution(const double& t)
+    Vector<double> exact_solution(const double& t)
     {
 #ifdef PARANOID
       if(Exact_solution_pt == 0)
@@ -179,12 +273,12 @@ namespace oomph
         }
 #endif
       Vector<double> dummy;
-      return Exact_solution_pt(t, dummy)[0];
+      return Exact_solution_pt(t, dummy);
     }
 
     /// Exact solution
-    double derivative_function(const double& t,
-                               const double& u)
+    Vector<double> derivative_function(const double& t,
+                                       const Vector<double>& u)
     {
 #ifdef PARANOID
       if(Derivative_function_pt == 0)
@@ -201,7 +295,7 @@ namespace oomph
   private:
 
     TimeSpaceToDoubleVectFctPt Exact_solution_pt;
-    TimeValueToDoubleFctPt Derivative_function_pt;
+    TimeValueToDoubleVectFctPt Derivative_function_pt;
   };
 
 
@@ -218,12 +312,15 @@ namespace oomph
 
       specify_command_line_flag("-exact", &exact_name);
       exact_name = "sin";
+
+      // specify_command_line_flag("-initial-m", &initial_m_name);
+      // initial_m_name = "z";
+
     }
 
     virtual void run_factories()
     {
-      // Need exact solution for element constructor so this needs to go
-      // first
+
       exact_name = to_lower(exact_name);
       exact_solution_pt = ODEFactories::exact_solutions_factory(exact_name);
       derivative_function_pt = ODEFactories::derivative_function_factory(exact_name);
@@ -244,7 +341,10 @@ namespace oomph
 
     std::string exact_name;
     TimeSpaceToDoubleVectFctPt exact_solution_pt;
-    TimeValueToDoubleFctPt derivative_function_pt;
+    TimeValueToDoubleVectFctPt derivative_function_pt;
+
+    // for micromag odes only
+    std::string initial_m_name;
   };
 
 
@@ -286,10 +386,15 @@ namespace oomph
           std::cout << "setting IC at time =" << time << std::endl;
 
           // Get + set the (only) value
-          Vector<double> dummy;
+          Vector<double> dummy(nvalue(), 1.0);
           Vector<double> values = ic_fpt(time, dummy);
-          mesh_pt()->element_pt(0)->internal_data_pt(0)
-            ->set_value(t, 0, values[0]);
+
+          for(unsigned j=0, nj=nvalue(); j<nj; j++)
+            {
+              mesh_pt()->element_pt(0)->internal_data_pt(0)
+                ->set_value(t, j, values[j]);
+            }
+
         }
     }
 
@@ -305,10 +410,17 @@ namespace oomph
 
     double get_error_norm() const
     {
-      return std::abs(trace_value() - exact_solution(time()));
+      if(nvalue() == 1)
+        {
+          return std::abs(trace_value() - exact_solution(time())[0]);
+        }
+      else
+        {
+          return MyProblem::Dummy_doc_data;
+        }
     }
 
-    double exact_solution(const double& time) const
+    Vector<double> exact_solution(const double& time) const
     {
       ODEElement* el_pt = checked_dynamic_cast<ODEElement*>
         (mesh_pt()->element_pt(0));
@@ -320,21 +432,7 @@ namespace oomph
     {
       Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
 
-      std::cout << "corrector: " << dat_pt->value(0, 0)
-                << " predictor: " << dat_pt->value(4, 0)
-                << std::endl;
-
       return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
-    }
-
-    // Output solution
-    void doc_solution_additional(std::ofstream &some_file) const
-    {
-      // Number of plot points
-      unsigned npts = 2;
-
-      // Output solution with specified number of plot points per element
-      mesh_pt()->output(some_file, npts);
     }
 
     /// Get trace
@@ -346,6 +444,23 @@ namespace oomph
     TimeStepper* ts_pt() const
     {
       return mesh_pt()->element_pt(0)->internal_data_pt(0)->time_stepper_pt();
+    }
+
+    unsigned nvalue() const
+    {
+      return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0))
+        ->nvalue();
+    }
+
+    // Output solution
+    void doc_solution_additional(std::ofstream& soln_file) const
+    {
+      Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
+        Vector<double> solution(nvalue(), 0.0);
+      dat_pt->value(solution);
+
+      std::cout << solution << std::endl;
+      soln_file << solution << std::endl;
     }
 
   };

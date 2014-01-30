@@ -48,6 +48,9 @@ namespace oomph
   // Factory function pointers
   // ============================================================
 
+
+  typedef FiniteElement* (*ElementFactoryFctPt)(void);
+
   /// Function pointer type for function to create a BEM element.
   typedef MicromagBEMElementEquations*
   (*BEMElementFactoryFctPt)(FiniteElement* const, const int&);

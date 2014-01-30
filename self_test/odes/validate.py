@@ -60,16 +60,16 @@ def constant_dt_test(exact, timestepper):
     # into another file
     flag = mm.run_driver(arglist, outdir)
 
+    if flag != 0:
+        fail_message(outdir)
+        return False
+
     data = mm.parse_trace_file(pjoin(outdir, "trace"))
     maxerror = max(data['error_norms'])
     assert all(data['error_norms'] >= 0), exact +" "+ timestepper + str(data['error_norms'])
 
 
-    if flag != 0:
-        fail_message(outdir)
-        return False
-
-    elif maxerror > maxerrortol:
+    if maxerror > maxerrortol:
         fail_message(outdir, maxerror)
         return False
 
@@ -97,6 +97,11 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
                "-exact", exact]
     flag = mm.run_driver(arglist, outdir)
 
+
+    if flag != 0:
+        fail_message(outdir)
+        return False
+
     data = mm.parse_trace_file(pjoin(outdir, "trace"))
     maxerror = max(data['error_norms'])
     assert all(data['error_norms'] >= 0)
@@ -117,11 +122,7 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
     # ??ds still not testing ltes for other odes... probably should
 
 
-    if flag != 0:
-        fail_message(outdir)
-        return False
-
-    elif maxerror > maxerrortol:
+    if maxerror > maxerrortol:
         fail_message(outdir, maxerror)
         return False
 
