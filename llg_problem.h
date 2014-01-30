@@ -525,7 +525,7 @@ namespace oomph
         }
       else
         {
-          return -1;
+          return MyProblem::Dummy_doc_data;
         }
     }
 
