@@ -443,6 +443,9 @@ def main():
     parser.add_argument('--label', '-l', action='append',
                         help='Add addtional labels to line')
 
+    parser.add_argument('--split', '-s', action='append',
+                        help='Split into different plots for different values of these keys')
+
     args = parser.parse_args()
 
     if args.plots is None:
@@ -453,6 +456,9 @@ def main():
         print("No directories given, so parsing ./results")
         args.dir = ["results"]
 
+    if args.split is None:
+        args.split = ['mesh', 'h-app', 'initial-m', 'mag-params', 'scale']
+
     # Main function
     # ============================================================
 
@@ -462,12 +468,12 @@ def main():
     print(len(all_results), "data sets out of", len(really_all_results), "used",
           "(any others didn't have enough time steps finished).")
 
+    args.split = list(map(lambda s: "-"+s, args.split))
+    print("Splitting plots based on values of", args.split)
+
     # Print if needed
     if args.print_data:
         pprint(all_results)
-
-    # Good default keys to split..
-    keys_to_split_on = ['-mesh', '-h-app', '-initial-m', '-mag-params', '-scale']
 
 
     # Do actual plots
@@ -478,7 +484,7 @@ def main():
     if 'err' in args.plots:
         plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'],
                           labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_errors)
+        multi_plot(all_results, args.split, plot_errors)
 
 
     # Plot m averages vs time
@@ -486,38 +492,38 @@ def main():
         plot_m_averages = par(plot_vs_time,
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts'],
                               labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_m_averages)
+        multi_plot(all_results, args.split, plot_m_averages)
 
 
     if 'newt' in args.plots:
         plot_newton_iters = par(plot_vs_time,
                                 plot_values=['n_newton_iters','dts'],
                                 labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_newton_iters)
+        multi_plot(all_results, args.split, plot_newton_iters)
 
     if 'soltimes' in args.plots:
         plot_sol_time_averages = par(plot_vs_time,
                                 plot_values=['solver_times','jacobian_setup_times'],
                                 operations_on_values=[sp.mean, sp.mean],
                                 labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_sol_time_averages)
+        multi_plot(all_results, args.split, plot_sol_time_averages)
 
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['m_length_error_means', 'dts'],
                                     labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_ml_error_vs_time)
+        multi_plot(all_results, args.split, plot_ml_error_vs_time)
 
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
-        multi_plot(all_results, keys_to_split_on, iterations_vs_dt)
+        multi_plot(all_results, args.split, iterations_vs_dt)
 
         plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
                               operations_on_values=[identity, sp.mean],
                               labels=args.label)
-        multi_plot(all_results, keys_to_split_on, plot_iters_step)
+        multi_plot(all_results, args.split, plot_iters_step)
 
 
     # Plot error in effective damping vs step size
@@ -538,7 +544,7 @@ def main():
 
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
                                   y_operation=damping_error_mean)
-        multi_plot(all_results, keys_to_split_on, plot_damping_errors)
+        multi_plot(all_results, args.split, plot_damping_errors)
 
     if 'wc-time' in args.plots:
         plot_wall_time_vs_time = \
@@ -546,7 +552,7 @@ def main():
               plot_values=['unix_timestamp_diffs', 'dts'],
               labels=args.label)
 
-        multi_plot(all_results, keys_to_split_on, plot_wall_time_vs_time)
+        multi_plot(all_results, args.split, plot_wall_time_vs_time)
 
 
     plt.show()
