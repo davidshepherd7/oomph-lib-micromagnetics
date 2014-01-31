@@ -15,6 +15,15 @@ import os
 import os.path
 import ast
 
+
+# Imports for specific functions
+from functools import partial as par
+from os.path import join as pjoin
+from pprint import pprint
+
+# Make sure *this* versions oomphpy is in the path (before any other
+# versions in other places)
+sys.path.insert(1, pjoin(os.path.dirname(__file__), "../etc"))
 import oomphpy
 import oomphpy.micromagnetics as mm
 
@@ -22,11 +31,6 @@ import itertools as it
 import functools as ft
 import scipy as sp
 import matplotlib.pyplot as plt
-
-# Imports for specific functions
-from functools import partial as par
-from os.path import join as pjoin
-from pprint import pprint
 
 
 # Various helper functions

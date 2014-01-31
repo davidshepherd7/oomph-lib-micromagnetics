@@ -21,14 +21,17 @@ import itertools as it
 import functools as ft
 import scipy as sp
 
-# My code
-import oomphpy
-import oomphpy.micromagnetics as mm
 
 # Imports for specific functions
 from functools import partial as par
 from os.path import join as pjoin
 from glob import glob
+
+# Make sure *this* versions oomphpy is in the path (before any other
+# versions in other places)
+sys.path.insert(1, pjoin(os.path.dirname(__file__), "../etc"))
+import oomphpy
+import oomphpy.micromagnetics as mm
 
 
 # possible improvements:
