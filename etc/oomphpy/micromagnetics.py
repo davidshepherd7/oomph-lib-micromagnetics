@@ -121,6 +121,10 @@ def parse_trace_file(filename):
     headers = mysplit(lines[0])
     body = [mysplit(l) for l in lines[1:]]
 
+    # Didn't even manage one step
+    if len(body) == 0:
+        return None
+
     # Make an empty dict to store our data in
     data = {}
 
@@ -186,6 +190,9 @@ def parse_run(results_folder):
         return None
 
     trace_dict = parse_trace_file(pjoin(results_folder, "trace"))
+
+    if trace_dict is None:
+        return None
 
     # Add the data from trace file into the dict (NOTE: if any fields have
     # the same name then the trace file data will "win").
