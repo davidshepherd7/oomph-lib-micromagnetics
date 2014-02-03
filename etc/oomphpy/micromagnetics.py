@@ -90,6 +90,15 @@ def differences(arr):
 
 # Parsing functions
 # ============================================================
+def parse_trace_entry(entry):
+    """Convert trace file entries into python data.
+    """
+    # ast can handle most things, catch nans first though
+    if entry == "nan":
+        return sp.NaN
+    else:
+        return ast.literal_eval(entry)
+
 def parse_trace_file(filename):
     """Read data from a trace file into a dict of lists keyed on the column
     header.
@@ -135,7 +144,7 @@ def parse_trace_file(filename):
         # Convert the data in "col" from strings to python data types
         # (e.g. floats, lists). If it's a list (or list of lists or...)
         # type then convert to an sp.array.
-        real_data = _maybe_recursive_convert_to_array([ast.literal_eval(c) for c in col])
+        real_data = _maybe_recursive_convert_to_array([parse_trace_entry(c) for c in col])
 
         # Put it into our dict with the header of the column as the key and
         # the rest as the data.
