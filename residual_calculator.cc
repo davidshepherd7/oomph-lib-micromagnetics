@@ -59,20 +59,26 @@ namespace oomph
         // Divergence of m
         const double itp_divm = intp.div_m();
 
-        Vector<double> xvec(ndim, 0.0);
-        for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
+        // cache pointers from interpolator
+        const double* intp_m = intp.m();
+        const double time = intp.time();
+        const double* intp_x = intp.x();
 
+        // Copy some things into vectors ready for use in function calls
+        // ??ds get rid of this?
+        Vector<double> xvec(ndim, 0.0);
+        for(unsigned i=0; i<ndim; i++) {xvec[i] = intp_x[i];}
         Vector<double> mvec(3, 0.0);
-        for(unsigned i=0; i<3; i++) {mvec[i] = intp.m()[i];}
+        for(unsigned i=0; i<3; i++) {mvec[i] = intp_m[i];}
 
         // Source functions (for debugging, normally zero)
-        const double phi_source = e_pt->get_phi_source(intp.time(),xvec);
-        const double phi_1_source = e_pt->get_phi_1_source(intp.time(),xvec);
+        const double phi_source = e_pt->get_phi_source(time,xvec);
+        const double phi_1_source = e_pt->get_phi_1_source(time,xvec);
 
         // Fields at integration point
         Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
-        e_pt->get_applied_field(intp.time(), xvec, s, h_applied);
-        e_pt->get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
+        e_pt->get_applied_field(time, xvec, s, h_applied);
+        e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
         e_pt->get_magnetostatic_field(&intp, h_magnetostatic);
 
         Vector<double> h_simple(3, 0.0);
@@ -136,16 +142,16 @@ namespace oomph
                       * intp.test(l) * W;
 
                     // mxh for non-exchange fields (precession)
-                    residuals[m_eqn] += opt_cross(i, intp.m(), h_simple)
+                    residuals[m_eqn] += opt_cross(i, intp_m, h_simple)
                       * intp.test(l) * W;
 
                     // mxmxh for non-exchange fields (damping)
                     residuals[m_eqn] += llg_damp_c *
-                      opt_double_cross(i, intp.m(), intp.m(), h_simple)
+                      opt_double_cross(i, intp_m, intp_m, h_simple)
                       * intp.test(l) * W;
 
                     // mxex term (precession)
-                    residuals[m_eqn] -= opt_cross(i, intp.m(), gradmdotgradtest)
+                    residuals[m_eqn] -= opt_cross(i, intp_m, gradmdotgradtest)
                       * W;
 
                     // term 1 of mxmxex (damping)
@@ -155,11 +161,11 @@ namespace oomph
                     double sum = 0;
                     for(unsigned j=0; j<3; j++)
                       {
-                        sum += intp.m()[j] *
-                          (intp.m()[i]*dot(dtestdxl, intp.dmdx(j), ndim)
+                        sum += intp_m[j] *
+                          (intp_m[i]*dot(dtestdxl, intp.dmdx(j), ndim)
                            + intp.test(l)*dot(intp.dmdx(i), intp.dmdx(j), ndim))
 
-                          + intp.test(l) * intp.m()[i]
+                          + intp.test(l) * intp_m[i]
                           * dot(intp.dmdx(j), intp.dmdx(j), ndim);
                       }
                     residuals[m_eqn] -= llg_damp_c * sum * W;
@@ -225,20 +231,31 @@ namespace oomph
 
         double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
+        // cache pointers from interpolator for speed of access
+        const double* intp_m = intp.m();
+        const double time = intp.time();
+        const double* intp_x = intp.x();
+        const double* dmdx[3];
+        dmdx[0] = intp.dmdx(0);
+        dmdx[1] = intp.dmdx(1);
+        dmdx[2] = intp.dmdx(2);
+
+
         // Copy some things into vectors ready for use in function calls
+        // ??ds get rid of this?
         Vector<double> xvec(ndim, 0.0);
-        for(unsigned i=0; i<ndim; i++) {xvec[i] = intp.x()[i];}
+        for(unsigned i=0; i<ndim; i++) {xvec[i] = intp_x[i];}
         Vector<double> mvec(3, 0.0);
-        for(unsigned i=0; i<3; i++) {mvec[i] = intp.m()[i];}
+        for(unsigned i=0; i<3; i++) {mvec[i] = intp_m[i];}
 
         // Source functions (for debugging, normally zero)
-        const double phi_source = e_pt->get_phi_source(intp.time(),xvec);
-        const double phi_1_source = e_pt->get_phi_1_source(intp.time(),xvec);
+        const double phi_source = e_pt->get_phi_source(time,xvec);
+        const double phi_1_source = e_pt->get_phi_1_source(time,xvec);
 
         // Fields at integration point
         Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
-        e_pt->get_applied_field(intp.time(), xvec, s, h_applied);
-        e_pt->get_H_cryst_anis_field(intp.time(), xvec, mvec, h_cryst_anis);
+        e_pt->get_applied_field(time, xvec, s, h_applied);
+        e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
         e_pt->get_magnetostatic_field(s, h_magnetostatic);
 
 
@@ -291,16 +308,16 @@ namespace oomph
                     // dmdt, mxh_ap, mxh_ca, mxh_ms and mxdmdt terms
                     residuals[m_eqn] +=
                       ( intp.dmdt()[i]
-                        + llg_precess_c * opt_cross(i, intp.m(), h_applied)
-                        + llg_precess_c * opt_cross(i, intp.m(), h_cryst_anis)
-                        + llg_precess_c * opt_cross(i, intp.m(), h_magnetostatic)
-                        - llg_damp_c * opt_cross(i, intp.m(), intp.dmdt())
+                        + llg_precess_c * opt_cross(i, intp_m, h_applied)
+                        + llg_precess_c * opt_cross(i, intp_m, h_cryst_anis)
+                        + llg_precess_c * opt_cross(i, intp_m, h_magnetostatic)
+                        - llg_damp_c * opt_cross(i, intp_m, intp.dmdt())
                         )*intp.test(l)*W;
 
                     // (m x exchange) term (separate because it involves
                     // derivatives of the test function).
                     residuals[m_eqn] -= exch_c * llg_precess_c *
-                      opt_cross(i, intp.m(), gradtestdotgradmi) * W;
+                      opt_cross(i, intp_m, gradtestdotgradmi) * W;
                   }
               }
 
@@ -370,7 +387,7 @@ namespace oomph
                 gradtestldotgradpsil2 += gradtestl[i] * gradpsil2[i];
               }
 
-            e_pt->get_hca_derivative(intp.time(),xvec,mvec,intp.psi(l2),dhcadm);
+            e_pt->get_hca_derivative(time,xvec,mvec,intp.psi(l2),dhcadm);
 
             //=========================================================
             /// Actual Jacobian calculation
@@ -449,7 +466,7 @@ namespace oomph
               for(unsigned j=0; j<3; j++){
                 if(m_eqn[j] >= 0)
                   jacobian(m_eqn[j],phi_unknown) -= llg_precess_c
-                    * magstatic_c * opt_cross(j, intp.m(), gradpsil2) * W * intp.test(l);
+                    * magstatic_c * opt_cross(j, intp_m, gradpsil2) * W * intp.test(l);
               }
             }
 
@@ -489,14 +506,14 @@ namespace oomph
 
                     // m x d/dmj(.....)
                     jacobian(m_eqn[i], m_unknown[j]) +=
-                      W * intp.test(l) * opt_cross(i, intp.m(), diffterms);
+                      W * intp.test(l) * opt_cross(i, intp_m, diffterms);
 
                     // Exchange contribution
                     jacobian(m_eqn[i],m_unknown[j])
                       -= llg_precess_c * exch_c * W *
                       ( intp.psi(l2) * opt_cross(i, jhat, gradtestdotgradmi)
 
-                        + opt_cross(i, intp.m(), jhat) * gradtestldotgradpsil2
+                        + opt_cross(i, intp_m, jhat) * gradtestldotgradpsil2
                         )
                       * d_value_evaltime_by_dvalue_np1;
 
