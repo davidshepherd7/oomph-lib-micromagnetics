@@ -61,8 +61,13 @@ namespace oomph
 
         // cache pointers from interpolator
         const double* intp_m = intp.m();
+        const double* intp_dmdt = intp.dmdt();
         const double time = intp.time();
         const double* intp_x = intp.x();
+        const double* intp_dmdx[3];
+        intp_dmdx[0] = intp.dmdx(0);
+        intp_dmdx[1] = intp.dmdx(1);
+        intp_dmdx[2] = intp.dmdx(2);
 
         // Copy some things into vectors ready for use in function calls
         // ??ds get rid of this?
@@ -95,6 +100,7 @@ namespace oomph
           {
 
             // Cache test function derivative in a vector for easier access
+            // ??ds remove?
             Vector<double> dtestdxl(ndim, 0.0);
             for(unsigned j=0; j<ndim; j++) dtestdxl[j] = intp.dtestdx(l, j);
 
@@ -127,7 +133,7 @@ namespace oomph
             Vector<double> gradmdotgradtest(3, 0.0);
             for(unsigned j=0; j<3; j++)
               {
-                gradmdotgradtest[j] = dot(intp.dmdx(j), dtestdxl, ndim);
+                gradmdotgradtest[j] = dot(intp_dmdx[j], dtestdxl, ndim);
               }
 
 
@@ -138,7 +144,7 @@ namespace oomph
                 if(m_eqn >= 0)  // If it's not a boundary condition
                   {
                     // dmdt
-                    residuals[m_eqn] += ll_conversion_factor *intp.dmdt()[i]
+                    residuals[m_eqn] += ll_conversion_factor *intp_dmdt[i]
                       * intp.test(l) * W;
 
                     // mxh for non-exchange fields (precession)
@@ -162,11 +168,11 @@ namespace oomph
                     for(unsigned j=0; j<3; j++)
                       {
                         sum += intp_m[j] *
-                          (intp_m[i]*dot(dtestdxl, intp.dmdx(j), ndim)
-                           + intp.test(l)*dot(intp.dmdx(i), intp.dmdx(j), ndim))
+                          (intp_m[i]*dot(dtestdxl, intp_dmdx[j], ndim)
+                           + intp.test(l)*dot(intp_dmdx[i], intp_dmdx[j], ndim))
 
                           + intp.test(l) * intp_m[i]
-                          * dot(intp.dmdx(j), intp.dmdx(j), ndim);
+                          * dot(intp_dmdx[j], intp_dmdx[j], ndim);
                       }
                     residuals[m_eqn] -= llg_damp_c * sum * W;
                   }
@@ -233,12 +239,13 @@ namespace oomph
 
         // cache pointers from interpolator for speed of access
         const double* intp_m = intp.m();
+        const double* intp_dmdt = intp.dmdt();
         const double time = intp.time();
         const double* intp_x = intp.x();
-        const double* dmdx[3];
-        dmdx[0] = intp.dmdx(0);
-        dmdx[1] = intp.dmdx(1);
-        dmdx[2] = intp.dmdx(2);
+        const double* intp_dmdx[3];
+        intp_dmdx[0] = intp.dmdx(0);
+        intp_dmdx[1] = intp.dmdx(1);
+        intp_dmdx[2] = intp.dmdx(2);
 
 
         // Copy some things into vectors ready for use in function calls
@@ -297,7 +304,7 @@ namespace oomph
             double gradtestdotgradmi[3] = {0,0,0};
             for(unsigned i=0; i<3; i++)
               for(unsigned j=0; j<ndim; j++)
-                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
+                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp_dmdx[i][j];
 
             // add to residual
             for(unsigned i=0; i<3; i++)
@@ -307,11 +314,11 @@ namespace oomph
                   {
                     // dmdt, mxh_ap, mxh_ca, mxh_ms and mxdmdt terms
                     residuals[m_eqn] +=
-                      ( intp.dmdt()[i]
+                      ( intp_dmdt[i]
                         + llg_precess_c * opt_cross(i, intp_m, h_applied)
                         + llg_precess_c * opt_cross(i, intp_m, h_cryst_anis)
                         + llg_precess_c * opt_cross(i, intp_m, h_magnetostatic)
-                        - llg_damp_c * opt_cross(i, intp_m, intp.dmdt())
+                        - llg_damp_c * opt_cross(i, intp_m, intp_dmdt)
                         )*intp.test(l)*W;
 
                     // (m x exchange) term (separate because it involves
@@ -339,28 +346,24 @@ namespace oomph
         // nondiffterms precalcs
         double nondiffterms[3];
         for(unsigned i=0; i<3; i++)
-          nondiffterms[i] = - llg_damp_c * intp.dmdt()[i]
+          nondiffterms[i] = - llg_damp_c * intp_dmdt[i]
             + llg_precess_c * h_magnetostatic[i]
             + llg_precess_c * (h_cryst_anis[i] + h_applied[i]);
 
-
-        double gradpsil2[3];
-        double gradtestl[3];
         double gradtestdotgradmi[3];
         double diffterms[3];
         int m_eqn[3], m_unknown[3];
         double dhcadm[3][3];
 
-        // Need to initialise because the 3rd entry is used in 2d so needs
-        // to be a zero.
-        for(unsigned j=0; j<3; j++) {gradpsil2[j] = 0.0;}
-
+        // Need a copy of grad psi here because the 3rd entry is used even
+        // in 1d/2d, so we need to fill in a zero. Zero all entries then
+        // copy whichever real entries we have.
+        double gradpsil2[3] = {0.0, 0.0, 0.0};
 
         // Double loop over nodes for the jacobian
         for(unsigned l=0; l<n_node; l++){
 
           // Pre calculate values with no l2 dependencies
-          for(unsigned j=0; j<ndim; j++) {gradtestl[j] = intp.dtestdx(l,j);}
           for(unsigned i=0; i<3; i++)
             {
               m_eqn[i] = e_pt->nodal_local_eqn(l,e_pt->m_index_micromag(i));
@@ -368,7 +371,7 @@ namespace oomph
               gradtestdotgradmi[i] = 0.0;
               for(unsigned j=0; j<ndim; j++) //??ds repeated calculation..
                 {
-                  gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp.dmdx(i)[j];
+                  gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp_dmdx[i][j];
                 }
             }
 
@@ -384,7 +387,7 @@ namespace oomph
             double gradtestldotgradpsil2 = 0.0;
             for(unsigned i=0; i < ndim; i++)
               {
-                gradtestldotgradpsil2 += gradtestl[i] * gradpsil2[i];
+                gradtestldotgradpsil2 += intp.dtestdx(l,i) * intp.dpsidx(l2,i);
               }
 
             e_pt->get_hca_derivative(time,xvec,mvec,intp.psi(l2),dhcadm);
@@ -408,7 +411,7 @@ namespace oomph
                 if(e_pt->node_pt(l)->is_on_boundary())
                   {
                     if(phi_eqn == phi_unknown)
-                      jacobian(phi_eqn,phi_unknown) = 0;
+                      jacobian(phi_eqn,phi_unknown) = 0.0;
                     else
                       jacobian(phi_eqn,phi_unknown) = 0.0;
                   }
