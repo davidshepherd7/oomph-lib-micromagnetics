@@ -437,7 +437,7 @@ def _run(argdict, varying_args, failure_action, success_action, base_outdir):
         error("Don't specify an outdir, it will be automatically generated")
 
     # Construct an informative outdir name
-    varying_arg_names = [argdict[k] for k in varying_args]
+    varying_arg_names = [str(argdict[k]) for k in varying_args]
     outdir = pjoin(base_outdir, "results_" + "_".join(varying_arg_names))
 
     # Make directory
