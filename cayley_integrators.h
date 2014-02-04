@@ -1,5 +1,5 @@
-#ifndef OOMPH_GEOMETRIC_INTEGRATORS_H
-#define OOMPH_GEOMETRIC_INTEGRATORS_H
+#ifndef OOMPH_CAYLEY_INTEGRATORS_H
+#define OOMPH_CAYLEY_INTEGRATORS_H
 
 #include "../../src/generic/double_vector.h"
 #include "../../src/generic/Vector.h"
@@ -12,11 +12,11 @@
 namespace oomph
 {
 
-  class GeomEuler : public ExplicitTimeStepper
+  class CayleyEuler : public ExplicitTimeStepper
   {
   public:
 
-    GeomEuler() {}
+    CayleyEuler() {}
 
     void timestep(ExplicitTimeSteppableObject* const &object_pt,
                   const double &dt);
@@ -24,17 +24,17 @@ namespace oomph
   private:
 
     /// Disabled copy/assign
-    GeomEuler(const GeomEuler&) {}
-    void operator=(const GeomEuler&) {}
+    CayleyEuler(const CayleyEuler&) {}
+    void operator=(const CayleyEuler&) {}
 
   };
 
 
-  class GeomRK2 : public ExplicitTimeStepper
+  class CayleyRK2 : public ExplicitTimeStepper
   {
   public:
 
-    GeomRK2() {}
+    CayleyRK2() {}
 
     void timestep(ExplicitTimeSteppableObject* const &object_pt,
                   const double &dt);
@@ -43,8 +43,8 @@ namespace oomph
   private:
 
     /// Disabled copy/assign
-    GeomRK2(const GeomRK2&) {}
-    void operator=(const GeomRK2&) {}
+    CayleyRK2(const CayleyRK2&) {}
+    void operator=(const CayleyRK2&) {}
 
   };
 

@@ -24,7 +24,7 @@
 #include "../../src/generic/timesteppers.h"
 #include "../../src/generic/midpoint_method.h"
 #include "../../src/generic/explicit_timesteppers.h"
-#include "geometric_integrators.h"
+#include "cayley_integrators.h"
 
 
 // Preconditioner factories
@@ -208,13 +208,13 @@ namespace oomph
         {
           return new Euler;
         }
-      else if (ts_name == "geom-euler")
+      else if (ts_name == "cay-euler")
         {
-          return new GeomEuler;
+          return new CayleyEuler;
         }
-      else if (ts_name == "geom-rk2")
+      else if (ts_name == "cay-rk2")
         {
-          return new GeomRK2;
+          return new CayleyRK2;
         }
       else
         {

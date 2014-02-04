@@ -6,7 +6,7 @@
 
 #include "../../src/generic/explicit_timesteppers.h"
 
-#include "geometric_integrators.h"
+#include "cayley_integrators.h"
 #include "vector_helpers.h"
 
 
@@ -48,7 +48,7 @@ namespace oomph
 
 
   DoubleVector derivs_to_omega(const DoubleVector& global_m,
-                   const DoubleVector& global_dmdt)
+                               const DoubleVector& global_dmdt)
   {
     DoubleVector global_omega(global_dmdt.distribution_pt());
 
@@ -69,23 +69,8 @@ namespace oomph
         for(unsigned j=0; j<3; j++)
           {
             global_omega[k+j] = -VectorOps::opt_cross(j, local_dmdt.values_pt(),
-                                                  local_m.values_pt());
+                                                      local_m.values_pt());
           }
-
-// #ifdef PARANOID
-//         Vector<double> mvec(3);
-//         mvec[0] = local_m[0];
-//         mvec[1] = local_m[1];
-//         mvec[2] = local_m[2];
-//         if(std::abs(VectorOps::two_norm(mvec) - 1) > 1e-6)
-//           {
-//             std::ostringstream err;
-//             err << "Magnetisation not near unit length, possibly not actually the magnetisation...";
-//             err << "here it is: " << mvec;
-//             throw OomphLibError(err.str(), OOMPH_EXCEPTION_LOCATION,
-//                                 OOMPH_CURRENT_FUNCTION);
-//           }
-// #endif
       }
 
     return global_omega;
@@ -113,13 +98,29 @@ namespace oomph
 
         // put back m
         for(unsigned j=0; j<3; j++) {global_m_np1[k+j] = local_m_np1[j];}
+
+#ifdef PARANOID
+        Vector<double> mvec(3);
+        mvec[0] = local_m_n[0];
+        mvec[1] = local_m_n[1];
+        mvec[2] = local_m_n[2];
+        if(std::abs(VectorOps::two_norm(mvec) - 1) > 1e-3)
+          {
+            std::ostringstream err;
+            err << "Magnetisation not near unit length, possibly not actually the magnetisation?";
+            err << "here it is: " << mvec << std::endl;
+            err << "length is: " << VectorOps::two_norm(mvec) << std::endl;
+            throw OomphLibError(err.str(), OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+#endif
       }
 
     return global_m_np1;
   }
 
 
-  void GeomEuler::timestep(ExplicitTimeSteppableObject* const &object_pt,
+  void CayleyEuler::timestep(ExplicitTimeSteppableObject* const &object_pt,
                            const double &dt)
   {
     object_pt->actions_before_explicit_timestep();
@@ -131,7 +132,8 @@ namespace oomph
     object_pt->get_dofs(global_m_n);
     DoubleVector global_omega_n = derivs_to_omega(global_m_n, global_dmdt);
 
-    //??ds put better check here?
+    // Try to check that all dofs are magnetisation. Should always be 3
+    // dofs per node so should be a multiple of 3.
 #ifdef PARANOID
     if(global_m_n.nrow() % 3 != 0)
       {
@@ -141,9 +143,8 @@ namespace oomph
       }
 #endif
 
-    // take a step
+    // Take a step
     DoubleVector global_m_np1 = cayley_step(global_m_n, global_omega_n, dt);
-
 
     // Update object
     object_pt->set_dofs(global_m_np1);
@@ -153,7 +154,8 @@ namespace oomph
     object_pt->actions_after_explicit_timestep();
   }
 
-  void GeomRK2::timestep(ExplicitTimeSteppableObject* const &object_pt,
+
+  void CayleyRK2::timestep(ExplicitTimeSteppableObject* const &object_pt,
                          const double &dt)
   {
     object_pt->actions_before_explicit_timestep();

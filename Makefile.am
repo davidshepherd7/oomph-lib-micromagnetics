@@ -18,7 +18,7 @@ sources = micromagnetics_element.cc \
 	micromag_factories.cc \
 	my_generic_problem.cc \
 	magnetics_helpers.cc \
-	geometric_integrators.cc
+	cayley_integrators.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
@@ -54,7 +54,7 @@ headers = array_interpolator.h \
 	unsteady_heat_problem.h \
 	micromag_factories.h \
 	micromag_types.h \
-	geometric_integrators.h
+	cayley_integrators.h
 
 # If we have hlib then compile that header too
 if OOMPH_HAS_HLIB
