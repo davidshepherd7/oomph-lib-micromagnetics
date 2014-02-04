@@ -66,6 +66,10 @@ experiments
 experiments/*
 */old_experiments*/*
 
+# Link to folder of parameter sets
+etc/parameter_sets/my_parameter_sets
+
+
 # general purpose binaries
 control_scripts/*/*driver
 meshes/generate_tetgen_sphere_input/generate_tetgen_sphere_input

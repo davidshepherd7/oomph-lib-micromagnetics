@@ -27,20 +27,20 @@ from pprint import pprint
 # ============================================================
 
 def rootdir():
-    """Get the micromagnetics root directory"""
+    """The location of the micromagnetics root directory."""
     return os.path.abspath(pjoin(os.path.dirname(__file__), "../../"))
 
 
 def driver_path():
-    """The location of the main driver binary"""
+    """The location of the main driver binary."""
     return os.path.abspath(pjoin(rootdir(), "control_scripts/driver/driver"))
 
 
 def boolean_flags():
-    """A list of flags which are just either enabled or not. Inside function so
-    it's global but harder to accidentally modify.
+    """A list of flags which are just either enabled or not.
     """
     return ['-decoupled-ms', '-disable-ms', '-fd-jac']
+
 
 # Terminal codes for colours
 def green_colour(): return '\033[01;32m'
