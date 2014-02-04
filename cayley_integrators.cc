@@ -28,10 +28,10 @@ namespace oomph
 
     out.resize(3, 3);
 
-    // From wikipedia! http://en.wikipedia.org/wiki/Cayley_transform factor
-    // of 1/2 comes in from application to llg, see e.g. Efficiency of the
+    // From wikipedia! http://en.wikipedia.org/wiki/Cayley_transform Factor
+    // of 1/2 comes in from application to llg, see e.g. "Efficiency of the
     // Geometric Integration of Landau–Lifshitz–Gilbert Equation Based on
-    // Cayley Transform by Oriano Bottauscio and Alessandra Manzin
+    // Cayley Transform" by Oriano Bottauscio and Alessandra Manzin
     const double w = 1, x=v[0]/2, y=v[1]/2, z=v[2]/2;
     const double K = w*w + x*x + y+y +z*z;
 
@@ -46,7 +46,9 @@ namespace oomph
     out(2, 2) = (w*w - x*x - y*y + z*z)/K;
   }
 
-
+  /// Convert (time) derivative and values of magnetisations to the omega
+  /// needed for a cayley step. Result is returned as vector (RVO means
+  /// copy is compiled out).
   DoubleVector derivs_to_omega(const DoubleVector& global_m,
                                const DoubleVector& global_dmdt)
   {
@@ -76,6 +78,8 @@ namespace oomph
     return global_omega;
   }
 
+  /// Take a step/stage of a cayley transform based method. Result is
+  /// returned as vector (RVO means copy is compiled out).
   DoubleVector cayley_step(const DoubleVector& global_m_n,
                            const DoubleVector& global_omega,
                            const double& dt)
@@ -104,7 +108,7 @@ namespace oomph
         mvec[0] = local_m_n[0];
         mvec[1] = local_m_n[1];
         mvec[2] = local_m_n[2];
-        if(std::abs(VectorOps::two_norm(mvec) - 1) > 1e-3)
+        if(std::abs(VectorOps::two_norm(mvec) - 1) > 1e-10)
           {
             std::ostringstream err;
             err << "Magnetisation not near unit length, possibly not actually the magnetisation?";
@@ -121,7 +125,7 @@ namespace oomph
 
 
   void CayleyEuler::timestep(ExplicitTimeSteppableObject* const &object_pt,
-                           const double &dt)
+                             const double &dt)
   {
     object_pt->actions_before_explicit_timestep();
     object_pt->actions_before_explicit_stage();
@@ -156,7 +160,7 @@ namespace oomph
 
 
   void CayleyRK2::timestep(ExplicitTimeSteppableObject* const &object_pt,
-                         const double &dt)
+                           const double &dt)
   {
     object_pt->actions_before_explicit_timestep();
     object_pt->actions_before_explicit_stage();
