@@ -24,6 +24,8 @@
 #include "../../src/generic/timesteppers.h"
 #include "../../src/generic/midpoint_method.h"
 #include "../../src/generic/explicit_timesteppers.h"
+#include "geometric_integrators.h"
+
 
 // Preconditioner factories
 #include "../../src/generic/preconditioner.h"
@@ -205,6 +207,14 @@ namespace oomph
       else if (ts_name == "euler")
         {
           return new Euler;
+        }
+      else if (ts_name == "geom-euler")
+        {
+          return new GeomEuler;
+        }
+      else if (ts_name == "geom-rk2")
+        {
+          return new GeomRK2;
         }
       else
         {
