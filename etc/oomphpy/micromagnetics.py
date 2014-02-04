@@ -102,6 +102,19 @@ def unzip(l):
     return zip(*l)
 
 
+def badprint(*args, **kwargs):
+    """Print in red"""
+    args = [red_colour()] + list(args) + [end_colour()]
+    print(*args, **kwargs)
+
+
+def okprint(*args, **kwargs):
+    """Print in green"""
+    args = [green_colour()] + list(args) + [end_colour()]
+    print(*args, **kwargs)
+
+
+
 # Parsing functions
 # ============================================================
 def parse_trace_entry(entry):
@@ -112,6 +125,7 @@ def parse_trace_entry(entry):
         return sp.NaN
     else:
         return ast.literal_eval(entry)
+
 
 def parse_trace_file(filename):
     """Read data from a trace file into a dict of lists keyed on the column
