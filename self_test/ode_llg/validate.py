@@ -26,27 +26,28 @@ def main():
 
     # ??ds ad "llg"?
     for exact in ["ll"]:
+        for ts in ["rk2", "midpoint-bdf"]:
 
-        # parameters
-        valdir = pjoin(".", "Validation", exact)
-        args = ['llgode', '-exact', exact,
-                '-ts', 'rk2',
-                '-dt', 0.01,
-                '-outdir', valdir]
-        # Run
-        mm.cleandir(valdir)
-        err_code = mm.run_driver(args, valdir)
+            # parameters
+            valdir = pjoin(".", "Validation", exact+"_"+ts)
+            args = ['llgode', '-exact', exact,
+                    '-ts', ts,
+                    '-dt', 0.01,
+                    '-outdir', valdir]
+            # Run
+            mm.cleandir(valdir)
+            err_code = mm.run_driver(args, valdir)
 
-        assert(err_code == 0)
+            assert(err_code == 0)
 
-        # Check all errors are small
-        data = mm.parse_trace_file(pjoin(valdir, "trace"))
+            # Check all errors are small
+            data = mm.parse_trace_file(pjoin(valdir, "trace"))
 
 
-        max_err = max(map(abs, data['error_norms']))
-        if max_err > 5e-5:
-            print("max error of", str(max_err), "is too large")
-            return 1
+            max_err = max(map(abs, data['error_norms']))
+            if max_err > 5e-5:
+                print("max error of", str(max_err), "is too large")
+                return 1
 
 
     return 0
