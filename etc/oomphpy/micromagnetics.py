@@ -425,6 +425,11 @@ def failure_message(arglist, outdir):
     print(red_colour(), "see", pjoin(outdir, "stdout"), end_colour())
 
 
+def product_of_argdict(args_dict):
+    """Generate a complete set of combinations of parameters."""
+    return [dict(zip(args_dict.keys(), x))
+            for x in it.product(*args_dict.values())]
+
 
 # Final function for the sweep
 def _run(argdict, varying_args, failure_action, success_action, base_outdir):
@@ -465,17 +470,14 @@ def run_sweep(args_dict, base_outdir, parallel_sweep=False,
         success_action = success_message
 
 
-    # Generate a complete set of combinations of parameters
-    parameter_dicts = (dict(zip(args_dict.keys(), x))
-                        for x in it.product(*args_dict.values()))
-
-
     # Make a list of arguments that take multiple different values
     varying_args = []
     for k, v in args_dict.items():
         if len(v) > 1:
             varying_args.append(k)
 
+    # Generate list of parameter sets
+    parameter_dicts = product_of_argdict(args_dict)
 
     # Run on all args. A little hacky because Pool() can't take locally
     # defined fuctions, can't take multiple args in map and doesn't have a
