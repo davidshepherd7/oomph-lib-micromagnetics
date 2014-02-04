@@ -432,7 +432,8 @@ def product_of_argdict(args_dict):
 
 
 # Final function for the sweep
-def _run(argdict, varying_args, failure_action, success_action, base_outdir):
+def _run(argdict, base_outdir, varying_args):
+
     if argdict.get('-outdir') is not None:
         error("Don't specify an outdir, it will be automatically generated")
 
@@ -447,28 +448,20 @@ def _run(argdict, varying_args, failure_action, success_action, base_outdir):
     arglist, binary_path, mpi_command = argdict2list(argdict)
     err = run_driver(arglist, outdir, binary_path, mpi_command)
 
-    # Do any actions (e.g. output messages)
+    # Do output messages
     if err != 0:
-        action_result = failure_action(arglist, outdir)
+        failure_message(arglist, outdir)
     else:
-        action_result = success_action(arglist, outdir)
+        success_message(arglist, outdir)
 
-    return err, outdir, action_result
+    return err, outdir
+
 
 def _run_mp(args):
     return _run(*args)
 
 
-def run_sweep(args_dict, base_outdir, parallel_sweep=False,
-              failure_action=None,
-              success_action=None):
-
-    # Default actions: print messages
-    if failure_action is None:
-        failure_action = failure_message
-    if success_action is None:
-        success_action = success_message
-
+def run_sweep(args_dict, base_outdir, parallel_sweep=False):
 
     # Make a list of arguments that take multiple different values
     varying_args = []
@@ -483,18 +476,15 @@ def run_sweep(args_dict, base_outdir, parallel_sweep=False,
     # defined fuctions, can't take multiple args in map and doesn't have a
     # starmap.
     if parallel_sweep:
-        args = zip(parameter_dicts, it.repeat(varying_args),
-                    it.repeat(failure_action),
-                    it.repeat(success_action),
-                    it.repeat(base_outdir))
+        args = zip(parameter_dicts, it.repeat(base_outdir),
+                   it.repeat(varying_args))
         out = multiprocessing.Pool().map(_run_mp, args, 1)
     else:
-        out = map(_run, parameter_dicts,
-                  it.repeat(varying_args), it.repeat(failure_action),
-                  it.repeat(success_action), it.repeat(base_outdir))
+        out = map(_run, parameter_dicts, it.repeat(base_outdir),
+                  it.repeat(varying_args))
 
     # Extract err_codes etc into separate lists and force execution (just
     # in case it's still an iterator)
-    err_codes, outdirs, action_results = unzip(list(out))
+    err_codes, outdirs = unzip(list(out))
 
-    return err_codes, outdirs, action_results
+    return err_codes, outdirs
