@@ -1028,8 +1028,8 @@ public:
       specify_command_line_flag("-disable-ms");
       specify_command_line_flag("-pin-boundary-m");
 
-      specify_command_line_flag("-hierarchical-bem", &hierarchical_bem);
-      hierarchical_bem = -1;
+      specify_command_line_flag("-hlib-bem", &hlib_bem);
+      hlib_bem = -1;
 
       specify_command_line_flag("-numerical-int-bem", &numerical_int_bem);
       numerical_int_bem = -1;
@@ -1155,7 +1155,7 @@ public:
     double damping;
 
     int numerical_int_bem;
-    int hierarchical_bem;
+    int hlib_bem;
 
 
     bool decoupled_ms;

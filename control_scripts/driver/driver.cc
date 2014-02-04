@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
           // Create the bem handler
           llg_pt->Bem_handler_pt = Factories::bem_handler_factory
             (mm_args_pt->phi_1_mesh_pts, 0,
-             mm_args_pt->hierarchical_bem,
+             mm_args_pt->hlib_bem,
              false,
              mm_args_pt->numerical_int_bem);
         }
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
           // Create the bem handler
           llg_pt->Bem_handler_pt = Factories::bem_handler_factory
             (args_pt->mesh_pts, 0,
-             mm_args_pt->hierarchical_bem,
+             mm_args_pt->hlib_bem,
              false,
              mm_args_pt->numerical_int_bem);
         }

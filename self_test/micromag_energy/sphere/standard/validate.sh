@@ -21,7 +21,7 @@ new_clean_dir $SPHERE_DIR
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere \
     -solver superlu -h-app minus_z -initial-m exactly_z -mag-params 'simple-llg' \
-    -hierarchical-bem 0 \
+    -hlib-bem 0 \
      -outdir $SPHERE_DIR > $SPHERE_DIR/stdout
 
 # Extract + check energies

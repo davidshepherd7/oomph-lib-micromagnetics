@@ -22,7 +22,7 @@ cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
 ./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -ref 3 \
     -solver superlu -h-app minus_z -initial-m exactly_z  \
     -mag-params 'simple-llg' -mesh multi_ut_sphere -xshift 20 \
-    -hierarchical-bem 0 \
+    -hlib-bem 0 \
     -outdir $TWO_SPHERE_DIR > $TWO_SPHERE_DIR/stdout
 
 # Extract + check energies
