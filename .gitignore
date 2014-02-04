@@ -62,6 +62,7 @@ git_version.h
 micromag.h
 
 # Just ignore entire experiments folder, should be ok...
+experiments
 experiments/*
 */old_experiments*/*
 
