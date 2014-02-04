@@ -354,7 +354,11 @@ namespace oomph
   public:
 
     /// constructor
-    ODEProblem() {}
+    ODEProblem()
+    {
+      // Don't output to trace file every step, often too many steps
+      Always_write_trace = false;
+    }
 
     void build(Vector<Mesh*>& bulk_mesh_pts)
     {

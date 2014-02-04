@@ -92,6 +92,9 @@ using namespace StringConversion;
       Doc_info.enable_error_if_directory_does_not_exist();
 
       Disable_explicit_solver_optimisations = false;
+
+      // By default output to trace file every step
+      Always_write_trace = true;
     }
 
     /// Destructor
@@ -465,11 +468,16 @@ using namespace StringConversion;
     /// overloading doc_solution_additional(...).
     void doc_solution()
       {
-        // Always output trace file data
-        write_trace();
+        bool doc_this_step = should_doc_this_step(time_pt()->dt(), time());
+
+        if(Always_write_trace || doc_this_step)
+          {
+            // Always output trace file data
+            write_trace();
+          }
 
         // Output full set of data if requested for this timestep
-        if(should_doc_this_step(time_pt()->dt(), time()))
+        if(doc_this_step)
           {
             std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
                                      to_string(Doc_info.number()) + ".dat").c_str(),
@@ -654,6 +662,9 @@ using namespace StringConversion;
     /// Option to turn off optimisation of the linear solves needed for
     /// explicit timestepping (for debugging purposes).
     bool Disable_explicit_solver_optimisations;
+
+    // Should we output to trace file every step?
+    bool Always_write_trace;
 
   protected:
 
