@@ -361,21 +361,29 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
     if mpi_command is None:
         mpi_command = []
 
+
+    # Always use absolute path to outdir
+    # ============================================================
+    outdir = os.path.abspath(outdir)
+
     # Make sure outdir is consistent: find its arg + compare
     try:
         outdir_index = arglist.index('-outdir')
-        outdir_from_arglist = arglist[outdir_index+1]
+        outdir_from_arglist = os.path.abspath(arglist[outdir_index+1])
         if outdir_from_arglist != outdir:
             print("Mismatched outdirs:", outdir_from_arglist, outdir)
             return -10
+
+        # Replace it anway to make sure it's an absolute path
+        arglist[outdir_index+1] = outdir
+
     # If its not in there then insert it
     except ValueError:
         arglist = arglist + ['-outdir', outdir]
 
+
     # Make sure we have strings everywhere
     arglist = [str(a) for a in arglist]
-
-    outdir = os.path.abspath(outdir)
 
     # Check that the binary exists
     if not os.path.isfile(binary):
