@@ -399,9 +399,11 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
         script_file.write("# stdout and stderr go into "
                           + pjoin(outdir, "stdout") + "\n")
 
-    # Run with specified args, put output (stdout and stderr) into a file.
+    # Run with specified args, and in the driver folder. Put output (stdout
+    # and stderr) into a file.
     with open(pjoin(outdir, "stdout"), 'w') as stdout_file:
         err_code = subp.call(mpi_command + [binary] + arglist,
+                             cwd=os.path.dirname(binary),
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
