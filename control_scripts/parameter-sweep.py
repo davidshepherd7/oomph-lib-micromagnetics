@@ -254,9 +254,11 @@ def standard_sweep(parameter_set, cleanup, serial_mode=False, no_build=False):
     print("Running parameter sweep with parameter set", parameter_set)
     print("Output is going into", output_root)
 
-    # Run the parameter sweep!
-    fun = par(execute_oomph_driver, output_root=output_root)
-    mm.parallel_parameter_sweep(fun, args_dict, serial_mode)
+    # # Run the parameter sweep!
+    # fun = par(execute_oomph_driver, output_root=output_root)
+    # mm.parallel_parameter_sweep(fun, args_dict, serial_mode)
+
+    mm.run_sweep(args_dict, output_root, parallel_sweep=not serial_mode)
 
     return 0
 

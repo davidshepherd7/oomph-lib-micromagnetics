@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 # Imports from main libraries
 import subprocess as subp
-from multiprocessing import Pool
 import multiprocessing
 import sys
 import argparse
@@ -43,6 +42,10 @@ def boolean_flags():
     """
     return ['-decoupled-ms', '-disable-ms', '-fd-jac']
 
+# Terminal codes for colours
+def green_colour(): return '\033[01;32m'
+def red_colour(): return '\033[01;31m'
+def end_colour(): return '\033[0m'
 
 
 
@@ -86,6 +89,17 @@ def differences(arr):
     array. First value is None.
     """
     return [None] + [a - b for a, b in zip(arr[1:], arr[:-1])]
+
+
+def unzip(l):
+    """Inverse of zip. E.g. given a list of tuples returns a tuple of
+    lists.
+
+    To understand why: think about what * does to a list and what zip then
+    does with this list.
+
+    See http://www.shocksolution.com/2011/07/python-lists-to-tuples-and-tuples-to-lists/"""
+    return zip(*l)
 
 
 # Parsing functions
@@ -369,4 +383,92 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
                              stdout = stdout_file,
                              stderr = subp.STDOUT)
 
+    # Maybe failure message into file in ouput directory
+    if err_code != 0:
+        with open(pjoin(outdir, "FAILED"), 'w') as fail_file:
+            print('This run failed!', file=fail_file)
+
     return err_code
+
+
+def success_message(arglist, outdir):
+    print(green_colour(), ' '.join(arglist), end_colour())
+
+
+def failure_message(arglist, outdir):
+    # Print failure message to screen
+    print(red_colour(), ' '.join(arglist), "FAILED", end_colour())
+    print(red_colour(), "see", pjoin(outdir, "stdout"), end_colour())
+
+
+
+# Final function for the sweep
+def _run(argdict, varying_args, failure_action, success_action, base_outdir):
+    if argdict.get('-outdir') is not None:
+        error("Don't specify an outdir, it will be automatically generated")
+
+    # Construct an informative outdir name
+    varying_arg_names = [argdict[k] for k in varying_args]
+    outdir = pjoin(base_outdir, "results_" + "_".join(varying_arg_names))
+
+    # Make directory
+    cleandir(outdir)
+
+    # run with the args given, return err code and outdir
+    arglist, binary_path, mpi_command = argdict2list(argdict)
+    err = run_driver(arglist, outdir, binary_path, mpi_command)
+
+    # Do any actions (e.g. output messages)
+    if err != 0:
+        action_result = failure_action(arglist, outdir)
+    else:
+        action_result = success_action(arglist, outdir)
+
+    return err, outdir, action_result
+
+def _run_mp(args):
+    return _run(*args)
+
+
+def run_sweep(args_dict, base_outdir, parallel_sweep=False,
+              failure_action=None,
+              success_action=None):
+
+    # Default actions: print messages
+    if failure_action is None:
+        failure_action = failure_message
+    if success_action is None:
+        success_action = success_message
+
+
+    # Generate a complete set of combinations of parameters
+    parameter_dicts = (dict(zip(args_dict.keys(), x))
+                        for x in it.product(*args_dict.values()))
+
+
+    # Make a list of arguments that take multiple different values
+    varying_args = []
+    for k, v in args_dict.items():
+        if len(v) > 1:
+            varying_args.append(k)
+
+
+    # Run on all args. A little hacky because Pool() can't take locally
+    # defined fuctions, can't take multiple args in map and doesn't have a
+    # starmap.
+    if parallel_sweep:
+        args = zip(parameter_dicts, it.repeat(varying_args),
+                    it.repeat(failure_action),
+                    it.repeat(success_action),
+                    it.repeat(base_outdir))
+        out = multiprocessing.Pool().map(_run_mp, args, 1)
+    else:
+        out = map(_run, parameter_dicts,
+                  it.repeat(varying_args), it.repeat(failure_action),
+                  it.repeat(success_action), it.repeat(base_outdir))
+
+    # Extract err_codes etc into separate lists and force execution (just
+    # in case it's still an iterator)
+    err_codes, outdirs, action_results = unzip(list(out))
+
+    return err_codes, outdirs, action_results
