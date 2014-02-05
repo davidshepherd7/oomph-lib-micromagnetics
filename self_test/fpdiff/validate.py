@@ -18,17 +18,6 @@ from io import StringIO
 import contextlib
 
 
-# From pep0343
-@contextlib.contextmanager
-def stdout_redirected(new_stdout):
-    save_stdout = sys.stdout
-    sys.stdout = new_stdout
-    try:
-        yield None
-    finally:
-        sys.stdout = save_stdout
-
-
 def pytest(args, expected_result):
     """Run fpdiff as a python function and compare the result with what we
     expected."""
@@ -36,12 +25,11 @@ def pytest(args, expected_result):
     print("Running as python function with args", *args)
     print("Expecting", expected_result)
 
+    # Run with output redirected to a string and detailed error information
+    # discarded.
     mystdout = StringIO()
-
-    # Run within python, redirect stdout
-    with stdout_redirected(mystdout):
-        actual_result = fpdiff(*args)
-
+    with open(os.devnull, 'w') as null:
+        actual_result = fpdiff(*(args + [mystdout, null]))
     mystdout = mystdout.getvalue()
 
     if "[FAILED]" in mystdout:
