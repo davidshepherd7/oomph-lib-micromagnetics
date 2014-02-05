@@ -246,6 +246,15 @@ namespace oomph
 
     virtual void actions_before_newton_solve()
     {
+#ifdef PARANOID
+      if(Decoupled_ms && !Decoupled_ms_has_been_calculated)
+        {
+          std::string err = "Decoupled_ms_has_been_calculated not set";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
       // Call base class version
       MyProblem::actions_before_newton_solve();
 
@@ -274,6 +283,20 @@ namespace oomph
         // Explicit timestep is over now
         Inside_explicit_timestep = false;
       }
+
+    virtual void actions_before_explicit_stage()
+    {
+#ifdef PARANOID
+      if(Decoupled_ms && !Decoupled_ms_has_been_calculated)
+        {
+          std::string err = "Decoupled_ms_has_been_calculated not set";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+      MyProblem::actions_before_explicit_stage();
+    }
 
     virtual void actions_after_explicit_stage()
     {
@@ -824,6 +847,10 @@ public:
     Vector<DoubleVector*> Phi_boundary_values_pts;
 
 
+    /// Has decoupled ms been calculated yet? If not then we need to
+    /// calculate it before any steps.
+    bool Decoupled_ms_has_been_calculated;
+
   public:
 
     /// Are we solving for ms "properly" or using a separate solve?
@@ -875,6 +902,8 @@ public:
           phi_problem_pt()->newton_solve();
 
           oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
+
+          Decoupled_ms_has_been_calculated = true;
         }
       else
         {
