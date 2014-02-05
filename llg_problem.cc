@@ -542,6 +542,11 @@ namespace oomph
              "./meshes/square." + to_string(refinement_level) + ".ele",
              "./meshes/square." + to_string(refinement_level) + ".poly",
              time_stepper_pt);
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
@@ -751,6 +756,11 @@ namespace oomph
              "./meshes/square." + to_string(refinement_level) + ".ele",
              "./meshes/square." + to_string(refinement_level) + ".poly",
              time_stepper_pt);
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
@@ -846,6 +856,11 @@ namespace oomph
              "./meshes/square." + to_string(refinement_level) + ".ele",
              "./meshes/square." + to_string(refinement_level) + ".poly",
              time_stepper_pt);
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
         }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
