@@ -13,6 +13,21 @@ import subprocess as subp
 
 from fpdiff import fpdiff
 
+import io
+from io import StringIO
+import contextlib
+
+
+# From pep0343
+@contextlib.contextmanager
+def stdout_redirected(new_stdout):
+    save_stdout = sys.stdout
+    sys.stdout = new_stdout
+    try:
+        yield None
+    finally:
+        sys.stdout = save_stdout
+
 
 def pytest(args, expected_result):
     """Run fpdiff as a python function and compare the result with what we
@@ -21,11 +36,28 @@ def pytest(args, expected_result):
     print("Running as python function with args", *args)
     print("Expecting", expected_result)
 
-    # Run within python
-    actual_result = fpdiff(*args)
+    mystdout = StringIO()
 
-    # Return true if ok, false otherwise
-    return actual_result == expected_result
+    # Run within python, redirect stdout
+    with stdout_redirected(mystdout):
+        actual_result = fpdiff(*args)
+
+    mystdout = mystdout.getvalue()
+
+    if "[FAILED]" in mystdout:
+        stdout_result = False
+    elif "[OK]" in mystdout:
+        stdout_result = True
+    else:
+        # Neither message in output: failed test
+        print("Couldn't find [OK] or [FAILED] in output")
+        return False
+
+    # Return
+    test_pass = (actual_result == expected_result) \
+      and (stdout_result == expected_result)
+
+    return test_pass
 
 
 def shelltest(args, expected_result):
@@ -38,21 +70,33 @@ def shelltest(args, expected_result):
     # fpdiff should be accessible from $PATH so we can just call it directly
     fpdiff_path = "fpdiff.py"
 
-    # Run as script
-    with open(os.devnull, 'w') as fstdout:
-        script_code = subp.call([fpdiff_path] + list(map(str, args)))
+    # Run as script and get stdout
+    process = subp.Popen([fpdiff_path] + list(map(str, args)),
+                            stdout=subp.PIPE, stderr=subp.STDOUT)
+    mystdout, _ = process.communicate()
+    script_code = process.wait()
+
+    mystdout = mystdout.decode()
+
+    # check
     actual_result = (script_code == 0)
 
-    # Return true if ok, false otherwise
-    return actual_result == expected_result
+    if "[FAILED]" in mystdout:
+        stdout_result = False
+    elif "[OK]" in mystdout:
+        stdout_result = True
+    else:
+        # Neither message in output: failed test
+        print("Couldn't find [OK] or [FAILED] in output")
+        return False
 
+    # Return
+    test_pass = (actual_result == expected_result) \
+      and (stdout_result == expected_result)
+
+    return test_pass
 
 def main():
-
-    print("Hello! Watch out in this file: a report of [FAILED] doesn't actually")
-    print("mean that the test failed. Since we are testing fpdiff we want to")
-    print("check that it fails at the right times and so we *should* see some")
-    print("[FAILED] in the output.")
 
     tests = [
         # Same data
