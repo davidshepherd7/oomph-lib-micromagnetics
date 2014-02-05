@@ -531,6 +531,19 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "st_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularTriMesh<TMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
+         }
       else if(mesh_name == "single-element" && nnode1d == 2)
         {
           mesh_pt = new SingleElementMesh<QMicromagElement<2,2> >(time_stepper_pt);
@@ -749,6 +762,19 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "st_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularTriMesh<TSemiImplicitMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
+        }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
           mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
@@ -848,6 +874,19 @@ namespace oomph
           double lx = 1.0;
           mesh_pt = new SimpleRectangularQuadMesh<QMagnetostaticFieldElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "st_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularTriMesh<TMagnetostaticFieldElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
