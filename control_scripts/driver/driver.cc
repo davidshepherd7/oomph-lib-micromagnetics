@@ -130,6 +130,36 @@ namespace oomph
 
   }
 
+  std::string get_working_path()
+  {
+    char temp [ PATH_MAX ];
+
+    if ( getcwd(temp, PATH_MAX) != 0)
+      return std::string ( temp );
+
+    int error = errno;
+
+    switch ( error ) {
+      // EINVAL can't happen - size argument > 0
+
+      // PATH_MAX includes the terminating nul,
+      // so ERANGE should not be returned
+
+    case EACCES:
+      throw std::runtime_error("Access denied");
+
+    case ENOMEM:
+      // I'm not sure whether this can happen or not
+      throw std::runtime_error("Insufficient storage");
+
+    default: {
+      std::ostringstream str;
+      str << "Unrecognised error" << error;
+      throw std::runtime_error(str.str());
+    }
+    }
+  }
+
 }
 
 using namespace DriverFactories;
@@ -147,6 +177,8 @@ int main(int argc, char *argv[])
 //   // Enable some floating point error checkers
 //   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
 // #endif
+
+  std::cout << "cwd is:" << get_working_path() << std::endl;
 
   // Create problem class and argument parser
   oomph_info << "Making " << problem_name << " problem." << std::endl;
