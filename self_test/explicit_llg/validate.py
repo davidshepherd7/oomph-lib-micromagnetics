@@ -143,6 +143,7 @@ def main():
         "-dt": [0.05],
         "-scale": [5],
         "-mesh": ["sq_square"],
+        "-ref" : [2],
         "-disable-ms" : [True],
         "-ts" : ["rk2", "rk4"],
         "-tmax" : [3],
@@ -157,6 +158,7 @@ def main():
             "-driver" : "ll",
             "-dt": 0.01,
             "-scale": 5,
+            "-ref" : [2],
             "-mesh": "sq_square",
             "-decoupled-ms" : True,
             "-ts" : "midpoint-bdf",
@@ -172,6 +174,7 @@ def main():
         "-driver" : ["ll"],
         "-dt": [0.01],
         "-scale": [5],
+        "-ref" : [2],
         "-mesh": ["sq_square"],
         "-decoupled-ms" : [True],
         "-ts" : ["rk2"], # Don't run rk4 because 4th order makes it

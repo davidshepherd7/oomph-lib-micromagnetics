@@ -521,7 +521,7 @@ namespace oomph
       const std::string mesh_name = to_lower(_mesh_name);
 
       // Refinement always roughly the same for structured meshes
-      unsigned nx = 5 * std::pow(2, refinement_level);
+      unsigned nx = 5 * std::pow(2, refinement_level-1);
 
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt;
@@ -739,7 +739,7 @@ namespace oomph
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
-      unsigned nx = 5 * std::pow(2, refinement_level);
+      unsigned nx = 5 * std::pow(2, refinement_level-1);
 
       // Make the mesh and store a pointer to it
       Mesh* mesh_pt;
@@ -838,7 +838,7 @@ namespace oomph
       // Ignore case in mesh names
       const std::string mesh_name = to_lower(_mesh_name);
 
-      unsigned nx = 5 * std::pow(2, refinement_level);
+      unsigned nx = 5 * std::pow(2, refinement_level-1);
 
 
       // Make the mesh and store a pointer to it

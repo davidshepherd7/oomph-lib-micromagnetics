@@ -132,7 +132,7 @@ def main():
     #                 cwd="../../control_scripts/driver/")
 
     jacobian_params = {'-mesh': 'sq_cubeoid',
-                        '-ref': 1,
+                        '-ref': 2,
                         '-dt': 1e-4,
                         '-tmax': 2e-4,
                         '-initial-m': 'smoothly_varying_50',

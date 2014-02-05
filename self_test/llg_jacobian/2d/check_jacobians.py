@@ -134,7 +134,7 @@ def main():
     # Set of parameters to test the Jacobians for. Use varying initial m to
     # get mostly non-zeros in J.
     jacobian_params = {'-mesh': 'sq_square',
-                        '-ref': 2,
+                        '-ref': 3,
                         '-dt': 1e-4,
                         '-tmax': 3e-4,
                         '-initial-m': 'smoothly_varying_5',
