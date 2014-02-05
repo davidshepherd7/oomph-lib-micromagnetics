@@ -95,13 +95,18 @@ using namespace StringConversion;
 
       // By default output to trace file every step
       Always_write_trace = true;
+
+      Dump = false;
+
+      N_steps_taken = 0;
     }
 
     /// Destructor
     virtual ~MyProblem() {}
 
-
-    double smart_newton_solve(double dt, const double& tol)
+    /// Do the newton solve or explicit step (different ones depending flags
+    /// set).
+    double smart_time_step(double dt, const double& tol)
     {
       // The Newton step itself, adaptive if requested.
       if(explicit_flag())
@@ -116,6 +121,8 @@ using namespace StringConversion;
         {
           unsteady_newton_solve(dt);
         }
+
+      N_steps_taken++;
 
       return dt;
     }
@@ -653,6 +660,8 @@ using namespace StringConversion;
 
     MyDocInfo Doc_info;
     unsigned Output_precision;
+
+    unsigned N_steps_taken;
 
     std::string Trace_filename;
     std::string Info_filename;

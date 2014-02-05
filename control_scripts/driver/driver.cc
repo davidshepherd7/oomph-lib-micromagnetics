@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
   // Initialise loop variables
   double dt = args_pt->dt, tmax = args_pt->tmax;
   double tol = args_pt->tol;
-  unsigned time_step_number = 0, max_steps = args_pt->max_steps;
+  unsigned max_steps = args_pt->max_steps;
 
   // Solve
   if(problem_pt->is_steady())
@@ -252,22 +252,21 @@ int main(int argc, char *argv[])
   else
     {
       // Time step to end or to max max number of steps
-      while((problem_pt->time() < tmax) && (time_step_number < max_steps))
+      while((problem_pt->time() < tmax)
+            && (problem_pt->N_steps_taken < max_steps))
         {
-          time_step_number++;
-
           // Output some basic info
           oomph_info
             << std::endl
             << std::endl
-            << "Time step " << time_step_number
+            << "Time step " << problem_pt->N_steps_taken
             << ", time = " << problem_pt->time()
             << ", dt = " << dt << std::endl
             << "=============================================" << std::endl
             << std::endl;
 
           // Do the newton solve (different ones depending flags set)
-          dt = problem_pt->smart_newton_solve(dt, tol);
+          dt = problem_pt->smart_time_step(dt, tol);
 
           // Output
           problem_pt->doc_solution();
