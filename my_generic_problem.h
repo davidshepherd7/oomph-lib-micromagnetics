@@ -477,6 +477,9 @@ using namespace StringConversion;
       {
         bool doc_this_step = should_doc_this_step(time_pt()->dt(), time());
 
+        const std::string dir = Doc_info.directory();
+        const std::string num = to_string(Doc_info.number());
+
         if(Always_write_trace || doc_this_step)
           {
             // Always output trace file data
@@ -486,21 +489,24 @@ using namespace StringConversion;
         // Output full set of data if requested for this timestep
         if(doc_this_step)
           {
-            std::ofstream soln_file((Doc_info.directory() + "/" + "soln" +
-                                     to_string(Doc_info.number()) + ".dat").c_str(),
+
+            // Solution itself
+            std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
                                     std::ios::out);
             soln_file.precision(Output_precision);
             doc_solution_additional(soln_file);
             soln_file.close();
 
             // Write the simulation time and filename to the pvd file
-            std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+            std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
                                    std::ios::app);
             pvd_file.precision(Output_precision);
+
             pvd_file << "<DataSet timestep=\"" << time()
-              << "\" group=\"\" part=\"0\" file=\"" << "soln"
-                     << Doc_info.number() << ".vtu"
-              << "\"/>" << std::endl;
+                     << "\" group=\"\" part=\"0\" file=\"" << "soln"
+                     << num << ".vtu"
+                     << "\"/>" << std::endl;
+
             pvd_file.close();
 
             Doc_info.number()++;
