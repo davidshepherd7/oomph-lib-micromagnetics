@@ -568,6 +568,8 @@ namespace oomph
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
           mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
@@ -795,6 +797,8 @@ namespace oomph
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
           mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
@@ -841,9 +845,6 @@ namespace oomph
 
       // Scale the mesh as requested
       scale_mesh(scaling_factor, mesh_pt);
-
-      // For some reason we need to call this manually
-      mesh_pt->setup_boundary_element_info();
 
       // Done: pass out the mesh pointer
       return mesh_pt;
@@ -907,6 +908,8 @@ namespace oomph
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
           mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
@@ -947,9 +950,6 @@ namespace oomph
 
       // Scale the mesh as requested
       scale_mesh(scaling_factor, mesh_pt);
-
-      // For some reason we need to call this manually
-      mesh_pt->setup_boundary_element_info();
 
       // Done: pass out the mesh pointer
       return mesh_pt;
