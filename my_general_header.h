@@ -224,6 +224,12 @@ namespace oomph
         specify_command_line_flag("-predictor-as-initial-guess",
                                   &predictor_as_initial_guess);
         predictor_as_initial_guess = -1;
+
+        specify_command_line_flag("-dump", &dump);
+        dump = -1;
+
+        specify_command_line_flag("-restart", &restart_file);
+        restart_file = "";
       }
 
     void parse(int argc, char *argv[])
@@ -446,6 +452,9 @@ namespace oomph
 
     double doc_times_interval;
     Vector<double> doc_times;
+
+    int dump;
+    std::string restart_file;
 
     // Mesh parameters
     MeshFactoryFctPt mesh_factory_pt;

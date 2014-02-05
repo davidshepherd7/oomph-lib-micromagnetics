@@ -498,6 +498,48 @@ namespace oomph
         calculate_energies(false);
       }
 
+    virtual void dump(std::ofstream& dump_file) const
+    {
+      if(!Disable_ms)
+        {
+          throw OomphLibError("Not yet implemented",
+                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+        }
+
+      // Set very high precision to avoid any issues
+      dump_file.precision(14);
+
+      // Dump sub problems if needed
+      if(Decoupled_ms)
+        {
+          phi_problem_pt()->dump(dump_file);
+          phi_1_problem_pt()->dump(dump_file);
+        }
+
+      // Let base class handle the rest
+      MyProblem::dump(dump_file);
+    }
+
+    virtual void read(std::ifstream& restart_file)
+    {
+      if(!Disable_ms)
+        {
+          throw OomphLibError("Not yet implemented",
+                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+        }
+
+      // Read sub problems if needed
+      if(Decoupled_ms)
+        {
+          phi_problem_pt()->read(restart_file);
+          phi_1_problem_pt()->read(restart_file);
+        }
+
+      // Let base class handle the rest
+      MyProblem::read(restart_file);
+    }
+
+
 
     // Lots of magnetisation manipulation functions
     // ============================================================

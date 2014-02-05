@@ -207,6 +207,11 @@ int main(int argc, char *argv[])
   problem_pt->Disable_explicit_solver_optimisations =
     args_pt->disable_explicit_solver_optimisations;
 
+  if(args_pt->dump != -1)
+    {
+      problem_pt->Dump = args_pt->dump;
+    }
+
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string();
   problem_pt->Doc_info.set_directory(args_pt->outdir);
@@ -268,7 +273,18 @@ int main(int argc, char *argv[])
     }
 
   problem_pt->initialise_dt(args_pt->dt); //??ds is this ok for steady state prob?
-  problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
+
+  // Get initial condition from either a function pt or a restart file
+  if(args_pt->restart_file == "")
+    {
+      problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
+    }
+  else
+    {
+      std::ifstream restart_file(args_pt->restart_file.c_str());
+      problem_pt->read(restart_file);
+    }
+
   problem_pt->initial_doc();
 
   // Initialise loop variables
@@ -283,7 +299,7 @@ int main(int argc, char *argv[])
     }
   else
     {
-      // Time step to end or to max max number of steps
+      // Time step to end or to max number of steps
       while((problem_pt->time() < tmax)
             && (problem_pt->N_steps_taken < max_steps))
         {

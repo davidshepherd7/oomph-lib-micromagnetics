@@ -509,6 +509,16 @@ using namespace StringConversion;
 
             pvd_file.close();
 
+
+            // Maybe dump the restart data
+            if(Dump)
+              {
+                std::ofstream dump_file((dir + "/" + "dump" + num + ".dat").c_str(),
+                                        std::ios::out);
+                this->dump(dump_file);
+              }
+
+
             Doc_info.number()++;
           }
       }
@@ -664,6 +674,41 @@ using namespace StringConversion;
     /// in every bulk mesh in this problem.
     virtual double integrate_over_problem(const ElementalFunction* func_pt) const;
 
+
+    virtual void dump(std::ofstream& dump_file) const
+      {
+        // Set very high precision to avoid any issues
+        dump_file.precision(14);
+
+        dump_file << Doc_info.number() << " # Doc_info.number()" << std::endl;
+        dump_file << N_steps_taken << " # N_steps_taken" << std::endl;
+        Problem::dump(dump_file);
+      }
+
+    virtual void read(std::ifstream& restart_file)
+    {
+      // buffer
+      std::string input_string;
+
+      // Read in Doc_info number. Read line up to termination sign then
+      // ignore.
+      getline(restart_file, input_string, '#');
+      restart_file.ignore(80,'\n');
+      Doc_info.number() = std::atoi(input_string.c_str());
+
+      // Read in number of steps taken. Read line up to termination sign
+      // then ignore.
+      getline(restart_file, input_string, '#');
+      restart_file.ignore(80,'\n');
+      N_steps_taken = std::atoi(input_string.c_str());
+
+      // Let base class handle the rest
+      Problem::read(restart_file);
+
+      // Decrement doc info number so that it is correct after initial doc
+      // Doc_info.number()--;
+    }
+
     MyDocInfo Doc_info;
     unsigned Output_precision;
 
@@ -680,6 +725,9 @@ using namespace StringConversion;
 
     // Should we output to trace file every step?
     bool Always_write_trace;
+
+    /// Should we dump ready for a restart?
+    bool Dump;
 
   protected:
 
