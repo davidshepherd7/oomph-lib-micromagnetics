@@ -500,12 +500,6 @@ namespace oomph
 
     virtual void dump(std::ofstream& dump_file) const
     {
-      if(!Disable_ms)
-        {
-          throw OomphLibError("Not yet implemented",
-                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-        }
-
       // Set very high precision to avoid any issues
       dump_file.precision(14);
 
@@ -522,11 +516,6 @@ namespace oomph
 
     virtual void read(std::ifstream& restart_file)
     {
-      if(!Disable_ms)
-        {
-          throw OomphLibError("Not yet implemented",
-                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-        }
 
       // Read sub problems if needed
       if(Decoupled_ms)

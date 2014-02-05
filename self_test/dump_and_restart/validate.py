@@ -68,9 +68,9 @@ def main():
         '-dt' : [0.1],
         '-max-steps' : [30],
         '-tmax' : [999],
-        '-mesh' : ['sq_square'],# , 'ut_square'],
-        '-decoupled-ms' : [False],
-        '-disable-ms' : [True],
+        '-mesh' : ['sq_square', 'ut_square'],# , 'ut_cubeoid'],
+        '-decoupled-ms' : [True, False],
+        # '-disable-ms' : [True],
         '-doc-interval' : [0],
         }
 
