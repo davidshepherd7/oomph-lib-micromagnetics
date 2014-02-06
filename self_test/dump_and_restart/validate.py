@@ -25,14 +25,30 @@ import oomphpy.tests as tests
 from fpdiff import fpdiff
 
 
+def restarted_run(restart_argdict, old_outdir, varying_args, base_restart_outdir):
+    restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump5.dat"))
+    restart_argdict['-dump'] = 0
+    return mm._run(restart_argdict, base_restart_outdir, varying_args)
+
+
 def main():
+
+    # Parse arguments
+    # ============================================================
+
+    parser = argparse.ArgumentParser(description=main.__doc__,
+        # Don't mess up my formating in the help message
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--parallel', '-p', action = "store_true")
+    args = parser.parse_args()
+
 
     # What to run
     argdicts = {
         "-driver" : ["llg"],
         '-dump' : [1],
         '-dt' : [0.1],
-        '-max-steps' : [30],
+        '-max-steps' : [10],
         '-tmax' : [999],
         '-mesh' : ['sq_square', 'ut_square', 'st_square',
                     'ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
@@ -51,7 +67,7 @@ def main():
                                         "restart"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir, args.parallel)
 
 
     varying_args = []
@@ -60,32 +76,24 @@ def main():
             varying_args.append(k)
 
 
-    # Run again from restart, write loop rather than using run_sweep so
-    # that we can handle restarts
-    restart_err_codes = []
-    restart_outdirs = []
+    # Run again from restart
     # ??ds massive hack here: I'm hoping that the order of outdirs is the
     # same as the order of mm.product_of_argdict(argdicts)...
-    for restart_argdict, old_outdir in zip(mm.product_of_argdict(argdicts),
-                                            outdirs):
-        restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump20.dat"))
+    restart_err_codes, restart_outdirs = \
+        mm.unzip( mm.parallel_map(restarted_run, mm.product_of_argdict(argdicts), outdirs,
+                                it.repeat(varying_args),
+                                it.repeat(base_restart_outdir),
+                                serial_mode=not args.parallel) )
 
-        restart_argdict['-dump'] = 0
-
-        err, outdir = mm._run(restart_argdict, base_restart_outdir,
-                              varying_args)
-
-        restart_err_codes.append(err)
-        restart_outdirs.append(outdir)
 
     # Check things
     ran = all((e == 0 for e in it.chain(err_codes, restart_err_codes)))
 
-    t1 = all([tests.check_restarted_in_middle(rdir, 20) for rdir in restart_outdirs])
+    t1 = all([tests.check_restarted_in_middle(rdir, 5) for rdir in restart_outdirs])
 
     with open(os.devnull, 'w') as null:
         fpdiff_args = {'details_stream' : null,
-                       # outstream=null,
+                       'outstream' : null,
                        'relative_error' : 0.1,
                        'small' : 1e-14,
                        }
