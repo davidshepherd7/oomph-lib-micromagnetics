@@ -16,7 +16,7 @@ MM_LIB_DIR="$micromagroot/"
 # No magnetostatics
 # ============================================================
 
-valdir=$TPWD/Validation_no_ms
+valdir=$TPWD/Validation/no_ms
 new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
@@ -43,7 +43,7 @@ wrapped_fpdiff  $valdir/J_1_1_block_6_6 <(echo -n "")
 # ============================================================
 # this should be exactly the same as without ms
 
-valdir=$TPWD/Validation_expl_ms
+valdir=$TPWD/Validation/expl_ms
 new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
@@ -70,7 +70,7 @@ wrapped_fpdiff  $valdir/J_1_1_block_6_6 <(echo -n "")
 # With magnetostatics (implicit, CR Jacobian)
 # ============================================================
 
-valdir=$TPWD/Validation_ms
+valdir=$TPWD/Validation/ms
 new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
@@ -96,7 +96,7 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "49")
 # With m blocking (implicit, CR Jacobian)
 # ============================================================
 
-valdir=$TPWD/Validation_ms
+valdir=$TPWD/Validation/blockm_ms
 new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
@@ -124,7 +124,7 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "25")
 # # With magnetostatics (implicit, SOM Jacobian)
 # # ============================================================
 
-# valdir=$TPWD/Validation_ms
+# valdir=$TPWD/Validation/ms
 # new_clean_dir $valdir
 
 # cd $CONTROL_SCRIPTS/driver/
