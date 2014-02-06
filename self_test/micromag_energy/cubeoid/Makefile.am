@@ -1,1 +1,1 @@
-SUBDIRS = ll_residual standard
+SUBDIRS = ll_residual standard h_matrix
