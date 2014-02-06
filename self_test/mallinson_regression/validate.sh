@@ -32,8 +32,6 @@ TPWD=$(pwd)
 MM_LIB_DIR="../../"
 
 # Make sure it's all ready
-make -k -s -C $MM_LIB_DIR
-make -k -s -C $MM_LIB_DIR install
 new_clean_dir Validation
 
 # Run
