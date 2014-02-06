@@ -92,7 +92,7 @@ def main():
         fpdiff_args = {'details_stream' : null,
                        'outstream' : null,
                        'relative_error' : 0.1,
-                       'small' : 1e-14,
+                       'small' : 1e-8,
                        }
 
         t2 = all([tests.check_solns_match(rdir, odir, **fpdiff_args)
