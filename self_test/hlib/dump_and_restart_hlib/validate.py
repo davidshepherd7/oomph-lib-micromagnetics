@@ -9,7 +9,6 @@ import sys
 import argparse
 import os
 import os.path
-import copy
 
 import itertools as it
 
@@ -17,29 +16,24 @@ from os.path import join as pjoin
 
 # Make sure *this* versions oomphpy is in the path (before any other
 # versions in other places)
-sys.path.insert(1, pjoin(os.path.dirname(__file__), "../../etc"))
+sys.path.insert(1, pjoin(os.path.dirname(__file__), "../../../etc"))
 import oomphpy
 import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
-from fpdiff import fpdiff
-
 
 def main():
 
-    # What to run
     argdicts = {
         "-driver" : ["llg"],
         '-dump' : [1],
         '-dt' : [0.1],
         '-max-steps' : [30],
         '-tmax' : [999],
-        '-mesh' : ['sq_square', 'ut_square', 'st_square',
-                    'ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
+        '-mesh' : ['ut_cubeoid', 'st_cubeoid'],
         '-decoupled-ms' : [True, False],
-        # '-disable-ms' : [True],
         '-doc-interval' : [0],
-        '-hlib-bem' : [0],
+        '-hlib-bem' : [1],
         '-solver' : ['som-gmres'],
         '-prec' : ['som-main-exact'],
         }
@@ -78,6 +72,7 @@ def main():
         restart_err_codes.append(err)
         restart_outdirs.append(outdir)
 
+
     # Check things
     ran = all((e == 0 for e in it.chain(err_codes, restart_err_codes)))
 
@@ -92,7 +87,6 @@ def main():
 
         t2 = all([tests.check_solns_match(rdir, odir, **fpdiff_args)
                   for rdir, odir in zip(restart_outdirs, outdirs)])
-
 
     if ran and t1 and t2:
         return 0

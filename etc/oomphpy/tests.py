@@ -18,6 +18,7 @@ sys.path.insert(1, pjoin(os.path.dirname(__file__), "../"))
 import oomphpy
 import oomphpy.micromagnetics as mm
 
+from fpdiff import fpdiff
 
 def _default_label(data):
     """Get last two parts of the path"""
@@ -62,3 +63,41 @@ def check_m_length(data, tol=1e-8, identifier=None):
         mm.okprint("|m| ok in", identifier)
 
     return length_test
+
+
+def check_restarted_in_middle(restart_outdir, restart_point=20):
+
+    last_no_soln = "soln%i.dat" % (restart_point - 1)
+    first_soln = "soln%i.dat" % restart_point
+
+    ok = (not os.path.isfile(pjoin(restart_outdir, last_no_soln))) \
+      and (os.path.isfile(pjoin(restart_outdir, first_soln)))
+
+    if ok:
+        mm.okprint("Restarted at correct point in", restart_outdir)
+    else:
+        mm.badprint("Failed or restarted at wrong point in", restart_outdir)
+
+    return ok
+
+
+def check_solns_match(main_dir="Validation", compare_dir="validata", **kwargs):
+
+    matches = []
+    for fname in os.listdir(main_dir):
+        if ("soln" in fname) and (".dat" in fname):
+            match = fpdiff(pjoin(main_dir, fname),
+                            pjoin(compare_dir, fname), **kwargs)
+            matches.append(match)
+
+    if len(matches) == 0:
+        mm.badprint("No files in", main_dir)
+        return False
+
+    ok = all(matches)
+    if ok:
+        mm.okprint("Files match in", main_dir, compare_dir)
+    else:
+        mm.badprint("Files don't match in", main_dir, compare_dir)
+
+    return ok
