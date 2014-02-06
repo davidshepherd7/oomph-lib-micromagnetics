@@ -292,6 +292,24 @@ def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
 
     return results
 
+def parallel_map(function, *args, serial_mode=False):
+    """Run function with args in parallel using all available cores.
+    """
+
+    import multiprocessing
+
+    # For debugging we often need to run in serial (to get useful stack
+    # traces).
+    if serial_mode:
+        results = map(function, *args)
+
+    else:
+        # Run in all parameter sets in parallel
+        results = multiprocessing.Pool().starmap(function, unzip(args), 1)
+
+    return results
+
+
 
 # Driver execution functions
 # ============================================================
