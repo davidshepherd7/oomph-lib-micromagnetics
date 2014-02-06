@@ -22,7 +22,11 @@ import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
 
-def restarted_run(restart_argdict, old_outdir, varying_args, base_restart_outdir):
+def restarted_run(restart_argdict, varying_args, base_restart_outdir, base_outdir):
+
+    # Construct original outdir name
+    varying_arg_names = [str(restart_argdict[k]) for k in varying_args]
+    old_outdir = pjoin(base_outdir, "results_" + "_".join(varying_arg_names))
 
     restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump5.dat"))
     restart_argdict['-dump'] = 0
@@ -73,13 +77,13 @@ def main():
 
 
     # Run again from restart
-    # ??ds massive hack here: I'm hoping that the order of outdirs is the
-    # same as the order of mm.product_of_argdict(argdicts)...
     restart_err_codes, restart_outdirs = \
-        mm.unzip( mm.parallel_map(restarted_run, mm.product_of_argdict(argdicts), outdirs,
+        mm.unzip( mm.parallel_map(restarted_run, mm.product_of_argdict(argdicts),
                                 it.repeat(varying_args),
                                 it.repeat(base_restart_outdir),
+                                it.repeat(base_outdir),
                                 serial_mode=not args.parallel) )
+
 
 
     # Check things
