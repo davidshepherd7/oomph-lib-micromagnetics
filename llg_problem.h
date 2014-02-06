@@ -526,6 +526,9 @@ namespace oomph
 
       // Let base class handle the rest
       MyProblem::read(restart_file);
+
+
+      actions_after_set_initial_condition();
     }
 
 
