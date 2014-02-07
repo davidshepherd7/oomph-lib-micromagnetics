@@ -15,11 +15,11 @@ new_clean_dir $CUBEOID_DIR
 
 # Run simulation
 cd $CONTROL_SCRIPTS/driver/
-./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -mesh ut_cubeoid  -ref 2 \
+./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -mesh ut_cubeoid  -ref 4 \
     -solver superlu -h-app zero -initial-m xz -mag-params 'simple-llg' \
     -hlib-bem 1 \
      -outdir $CUBEOID_DIR 2>&1 > $CUBEOID_DIR/stdout
 
 # Extract + check energies
 final_energy $CUBEOID_DIR/trace > $CUBEOID_DIR/energies
-wrapped_fpdiff $CUBEOID_DIR/energies $TPWD/../cubeoid_energies 15 1e-4
+wrapped_fpdiff $CUBEOID_DIR/energies $TPWD/../cubeoid_energies 8 1.4e-4
