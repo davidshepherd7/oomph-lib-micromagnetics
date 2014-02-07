@@ -215,14 +215,18 @@ namespace oomph
         }
     }
 
-    virtual void actions_before_implicit_timestep()
+
+    virtual void actions_after_implicit_timestep()
       {
+        MyProblem::actions_after_implicit_timestep();
+
         if(Decoupled_ms)
           {
             // Solve for the magnetostatic field.
             magnetostatics_solve();
           }
       }
+
 
     virtual void actions_before_newton_step()
     {
