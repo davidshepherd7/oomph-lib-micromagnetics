@@ -28,7 +28,7 @@ def restarted_run(restart_argdict, varying_args, base_restart_outdir, base_outdi
     varying_arg_names = [str(restart_argdict[k]) for k in varying_args]
     old_outdir = pjoin(base_outdir, "results_" + "_".join(varying_arg_names))
 
-    restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump5.dat"))
+    restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump2.dat"))
     restart_argdict['-dump'] = 0
     return mm._run(restart_argdict, base_restart_outdir, varying_args)
 
@@ -49,16 +49,15 @@ def main():
         "-driver" : ["llg"],
         '-dump' : [1],
         '-dt' : [0.1],
-        '-max-steps' : [10],
+        '-max-steps' : [4],
         '-tmax' : [999],
-        '-mesh' : ['ut_cubeoid', 'st_cubeoid'],
+        '-mesh' : ['ut_cubeoid'],
         '-decoupled-ms' : [True, False],
         '-doc-interval' : [0],
         '-hlib-bem' : [1],
         '-solver' : ['som-gmres'],
         '-prec' : ['som-main-exact'],
         }
-
 
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation",
@@ -84,13 +83,10 @@ def main():
                                 it.repeat(base_outdir),
                                 serial_mode=not args.parallel) )
 
-
-
     # Check things
     ran = all((e == 0 for e in it.chain(err_codes, restart_err_codes)))
 
-    t1 = all([tests.check_restarted_in_middle(rdir, 5)
-               for rdir in restart_outdirs])
+    t1 = all([tests.check_restarted_in_middle(rdir, 2) for rdir in restart_outdirs])
 
     with open(os.devnull, 'w') as null:
         fpdiff_args = {'details_stream' : null,

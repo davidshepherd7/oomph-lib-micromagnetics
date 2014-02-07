@@ -9,7 +9,6 @@ import sys
 import argparse
 import os
 import os.path
-import copy
 
 import itertools as it
 
@@ -22,8 +21,6 @@ import oomphpy
 import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
-from fpdiff import fpdiff
-
 
 def restarted_run(restart_argdict, varying_args, base_restart_outdir, base_outdir):
 
@@ -31,7 +28,7 @@ def restarted_run(restart_argdict, varying_args, base_restart_outdir, base_outdi
     varying_arg_names = [str(restart_argdict[k]) for k in varying_args]
     old_outdir = pjoin(base_outdir, "results_" + "_".join(varying_arg_names))
 
-    restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump5.dat"))
+    restart_argdict['-restart'] = os.path.abspath(pjoin(old_outdir, "dump2.dat"))
     restart_argdict['-dump'] = 0
     return mm._run(restart_argdict, base_restart_outdir, varying_args)
 
@@ -48,17 +45,14 @@ def main():
     args = parser.parse_args()
 
 
-    # What to run
     argdicts = {
         "-driver" : ["llg"],
         '-dump' : [1],
         '-dt' : [0.1],
-        '-max-steps' : [10],
+        '-max-steps' : [4],
         '-tmax' : [999],
-        '-mesh' : ['sq_square', 'ut_square', 'st_square',
-                    'ut_cubeoid', 'sq_cubeoid', 'st_cubeoid'],
+        '-mesh' : ['sq_square', 'ut_square', 'st_square', 'ut_cubeoid'],
         '-decoupled-ms' : [True, False],
-        # '-disable-ms' : [True],
         '-doc-interval' : [0],
         '-hlib-bem' : [0],
         '-solver' : ['som-gmres'],
@@ -89,11 +83,10 @@ def main():
                                 it.repeat(base_outdir),
                                 serial_mode=not args.parallel) )
 
-
     # Check things
     ran = all((e == 0 for e in it.chain(err_codes, restart_err_codes)))
 
-    t1 = all([tests.check_restarted_in_middle(rdir, 5) for rdir in restart_outdirs])
+    t1 = all([tests.check_restarted_in_middle(rdir, 2) for rdir in restart_outdirs])
 
     with open(os.devnull, 'w') as null:
         fpdiff_args = {'details_stream' : null,
@@ -104,7 +97,6 @@ def main():
 
         t2 = all([tests.check_solns_match(rdir, odir, **fpdiff_args)
                   for rdir, odir in zip(restart_outdirs, outdirs)])
-
 
     if ran and t1 and t2:
         return 0
