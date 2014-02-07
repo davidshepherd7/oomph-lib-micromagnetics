@@ -42,16 +42,24 @@ def main():
         # Don't mess up my formating in the help message
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--parallel', '-p', action = "store_true")
+    parser.add_argument('--slow', '-s', action = "store_true")
     args = parser.parse_args()
 
+    if args.slow:
+        max_step = 10
+        meshes = ['sq_square', 'ut_square', 'st_square', 'ut_cubeoid',
+                  'st_cubeoid']
+    else:
+        max_step = 4
+        meshes = ['sq_square', 'ut_square', 'st_square', 'ut_cubeoid']
 
     argdicts = {
         "-driver" : ["llg"],
         '-dump' : [1],
         '-dt' : [0.1],
-        '-max-steps' : [4],
+        '-max-steps' : [max_step],
         '-tmax' : [999],
-        '-mesh' : ['sq_square', 'ut_square', 'st_square', 'ut_cubeoid'],
+        '-mesh' : meshes,
         '-decoupled-ms' : [True, False],
         '-doc-interval' : [0],
         '-hlib-bem' : [0],
