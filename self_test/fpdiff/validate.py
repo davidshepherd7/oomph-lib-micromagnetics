@@ -29,7 +29,7 @@ def pytest(args, expected_result):
     # discarded.
     mystdout = StringIO()
     with open(os.devnull, 'w') as null:
-        actual_result = fpdiff(*(args + [mystdout, null]))
+        actual_result, _, _ = fpdiff(*(args + [mystdout, null]))
     mystdout = mystdout.getvalue()
 
     if "[FAILED]" in mystdout:
