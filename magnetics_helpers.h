@@ -88,6 +88,18 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> mumag4_initial(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+
+    // Strong, decay "slowly" to zero
+    h[0] = std::max(2.5 * (15 - t)/15, 0.0);
+    h[1] = h[0];
+    h[2] = 0;
+
+    return h;
+  }
+
   inline Vector<double> non_uniform_z_helper
   (const double& t, const Vector<double> &x, double l)
   {
@@ -199,6 +211,10 @@ namespace HApp
     else if(field_name == "minus_x_above_x0")
       {
         return &HApp::minus_x_above_x0;
+      }
+    else if(field_name == "mumag4_initial")
+      {
+        return &HApp::mumag4_initial;
       }
     else
       {
