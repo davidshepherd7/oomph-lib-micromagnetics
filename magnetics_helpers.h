@@ -18,6 +18,15 @@ description of file goes here
 namespace oomph
 {
 
+  /// Generic zero initial condition function
+  template<unsigned NVAL>
+  inline Vector<double> zero_initial_condition(const double& t,
+                                               const Vector<double> &x)
+  {
+    Vector<double> v(NVAL, 0.0);
+    return v;
+  }
+
 namespace HApp
 {
   using namespace oomph;
@@ -27,8 +36,7 @@ namespace HApp
 
   inline Vector<double> zero(const double& t, const Vector<double> &x)
   {
-    Vector<double> h(3, 0.0);
-    return h;
+    return zero_initial_condition<3>(t, x);
   }
 
   inline Vector<double> x(const double& t, const Vector<double> &x)
