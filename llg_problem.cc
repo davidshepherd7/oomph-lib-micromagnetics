@@ -196,12 +196,10 @@ namespace oomph
                                       Vector<Mesh*>& phi_mesh_pts,
                                       Vector<Mesh*>& phi_1_mesh_pts)
   {
-    // // First build the llg problem
-    // build(llg_mesh_pts);
-
 
     // Throughout this function we need to be careful not to use each
-    // problem's global mesh pointer until it as been built.
+    // problem's global mesh pointer because they are built only during
+    // this function.
 
     // Set up phi_1 problem
     // ============================================================
@@ -237,81 +235,6 @@ namespace oomph
 #endif
 
 
-    // Assign bulk elements pointers to each other (and check that it is
-    // safe).
-    for(unsigned msh=0; msh<llg_mesh_pts.size(); msh++)
-      {
-        Mesh* phi_mesh_pt = phi_mesh_pts[msh];
-        Mesh* llg_mesh_pt = llg_mesh_pts[msh];
-        Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
-
-#ifdef PARANOID
-        // Things will go wrong if the nodes of all meshes are not in
-        // the same place:
-        if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
-           || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
-          {
-            std::ostringstream error_msg;
-            error_msg << "Mesh nodes must be the same.";
-            throw OomphLibError(error_msg.str(),
-                                OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-
-        if((phi_1_mesh_pt->nelement() != phi_mesh_pt->nelement())
-           || (phi_1_mesh_pt->nelement() != llg_mesh_pt->nelement()))
-          {
-            std::ostringstream error_msg;
-            error_msg << "Mesh nelements must be the same.";
-            throw OomphLibError(error_msg.str(),
-                                OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-
-        unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
-        for(unsigned j=0; j<dim; j++)
-          {
-            for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
-              {
-                if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                    phi_mesh_pt->node_pt(nd)->x(j))
-                   ||
-                   (phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                    llg_mesh_pt->node_pt(nd)->x(j)))
-                  {
-                    std::ostringstream error_msg;
-                    error_msg << "Mesh nodes must be in the same places.";
-                    throw OomphLibError(error_msg.str(),
-                                        OOMPH_CURRENT_FUNCTION,
-                                        OOMPH_EXCEPTION_LOCATION);
-                  }
-              }
-          }
-#endif
-
-        // Assign the various elements pointers to each other
-        for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
-          {
-
-            // Get the element pointers
-            MagnetostaticFieldEquations* phi_1_ele_pt =
-              checked_dynamic_cast<MagnetostaticFieldEquations*>
-              (phi_1_mesh_pt->element_pt(e));
-            MagnetostaticFieldEquations* phi_ele_pt =
-              checked_dynamic_cast<MagnetostaticFieldEquations*>
-              (phi_mesh_pt->element_pt(e));
-            SemiImplicitMicromagEquations* m_ele_pt =
-              checked_dynamic_cast<SemiImplicitMicromagEquations*>
-              (llg_mesh_pt->element_pt(e));
-
-            phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
-            phi_ele_pt->set_micromag_element_pt(m_ele_pt);
-            m_ele_pt->magnetostatic_field_element_pt() = phi_ele_pt;
-          }
-
-      }
-
-
     // Phi problem
     // ============================================================
 
@@ -341,6 +264,93 @@ namespace oomph
       }
 
     phi_problem_pt()->build(phi_mesh_pts);
+
+
+    // Coupling between problems
+    // ============================================================
+
+    // Assign bulk elements pointers to each other (and check that it is
+    // safe).
+    for(unsigned msh=0; msh<llg_mesh_pts.size(); msh++)
+      {
+        Mesh* phi_mesh_pt = phi_mesh_pts[msh];
+        Mesh* llg_mesh_pt = llg_mesh_pts[msh];
+        Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
+
+#ifdef PARANOID
+        // Things will go wrong if the nodes of all meshes are not in
+        // the same place:
+        if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
+           || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nnodes must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        if((phi_1_mesh_pt->nelement() != phi_mesh_pt->nelement())
+           || (phi_1_mesh_pt->nelement() != llg_mesh_pt->nelement()))
+          {
+            std::ostringstream error_msg;
+            error_msg << "Mesh nelements must be the same.";
+            throw OomphLibError(error_msg.str(),
+                                OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+
+        unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
+        for(unsigned j=0; j<dim; j++)
+          {
+            for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
+              {
+                if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    phi_mesh_pt->node_pt(nd)->x(j))
+                   ||
+                   (phi_1_mesh_pt->node_pt(nd)->x(j) !=
+                    llg_mesh_pt->node_pt(nd)->x(j)))
+                  {
+                    Vector<double> phi1x(dim), phix(dim), llgx(dim);
+                    phi_1_mesh_pt->node_pt(nd)->position(phi1x);
+                    phi_mesh_pt->node_pt(nd)->position(phix);
+                    llg_mesh_pt->node_pt(nd)->position(llgx);
+
+                    std::ostringstream error_msg;
+                    error_msg << "Mesh nodes must be in the same places."
+                              << " Problem in node " << nd
+                              << "\nphi1 position " << phi1x
+                              << "\nphi position " << phix
+                              << "\nllg position " << llgx;
+                    throw OomphLibError(error_msg.str(),
+                                        OOMPH_CURRENT_FUNCTION,
+                                        OOMPH_EXCEPTION_LOCATION);
+                  }
+              }
+          }
+#endif
+
+        // Assign the various elements pointers to each other
+        for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
+          {
+
+            // Get the element pointers
+            MagnetostaticFieldEquations* phi_1_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_1_mesh_pt->element_pt(e));
+            MagnetostaticFieldEquations* phi_ele_pt =
+              checked_dynamic_cast<MagnetostaticFieldEquations*>
+              (phi_mesh_pt->element_pt(e));
+            SemiImplicitMicromagEquations* m_ele_pt =
+              checked_dynamic_cast<SemiImplicitMicromagEquations*>
+              (llg_mesh_pt->element_pt(e));
+
+            phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
+            phi_ele_pt->set_micromag_element_pt(m_ele_pt);
+            m_ele_pt->magnetostatic_field_element_pt() = phi_ele_pt;
+          }
+      }
+
   }
 
 
