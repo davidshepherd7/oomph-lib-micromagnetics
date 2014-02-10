@@ -490,7 +490,8 @@ def main():
     # Plot m averages vs time
     if 'm' in args.plots:
         plot_m_averages = par(plot_vs_time,
-                              plot_values=['mean_mxs','mean_mys','mean_mzs','dts'],
+                              plot_values=['mean_mxs','mean_mys','mean_mzs','dts',
+                                           'h_applied_first_element'],
                               labels=args.label)
         multi_plot(all_results, args.split, plot_m_averages)
 

@@ -418,7 +418,9 @@ namespace oomph
         << Trace_seperator << "magnetostatic_energy"
         << Trace_seperator << "total_energy"
         << Trace_seperator << "effective_damping"
-        << Trace_seperator << "alt_effective_damping";
+        << Trace_seperator << "alt_effective_damping"
+        << Trace_seperator << "h_applied_first_element"
+        ;
 
     }
 
@@ -431,6 +433,7 @@ namespace oomph
 
       Vector<double> angle_variations = elemental_max_m_angle_variations();
       Vector<double> mean_m = mean_magnetisation();
+      Vector<double> h_app = first_element_happ();
 
       trace_file
         << Trace_seperator << m_error_avg
@@ -447,8 +450,20 @@ namespace oomph
         << Trace_seperator << Magnetostatic_energy
         << Trace_seperator << micromagnetic_energy()
         << Trace_seperator << Effective_damping_constant
-        << Trace_seperator << Alt_eff_damp;
+        << Trace_seperator << Alt_eff_damp
+        << Trace_seperator << h_app
+        ;
+    }
 
+    /// Get happ value from first element
+    Vector<double> first_element_happ() const
+    {
+      double t = time_stepper_pt()->time();
+      Vector<double> H_app;
+      Vector<double> dummy_x, dummy_s;
+      ele_pt()->get_applied_field(t, dummy_x, dummy_s, H_app);
+
+      return H_app;
     }
 
     void initial_doc_additional() const
