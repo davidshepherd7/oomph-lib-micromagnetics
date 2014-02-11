@@ -68,6 +68,15 @@ namespace oomph
   {
   public:
 
+    void build(double A, double K1, double l, double Ms,
+               double gilbert_damping)
+      {
+        double mu0 = 4 * MathematicalConstants::Pi * 1e-7;
+        Exchange_coeff = (2*A)/(mu0*Ms*l*l);
+        Anisotropy_coeff = K1;
+        Gilbert_damping = gilbert_damping;
+      }
+
     MagneticParameters() : Easy_axis(3, 0.0)
     {
       Gilbert_damping = 0.5;
