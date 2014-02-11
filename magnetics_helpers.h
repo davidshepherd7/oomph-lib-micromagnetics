@@ -411,6 +411,16 @@ namespace MManipulation
                        std::deque<double>& previous_energies);
 }
 
+  class TetMeshBase;
+
+  namespace MeshCreationHelpers
+  {
+
+    void brick2tet(const Mesh& brick_mesh,
+                   ElementFactoryFctPt element_factory_fpt,
+                   TetMeshBase& out_mesh);
+  }
+
 }
 
 
