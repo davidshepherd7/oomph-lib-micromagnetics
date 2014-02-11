@@ -77,6 +77,36 @@ def generate_tetgen_meshes(initial_poly_file):
 
     return
 
+def generate_mumag4_meshes(initial_poly_file):
+    """Generate a set of mesh refinements using tegen.
+    """
+
+    # Chop up the filename into parts so we can construct the refined
+    # filenames later.
+    dirname, fname = os.path.split(initial_poly_file)
+    basename, ext = os.path.splitext(fname)
+
+    # Initial mesh generation
+    initial_vol = 10
+    subp.check_call(['tetgen', '-q5', '-a' + str(initial_vol), '-p',
+                     initial_poly_file])
+
+
+    # Generate refinements
+    for refine in [1, 2]:
+
+        # File to refine is something like square.1.poly (if we started with
+        # square.poly).
+        file_to_refine = (os.path.join(dirname, basename)
+                          + '.' + str(refine))
+
+        # Refine tet volumes by a factor of 8 each time (i.e. 2^dim).
+        subp.check_call(['tetgen', '-q',
+                         '-a' + str(initial_vol / (4 ** refine)),
+                         '-r', file_to_refine])
+
+    return
+
 
 def generate_sphere_mesh(mesh_dir, radius, refinement):
 
@@ -153,13 +183,15 @@ def main():
     # ============================================================
 
     triangle_poly_files = ['square.poly', 'circle.poly']
-    tetgen_poly_files = ['cubeoid.poly', 'mumag4.poly']
+    tetgen_poly_files = ['cubeoid.poly']
 
     for poly_file in triangle_poly_files:
         generate_triangle_meshes(os.path.join(args.mesh_dir, poly_file))
 
     for poly_file in tetgen_poly_files:
         generate_tetgen_meshes(os.path.join(args.mesh_dir, poly_file))
+
+    generate_mumag4_meshes(os.path.join(args.mesh_dir, 'mumag4.poly'))
 
     # Sphere meshes are special
     generate_sphere_meshes(args.mesh_dir, 1.0)

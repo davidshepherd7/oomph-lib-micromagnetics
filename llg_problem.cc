@@ -600,7 +600,7 @@ namespace oomph
       else if(mesh_name == "st_mumag4" && nnode1d == 2)
         {
           mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
-            (5*nx, std::ceil(1.25*nx), 3, 5, 1.25, 0.03, time_stepper_pt);
+            (5*nx, std::ceil(1.25*nx), 1, 5, 1.25, 0.03, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
         }
@@ -836,7 +836,7 @@ namespace oomph
       else if(mesh_name == "st_mumag4" && nnode1d == 2)
         {
           mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
-            (5*nx, std::ceil(1.25*nx), 3, 5, 1.25, 0.03, time_stepper_pt);
+            (5*nx, std::ceil(1.25*nx), 1, 5, 1.25, 0.03, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
         }
@@ -954,7 +954,7 @@ namespace oomph
       else if(mesh_name == "st_mumag4" && nnode1d == 2)
         {
           mesh_pt = new SimpleCubicTetMesh<TMagnetostaticFieldElement<3, 2> >
-            (5*nx, std::ceil(1.25*nx), 3, 5, 1.25, 0.03, time_stepper_pt);
+            (5*nx, std::ceil(1.25*nx), 1, 5, 1.25, 0.03, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
         }
