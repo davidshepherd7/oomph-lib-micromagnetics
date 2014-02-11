@@ -1149,7 +1149,7 @@ public:
 
       if(command_line_flag_has_been_set("-damping"))
         {
-          mag_params_pt->gilbert_damping() = damping;
+          mag_params_pt->Gilbert_damping = damping;
         }
 
       // Copy flags into bools in this class

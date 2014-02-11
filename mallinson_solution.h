@@ -73,8 +73,8 @@ namespace oomph
       double theta_now = cart2theta(m);
 
       double analytical_time =
-        switching_time(parameters_pt->normalised_gilbert_damping(),
-                       parameters_pt->normalised_gamma(),
+        switching_time(parameters_pt->gilbert_damping(),
+                       1.0,
                        std::abs(H[2]),
                        parameters_pt->normalised_hk(),
                        theta_start,
@@ -107,7 +107,7 @@ namespace oomph
       double theta_start = cart2theta(initm);
       double theta_now = cart2theta(m);
 
-      return analytic_phi(parameters_pt->normalised_gilbert_damping(),
+      return analytic_phi(parameters_pt->gilbert_damping(),
                           theta_start,
                           theta_now);
     }

@@ -34,7 +34,6 @@
 namespace oomph
 {
 
-
   // Forward declaration of flux element
   template <class ELEMENT> class MicromagFluxElement;
 
@@ -265,7 +264,7 @@ namespace oomph
 
       for(unsigned j=0; j<3; j++)
         {
-          H_app[j] *= magnetic_parameters_pt()->field_normalisation_factor();
+          H_app[j] *= magnetic_parameters_pt()->happ_normalisation_factor();
         }
     }
 
@@ -288,23 +287,16 @@ namespace oomph
         crystalline_ansiotropy_field_derivative(t,x,m,shape_fn_k_at_x,dhcadm);
     }
 
-    /// Get saturisation magnetisation at eulerian postition x.
-    inline double sat_mag() const
-    {
-      //??ds this isn't included!
-      return magnetic_parameters_pt()->normalised_saturation_magnetisation();
-    }
-
     /// Get LLG damping coefficient.
     inline double llg_damping_coeff() const
     {
-      return magnetic_parameters_pt()->normalised_gilbert_damping();
+      return magnetic_parameters_pt()->gilbert_damping();
     }
 
     /// Get LLG precession coefficient.
     inline double llg_precession_coeff() const
     {
-      return magnetic_parameters_pt()->normalised_gamma();
+      return 1.0;
     }
 
     /// Get exchange coefficient at eulerian postition x.
