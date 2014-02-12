@@ -534,7 +534,7 @@ namespace oomph
       unsigned nx = 5 * std::pow(2, refinement_level-1);
 
       // Make the mesh and store a pointer to it
-      Mesh* mesh_pt;
+      Mesh* mesh_pt = 0;
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
@@ -581,6 +581,22 @@ namespace oomph
 
           mesh_pt->setup_boundary_element_info();
         }
+      else if(mesh_name == "sqt_cubeoid" && nnode1d == 2)
+        {
+          Mesh* qmesh_pt = mesh_factory("sq_cubeoid", refinement_level,
+                                        time_stepper_pt,
+                                        1, nnode1d);
+          //??ds memory leak, fix? Can't delete this mesh or nodes will
+          //go...
+
+          TetMeshBase* tmesh_pt = new TetMeshBase;
+          ElementFactoryFctPt factory_fpt =
+            MeshCreationHelpers::new_element<TMicromagElement<3, 2> >;
+
+          MeshCreationHelpers::brick2tet(*qmesh_pt, factory_fpt, *tmesh_pt);
+
+          mesh_pt = tmesh_pt;
+        }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
@@ -603,6 +619,31 @@ namespace oomph
             (5*nx, 1, std::ceil(1.25*nx), 500, 3, 125, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sq_mumag4" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+            (5*this_nx, 2, std::ceil(1.25*this_nx), 500, 3, 125, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sqt_mumag4" && nnode1d == 2)
+        {
+          Mesh* qmesh_pt = mesh_factory("sq_mumag4", refinement_level,
+                                        time_stepper_pt,
+                                        1, nnode1d);
+          //??ds memory leak, fix? Can't delete this mesh or nodes will
+          //go...
+
+          // Convert to tet mesh
+          TetMeshBase* tmesh_pt = new TetMeshBase;
+          ElementFactoryFctPt factory_fpt =
+            MeshCreationHelpers::new_element<TMicromagElement<3, 2> >;
+          MeshCreationHelpers::brick2tet(*qmesh_pt, factory_fpt, *tmesh_pt);
+
+          mesh_pt = tmesh_pt;
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
