@@ -205,15 +205,15 @@ def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
     if all([d['-tol'] == 0 for d in data]):
-        dt_label = 'dt'
+        dt_label = '-dt'
     else:
-        dt_label = 'tol'
+        dt_label = '-tol'
 
 
     if labels is None:
-        labels = ['ref', 'ts', dt_label]
+        labels = ['-ref', '-ts', dt_label]
     else:
-        labesl = ['ref', 'ts', dt_label] + labels
+        labesl = ['-ref', '-ts', dt_label] + labels
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
@@ -223,7 +223,7 @@ def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
                # + " " + str(d['-ts'])\
                # + " " + str(d.get('-decoupled-ms') == "1")
 
-            name = " ".join([str(d["-"+l]) for l in labels])
+            name = " ".join([str(d[l]) for l in labels])
 
             if op is not None:
                 vals = map(op, d[p])
@@ -458,6 +458,11 @@ def main():
 
     if args.split is None:
         args.split = ['mesh', 'h-app', 'initial-m', 'mag-params', 'scale']
+
+
+    if args.label is not None:
+        for i, l in enumerate(args.label):
+            args.label[i] = "-" + l
 
     # Main function
     # ============================================================
