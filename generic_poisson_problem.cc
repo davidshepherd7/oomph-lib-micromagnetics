@@ -169,8 +169,8 @@ void GenericPoissonProblem::doc_solution_additional(std::ofstream &soln_file)
           FiniteElement* ele_pt = mesh_pt(msh)->finite_element_pt(0);
           if(ele_pt->nodal_dimension() != ele_pt->dim()) continue;
 
-          mesh_pt()->compute_error(error_file, exact_solution_fct_pt(),
-                                   error, norm);
+          mesh_pt(msh)->compute_error(error_file, exact_solution_fct_pt(),
+                                      error, norm);
         }
 
       error_file.close();
