@@ -10,10 +10,6 @@ using namespace oomph;
 
 namespace oomph
 {
-  /// The trivial factory function for an ELEMENT.
-  template<class ELEMENT>
-  inline  FiniteElement* new_element() { return new ELEMENT;}
-
 
   void make_problem(Mesh& mesh, GenericPoissonProblem& problem)
   {
@@ -64,6 +60,8 @@ namespace oomph
     // build
     problem.build(meshes);
   }
+
+
 }
 
 
@@ -89,9 +87,22 @@ int main()
   SimpleCubicMesh<QTFPoissonElement<3, 2> > brick_mesh(10,10,10, 1.0,1.0,1.0, &ts);
   TetMeshBase* tet_mesh_pt = new TetMeshBase;
   MeshCreationHelpers::brick2tet(brick_mesh,
-                                 new_element<TTFPoissonElement<3, 2> >,
+                                 MeshCreationHelpers::new_element<TTFPoissonElement<3, 2> >,
                                  *tet_mesh_pt);
 
+
+  if(brick_mesh.nboundary() != tet_mesh_pt->nboundary())
+    {
+      return 1;
+    }
+
+  for(unsigned b=0; b<brick_mesh.nboundary(); b++)
+    {
+      if(brick_mesh.nboundary_node(b) != tet_mesh_pt->nboundary_node(b))
+        {
+          return 2;
+        }
+    }
 
 
   // Set the orientation of the "step" to 45 degrees

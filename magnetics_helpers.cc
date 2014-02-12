@@ -146,6 +146,9 @@ std::deque<double>& previous_energies)
         }
 #endif
 
+      out_mesh.set_nboundary(brick_mesh.nboundary());
+
+
       // From "How to Subdivide Pyramids, Prisms and Hexahedra into
       // Tetrahedra" by Julien Dompierre Paul Labbé Marie-Gabrielle Vallet
       // Ricardo Camarero: Can subdivide by creating tets with these nodes
@@ -180,6 +183,21 @@ std::deque<double>& previous_energies)
         {
           Node* nd_pt = brick_mesh.node_pt(nd);
           out_mesh.add_node_pt(nd_pt);
+
+          // If on a boundary then loop over boundaries adding to the meshes
+          // lists
+          if(nd_pt->is_on_boundary())
+            {
+              std::set<unsigned>* boundaries_pt;
+              nd_pt->get_boundaries_pt(boundaries_pt);
+
+              std::set<unsigned>::const_iterator it;
+              for(it=boundaries_pt->begin(); it!=boundaries_pt->end(); it++)
+                {
+                  out_mesh.Boundary_node_pt[*it].push_back(nd_pt);
+                  std::cout << "hi" << *it << std::endl;
+                }
+            }
         }
 
 
@@ -233,7 +251,6 @@ std::deque<double>& previous_energies)
 
 
       // Use TetMeshBase to sort out boundary stuff
-      out_mesh.set_nboundary(brick_mesh.nboundary());
       out_mesh.setup_boundary_element_info();
 
     }

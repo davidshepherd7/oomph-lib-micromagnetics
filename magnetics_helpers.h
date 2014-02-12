@@ -416,6 +416,10 @@ namespace MManipulation
 
   namespace MeshCreationHelpers
   {
+    /// The trivial factory function for an ELEMENT.
+    template<class ELEMENT>
+    inline  FiniteElement* new_element() { return new ELEMENT;}
+
 
     void brick2tet(const Mesh& brick_mesh,
                    ElementFactoryFctPt element_factory_fpt,
