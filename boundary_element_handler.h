@@ -70,6 +70,15 @@ namespace oomph
         const unsigned b = bem_boundaries[i].first;
         const Mesh* mesh_pt = bem_boundaries[i].second;
 
+#ifdef PARANOID
+        if(mesh_pt->nboundary_node(b) == 0)
+          {
+            std::string err = "No nodes on boundary " + to_string(b);
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
+#endif
+
         // Loop over the nodes on boundary b adding to the set of nodes.
         for(unsigned n=0, nnd=mesh_pt->nboundary_node(b); n<nnd;n++)
           {
