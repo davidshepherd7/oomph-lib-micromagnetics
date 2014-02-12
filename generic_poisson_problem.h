@@ -79,6 +79,8 @@ namespace oomph
     /// Destructor
     virtual ~GenericPoissonProblem() {}
 
+    std::string problem_name() const {return "poisson";}
+
     /// Doc the solution.
     void doc_solution_additional(std::ofstream &soln_file) const;
 

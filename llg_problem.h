@@ -67,6 +67,8 @@ namespace oomph
       Renormalise_each_time_step = -1;
     }
 
+    std::string problem_name() const {return "LLG";}
+
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
     /// to deal with Jacobians involving a dense block (i.e. in fully
     /// implicit bem). If we aren't using that then this is basically the

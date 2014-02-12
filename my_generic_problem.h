@@ -436,7 +436,7 @@ using namespace StringConversion;
         info_file
           << "real_time " << real_date_time() << std::endl
           << "unix_time " << std::time(0) << std::endl
-          << "driver_name " << CommandLineArgs::Argv[0] << std::endl;
+          << "driver_name " << problem_name() << std::endl;
         info_file << Doc_info.args_str;
         info_file.close();
 
@@ -608,6 +608,8 @@ using namespace StringConversion;
 
     /// \short Get problem dimension (nodal dimension).
     const unsigned dim() const {return this->Dim;}
+
+    virtual std::string problem_name() const {return "unknown";}
 
 
     /// Assign initial conditions from function pointer
