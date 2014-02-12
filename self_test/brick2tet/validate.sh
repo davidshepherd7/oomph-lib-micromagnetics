@@ -8,6 +8,9 @@ touch Validation
 rm -r Validation
 mkdir Validation
 
+mkdir Validation/brick
+mkdir Validation/tet
+
 # Run the binary
 ./brick2tet_driver
 

@@ -11,9 +11,14 @@ using namespace oomph;
 namespace oomph
 {
 
-  void make_problem(Mesh& mesh, GenericPoissonProblem& problem)
+
+  void make_problem(const std::string& tag,
+                    Mesh& mesh, GenericPoissonProblem& problem)
   {
-    problem.Doc_info.set_directory("Validation");
+    Steady<0>* ts_pt = new Steady<0>;
+    problem.add_time_stepper_pt(ts_pt);
+
+    problem.Doc_info.set_directory("Validation/" + tag);
 
     // Set the factory function used to create the surface mesh for
     // Neumman boundaries.
@@ -91,11 +96,11 @@ int main()
                                  *tet_mesh_pt);
 
 
+  // Check boundaries ok
   if(brick_mesh.nboundary() != tet_mesh_pt->nboundary())
     {
       return 1;
     }
-
   for(unsigned b=0; b<brick_mesh.nboundary(); b++)
     {
       if(brick_mesh.nboundary_node(b) != tet_mesh_pt->nboundary_node(b))
@@ -115,18 +120,21 @@ int main()
 
   // Build + run with bricks
   GenericPoissonProblem brick_problem;
-  make_problem(brick_mesh, brick_problem);
+  make_problem("brick", brick_mesh, brick_problem);
+  brick_problem.initial_doc();
   brick_problem.newton_solve();
+  brick_problem.doc_solution();
   brick_problem.final_doc();
   std::cout << brick_problem.get_error_norm() << std::endl;
 
   // Build + run with tets
   GenericPoissonProblem tet_problem;
-  make_problem(*tet_mesh_pt, tet_problem);
+  make_problem("tet", *tet_mesh_pt, tet_problem);
+  tet_problem.initial_doc();
   tet_problem.newton_solve();
+  tet_problem.doc_solution();
   tet_problem.final_doc();
   std::cout << tet_problem.get_error_norm() << std::endl;
-
 
   // Dump to compare solution at nodes (hard to compare elsewhere since
   // elements not same).
