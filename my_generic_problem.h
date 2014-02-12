@@ -296,11 +296,20 @@ using namespace StringConversion;
                                std::ios::app);
       trace_file.precision(Output_precision);
 
+      double time = Dummy_doc_data, dt = Dummy_doc_data,
+        lte_norm = Dummy_doc_data;
+      if(!is_steady())
+        {
+          time = this->time();
+          dt = this->time_pt()->dt();
+          lte_norm = this->lte_norm();
+        }
+
       // Write out data that can be done for every problem
       trace_file
         << Doc_info.number()
-        << Trace_seperator << time()
-        << Trace_seperator << time_pt()->dt()
+        << Trace_seperator << time
+        << Trace_seperator << dt
         << Trace_seperator << get_error_norm()
 
         << Trace_seperator << Nnewton_iter_taken
@@ -310,7 +319,7 @@ using namespace StringConversion;
         << Trace_seperator << Jacobian_setup_times
         << Trace_seperator << Preconditioner_setup_times
 
-        << Trace_seperator << lte_norm()
+        << Trace_seperator << lte_norm
         << Trace_seperator << trace_value()
 
         << Trace_seperator << std::time(0)
@@ -327,7 +336,6 @@ using namespace StringConversion;
         << Trace_seperator << Dummy_doc_data;
 
       //??ds residuals?
-      //??ds max values? Just list all values of vectors with ; as sep?
 
       // Add problem specific data
       write_additional_trace_data(trace_file);
@@ -475,7 +483,11 @@ using namespace StringConversion;
     /// overloading doc_solution_additional(...).
     void doc_solution()
       {
-        bool doc_this_step = should_doc_this_step(time_pt()->dt(), time());
+        bool doc_this_step = true;
+        if(!is_steady())
+          {
+            doc_this_step = should_doc_this_step(time_pt()->dt(), time());
+          }
 
         const std::string dir = Doc_info.directory();
         const std::string num = to_string(Doc_info.number());
@@ -497,17 +509,20 @@ using namespace StringConversion;
             doc_solution_additional(soln_file);
             soln_file.close();
 
-            // Write the simulation time and filename to the pvd file
-            std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
-                                   std::ios::app);
-            pvd_file.precision(Output_precision);
+            if(!is_steady())
+              {
+                // Write the simulation time and filename to the pvd file
+                std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
+                                       std::ios::app);
+                pvd_file.precision(Output_precision);
 
-            pvd_file << "<DataSet timestep=\"" << time()
-                     << "\" group=\"\" part=\"0\" file=\"" << "soln"
-                     << num << ".vtu"
-                     << "\"/>" << std::endl;
+                pvd_file << "<DataSet timestep=\"" << time()
+                         << "\" group=\"\" part=\"0\" file=\"" << "soln"
+                         << num << ".vtu"
+                         << "\"/>" << std::endl;
 
-            pvd_file.close();
+                pvd_file.close();
+              }
 
 
             // Maybe dump the restart data
