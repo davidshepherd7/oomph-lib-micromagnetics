@@ -53,6 +53,7 @@ def locate_stable_point(refine, dt_guess, other_args, root_outdir):
                 '-ref' : refine,
                 '-dt' : dt,
                 '-hlib-bem' : 0,
+                '-mallinson' : 1,
                 }
 
         # Merge in args given
@@ -64,15 +65,19 @@ def locate_stable_point(refine, dt_guess, other_args, root_outdir):
         # Try to run it
         err_code, outdir = mm._run(args, root_outdir, dir_naming_args)
 
-        # If it didn't crash then check output
-        if err_code == 0:
 
-            # Parse output files
-            data = mm.parse_run(outdir)
+        # Parse output files
+        data = mm.parse_run(outdir)
+        if data is not None:
             errs = data['error_norms']
             assert errs[0] >= 0
-
             maxerror = max(errs)
+
+        else:
+            maxerror = sp.inf
+
+        # If it didn't crash then check output
+        if err_code == 0:
 
             if maxerror < maxallowederror:
                  print("Succedded with max error =", maxerror, "dt =", dt)
@@ -82,7 +87,7 @@ def locate_stable_point(refine, dt_guess, other_args, root_outdir):
                 dt = dt/2
 
         else:
-            print("Failed due to crash")
+            print("Failed due to crash with maxerror", maxerror)
             dt = dt/2
 
 
@@ -98,6 +103,8 @@ def main():
     parser.add_argument('--mesh', '-m', help='Choose mesh type')
     parser.add_argument('--implicit', '-i', action='store_true',
                          help='Use implicit time integrator')
+    parser.add_argument('--serial', action='store_true',
+                         help="Don't do parallel sweeps")
     parser.add_argument('--use-hms', action='store_true', help='Include magnetostatics')
 
 
@@ -131,8 +138,12 @@ def main():
 
     if args.use_hms:
         additional_args.update({'-solver' : 'som-gmres', '-prec' : 'som-main-exact'})
+        refs = [3, 4, 5]
+
     else:
         additional_args.update({'-disable-ms' : True})
+        refs = [1, 2, 3, 4, 5]
+
 
 
     # Construct root dir
@@ -140,13 +151,10 @@ def main():
     root_outdir = pjoin(root_root_outdir, args_dirname)
 
     # Run
-    refs = [1, 2, 3, 4, 5]
-    dts = []
-    dt_found = 1
-    for ref in refs:
-        dt_found = locate_stable_point(ref, dt_found, additional_args,
-                                       root_outdir)
-        dts.append(dt_found)
+    dts = mm.parallel_map(par(locate_stable_point, dt_guess=1,
+                              other_args=additional_args, root_outdir=root_outdir),
+                          refs,
+                          serial_mode=args.serial)
 
     # Write to file
     with open(pjoin(root_outdir, 'results'), 'w') as result_file:
