@@ -108,7 +108,7 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
+def plot_vs_thing(xthing, data, plot_values, operations_on_values=None, labels=None):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
@@ -139,65 +139,40 @@ def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
 
         for d in data:
 
-            # name = str(d[dt_label]) + " " + str(d['-ref'])\
-               # + " " + str(d['-ts'])\
-               # + " " + str(d.get('-decoupled-ms') == "1")
-
             name = " ".join([str(d[l]) for l in labels])
 
             if op is not None:
                 vals = list(map(op, d[p]))
+                ylabel = latex_safe(op.__name__ + " of " + p)
+
             else:
                 vals = d[p]
+                ylabel = latex_safe(p)
 
-            axes.plot(d['times'], vals, label=name)
+            axes.plot(d[xthing], vals, label=name)
+            axes.set_ylabel(ylabel)
 
-            if op is not None:
-                axes.set_ylabel(latex_safe(op.__name__ + " of " + p))
-            else:
-                axes.set_ylabel(latex_safe(p))
-
-        axesarray[-1].set_xlabel('time')
+    # x label only on last axis
+    axesarray[-1].set_xlabel(xthing)
 
     # Add a single legend
     axesarray[0].legend()
 
     return fig
 
-
-def plot_vs_step(data, plot_values, operations=None):
-    """Plot a list of things (plot_values) against timestep number on a
-    single figure with linked time axis. If operations is a list of
-    functions then call each function on the corresponding plot_value data
-    before plotting.
+def plot_vs_time(*args, **kwargs):
+    """Plot a list of things (plot_values) against time on a single figure with
+    linked time axis.
     """
+    return plot_vs_thing('times', *args, **kwargs)
 
-    if operations is None:
-        operations = [identity] * len(plot_values)
 
-    fig, axesmatrix = plt.subplots(len(plot_values), 1, sharex = True,
-                                   squeeze=False)
-    axesarray = axesmatrix.flat
+def plot_vs_step(*args, **kwargs):
+    """Plot a list of things (plot_values) against timestep number on a
+    single figure with linked time axis.
+    """
+    return plot_vs_thing('DocInfo_numbers', *args, **kwargs)
 
-    for axes, p, f in zip(axesarray, plot_values, operations):
-
-        for d in data:
-            name = str(d['-tol']) + " " + str(d['-ref']) + " " \
-              + str(d['-ts'])
-
-            axes.plot([f(y) for y in d[p]], label=name)
-
-            if f is not identity:
-                axes.set_ylabel(str(f) + " of " + latex_safe(p))
-            else:
-                axes.set_ylabel(latex_safe(p))
-
-        axesarray[-1].set_xlabel('time step')
-
-    # Add a single legend
-    axesarray[0].legend()
-
-    return fig
 
 
 def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean):
