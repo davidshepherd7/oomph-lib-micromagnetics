@@ -340,6 +340,14 @@ def main():
         multi_plot(all_results, args.split, plot_m_averages)
 
 
+    if 'trace' in args.plots:
+        plot_traces = par(plot_vs_time,
+                          plot_values=['trace_values', 'dts'],
+                          labels=args.label)
+        multi_plot(all_results, args.split, plot_traces)
+
+
+
     if 'newt' in args.plots:
         plot_newton_iters = par(plot_vs_time,
                                 plot_values=['n_newton_iters','dts'],
