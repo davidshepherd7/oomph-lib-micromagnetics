@@ -28,15 +28,15 @@ from functools import partial as par
 from os.path import join as pjoin
 from glob import glob
 
+# Make sure *this* versions oomphpy is in the path (before any other
+# versions in other places)
+sys.path.insert(1, pjoin(os.path.dirname(__file__), "../etc"))
+import oomphpy
+import oomphpy.micromagnetics as mm
 
-import parse
 
 
-library_folder = os.path.abspath("../")
-driver_folder = pjoin(library_folder, 'control_scripts', 'driver')
-root_outdir = '../experiments/intermag'
-
-def locate_stable_point(refine, dt_guess, other_args):
+def locate_stable_point(refine, dt_guess, other_args, root_outdir):
 
     maxallowederror = 0.1
     dt = dt_guess
@@ -46,36 +46,33 @@ def locate_stable_point(refine, dt_guess, other_args):
 
         print("\nTrying with dt =", dt, "ref =", refine)
 
-        outdir = pjoin(root_outdir, str(refine) + '-' + str(dt))
-        try:
-            os.makedirs(outdir)
-        except OSError:
-            pass
+        # Main list of args
+        args = {'-driver' : 'll',
+                '-tmax' : 2,
+                '-error-norm-limit' : maxallowederror,
+                '-ref' : refine,
+                '-dt' : dt,
+                '-hlib-bem' : 0,
+                }
+
+        # Merge in args given
+        args.update(other_args)
+
+        # Args to use when generating a dir name
+        dir_naming_args = ['-ref', '-dt']
 
         # Try to run it
-        with open(pjoin(outdir, "stdout"), 'w') as stdout_file:
-
-            status = subp.call([pjoin(driver_folder, 'driver'),
-                               'll',
-                                '-disable-ms',
-                                 '-tmax', '2',
-                                 '-error-norm-limit', str(maxallowederror),
-                                 '-outdir', outdir,
-                                 '-ref', str(refine),
-                                 '-dt', str(dt)]
-                                 + other_args,
-                                 stdout=stdout_file,
-                                 stderr=subp.STDOUT)
-
-
-        errs = parse.parse_trace_file(pjoin(outdir, 'trace'))['error_norms']
-
-        assert errs[0] >= 0, errs
-
-        maxerror = max(errs)
+        err_code, outdir = mm._run(args, root_outdir, dir_naming_args)
 
         # If it didn't crash then check output
-        if status == 0:
+        if err_code == 0:
+
+            # Parse output files
+            data = mm.parse_run(outdir)
+            errs = data['error_norms']
+            assert errs[0] >= 0
+
+            maxerror = max(errs)
 
             if maxerror < maxallowederror:
                  print("Succedded with max error =", maxerror, "dt =", dt)
@@ -85,7 +82,7 @@ def locate_stable_point(refine, dt_guess, other_args):
                 dt = dt/2
 
         else:
-            print("Failed due to crash with max error =", maxerror)
+            print("Failed due to crash")
             dt = dt/2
 
 
@@ -101,50 +98,54 @@ def main():
     parser.add_argument('--mesh', '-m', help='Choose mesh type')
     parser.add_argument('--implicit', '-i', action='store_true',
                          help='Use implicit time integrator')
+    parser.add_argument('--use-hms', action='store_true', help='Include magnetostatics')
+
 
     args = parser.parse_args()
 
     if args.outdir is not None:
-        root_outdir = args.outdir
+        root_root_outdir = args.outdir
+    else:
+        root_root_outdir = os.path.abspath('../experiments/intermag')
 
     if args.clean:
         shutil.rmtree(root_outdir)
 
-    if args.mesh == "sphere":
-        mesh_args = ['-mesh', 'ut_sphere', '-scale', '2.5']
-    elif args.mesh == "square":
-        mesh_args = ['-mesh', 'sq_square', '-scale', '5']
 
+    additional_args = {}
+
+    if args.mesh == "sphere":
+        additional_args.update({'-mesh' : 'ut_sphere', '-scale' : '2.5'})
+    elif args.mesh == "square":
+        additional_args.update({'-mesh' : 'sq_square', '-scale' : '5'})
     else:
-        sys.stderr.write("Unrecognised mesh" + str(args.mesh))
+        sys.stderr.write("Unrecognised mesh " + str(args.mesh))
         exit(2)
 
 
     if args.implicit:
-        ts_args = ['-ts', 'midpoint-bdf', '-fd-jac']
+        additional_args.update({'-ts' : 'midpoint-bdf', '-fd-jac' : True})
     else:
-        ts_args = ['-ts', 'rk2']
+        additional_args.update({'-ts': 'rk2'})
 
 
+    if args.use_hms:
+        additional_args.update({'-solver' : 'som-gmres', '-prec' : 'som-main-exact'})
+    else:
+        additional_args.update({'-disable-ms' : True})
 
-    # Make sure micromag library is up to date
-    library_folder = os.path.abspath("../")
-    print("Building and installing libraries from", library_folder)
-    subp.check_call(['make', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
-    subp.check_call(['make', 'install', '--silent', '--keep-going',
-                     'LIBTOOLFLAGS=--silent'], cwd=library_folder)
 
-    # Make sure the driver binaries are up to date
-    subp.check_call(['make', '--silent', '--keep-going',
-                    'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
+    # Construct root dir
+    args_dirname = '{}_impl{}_hms{}'.format(args.mesh, args.implicit, args.use_hms)
+    root_outdir = pjoin(root_root_outdir, args_dirname)
 
     # Run
     refs = [1, 2, 3, 4, 5]
     dts = []
     dt_found = 1
     for ref in refs:
-        dt_found = locate_stable_point(ref, dt_found, mesh_args + ts_args)
+        dt_found = locate_stable_point(ref, dt_found, additional_args,
+                                       root_outdir)
         dts.append(dt_found)
 
     # Write to file
