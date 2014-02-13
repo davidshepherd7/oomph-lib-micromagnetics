@@ -445,6 +445,14 @@ def failure_message(arglist, outdir):
 
 def product_of_argdict(args_dict):
     """Generate a complete set of combinations of parameters."""
+
+    # Convert any single entries into lists, be smart about strings
+    # hopefully...
+    for k, v in args_dict.items():
+        if not _is_iterable(v):
+            args_dict[k] = [v]
+
+    # Create the list of dictionaries
     return [dict(zip(args_dict.keys(), x))
             for x in it.product(*args_dict.values())]
 
@@ -484,7 +492,7 @@ def run_sweep(args_dict, base_outdir, parallel_sweep=False):
     # Make a list of arguments that take multiple different values
     varying_args = []
     for k, v in args_dict.items():
-        if len(v) > 1:
+        if _is_iterable(v) and len(v) > 1:
             varying_args.append(k)
 
     # Generate list of parameter sets
