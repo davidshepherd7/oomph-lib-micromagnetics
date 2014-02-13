@@ -1117,6 +1117,9 @@ public:
 
       specify_command_line_flag("-numerical-int-bem", &numerical_int_bem);
       numerical_int_bem = -1;
+
+      specify_command_line_flag("-mallinson", &mallinson);
+      mallinson = -1;
     }
 
 
@@ -1210,10 +1213,11 @@ public:
       llg_pt->Use_fd_jacobian = use_fd_jacobian;
 
       // Set exact solution if we have one
-      if((h_app_name == "minus_z")
-         && (initial_m_name == "z")
-         && (mag_params_pt->gilbert_damping() != 0.0)
-         && disable_ms)
+      if(((h_app_name == "minus_z")
+          && (initial_m_name == "z")
+          && (mag_params_pt->gilbert_damping() != 0.0)
+          && disable_ms)
+         || mallinson == 1)
         {
           llg_pt->Compare_with_mallinson = true;
         }
@@ -1240,6 +1244,7 @@ public:
 
     int numerical_int_bem;
     int hlib_bem;
+    int mallinson;
 
 
     bool decoupled_ms;
