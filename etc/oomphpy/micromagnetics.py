@@ -439,8 +439,9 @@ def success_message(arglist, outdir):
 
 def failure_message(arglist, outdir):
     # Print failure message to screen
+    print(red_colour(), pjoin(outdir, "stdout:1:1: error"), end_colour())
     print(red_colour(), ' '.join(arglist), "FAILED", end_colour())
-    print(red_colour(), "see", pjoin(outdir, "stdout"), end_colour())
+
 
 
 def product_of_argdict(args_dict):
