@@ -226,7 +226,7 @@ def plot_vs_time(data, plot_values, operations_on_values=None, labels=None):
             name = " ".join([str(d[l]) for l in labels])
 
             if op is not None:
-                vals = map(op, d[p])
+                vals = list(map(op, d[p]))
             else:
                 vals = d[p]
 
@@ -524,7 +524,7 @@ def main():
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
-        multi_plot(all_results, args.split, iterations_vs_dt)
+        # multi_plot(all_results, args.split, iterations_vs_dt)
 
         plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
                               operations_on_values=[identity, sp.mean],
