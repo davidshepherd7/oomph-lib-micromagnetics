@@ -100,86 +100,6 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
 # Plotting functions
 # ============================================================
 
-
-def multi_scatter_plots(data, quantity_name, y_axis_data='tol'):
-    """P
-
-    """
-
-    if 'err_norm' in quantity_name:
-        # Exclude cases with no error norm given
-        data = [d for d in data if d['max_err_norm'] != -1]
-
-    # Chop the data into a list of lists (of dicts). Each list contains
-    # data for the same parameters with different tol/refines.
-    p = split_up_stuff(data)
-
-    # Decide if we should plot on a log scale by comparing the max and min
-    # values.
-    values = [d[quantity_name] for sublist in p for d in sublist]
-    print(quantity_name)
-    if max(values) > 100 * min(values):
-        normaliser = sp.log10
-        normaliser.label = "$\log_{10}$ of "
-    else:
-        # identity function
-        normaliser = lambda x:x
-        normaliser.label = ""
-
-    # Make an array of subplots to put our data into
-    subplt_size = next_square_number(len(p))
-    refines = [d['-ref'] for sublist in p for d in sublist]
-    fig, axarr = plt.subplots\
-      (subplt_size, subplt_size,
-       sharey=True, sharex=True, # share labels
-       subplot_kw={'xlim' : (min(refines)-0.5, max(refines)+0.5),
-                   'yscale' : 'log'})
-
-    # Plot the data
-    for ax, data_set in zip(axarr.flatten(), p):
-
-        # First plot ones that worked
-        refs = [d['-ref'] for d in data_set if not d['failed']]
-        dts = [d[y_axis_data] for d in data_set if not d['failed']]
-        vals = [normaliser(d[quantity_name]) for d in data_set if not d['failed']]
-        im = ax.scatter(refs, dts, c=vals, s=80, marker = 'o',
-                        vmin=normaliser(min(values)),
-                        vmax=normaliser(max(values)))
-
-        # Now plot ones that failed
-        refs = [d['-ref'] for d in data_set if d['failed']]
-        dts = [d[y_axis_data] for d in data_set if d['failed']]
-        vals = [normaliser(d[quantity_name]) for d in data_set if d['failed']]
-        ax.scatter(refs, dts, c=vals, s=80, marker = 'x',
-                   vmin=normaliser(min(values)),
-                   vmax=normaliser(max(values)))
-
-        # Only put ticks at integer points on x axis
-        ax.get_xaxis().set_major_locator(plt.MaxNLocator(integer=True))
-
-        # Write the (other) parameters in the title
-        d = data_set[0]
-        ax.set_title(str(d['-initial-m']) + " " + str(d['-mesh']) + "\n"
-                     + str(d['-h-app']) + " " + str(d['-ts']),
-                     fontsize=10)
-
-    # Blank out any spare spaces we have left over
-    for ax in axarr.flatten()[len(p):]:
-        ax.axis('off')
-
-    fig.suptitle(quantity_name + ' for each data set')
-
-    # "Fix" the layout
-    plt.tight_layout()
-
-    # Add a colorbar (in its own axis to make it big)
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(im, cax=cbar_ax) #??ds only accurate for last subplot atm
-
-    return fig
-
-
 def latex_safe(string):
     """Strip out characters that will interfere with latex.
     * _ -> space
@@ -362,62 +282,6 @@ def multi_plot(data, keys_to_split_on, plot_function):
     return
 
 
-def nsteps_vs_tol(data):
-
-    p = split_up_stuff(data, ['-initial-m', '-h-app', '-mesh'])
-
-    for data_set in p:
-        fig, axarr = plt.subplots(2, 1, sharex = True)
-
-        fig.suptitle(data_set[0]['-initial-m']+ ' ' +data_set[0]['-mesh'] + ' ' +
-                     data_set[0]['-h-app']+ ' ' +data_set[0]['-ts'])
-
-        for d in [d for d in data if d['-ref'] == 2]:
-            axarr[0].scatter(d['-tol'], sp.mean(d['error_norms']),
-                          label='-tol '+ str(d['-tol']) +', refine '+ str(d['-ref']))
-            axarr[0].set_ylabel('error norm')
-            axarr[0].legend(loc=0)
-
-            axarr[1].scatter(d['-tol'], d['nsteps'],
-                          label='-tol '+ str(d['-tol']) +', refine '+ str(d['-ref']))
-            axarr[1].set_ylabel('nsteps')
-            axarr[1].set_xlabel('-tol')
-            axarr[1].legend(loc=0)
-
-    return
-
-
-def iterations_vs_dt(data):
-
-    # Split up into separate data sets for each preconditioner
-    split_data = split_up_stuff(data, ['-prec'])
-
-    # Create figure
-    fig, axarr = plt.subplots(1, 1)
-
-    symbols = iter(['x', 'o', '+', '^', '*'])
-    colours = iter(['r', 'g', 'b', 'k', 'c'])
-
-    # Plot as scatter vs dt
-    for data_prec in split_data:
-
-        iterations = [sp.mean([sp.mean(d2) for d2 in d['n_solver_iters'][1:]])
-                      for d in data_prec]
-        dts = [sp.mean(d['dts']) for d in data_prec]
-
-        axarr.scatter(dts, iterations, marker = symbols.next(), s = 50,
-                      c = colours.next())
-                      # label=data_prec[0]['preconditioner_name'].split('-')[3])
-
-        axarr.set_xlabel("dt")
-        axarr.set_ylabel("N solver iterations")
-
-
-    axarr.legend()
-
-    return fig
-
-
 def main():
     """
 
@@ -524,8 +388,6 @@ def main():
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
-        # multi_plot(all_results, args.split, iterations_vs_dt)
-
         plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
                               operations_on_values=[identity, sp.mean],
                               labels=args.label)
