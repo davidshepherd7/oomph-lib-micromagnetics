@@ -9,6 +9,18 @@
 namespace oomph
 {
 
+  namespace MagParameterHelpers
+  {
+    using namespace MathematicalConstants;
+
+    inline double Astar_to_A(const double& Astar, const double& l, const double& Ms)
+    {
+      double mu0 = 4*Pi*1e-7;
+      return (2*Astar)/((l*l) * mu0 * (Ms*Ms));
+    }
+
+  }
+
   /// Base class for magnetic parameter storage.
   class MagneticParametersBase
   {
@@ -231,6 +243,7 @@ namespace oomph
   {
 
     using namespace StringConversion;
+    using namespace MagParameterHelpers;
 
     /// \short Create a MagneticsParameters object.
     inline MagneticParameters* magnetic_parameters_factory(const std::string & parameters_name)
@@ -241,7 +254,7 @@ namespace oomph
       if(to_lower(parameters_name) == "mumag4")
         {
           parameters_pt = magnetic_parameters_factory("simple-llg");
-          parameters_pt->Exchange_coeff = 2586.2678252;
+          parameters_pt->Exchange_coeff = Astar_to_A(1.3e-11, 1e-9, 8e5);
           parameters_pt->Gilbert_damping = 0.02;
         }
 
