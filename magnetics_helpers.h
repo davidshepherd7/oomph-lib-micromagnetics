@@ -101,6 +101,34 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> mumag4_field1(const double& t, const Vector<double> &x)
+  {
+    double mu0 = 4*Pi*1e-7;
+    double Ms = 8e5;
+    double a = 1e-3/mu0*Ms;
+
+    Vector<double> h(3, 0.0);
+    h[0] = -24.6*a;
+    h[1] = 4.3*a;
+    h[2] = 0.0;
+
+    return h;
+  }
+
+  inline Vector<double> mumag4_field2(const double& t, const Vector<double> &x)
+  {
+    double mu0 = 4*Pi*1e-7;
+    double Ms = 8e5;
+    double a = 1e-3/mu0*Ms;
+
+    Vector<double> h(3, 0.0);
+    h[0] = -35.5*a;
+    h[1] = -6.3*a;
+    h[2] = 0.0;
+
+    return h;
+  }
+
   inline Vector<double> non_uniform_z_helper
   (const double& t, const Vector<double> &x, double l)
   {
@@ -216,6 +244,14 @@ namespace HApp
     else if(field_name == "mumag4_initial")
       {
         return &HApp::mumag4_initial;
+      }
+    else if(field_name == "mumag4_field1")
+      {
+        return &HApp::mumag4_field1;
+      }
+    else if(field_name == "mumag4_field2")
+      {
+        return &HApp::mumag4_field2;
       }
     else
       {
