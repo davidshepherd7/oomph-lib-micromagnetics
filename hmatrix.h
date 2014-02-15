@@ -1,6 +1,12 @@
 #ifndef OOMPH_H_MATRIX_BEM3D_H
 #define OOMPH_H_MATRIX_BEM3D_H
 
+
+// Only if we have hlib installed, otherwise we create a dummy class, see
+// below.
+#ifdef OOMPH_HAS_HLIB
+
+
 #include <set>
 #include <map>
 #include <utility> // std::pair
@@ -459,5 +465,28 @@ private:
   }
 
 };
+
+
+// If we don't have hlib
+#else
+
+// Dummy class
+class HMatrix : public DoubleMatrixBase
+{
+  public:
+
+  HMatrix()
+  {
+    std::string err = "Hlib not installed, can't create HMatrix!";
+    throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                        OOMPH_CURRENT_FUNCTION);
+  }
+
+  virtual ~HMatrix() {}
+
+};
+
+
+#endif
 
 #endif
