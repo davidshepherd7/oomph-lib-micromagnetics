@@ -1,0 +1,7 @@
+-tol 0
+-dt 2.5
+-ref 200
+-h-app mumag4_field2
+-mag-params mumag4
+-mesh dAquino_sq_mumag4
+-ts midpoint-bdf
