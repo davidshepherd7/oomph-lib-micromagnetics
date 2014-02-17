@@ -272,11 +272,13 @@ int main(int argc, char *argv[])
         }
     }
 
-  problem_pt->initialise_dt(args_pt->dt); //??ds is this ok for steady state prob?
-
   // Get initial condition from either a function pt or a restart file
   if(args_pt->restart_file == "")
     {
+      // Set all dts to the value given in args
+      problem_pt->initialise_dt(args_pt->dt);
+
+      // Set values useing the initial condition function
       problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
     }
   else
@@ -288,7 +290,7 @@ int main(int argc, char *argv[])
   problem_pt->initial_doc();
 
   // Initialise loop variables
-  double dt = args_pt->dt, tmax = args_pt->tmax;
+  double dt = problem_pt->time_pt()->dt(), tmax = args_pt->tmax;
   double tol = args_pt->tol;
   unsigned max_steps = args_pt->max_steps;
 
