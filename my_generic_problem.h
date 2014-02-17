@@ -320,7 +320,7 @@ using namespace StringConversion;
         << Trace_seperator << Preconditioner_setup_times
 
         << Trace_seperator << lte_norm
-        << Trace_seperator << trace_value()
+        << Trace_seperator << trace_values()
 
         << Trace_seperator << std::time(0)
         << Trace_seperator << min_element_size()
@@ -590,22 +590,27 @@ using namespace StringConversion;
         }
     }
 
-    virtual double trace_value() const
+    virtual Vector<double> trace_values() const
     {
       unsigned nele = mesh_pt()->nelement();
       unsigned e = nele/2;
+
+      Vector<double> values;
       if(dynamic_cast<FiniteElement*>(mesh_pt()->element_pt(e)))
         {
           // Just use an element somewhere in the middle...
-          Node* trace_nd_pt = mesh_pt()->finite_element_pt(e)->node_pt(0);
-          return trace_nd_pt->value(0);
+          Node* nd_pt = mesh_pt()->finite_element_pt(e)->node_pt(0);
+          values.assign(nd_pt->nvalue(), 0.0);
+          nd_pt->value(values);
         }
       else
         {
           // Not finite elements so no idea what to use
-          return Dummy_doc_data;
+          values.assign(1, Dummy_doc_data);
         }
-      }
+
+      return values;
+    }
 
 
     void dump_current_mm_or_jacobian_residuals(const std::string& label);

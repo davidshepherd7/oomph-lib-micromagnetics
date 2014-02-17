@@ -570,6 +570,9 @@ namespace oomph
     /// \short ??ds
     Vector<double> mean_magnetisation() const;
 
+    /// Best trace value to use is probably mean of m.
+    Vector<double> trace_values() const {return mean_magnetisation();}
+
     /// \short ??ds
     void get_nodal_two_norms(Vector<double> &output) const
     {

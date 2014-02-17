@@ -414,14 +414,10 @@ namespace oomph
 
     double get_error_norm() const
     {
-      if(nvalue() == 1)
-        {
-          return std::abs(trace_value() - exact_solution(time())[0]);
-        }
-      else
-        {
-          return MyProblem::Dummy_doc_data;
-        }
+      Vector<double> val = trace_values();
+      Vector<double> exact = exact_solution(time());
+
+      return VectorOps::two_norm_diff(val, exact);
     }
 
     Vector<double> exact_solution(const double& time) const
@@ -439,11 +435,7 @@ namespace oomph
       return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
     }
 
-    /// Get trace
-    double trace_value() const
-    {
-      return mesh_pt()->element_pt(0)->internal_data_pt(0)->value(0);
-    }
+    Vector<double> trace_values() const {return solution();}
 
     TimeStepper* ts_pt() const
     {
