@@ -47,56 +47,6 @@ def next_square_number(start):
     return k
 
 
-def existing_items_match(small_dict, full_dict):
-    """True if all entries that exist in the 'small dict' have the same
-    value as that entry in the 'full dict'.
-
-    Surely there should be a function for this already?
-    """
-    for key in small_dict:
-        if full_dict.get(key) != small_dict.get(key):
-            return False
-
-    return True
-
-
-def split_up_stuff(big_dict_list, keys_to_split_on=None):
-    """Split a list of dicts of data into multiple lists of dicts of
-    data. Split into lists based on entries in the iterable
-    keys_to_split_on.
-    """
-
-    if keys_to_split_on is None:
-       keys_to_split_on = []
-
-    parameter_sets = []
-    for bigdict in big_dict_list:
-        thisdict = {}
-        for k in keys_to_split_on:
-
-            # If key does not exist then ignore it
-            try:
-                thisdict[k] = bigdict[k]
-            except KeyError:
-                pass
-
-        parameter_sets.append(thisdict)
-
-
-    # Use a set to get a unique list of parameter sets. Dictionaries cannot
-    # be put into sets so we have to go via a tuple, i.e. list(dicts) ->
-    # list(tuples(tuples)) -> set(tuples(tuples)) -> unique list(dicts).
-    unique_parameter_sets = map(dict, set([tuple(sorted(d.items()))
-                                           for d in parameter_sets]))
-
-    newlist = []
-    for test_dict in unique_parameter_sets:
-        newlist.append([d for d in big_dict_list
-                        if existing_items_match(test_dict, d)])
-
-    return newlist
-
-
 # Plotting functions
 # ============================================================
 
@@ -241,7 +191,7 @@ def multi_plot(data, keys_to_split_on, plot_function):
     """
 
     # Divide into separate data sets
-    split_data = split_up_stuff(data, keys_to_split_on)
+    split_data = mm.split_up_stuff(data, keys_to_split_on)
 
     for dataset in split_data:
         # Plot this one
