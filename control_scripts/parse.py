@@ -136,7 +136,7 @@ def plot_vs_thing(xthing, data, plot_values,
     if labels is None:
         labels = ['-ref', '-ts', dt_label]
     else:
-        labesl = ['-ref', '-ts', dt_label] + labels
+        labels = ['-ref', '-ts', dt_label] + labels
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
