@@ -63,6 +63,26 @@ def check_m_length(data, tol=1e-8, identifier=None):
     return length_test
 
 
+def check_ndt_less_than(data, max_ndt, identifier=None):
+
+    if identifier is None:
+        identifier = _default_label(data)
+
+    ndt = len(data['dts'])
+
+    passed = ndt < max_ndt
+
+    if not passed:
+        mm.badprint("FAILED in ",  identifier)
+        mm.badprint("n steps is", ndt, "which is more than", max_ndt)
+
+    else:
+        mm.okprint("n steps ok in", identifier)
+
+    return passed
+
+
+
 def check_restarted_in_middle(restart_outdir, restart_point=20):
 
     last_no_soln = "soln%i.dat" % (restart_point - 1)
