@@ -685,6 +685,13 @@ using namespace StringConversion;
             throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                                 OOMPH_CURRENT_FUNCTION);
           }
+
+        if(nglobal_data() != 0)
+          {
+            std::string err = "Problem has global data which cannot be set from function pt.";
+            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                OOMPH_CURRENT_FUNCTION);
+          }
 #endif
 
         // Loop over current & previous timesteps
@@ -716,6 +723,20 @@ using namespace StringConversion;
                         nd_pt->set_value(t, j, values[j]);
                       }
                   }
+
+#ifdef PARANOID
+                for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+                  {
+                    FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
+                    if(ele_pt->ninternal_data() != 0)
+                      {
+                        std::string err =
+                          "Element with non-nodal data, cannot set via function...";
+                        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                            OOMPH_CURRENT_FUNCTION);
+                      }
+                  }
+#endif
 
                 //??ds can't set external/internal data like this though
               }
