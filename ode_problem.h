@@ -130,6 +130,26 @@ namespace oomph
       deriv[0] = 3*t*t*a3 + 2*t*a2 + a1;
       return deriv;
     }
+
+    // stiff ode, example from Iserles pg. 54
+    inline Vector<double> stiff_test(const double& time, const Vector<double>& x)
+    {
+      Vector<double> x1(2), x2(2);
+      x1[0] = 0; x1[1] = 0;
+      x2[0] = 1.0; x2[1] = 999.0/10;
+
+      Vector<double> values(2);
+      values[0] = std::exp(-100*time)*x1[0] + std::exp(-0.1*time)*x2[0];
+      values[1] = std::exp(-100*time)*x1[1] + std::exp(-0.1*time)*x2[1];
+      return values;
+    }
+    inline Vector<double> dstiff_test(const double& t, const Vector<double>& u)
+    {
+      Vector<double> deriv(2, 0.0);
+      deriv[0] = -100*u[0] + u[1];
+      deriv[1] = -0.1*u[1];
+      return deriv;
+    }
   }
 
   namespace ODEFactories
@@ -143,6 +163,7 @@ namespace oomph
       else if(exact_name == "cos") return &deriv_functions::cos;
       else if(exact_name == "exp") return &deriv_functions::exp;
       else if(exact_name == "poly3") return &deriv_functions::poly3;
+      else if(exact_name == "stiff_test") return &deriv_functions::stiff_test;
       else if(exact_name == "poly2") return &deriv_functions::poly2;
       else if(exact_name == "ll") return &deriv_functions::ll;
       else if(exact_name == "llg") return &deriv_functions::llg;
@@ -162,6 +183,7 @@ namespace oomph
       else if(exact_name == "cos") return &deriv_functions::dcos;
       else if(exact_name == "exp") return &deriv_functions::dexp;
       else if(exact_name == "poly3") return &deriv_functions::dpoly3;
+      else if(exact_name == "stiff_test") return &deriv_functions::dstiff_test;
       else if(exact_name == "poly2") return &deriv_functions::dpoly2;
       else if(exact_name == "ll") return &deriv_functions::dll;
       else if(exact_name == "llg") return &deriv_functions::dllg;
