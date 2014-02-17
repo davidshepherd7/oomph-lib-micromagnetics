@@ -105,7 +105,7 @@ namespace HApp
   {
     double mu0 = 4*Pi*1e-7;
     double Ms = 8e5;
-    double a = 1e-3/mu0*Ms;
+    double a = 1e-3/(mu0*Ms);
 
     Vector<double> h(3, 0.0);
     h[0] = -24.6*a;
@@ -119,7 +119,7 @@ namespace HApp
   {
     double mu0 = 4*Pi*1e-7;
     double Ms = 8e5;
-    double a = 1e-3/mu0*Ms;
+    double a = 1e-3/(mu0*Ms);
 
     Vector<double> h(3, 0.0);
     h[0] = -35.5*a;
