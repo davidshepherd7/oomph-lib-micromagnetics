@@ -21,19 +21,19 @@ import oomphpy
 import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
-def ndt(dataset):
-    return len(dataset['dts'])
+# def ndt(dataset):
+#     return len(dataset['dts'])
 
 
-def ndt_reldiff(ds):
-    if len(ds) != 2:
-        print("Not enough values")
-        return None
+# def ndt_reldiff(ds):
+#     if len(ds) != 2:
+#         print("Not enough values")
+#         return None
 
-    ndt1 = ndt(ds[0])
-    ndt2 = ndt(ds[1])
+#     ndt1 = ndt(ds[0])
+#     ndt2 = ndt(ds[1])
 
-    return abs(ndt1 - ndt2) / min(ndt1, ndt2)
+#     return abs(ndt1 - ndt2) / min(ndt1, ndt2)
 
 def main():
 
@@ -66,9 +66,12 @@ def main():
 
     # Check ndt are close for mp vs bdf2
     split_datasets = mm.split_up_stuff(datasets, ['-exact'])
-    # map(lambda ds: assert(len(ds) == 2), split_datasets)
-    ndt_rel_diffs = [ndt_reldiff(ds) for ds in split_datasets]
-    test_results.append(all([ndt < 0.1 for ndt in ndt_rel_diffs if ndt is not None]))
+    bdf_ndts = [len(d['dts']) * 1.2 for d in datasets if d['-ts'] == 'bdf2']
+
+    non_bdf = [d for d in datasets if d['-ts'] != 'bdf2']
+
+    test_results.append(all([tests.check_ndt_less_than(d, max_ndt)
+                              for d, max_ndt in zip(non_bdf, bdf_ndts)]))
 
 
     if all(test_results):
