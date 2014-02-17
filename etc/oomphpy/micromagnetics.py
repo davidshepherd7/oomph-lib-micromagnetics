@@ -238,7 +238,8 @@ def parse_trace_file(filename):
 
     # Calculate time stamp differences (rough value for wall clock time per
     # step).
-    data['unix_timestamp_diffs'] = differences(data['unix_timestamp'])
+    if data.get('unix_timestamp') is not None:
+        data['unix_timestamp_diffs'] = differences(data['unix_timestamp'])
 
     return data
 

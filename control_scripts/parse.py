@@ -94,16 +94,27 @@ def plot_vs_thing(xthing, data, plot_values,
 
             name = " ".join([str(d[l]) for l in labels])
 
-            if op is not None:
-                vals = list(map(op, d[p]))
-                ylabel = latex_safe(op.__name__ + " of " + p)
+            initial_vals = d.get(p)
+            if initial_vals is not None:
+                if op is not None:
+                    vals = list(map(op, d[p]))
 
+                else:
+                    vals = d[p]
+
+
+                axes.plot(d[xthing], vals, label=name)
             else:
-                vals = d[p]
-                ylabel = latex_safe(p)
+                sys.stderr.write("Not plotting " + p
+                                 + " because I couldn't find the data needed.\n")
 
-            axes.plot(d[xthing], vals, label=name)
-            axes.set_ylabel(ylabel)
+        # Label the axis
+        if op is not None:
+            ylabel = latex_safe(op.__name__ + " of " + p)
+        else:
+            ylabel = latex_safe(p)
+
+        axes.set_ylabel(ylabel)
 
     # x label only on last axis
     axesarray[-1].set_xlabel(xthing)
