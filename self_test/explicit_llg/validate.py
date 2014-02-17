@@ -28,10 +28,6 @@ import oomphpy.micromagnetics as mm
 import fpdiff
 
 
-_driver_location = pjoin(os.path.abspath(os.path.curdir), "..",
-                        "..", "control_scripts", "driver", "driver")
-
-
 def pass_message(outdirname):
     print("PASSED", os.path.abspath(outdirname))
 
@@ -132,11 +128,6 @@ def main():
     # Run tests
     # ============================================================
 
-    # Check we can find the driver binary!
-    if not os.path.isfile(_driver_location):
-        print("all FAILED, driver not found at", driver)
-        return 2
-
     # Test without magnetostatics by comparison with Mallinson solution
     noms_argdicts = {
         "-driver" : ["ll"],
@@ -149,7 +140,7 @@ def main():
         "-tmax" : [3],
         }
     noms_passes = mm.parallel_parameter_sweep(test_error_norms, noms_argdicts,
-                                         serial_mode=True)
+                                              serial_mode=True)
 
     # If requested then run fully implicit version to generate validata for
     # magnetostatics test.
