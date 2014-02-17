@@ -288,6 +288,7 @@ int main(int argc, char *argv[])
 
       if(args_pt->impulsive_restart == 1)
         {
+          problem_pt->time_pt()->time() = 0.0;
           problem_pt->initialise_dt(args_pt->dt);
           problem_pt->set_up_impulsive_initial_condition();
         }
