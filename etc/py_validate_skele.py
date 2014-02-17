@@ -26,14 +26,18 @@ def main():
 
     # What to run
     argdicts = {
-        "-driver" : ["llg"],
+        "-driver" : 'llg',
+        "-solver" : "som-gmres",
+        "-prec" : "som-main-exact",
+        '-tmax' : 10,
+        '-ts' : 'bdf2',
         }
 
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
     # Run
-    err_codes, outdirs, _ = mm.run_sweep(argdicts, base_outdir)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir)
 
     # Get data
     datasets = list(map(mm.parse_run, outdirs))
