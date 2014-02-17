@@ -230,6 +230,9 @@ namespace oomph
 
         specify_command_line_flag("-restart", &restart_file);
         restart_file = "";
+
+        specify_command_line_flag("-impulsive-restart", &impulsive_restart);
+        impulsive_restart = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -455,6 +458,7 @@ namespace oomph
 
     int dump;
     std::string restart_file;
+    int impulsive_restart;
 
     // Mesh parameters
     MeshFactoryFctPt mesh_factory_pt;

@@ -285,6 +285,12 @@ int main(int argc, char *argv[])
     {
       std::ifstream restart_file(args_pt->restart_file.c_str());
       problem_pt->read(restart_file);
+
+      if(args_pt->impulsive_restart == 1)
+        {
+          problem_pt->initialise_dt(args_pt->dt);
+          problem_pt->set_up_impulsive_initial_condition();
+        }
     }
 
   problem_pt->initial_doc();

@@ -626,6 +626,54 @@ using namespace StringConversion;
 
     virtual std::string problem_name() const {return "unknown";}
 
+    /// Set all history values/dts to be the same as the present values/dt.
+    virtual void set_up_impulsive_initial_condition()
+    {
+
+#ifdef PARANOID
+      if(nglobal_data() != 0)
+        {
+          std::string err = "Problem has global data which cannot be set from function pt.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      unsigned nprev_steps=this->time_stepper_pt()->nprev_values();
+      for(unsigned t=0; t< nprev_steps; t++)
+        {
+          // Loop over all nodes in all meshes in problem and set values.
+          for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+            {
+              Mesh* mesh_pt = this->mesh_pt(msh);
+
+              for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+                {
+                  Node* nd_pt = mesh_pt->node_pt(nd);
+                  for(unsigned j=0, nj=nd_pt->nvalue(); j<nj; j++)
+                    {
+                      nd_pt->set_value(t, j, nd_pt->value(0, j));
+                    }
+                }
+
+#ifdef PARANOID
+              for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+                {
+                  FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
+                  if(ele_pt->ninternal_data() != 0)
+                    {
+                      std::string err =
+                        "Element with non-nodal data, cannot set via function...";
+                      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                          OOMPH_CURRENT_FUNCTION);
+                    }
+                }
+#endif
+
+            }
+        }
+
+      actions_after_set_initial_condition();
+    }
 
     /// Assign initial conditions from function pointer
     virtual void set_initial_condition(InitialConditionFctPt ic_fpt)
