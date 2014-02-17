@@ -34,7 +34,7 @@ def check_error_norm(data, tol=1e-5, identifier=None):
         identifier = _default_label(data)
 
     max_err_norm = max(map(abs, data['error_norms']))
-    norm_test = max_err_norm < 1e-5
+    norm_test = max_err_norm < tol
 
     if not norm_test:
         mm.badprint("FAILED in", identifier)
