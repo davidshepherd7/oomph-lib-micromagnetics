@@ -354,7 +354,9 @@ namespace oomph
 
 
           // Create new elements and assign nodes
+#ifdef PARANOID
           double tvol = 0.0;
+#endif
           for(unsigned j=0; j<6; j++)
             {
               // if ndiag == 0 we only need 5 elements so skip the last one
