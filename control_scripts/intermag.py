@@ -141,7 +141,7 @@ def main():
         refs = [3, 4, 5]
 
     else:
-        additional_args.update({'-disable-ms' : True})
+        additional_args.update({'-ms-method' : 'disable-ms'})
         refs = [1, 2, 3, 4, 5]
 
 

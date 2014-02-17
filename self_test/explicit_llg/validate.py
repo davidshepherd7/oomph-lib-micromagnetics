@@ -49,7 +49,7 @@ def selftestrun(argdict):
 
     outdir = argdict.get("-outdir")
     if outdir is None:
-        outdir = pjoin("Validation", argdict['-ts'] + str(argdict.get('-decoupled-ms')))
+        outdir = pjoin("Validation", argdict['-ts'] + str(argdict.get('-ms-method')))
         argdict['-outdir'] = outdir
 
     arglist, _, _ = mm.argdict2list(argdict)
@@ -135,7 +135,7 @@ def main():
         "-scale": [5],
         "-mesh": ["sq_square"],
         "-ref" : [2],
-        "-disable-ms" : [True],
+        "-ms-method" : ["disabled"],
         "-ts" : ["rk2", "rk4"],
         "-tmax" : [3],
         }
@@ -151,7 +151,7 @@ def main():
             "-scale": 5,
             "-ref" : [2],
             "-mesh": "sq_square",
-            "-decoupled-ms" : True,
+            "-ms-method" : ["decoupled"],
             "-ts" : "midpoint-bdf",
             "-fd-jac" : True,
             "-outdir" : "validata",
@@ -167,7 +167,7 @@ def main():
         "-scale": [5],
         "-ref" : [2],
         "-mesh": ["sq_square"],
-        "-decoupled-ms" : [True],
+        "-ms-method" : ["decoupled"],
         "-ts" : ["rk2"], # Don't run rk4 because 4th order makes it
                          # hard to compare with implicit methods (no
                          # A-stable 4th order methods).

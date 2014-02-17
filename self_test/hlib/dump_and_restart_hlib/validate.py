@@ -59,7 +59,7 @@ def main():
         '-max-steps' : [max_step],
         '-tmax' : [999],
         '-mesh' : meshes,
-        '-decoupled-ms' : [True, False],
+        '-ms-method' : ["decoupled", "disabled"],
         '-doc-interval' : [0],
         '-hlib-bem' : [1],
         '-solver' : ['som-gmres'],

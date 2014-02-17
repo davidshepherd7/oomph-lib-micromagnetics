@@ -14,8 +14,8 @@ SPHERE_DIR=$TPWD/Validation
 new_clean_dir $SPHERE_DIR
 
 # Run simulation
-cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
-./driver llg -decoupled-ms -dt 1e-6 -max-steps 1 -ref 3 -mesh ut_sphere \
+cd $CONTROL_SCRIPTS/driver llg -ms-method decoupled/
+./driver llg -ms-method decoupled -dt 1e-6 -max-steps 1 -ref 3 -mesh ut_sphere \
     -solver gmres -prec amg -h-app minus_z -initial-m exactly_z -ts midpoint-bdf \
     -doc-interval all -mag-params 'simple-llg' \
     -hlib-bem 0 \

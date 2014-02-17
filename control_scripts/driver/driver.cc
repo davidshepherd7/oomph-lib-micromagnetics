@@ -242,11 +242,11 @@ int main(int argc, char *argv[])
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
 
-      if(mm_args_pt->disable_ms)
+      if(llg_pt->Disable_ms)
         {
           llg_pt->Bem_handler_pt = 0;
         }
-      else if(mm_args_pt->decoupled_ms)
+      else if(llg_pt->Decoupled_ms)
         {
           //?? clean this up
           // Build phi problems and link together

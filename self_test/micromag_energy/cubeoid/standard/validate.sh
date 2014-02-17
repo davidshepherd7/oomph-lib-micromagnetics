@@ -18,8 +18,8 @@ CUBEOID_DIR=$TPWD/Validation
 new_clean_dir $CUBEOID_DIR
 
 # Run simulation
-cd $CONTROL_SCRIPTS/driver llg -decoupled-ms/
-./driver llg -decoupled-ms -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 3 \
+cd $CONTROL_SCRIPTS/driver llg -ms-method decoupled/
+./driver llg -ms-method decoupled -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 3 \
     -solver superlu -h-app zero -initial-m xz -mag-params 'simple-llg' \
     -hlib-bem 0 \
     -outdir $CUBEOID_DIR > $CUBEOID_DIR/stdout

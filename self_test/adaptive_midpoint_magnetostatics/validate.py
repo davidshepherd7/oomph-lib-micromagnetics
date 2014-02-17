@@ -30,7 +30,7 @@ def main():
     argdicts = {
         "-driver" : ["llg"],
         "-ts" : ["midpoint-bdf", "bdf2"],
-        "-disable-ms" : [True, False],
+        "-ms-method" : ["implicit", "decoupled", "disabled"],
         "-solver" : "som-gmres",
         "-prec" : "som-main-exact",
         "-tmax" : 100,

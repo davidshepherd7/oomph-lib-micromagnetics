@@ -41,7 +41,7 @@ def generate_jacobians(argdict):
 
     # Add fixed values to argument dictionary
     dict2 = {'-driver' : 'llg',
-            '-disable-ms' : True,
+            '-ms-method' : 'disabled',
             '-output-jac' : 'always',
             '-solver' : 'gmres',
             '-prec' : 'amg',

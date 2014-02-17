@@ -29,7 +29,7 @@ def main():
         "-driver" : ["ll"],
         "-dt": [0.01],
         "-scale": [10],
-        "-disable-ms" : [True],
+        "-ms-method" : "disabled",
         "-ts" : ["cay-euler", "cay-rk2"],
         "-tmax" : [3],
         }

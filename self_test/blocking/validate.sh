@@ -21,7 +21,7 @@ new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square -solver gmres -prec blockexact \
-    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always -disable-ms \
+    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always -ms-method disabled \
     -outdir $valdir 2>&1 > $valdir/stdout
 
 # Check that gmres converges in one step (i.e. block-exact == exact
@@ -47,7 +47,7 @@ valdir=$TPWD/Validation/expl_ms
 new_clean_dir $valdir
 
 cd $CONTROL_SCRIPTS/driver/
-./driver llg -decoupled-ms -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square \
+./driver llg -ms-method decoupled -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square \
     -solver gmres -prec blockexact \
     -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always \
     -outdir $valdir 2>&1 > $valdir/stdout

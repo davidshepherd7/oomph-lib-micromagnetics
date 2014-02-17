@@ -19,7 +19,7 @@ new_clean_dir $SPHERE_DIR
 
 # Run simulation
 cd $CONTROL_SCRIPTS/driver/
-./driver llg -decoupled-ms -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere \
+./driver llg -ms-method decoupled -dt 0.001 -tmax 0.001 -ref 3 -mesh ut_sphere \
     -solver superlu -h-app minus_z -initial-m exactly_z -mag-params 'simple-llg' \
     -hlib-bem 0 \
      -outdir $SPHERE_DIR > $SPHERE_DIR/stdout

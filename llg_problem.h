@@ -1111,8 +1111,6 @@ public:
       damping = -10;
 
       // Flags automatically default to false
-      specify_command_line_flag("-decoupled-ms");
-      specify_command_line_flag("-disable-ms");
       specify_command_line_flag("-pin-boundary-m");
 
       specify_command_line_flag("-hlib-bem", &hlib_bem);
@@ -1123,6 +1121,9 @@ public:
 
       specify_command_line_flag("-mallinson", &mallinson);
       mallinson = -1;
+
+      specify_command_line_flag("-ms-method", &ms_method);
+      ms_method = "implicit";
     }
 
 
@@ -1132,10 +1133,8 @@ public:
       using namespace LLGFactories;
       using namespace Factories;
 
-      decoupled_ms = command_line_flag_has_been_set("-decoupled-ms");
-
       // Figure out how to build meshes
-      if(decoupled_ms)
+      if(to_lower(ms_method) == "decoupled")
         {
           mesh_factory_pt = &llg_mesh_factory;
         }
@@ -1161,21 +1160,9 @@ public:
         }
 
       // Copy flags into bools in this class
-      disable_ms = command_line_flag_has_been_set("-disable-ms");
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
 
-      // Only want one of these to be true at once ??ds enumeration instead?
-      if(decoupled_ms && disable_ms)
-        {
-          std::string err = "Requested decoupled ms and disabled ms, ";
-          err += "I'm just going to disabled it.";
-            throw OomphLibWarning(err, OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-          decoupled_ms = false;
-        }
-
-
-      if(decoupled_ms)
+      if(to_lower(ms_method) == "decoupled")
         {
           // Pick the factory function for creating the phi 1 surface mesh
           phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_factory
@@ -1193,7 +1180,7 @@ public:
         // Build the main mesh(es)
         MyCliArgs::build_meshes();
 
-        if(decoupled_ms)
+        if(to_lower(ms_method) == "decoupled")
           {
             // Also build separate poisson meshes if needed
             using namespace SemiImplicitFactories;
@@ -1209,8 +1196,28 @@ public:
       llg_pt->set_mag_parameters_pt(mag_params_pt);
       llg_pt->Renormalise_each_time_step = renormalise;
       llg_pt->Pin_boundary_m = pin_boundary_m;
-      llg_pt->Decoupled_ms = decoupled_ms;
-      llg_pt->Disable_ms = disable_ms;
+
+      if(to_lower(ms_method) == "implicit")
+        {
+          llg_pt->Decoupled_ms = false;
+          llg_pt->Disable_ms = false;
+        }
+      else if(to_lower(ms_method) == "decoupled")
+        {
+          llg_pt->Decoupled_ms = true;
+          llg_pt->Disable_ms = false;
+        }
+      else if(to_lower(ms_method) == "disabled")
+        {
+          llg_pt->Decoupled_ms = false;
+          llg_pt->Disable_ms = true;
+        }
+      else
+        {
+          std::string err = "Unrecognised ms method " + ms_method;
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
 
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian;
@@ -1219,7 +1226,7 @@ public:
       if(((h_app_name == "minus_z")
           && (initial_m_name == "z")
           && (mag_params_pt->gilbert_damping() != 0.0)
-          && disable_ms)
+          && (to_lower(ms_method) == "disabled"))
          || mallinson == 1)
         {
           llg_pt->Compare_with_mallinson = true;
@@ -1249,9 +1256,8 @@ public:
     int hlib_bem;
     int mallinson;
 
+    std::string ms_method;
 
-    bool decoupled_ms;
-    bool disable_ms;
     bool pin_boundary_m;
 
     Vector<Mesh*> phi_1_mesh_pts;
