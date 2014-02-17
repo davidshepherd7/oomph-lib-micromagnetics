@@ -108,7 +108,10 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def plot_vs_thing(xthing, data, plot_values, operations_on_values=None, labels=None):
+def plot_vs_thing(xthing, data, plot_values,
+                  operations_on_values=None,
+                  labels=None,
+                  y_axis_lims=None):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
@@ -157,6 +160,12 @@ def plot_vs_thing(xthing, data, plot_values, operations_on_values=None, labels=N
 
     # Add a single legend
     axesarray[0].legend()
+
+    # Resize y-axes if requested
+    if y_axis_lims is not None:
+        for y_lim, axis in zip(y_axis_lims, axesarray):
+            if y_lim is not None:
+                axis.set_ylim(y_lim)
 
     return fig
 
@@ -336,7 +345,8 @@ def main():
         plot_m_averages = par(plot_vs_time,
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts',
                                            'h_applied_first_element'],
-                              labels=args.label)
+                              labels=args.label,
+                              y_axis_lims=[[-1,1], [-1,1], [-1,1], None, None])
         multi_plot(all_results, args.split, plot_m_averages)
 
 
@@ -345,7 +355,6 @@ def main():
                           plot_values=['trace_values', 'dts'],
                           labels=args.label)
         multi_plot(all_results, args.split, plot_traces)
-
 
 
     if 'newt' in args.plots:
