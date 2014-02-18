@@ -218,6 +218,21 @@ namespace oomph
     }
 
 
+    virtual void actions_before_implicit_timestep()
+    {
+      MyProblem::actions_before_implicit_timestep();
+
+      // ??ds adaptive midpoint doesn't restore phi state properly!  so
+      // recalculate ms. This needs to be done more efficiently eventually
+      if(Decoupled_ms)
+        {
+          // Solve for the magnetostatic field.
+          magnetostatics_solve();
+        }
+
+
+    }
+
     virtual void actions_after_implicit_timestep()
       {
         MyProblem::actions_after_implicit_timestep();
