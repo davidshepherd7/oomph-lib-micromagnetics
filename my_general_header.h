@@ -233,6 +233,9 @@ namespace oomph
 
         specify_command_line_flag("-impulsive-restart", &impulsive_restart);
         impulsive_restart = -1;
+
+        specify_command_line_flag("-dummy-adaptivity", &dummy_adaptivity);
+        dummy_adaptivity = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -423,6 +426,8 @@ namespace oomph
     double dt;
     double tmax;
     double tol;
+    int dummy_adaptivity;
+
     int refinement;
     bool use_fd_jacobian;
     unsigned max_steps;
