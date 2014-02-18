@@ -104,8 +104,8 @@ def check_solns_match(main_dir="Validation", compare_dir="validata", **kwargs):
     matches = []
     for fname in os.listdir(main_dir):
         if ("soln" in fname) and (".dat" in fname):
-            match = fpdiff(pjoin(main_dir, fname),
-                            pjoin(compare_dir, fname), **kwargs)
+            match, _, _ = fpdiff(pjoin(main_dir, fname),
+                                 pjoin(compare_dir, fname), **kwargs)
             matches.append(match)
 
     if len(matches) == 0:
