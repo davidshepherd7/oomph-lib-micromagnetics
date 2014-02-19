@@ -173,6 +173,8 @@ def parse_trace_entry(entry):
     # ast can handle most things, catch nans first though
     if entry == "nan":
         return sp.NaN
+    elif entry == "-nan":
+        return -sp.NaN
     else:
         return ast.literal_eval(entry)
 
