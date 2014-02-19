@@ -124,4 +124,21 @@ def print_block_sparsity(A):
         elif issparse(A):
             D[index] = F
 
+
+def eig(A, **kwargs):
+    try:
+        return sp.linalg.eig(A, **kwargs)
+    except ValueError:
+        return sp.linalg.eig(A.todense(), **kwargs)
+
+
+def eigcond(A, **kwargs):
+    e, evec = eig(A, **kwargs)
+    return min(e), max(e), max(e)/min(e)
+
+
+def eigscond(A, **kwargs):
+    e, evec = sp.sparse.linalg.eigs(A, **kwargs)
+    return min(e), max(e), max(e)/min(e)
+
 # ??ds when you need dense sub blocks remember to look at bsr_matrix which is perfect.
