@@ -58,6 +58,11 @@ namespace oomph
       Decoupled_ms = false;
       Disable_ms = false;
       Inside_explicit_timestep = false;
+#ifdef PARANOID
+      Check_angles = true;
+#else
+      Check_angles = false;
+#endif
       Phi_problem_pt = 0;
       Phi_1_problem_pt = 0;
 
@@ -345,29 +350,32 @@ namespace oomph
           renormalise_magnetisation();
         }
 
-#ifdef PARANOID
 
-      // From the nmag user manual:
-      // [Begin quote M Donahue]
-      // * if the spin angle is approaching 180 degrees, then the results are completely bogus.
-      // * over 90 degrees the results are highly questionable.
-      // * Under 30 degrees the results are probably reliable.
-      // [end quote]
-      // (the spin angle is the angle between two neighbouring magnetisations).
-
-      Vector<double> a = elemental_max_m_angle_variations();
-      double max_angle_var = *std::max_element(a.begin(), a.end());
-      if(max_angle_var > MathematicalConstants::Pi/4)
+      if(Check_angles)
         {
-          std::string error_msg
-            = "Large angle variations of " + to_string(max_angle_var)
-            + " > " + to_string(MathematicalConstants::Pi/4)
-            + " across a single element,\n";
-          error_msg += "this often means that your mesh is not sufficiently refined.";
-          OomphLibWarning(error_msg, OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
+          // From the nmag user manual:
+          // [Begin quote M Donahue]
+          // * if the spin angle is approaching 180 degrees,
+          //   then the results are completely bogus.
+          // * over 90 degrees the results are highly questionable.
+          // * Under 30 degrees the results are probably reliable.
+          // [end quote]
+          // (the spin angle is the angle between two neighbouring magnetisations).
+
+          // Check this:
+          Vector<double> a = elemental_max_m_angle_variations();
+          double max_angle_var = *std::max_element(a.begin(), a.end());
+          if(max_angle_var > MathematicalConstants::Pi/6)
+            {
+              std::string error_msg
+                = "Large angle variations of " + to_string(max_angle_var)
+                + " > " + to_string(MathematicalConstants::Pi/6)
+                + " across a single element,\n";
+              error_msg += "this often means that your mesh is not sufficiently refined.";
+              OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+            }
         }
-#endif
 
       // Calculate and store the energy (ready to be output)
       calculate_energies();
@@ -841,6 +849,8 @@ namespace oomph
 
     bool Disable_ms;
 
+    bool Check_angles;
+
     /// Normalise magnetisation problem after each step?
     int Renormalise_each_time_step;
 
@@ -1139,6 +1149,9 @@ public:
 
       specify_command_line_flag("-ms-method", &ms_method);
       ms_method = "implicit";
+
+      specify_command_line_flag("-check-angles", &check_angles);
+      check_angles = -1;
     }
 
 
@@ -1247,6 +1260,11 @@ public:
           llg_pt->Compare_with_mallinson = true;
         }
 
+      if(check_angles != -1)
+        {
+          llg_pt->Check_angles = bool(check_angles);
+        }
+
       llg_pt->Phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_fct_pt;
 
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
@@ -1270,6 +1288,7 @@ public:
     int numerical_int_bem;
     int hlib_bem;
     int mallinson;
+    int check_angles;
 
     std::string ms_method;
 
