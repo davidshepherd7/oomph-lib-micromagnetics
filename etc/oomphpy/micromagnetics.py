@@ -512,7 +512,7 @@ def product_of_argdict(args_dict):
 
 
 # Final function for the sweep
-def _run(argdict, base_outdir, varying_args):
+def _run(argdict, base_outdir, varying_args, quiet=False):
 
     if argdict.get('-outdir') is not None:
         error("Don't specify an outdir, it will be automatically generated")
@@ -529,10 +529,11 @@ def _run(argdict, base_outdir, varying_args):
     err = run_driver(arglist, outdir, binary_path, mpi_command)
 
     # Do output messages
-    if err != 0:
-        failure_message(arglist, outdir)
-    else:
-        success_message(arglist, outdir)
+    if not quiet:
+        if err != 0:
+            failure_message(arglist, outdir)
+        else:
+            success_message(arglist, outdir)
 
     return err, outdir
 
