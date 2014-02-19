@@ -219,6 +219,9 @@ namespace oomph
         specify_command_line_flag("-error-norm-limit", &error_norm_limit);
         error_norm_limit = -1.0;
 
+        specify_command_line_flag("-solution-norm-limit", &solution_norm_limit);
+        solution_norm_limit = -1.0;
+
         specify_command_line_flag("-disable-explicit-solver-optimisations");
 
         specify_command_line_flag("-predictor-as-initial-guess",
@@ -432,6 +435,7 @@ namespace oomph
     bool use_fd_jacobian;
     unsigned max_steps;
     double error_norm_limit;
+    double solution_norm_limit;
     bool disable_explicit_solver_optimisations;
     int predictor_as_initial_guess;
 

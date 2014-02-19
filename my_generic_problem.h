@@ -86,6 +86,7 @@ using namespace StringConversion;
       Dim = 0;
       Output_precision = 8;
       Error_norm_limit = -1.0;
+      Solution_norm_limit = -1.0;
 
       // Throw a real error (not just a warning) if the output directory
       // does not exist.
@@ -188,18 +189,23 @@ using namespace StringConversion;
     }
 
     virtual void actions_before_explicit_timestep()
-    {MyProblem::actions_before_newton_solve();}
+    {
+      MyProblem::actions_before_newton_solve();
+      check_norm_limits();
+    }
 
     virtual void actions_after_explicit_timestep()
       {
         MyProblem::actions_after_newton_solve();
-        check_error_norm_limits();
       }
 
-    virtual void actions_after_implicit_timestep()
-      {
-        check_error_norm_limits();
-      }
+    virtual void actions_after_implicit_timestep() {}
+
+    virtual void actions_before_implicit_timestep()
+    {
+      check_norm_limits();
+    }
+
 
     virtual void actions_after_newton_step()
       {
@@ -232,7 +238,7 @@ using namespace StringConversion;
         Preconditioner_setup_times.clear();
       }
 
-    void check_error_norm_limits()
+    void check_norm_limits()
       {
         // If a limit has been set
         if(Error_norm_limit != -1.0)
@@ -244,6 +250,21 @@ using namespace StringConversion;
               {
                 std::string err = "Error norm " + to_string(error_norm);
                 err += " exceeds the limit " + to_string(Error_norm_limit);
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+              }
+          }
+
+        // Same for solution norm
+        if(Solution_norm_limit != -1.0)
+          {
+            double solution_norm = get_solution_norm();
+
+            if((solution_norm != Dummy_doc_data)
+               && (solution_norm > Solution_norm_limit))
+              {
+                std::string err = "Solution norm " + to_string(solution_norm);
+                err += " exceeds the limit " + to_string(Solution_norm_limit);
                 throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                                     OOMPH_CURRENT_FUNCTION);
               }
@@ -324,9 +345,9 @@ using namespace StringConversion;
 
         << Trace_seperator << std::time(0)
         << Trace_seperator << min_element_size()
+        << Trace_seperator << get_solution_norm()
 
         // Reserved slots in case I think of more things to add later
-        << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
@@ -419,9 +440,9 @@ using namespace StringConversion;
 
           << Trace_seperator << "unix_timestamp"
           << Trace_seperator << "min_element_size"
+          << Trace_seperator << "solution_norms"
 
           // Reserved slots in case I think of more things to add later
-          << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
@@ -542,6 +563,14 @@ using namespace StringConversion;
     /// \short Dummy error norm calculator (overload in derived classes).
     virtual double get_error_norm() const
     {return Dummy_doc_data;}
+
+    /// \short Dummy solution norm calculator (overload in derived classes).
+    virtual double get_solution_norm() const
+    {
+      DoubleVector dofs;
+      get_dofs(dofs);
+      return dofs.norm();
+    }
 
     /// \short should the previous step be doc'ed? Check if we went past an
     /// entry of Doc_times in the last step. If no Doc_times have been set
@@ -809,6 +838,7 @@ using namespace StringConversion;
     std::string Info_filename;
 
     double Error_norm_limit;
+    double Solution_norm_limit;
 
     /// Option to turn off optimisation of the linear solves needed for
     /// explicit timestepping (for debugging purposes).
