@@ -253,7 +253,7 @@ def main():
                         help='Add addtional labels to line')
 
     parser.add_argument('--split', '-s', action='append',
-                        help='Split into different plots for different values of these keys')
+                        help="Split into different plots for different values of these keys, for keys begining with dash specify them as: `-s='-dt'` to avoid issues with `-` being read as a new argument.")
 
     args = parser.parse_args()
 
@@ -282,7 +282,6 @@ def main():
     print(len(all_results), "data sets out of", len(really_all_results), "used",
           "(any others didn't have enough time steps finished).")
 
-    args.split = list(map(lambda s: "-"+s, args.split))
     print("Splitting plots based on values of", args.split)
 
     # Print if needed

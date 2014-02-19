@@ -38,6 +38,7 @@ import oomphpy.micromagnetics as mm
 
 def locate_stable_point(refine, dt_guess, other_args, root_outdir):
 
+    maxallowedsolutionnorm = 1e3
     maxallowederror = 0.1
     dt = dt_guess
     success = False
@@ -48,8 +49,8 @@ def locate_stable_point(refine, dt_guess, other_args, root_outdir):
 
         # Main list of args
         args = {'-driver' : 'll',
-                '-tmax' : 2,
-                '-error-norm-limit' : maxallowederror,
+                '-tmax' : 5,
+                '-solution-norm-limit' : maxallowedsolutionnorm,
                 '-ref' : refine,
                 '-dt' : dt,
                 '-hlib-bem' : 0,
@@ -69,25 +70,32 @@ def locate_stable_point(refine, dt_guess, other_args, root_outdir):
         # Parse output files
         data = mm.parse_run(outdir)
         if data is not None:
-            errs = data['error_norms']
+            errs = data['solution_norms']
             assert errs[0] >= 0
-            maxerror = max(errs)
+            maxsolution = max(errs)
+
+            maxtime = data['times'][-1]
+            nsteps = len(data['times'])
 
         else:
-            maxerror = sp.inf
+            maxsolution = sp.inf
+            maxtime = 0
+            nsteps = 0
 
         # If it didn't crash then check output
         if err_code == 0:
 
-            if maxerror < maxallowederror:
-                 print("Succedded with max error =", maxerror, "dt =", dt)
+            if maxsolution < maxallowedsolutionnorm:
+                 print("Succedded with max solution norm =", maxsolution, "dt =", dt)
                  return dt
             else:
-                print("Failed due to max error =", maxerror, ">", maxallowederror)
+                print("Failed due to max solution norm =", maxsolution,
+                       ">", maxallowedsolutionnorm)
                 dt = dt/2
 
         else:
-            print("Failed due to crash with maxerror", maxerror)
+            print("Failed due to crash with max solution norm", maxsolution,
+                  "at time", maxtime, "after", nsteps, "steps.")
             dt = dt/2
 
 
@@ -124,7 +132,7 @@ def main():
     if args.mesh == "sphere":
         additional_args.update({'-mesh' : 'ut_sphere', '-scale' : '2.5'})
     elif args.mesh == "square":
-        additional_args.update({'-mesh' : 'sq_square', '-scale' : '5'})
+        additional_args.update({'-mesh' : 'sq_square', '-scale' : '10'})
     else:
         sys.stderr.write("Unrecognised mesh " + str(args.mesh))
         exit(2)
@@ -138,10 +146,10 @@ def main():
 
     if args.use_hms:
         additional_args.update({'-solver' : 'som-gmres', '-prec' : 'som-main-exact'})
-        refs = [3, 4, 5]
+        refs = [1, 2, 3, 4, 5]
 
     else:
-        additional_args.update({'-ms-method' : 'disable-ms'})
+        additional_args.update({'-ms-method' : 'disabled'})
         refs = [1, 2, 3, 4, 5]
 
 
