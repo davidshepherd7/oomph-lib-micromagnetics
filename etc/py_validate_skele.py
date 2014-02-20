@@ -24,6 +24,12 @@ import oomphpy.tests as tests
 
 def main():
 
+    # Look for parallel in args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--parallel', action = "store_true")
+    args = parser.parse_args()
+
+
     # What to run
     argdicts = {
         "-driver" : 'llg',
@@ -37,7 +43,8 @@ def main():
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir,
+                                      parallel_sweep=args.parallel)
 
     # Get data
     datasets = list(map(mm.parse_run, outdirs))
