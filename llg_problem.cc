@@ -401,6 +401,37 @@ namespace oomph
   }
 
 
+  /// Linearly extrapolate phi
+  void LLGProblem::extrapolate_phi(const double& new_dt, const double& prev_dt)
+  {
+    // Don't change phi_1 values because we don't need them except for
+    // calculating phi.
+
+    //??ds
+    double dtnp1 = time_stepper_pt()->time_pt()->dt();
+    double dtn = time_stepper_pt()->time_pt()->dt(1);
+
+    const unsigned phi_index = phi_problem_pt()->poisson_dof_number();
+
+    // Loop over all meshes in problem
+    for(unsigned msh=0, nmsh=phi_problem_pt()->nsub_mesh(); msh<nmsh; msh++)
+      {
+        Mesh* mesh_pt = phi_problem_pt()->mesh_pt(msh);
+        for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+          {
+            Node* nd_pt = mesh_pt->node_pt(nd);
+            double phi_nm1 = nd_pt->value(2, phi_index);
+            double phi_n = nd_pt->value(1, phi_index);
+
+            double phi_np1 = ((dtnp1 + dtn)/dtn)*phi_n - (dtnp1/dtn)*phi_nm1;
+
+            nd_pt->set_value(0, phi_index, phi_np1);
+          }
+      }
+
+  }
+
+
   /// \short Abs of mean difference of actual m and m given by a function
   /// at the middle of each element.
   double LLGProblem::compare_m_with_function(const InitialM::InitialMFctPt fct_pt) const

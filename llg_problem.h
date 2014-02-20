@@ -56,6 +56,7 @@ namespace oomph
       Flux_mesh_factory_pt = 0;
 
       Decoupled_ms = false;
+      Extrapolate_decoupled_ms = false;
       Disable_ms = false;
       Inside_explicit_timestep = false;
 #ifdef PARANOID
@@ -233,9 +234,14 @@ namespace oomph
         {
           // Solve for the magnetostatic field.
           magnetostatics_solve();
+
+          if(Extrapolate_decoupled_ms)
+            {
+              // Project to correct time
+              extrapolate_phi(time_stepper_pt()->time_pt()->dt(),
+                              time_stepper_pt()->time_pt()->dt(1));
+            }
         }
-
-
     }
 
     virtual void actions_after_implicit_timestep()
@@ -939,6 +945,9 @@ public:
     /// Are we solving for ms "properly" or using a separate solve?
     bool Decoupled_ms;
 
+    /// Should we extrapolate it to the correct time using history?
+    bool Extrapolate_decoupled_ms;
+
     /// Boolean to be set in explicit predictor steps to avoid
     /// get_jacobian(..) getting the BEM wrapped up in its mass
     /// matrix. ??ds should probably modify how explicit time stepping
@@ -1009,6 +1018,9 @@ public:
 #endif
       return Phi_1_problem_pt;
     }
+
+    /// Linearly extrapolate phi
+    void extrapolate_phi(const double& new_dt, const double& prev_dt);
 
     void set_phi_1_problem_pt(GenericPoissonProblem* p)
     { Phi_1_problem_pt = p;}
@@ -1154,6 +1166,12 @@ public:
       check_angles = -1;
     }
 
+    bool is_decoupled(const std::string& ms_method) const
+    {
+      return to_lower(ms_method) == "decoupled"
+        || to_lower(ms_method) == "decoupled-no-extrapolation";
+    }
+
 
     virtual void run_factories()
     {
@@ -1162,7 +1180,7 @@ public:
       using namespace Factories;
 
       // Figure out how to build meshes
-      if(to_lower(ms_method) == "decoupled")
+      if(is_decoupled(ms_method))
         {
           mesh_factory_pt = &llg_mesh_factory;
         }
@@ -1190,7 +1208,7 @@ public:
       // Copy flags into bools in this class
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
 
-      if(to_lower(ms_method) == "decoupled")
+      if(is_decoupled(ms_method))
         {
           // Pick the factory function for creating the phi 1 surface mesh
           phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_factory
@@ -1208,16 +1226,14 @@ public:
         // Build the main mesh(es)
         MyCliArgs::build_meshes();
 
-        if(to_lower(ms_method) == "decoupled")
+        if(is_decoupled(ms_method))
           {
             // Time stepper for phi, store history values for derivative
             // calculations and extrapolation.
-            TimeStepper* phi_time_stepper_pt
-              = new Steady<2>;
+            TimeStepper* phi_time_stepper_pt = new Steady<2>;
 
             // Time stepper for phi1, don't store history values.
-            TimeStepper* phi1_time_stepper_pt
-              = new Steady<0>;
+            TimeStepper* phi1_time_stepper_pt = new Steady<0>;
 
 
             // Also build separate poisson meshes if needed
@@ -1241,16 +1257,25 @@ public:
         {
           llg_pt->Decoupled_ms = false;
           llg_pt->Disable_ms = false;
+          llg_pt->Extrapolate_decoupled_ms = false;
+        }
+      else if(to_lower(ms_method) == "decoupled-no-extrapolation")
+        {
+          llg_pt->Decoupled_ms = true;
+          llg_pt->Disable_ms = false;
+          llg_pt->Extrapolate_decoupled_ms = false;
         }
       else if(to_lower(ms_method) == "decoupled")
         {
           llg_pt->Decoupled_ms = true;
           llg_pt->Disable_ms = false;
+          llg_pt->Extrapolate_decoupled_ms = true;
         }
       else if(to_lower(ms_method) == "disabled")
         {
           llg_pt->Decoupled_ms = false;
           llg_pt->Disable_ms = true;
+          llg_pt->Extrapolate_decoupled_ms = false;
         }
       else
         {

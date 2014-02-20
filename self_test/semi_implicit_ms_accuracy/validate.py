@@ -24,30 +24,43 @@ import oomphpy.tests as tests
 
 def main():
 
+    # Parse arguments
+    # ============================================================
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--parallel', action='store_true')
+    args = parser.parse_args()
+
+
     # What to run
     argdicts = {
         "-driver" : 'llg',
         "-solver" : "som-gmres",
         "-prec" : "som-main-exact",
-        '-tmax' : 1,
-        '-dt' : [0.1],
+        '-tmax' : 15,
+        '-ref' : 1,
+        '-dt' : [0.05],
         # '-newton-tol' : [1e-8, 1.1e-8],
         '-ts' : ['bdf2', 'midpoint-bdf'],
-        '-ms-method' : ['implicit', 'decoupled'],
+        '-ms-method' : ['implicit',
+                        'decoupled',
+                         # 'decoupled-no-extrapolation'
+                         ],
         }
 
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir,
+                                       parallel_sweep=args.parallel)
 
     # Get data
     datasets = list(map(mm.parse_run, outdirs))
 
     # Check things
     ran = all((e == 0 for e in err_codes))
-    t1 = tests.check_solns_match_key(datasets, '-ms-method')
+    t1 = tests.check_solns_match_key(datasets, '-ms-method', tol=0.05)
 
     if ran and t1:
         return 0
