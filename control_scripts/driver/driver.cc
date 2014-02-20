@@ -297,11 +297,6 @@ int main(int argc, char *argv[])
 
   problem_pt->initial_doc();
 
-  // Initialise loop variables
-  double dt = problem_pt->time_pt()->dt(), tmax = args_pt->tmax;
-  double tol = args_pt->tol;
-  unsigned max_steps = args_pt->max_steps;
-
   // Solve
   if(problem_pt->is_steady())
     {
@@ -309,6 +304,12 @@ int main(int argc, char *argv[])
     }
   else
     {
+      // Initialise loop variables
+      double dt = problem_pt->time_pt()->dt(), tmax = args_pt->tmax;
+      double tol = args_pt->tol;
+      unsigned max_steps = args_pt->max_steps;
+
+
       // Time step to end or to max number of steps
       while((problem_pt->time() < tmax)
             && (problem_pt->N_steps_taken < max_steps))
