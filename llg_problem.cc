@@ -26,14 +26,12 @@ namespace oomph
   {
 #ifdef PARANOID
     if((applied_field_fct_pt() == 0)
-       || (this->time_stepper_pt() == 0)
        || (Residual_calculator_pt == 0))
       {
         std::ostringstream error_msg;
         error_msg
           << "Must the following pointers to non-null values before calling build():\n"
           << "applied_field_fct_pt() (= " << applied_field_fct_pt() << ")\n"
-          << "this->time_stepper_pt() (= " << this->time_stepper_pt() << ")\n"
           << "Residual_calculator_pt (= " << Residual_calculator_pt << ")"
           << std::endl;
 
@@ -42,7 +40,7 @@ namespace oomph
       }
 #endif
 
-    // Call the underlying build to deal with adding meshes
+    // Call the underlying build to deal with adding meshes and time stepper
     MyProblem::build(bulk_mesh_pts);
 
     // Finish off element build, at this point we should have only micromag

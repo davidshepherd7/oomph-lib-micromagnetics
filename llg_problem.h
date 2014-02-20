@@ -1210,10 +1210,22 @@ public:
 
         if(to_lower(ms_method) == "decoupled")
           {
+            // Time stepper for phi, store history values for derivative
+            // calculations and extrapolation.
+            TimeStepper* phi_time_stepper_pt
+              = new Steady<2>;
+
+            // Time stepper for phi1, don't store history values.
+            TimeStepper* phi1_time_stepper_pt
+              = new Steady<0>;
+
+
             // Also build separate poisson meshes if needed
             using namespace SemiImplicitFactories;
-            phi_mesh_pts = build_meshes_helper(phi_mesh_factory);
-            phi_1_mesh_pts = build_meshes_helper(phi_mesh_factory);
+            phi_mesh_pts = build_meshes_helper(phi_mesh_factory,
+                                               phi_time_stepper_pt);
+            phi_1_mesh_pts = build_meshes_helper(phi_mesh_factory,
+                                                 phi1_time_stepper_pt);
           }
       }
 

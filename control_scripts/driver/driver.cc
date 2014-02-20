@@ -193,7 +193,6 @@ int main(int argc, char *argv[])
 
   // Assign time steppers to problem. At most one of these two will be a
   // real timestepper, the other will be null or a dummy.
-  problem_pt->add_time_stepper_pt(args_pt->time_stepper_pt);
   problem_pt->set_explicit_time_stepper_pt(args_pt->explicit_time_stepper_pt);
 
   // Assign general purpose parameters

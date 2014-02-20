@@ -118,6 +118,56 @@ namespace oomph
   /// \short Perform set up of problem.
   void MyProblem::build(Vector<Mesh*>& bulk_mesh_pts)
   {
+    // Copy the first mesh's first timestepper to the problem
+
+    FiniteElement* fele_pt = dynamic_cast<FiniteElement*>
+      (bulk_mesh_pts[0]->element_pt(0));
+
+    // Finite element mesh: grab ts from node
+    if(fele_pt != 0)
+      {
+        TimeStepper* ts_pt = bulk_mesh_pts[0]->node_pt(0)->time_stepper_pt();
+        this->add_time_stepper_pt(ts_pt);
+
+        // ??ds assumed any timesteppers hiding somewhere else are added elsewhere
+
+#ifdef PARANOID
+        for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
+          {
+            if(bulk_mesh_pts[j]->node_pt(0)->time_stepper_pt()
+               != ts_pt)
+              {
+                std::string err = "Multiple timesteppers, you need to do somedhing more fancy here";
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+              }
+          }
+#endif
+      }
+
+    // Non finite element mesh: grab ts from internal data
+    else
+      {
+        TimeStepper* ts_pt = bulk_mesh_pts[0]->element_pt(0)->
+          internal_data_pt(0)->time_stepper_pt();
+        this->add_time_stepper_pt(ts_pt);
+
+        // ??ds again assumed any timesteppers hiding somewhere else are added elsewhere
+
+#ifdef PARANOID
+        for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
+          {
+            if(bulk_mesh_pts[j]->element_pt(0)->
+               internal_data_pt(0)->time_stepper_pt() != ts_pt)
+              {
+                std::string err = "Multiple timesteppers? you need to do somedhing more fancy here";
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+              }
+          }
+#endif
+      }
+
 
     // Push all the meshes into the problem's sub mesh list
     for(unsigned j=0; j<bulk_mesh_pts.size(); j++)
@@ -147,8 +197,6 @@ namespace oomph
       }
 
     // Get the problem dimension
-    FiniteElement* fele_pt = dynamic_cast<FiniteElement*>
-      (bulk_mesh_pts[0]->element_pt(0));
     if(fele_pt != 0)
       {
         Dim = fele_pt->nodal_dimension();

@@ -373,10 +373,12 @@ namespace oomph
 
     virtual void build_meshes()
       {
-        this->mesh_pts = build_meshes_helper(mesh_factory_pt);
+        this->mesh_pts = build_meshes_helper(mesh_factory_pt,
+                                             this->time_stepper_pt);
       }
 
-    Vector<Mesh*> build_meshes_helper(MeshFactoryFctPt mesh_factory_pt)
+    Vector<Mesh*> build_meshes_helper(MeshFactoryFctPt mesh_factory_pt,
+                                      TimeStepper* time_stepper_pt)
       {
 
 #ifdef PARANOID
