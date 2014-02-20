@@ -963,48 +963,7 @@ public:
                             Vector<Mesh*>& phi_1_mesh_pts);
 
     /// \short Solve for the magnetostatic field.
-    void magnetostatics_solve()
-    {
-#ifdef PARANOID
-      if(!Decoupled_ms)
-        {
-          std::string err = "Requested a decoupled magnetostatics solve";
-          err += "  but problem is not decoupled!";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-
-      oomph_info << std::endl
-                 << "Decoupled BEM solve" << std::endl
-                 << "--------------------------" <<std::endl;
-
-      // solve for phi1
-      oomph_info << "solving phi1" << std::endl;
-      phi_1_problem_pt()->newton_solve();
-
-      // update boundary values of phi
-      oomph_info << "solving BEM" << std::endl;
-      double t_start = TimingHelpers::timer();
-      Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
-      double t_end = TimingHelpers::timer();
-      oomph_info << "BEM time taken: " << t_end - t_start << std::endl;
-
-      // push old phi values back in time (so that we can use them later to
-      // get time derivatives of the field). Note that we don't use the
-      // problem's shift time values function because we don't want to
-      // shift the timestepper (that has been done by the llg problem
-      // already) and we don't have any external data to shift.
-      phi_problem_pt()->mesh_pt()->shift_time_values();
-
-      // solve for phi
-      oomph_info << "solving phi" << std::endl;
-      phi_problem_pt()->newton_solve();
-
-      oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
-
-      Decoupled_ms_has_been_calculated = true;
-    }
+    void magnetostatics_solve();
 
     GenericPoissonProblem* phi_1_problem_pt() const
     {
