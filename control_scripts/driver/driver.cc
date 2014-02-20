@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 
   if(args_pt->dump != -1)
     {
-      problem_pt->Dump = args_pt->dump;
+      problem_pt->Dump = bool(args_pt->dump);
     }
 
   // Assign doc parameters
@@ -228,11 +228,6 @@ int main(int argc, char *argv[])
     {
       problem_pt->use_predictor_values_as_initial_guess()
         = bool(args_pt->predictor_as_initial_guess);
-    }
-  else
-    {
-      problem_pt->use_predictor_values_as_initial_guess()
-        = false;
     }
 
   // Assign anything problem specific
