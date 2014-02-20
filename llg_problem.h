@@ -244,6 +244,19 @@ namespace oomph
         }
     }
 
+    /// Overload shift time values to also shift phi problem if needed.
+    void shift_time_values()
+    {
+      Problem::shift_time_values();
+
+      if(Decoupled_ms)
+        {
+          // Push old phi values back in time (so that we can use them
+          // later to get time derivatives of the field).
+          phi_problem_pt()->shift_time_values();
+        }
+    }
+
     virtual void actions_after_implicit_timestep()
       {
         MyProblem::actions_after_implicit_timestep();

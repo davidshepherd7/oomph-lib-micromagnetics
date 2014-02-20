@@ -428,13 +428,6 @@ namespace oomph
     double t_end = TimingHelpers::timer();
     oomph_info << "BEM time taken: " << t_end - t_start << std::endl;
 
-    // push old phi values back in time (so that we can use them later to
-    // get time derivatives of the field). Note that we don't use the
-    // problem's shift time values function because we don't want to
-    // shift the timestepper (that has been done by the llg problem
-    // already) and we don't have any external data to shift.
-    phi_problem_pt()->mesh_pt()->shift_time_values();
-
     // solve for phi
     oomph_info << "solving phi" << std::endl;
     phi_problem_pt()->newton_solve();
