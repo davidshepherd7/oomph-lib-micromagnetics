@@ -176,7 +176,11 @@ def parse_trace_entry(entry):
     elif entry == "-nan":
         return -sp.NaN
     else:
-        return ast.literal_eval(entry)
+        try:
+            return ast.literal_eval(entry)
+        except ValueError as e:
+            print("Failed to parse", entry)
+            return sp.NaN
 
 
 def parse_trace_file(filename):
