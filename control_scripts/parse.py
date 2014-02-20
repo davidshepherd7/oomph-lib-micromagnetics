@@ -316,6 +316,14 @@ def main():
                           labels=args.label)
         multi_plot(all_results, args.split, plot_traces)
 
+    if 'energy' in args.plots:
+        plot_traces = par(plot_vs_time,
+                          plot_values=[ 'exchange_energy',
+                                        'zeeman_energy',
+                                        'crystalline_anisotropy_energy',
+                                        'magnetostatic_energy'],
+                          labels=args.label)
+        multi_plot(all_results, args.split, plot_traces)
 
     if 'newt' in args.plots:
         plot_newton_iters = par(plot_vs_time,
