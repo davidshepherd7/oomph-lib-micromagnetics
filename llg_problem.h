@@ -556,6 +556,9 @@ namespace oomph
           {
             // Solve for initial field and phi values
             magnetostatics_solve();
+
+            // Copy phi backwards in time
+            phi_problem_pt()->set_up_impulsive_initial_condition();
           }
 
         calculate_energies(false);
