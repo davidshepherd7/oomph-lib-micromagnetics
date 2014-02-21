@@ -99,7 +99,7 @@ def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
     dir_naming_args = dir_naming_args + ['-ref', '-dt']
 
     results_naming_values = sorted([str(args[k]) for k in results_naming_args])
-    results_name = pjoin(root_outdir, 'results_'+'_'.join(results_naming_values))
+    results_name = pjoin(root_outdir, 'stable_dts_'+'_'.join(results_naming_values))
 
     print("writing results to", results_name)
 
@@ -110,7 +110,7 @@ def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
 
     # Write to file
     with open(results_name, 'a') as result_file:
-        result_file.write(str(refines_list[0]) + " " + str(dt))
+        result_file.write(str(refines_list[0]) + " " + str(dt) + "\n")
 
     dts = [dt]
 
@@ -127,7 +127,7 @@ def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
 
         # Write to file
         with open(results_name, 'a') as result_file:
-            result_file.write(str(ref) + " " + str(dt))
+            result_file.write(str(ref) + " " + str(dt) + "\n")
 
 
     return dts
@@ -152,7 +152,7 @@ def main():
                 '-tmax' : 2,
                 '-hlib-bem' : 0,
                 '-renormalise' : 0,
-                '-mesh' : ['ut_sphere', 'sq_square'],
+                '-mesh' : ['ut_sphere'], # 'sq_square'],
                 '-ms-method' : ['implicit', 'disabled', 'decoupled'],
                 '-solver' : 'som-gmres',
                 '-prec' : 'som-main-exact',
