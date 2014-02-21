@@ -44,8 +44,11 @@ def main():
         "-ts" : ["bdf2", "midpoint-bdf"],
         "-tmax" : 5,
         "-tol" : 1e-5,
-        # "-disable-explicit-solver-optimisations" : [True, False],
+        "-disable-explicit-solver-optimisations" : True,
         }
+
+    # ??ds not sure why we need "-disable-explicit-solver-optimisations",
+    # but there's something stupid going on with mass matrix storage
 
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
