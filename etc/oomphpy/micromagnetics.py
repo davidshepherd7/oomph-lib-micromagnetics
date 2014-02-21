@@ -545,14 +545,23 @@ def _run(argdict, base_outdir, varying_args, quiet=False):
 def _run_mp(args):
     return _run(*args)
 
+def argdict_varying_args(argdict):
+    """Return a list of arguments in argdictthat take multiple different
+    values.
+    """
+
+    varying_args = []
+    for k, v in argdict.items():
+        if _is_iterable(v) and len(v) > 1:
+            varying_args.append(k)
+
+    return varying_args
+
 
 def run_sweep(args_dict, base_outdir, parallel_sweep=False):
 
     # Make a list of arguments that take multiple different values
-    varying_args = []
-    for k, v in args_dict.items():
-        if _is_iterable(v) and len(v) > 1:
-            varying_args.append(k)
+    varying_args = mm.argdict_varying_args(args_dict)
 
     # Generate list of parameter sets
     parameter_dicts = product_of_argdict(args_dict)

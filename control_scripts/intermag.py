@@ -16,6 +16,7 @@ import os.path
 import hashlib
 import shutil
 import re
+import copy
 
 import itertools as it
 import functools as ft
@@ -36,67 +37,100 @@ import oomphpy.micromagnetics as mm
 
 
 
-def locate_stable_point(refine, dt_guess, other_args, root_outdir):
+def locate_stable_point(args, refine, dt_guess, dir_naming_args,
+                        root_outdir):
 
-    maxallowedsolutionnorm = 1e3
-    maxallowederror = 0.1
+    maxallowederror = 0.01
+    maxallowedangle = sp.pi/4 # radians
+
     dt = dt_guess
     success = False
 
+    args.update({'-ref' : refine})
+
     while (dt >= 1e-6):
 
-        print("\nTrying with dt =", dt, "ref =", refine)
-
-        # Main list of args
-        args = {'-driver' : 'll',
-                '-tmax' : 5,
-                '-solution-norm-limit' : maxallowedsolutionnorm,
-                '-ref' : refine,
-                '-dt' : dt,
-                '-hlib-bem' : 0,
-                '-mallinson' : 1,
-                }
-
-        # Merge in args given
-        args.update(other_args)
-
-        # Args to use when generating a dir name
-        dir_naming_args = ['-ref', '-dt']
+        args.update({'-dt' : dt})
 
         # Try to run it
-        err_code, outdir = mm._run(args, root_outdir, dir_naming_args)
+        err_code, outdir = mm._run(args, root_outdir, dir_naming_args,
+                                    quiet=True)
 
 
         # Parse output files
         data = mm.parse_run(outdir)
         if data is not None:
-            errs = data['solution_norms']
+            errs = data['m_length_error_means']
             assert errs[0] >= 0
-            maxsolution = max(errs)
+            maxerror = max(errs)
+
+            angles = data['max_angle_errors']
+            maxangle = max(angles)
 
             maxtime = data['times'][-1]
             nsteps = len(data['times'])
 
         else:
-            maxsolution = sp.inf
+            maxerror = sp.inf
+            maxangle = sp.inf
             maxtime = 0
             nsteps = 0
 
-        # If it didn't crash then check output
-        if err_code == 0:
 
-            if maxsolution < maxallowedsolutionnorm:
-                 print("Succedded with max solution norm =", maxsolution, "dt =", dt)
-                 return dt
-            else:
-                print("Failed due to max solution norm =", maxsolution,
-                       ">", maxallowedsolutionnorm)
-                dt = dt/2
+        # If it didn't crash then check output
+        if (err_code != 0
+            or maxerror > maxallowederror
+            or maxangle > maxallowedangle):
+            mm.badprint(pjoin(outdir, "stdout:1:1:"), "FAILED",
+                        maxerror, maxangle)
+
+            dt = dt/2
 
         else:
-            print("Failed due to crash with max solution norm", maxsolution,
-                  "at time", maxtime, "after", nsteps, "steps.")
-            dt = dt/2
+            mm.okprint("Succedded in", os.path.relpath(outdir, root_outdir))
+            return dt
+
+
+def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
+                         root_outdir):
+
+    # Also name by refinement and dt
+    results_naming_args = copy.copy(dir_naming_args)
+    dir_naming_args = dir_naming_args + ['-ref', '-dt']
+
+    results_naming_values = sorted([str(args[k]) for k in results_naming_args])
+    results_name = pjoin(root_outdir, 'results_'+'_'.join(results_naming_values))
+
+    print("writing results to", results_name)
+
+    # Run for easiest case
+    dt = locate_stable_point(args, refine=refines_list[0],
+                             dt_guess=dt_guess, dir_naming_args=dir_naming_args,
+                             root_outdir=root_outdir)
+
+    # Write to file
+    with open(results_name, 'a') as result_file:
+        result_file.write(str(refines_list[0]) + " " + str(dt))
+
+    dts = [dt]
+
+    # And the rest
+    for ref in refines_list[1:]:
+
+        # find stable point for this refine, use previous dt as initial guess
+        dt = locate_stable_point(args,
+                                 refine=ref,
+                                 dt_guess=dts[-1],
+                                 dir_naming_args=dir_naming_args,
+                                 root_outdir=root_outdir)
+        dts.append(dt)
+
+        # Write to file
+        with open(results_name, 'a') as result_file:
+            result_file.write(str(ref) + " " + str(dt))
+
+
+    return dts
 
 
 def main():
@@ -107,72 +141,47 @@ def main():
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--clean', action='store_true', help='delete old data')
-    parser.add_argument('--outdir', '-o', help='Output dir')
-    parser.add_argument('--mesh', '-m', help='Choose mesh type')
-    parser.add_argument('--implicit', '-i', action='store_true',
-                         help='Use implicit time integrator')
     parser.add_argument('--serial', action='store_true',
                          help="Don't do parallel sweeps")
-    parser.add_argument('--use-hms', action='store_true', help='Include magnetostatics')
-
-
     args = parser.parse_args()
 
-    if args.outdir is not None:
-        root_root_outdir = args.outdir
-    else:
-        root_root_outdir = os.path.abspath('../experiments/intermag')
+    root_root_outdir = os.path.abspath('../experiments/intermag')
 
-    if args.clean:
-        shutil.rmtree(root_outdir)
-
-
-    additional_args = {}
-
-    if args.mesh == "sphere":
-        additional_args.update({'-mesh' : 'ut_sphere', '-scale' : '2.5'})
-    elif args.mesh == "square":
-        additional_args.update({'-mesh' : 'sq_square', '-scale' : '10'})
-    else:
-        sys.stderr.write("Unrecognised mesh " + str(args.mesh))
-        exit(2)
+    argsdict = {
+                '-driver' : 'll',
+                '-tmax' : 2,
+                '-hlib-bem' : 0,
+                '-renormalise' : 0,
+                '-mesh' : ['ut_sphere', 'sq_square'],
+                '-ms-method' : ['implicit', 'disabled', 'decoupled'],
+                '-solver' : 'som-gmres',
+                '-prec' : 'som-main-exact',
+                '-ts' : ['midpoint-bdf', 'rk2'],
+                '-scale' : 2,
+                '-fd-jac' : True,
+                }
 
 
-    if args.implicit:
-        additional_args.update({'-ts' : 'midpoint-bdf', '-fd-jac' : True})
-    else:
-        additional_args.update({'-ts': 'rk2'})
+    # The exact function to run
+    f = par(locate_stable_points, refines_list = [1, 2, 3, 4, 5],
+            dt_guess=0.1, dir_naming_args=mm.argdict_varying_args(argsdict),
+            root_outdir=root_root_outdir)
 
+    # Run for all combinations of args
+    argsets = mm.product_of_argdict(argsdict)
+    dts = list(mm.parallel_map(f, argsets, serial_mode=args.serial))
 
-    if args.use_hms:
-        additional_args.update({'-solver' : 'som-gmres', '-prec' : 'som-main-exact'})
-        refs = [1, 2, 3, 4, 5]
+    print(dts)
 
-    else:
-        additional_args.update({'-ms-method' : 'disabled'})
-        refs = [1, 2, 3, 4, 5]
+    # # Write to file
+    # with open(pjoin(root_outdir, 'results'), 'w') as result_file:
+    #     for r, dt in zip(refs, dts):
+    #         result_file.write(str(r) + " " + str(dt))
 
-
-
-    # Construct root dir
-    args_dirname = '{}_impl{}_hms{}'.format(args.mesh, args.implicit, args.use_hms)
-    root_outdir = pjoin(root_root_outdir, args_dirname)
-
-    # Run
-    dts = mm.parallel_map(par(locate_stable_point, dt_guess=1,
-                              other_args=additional_args, root_outdir=root_outdir),
-                          refs,
-                          serial_mode=args.serial)
-
-    # Write to file
-    with open(pjoin(root_outdir, 'results'), 'w') as result_file:
-        for r, dt in zip(refs, dts):
-            result_file.write(str(r) + " " + str(dt))
-
-    plt.plot(refs, dts)
-    plt.xlabel('refinement')
-    plt.ylabel('max stable dt found')
-    plt.show()
+    # plt.plot(refs, dts)
+    # plt.xlabel('refinement')
+    # plt.ylabel('max stable dt found')
+    # plt.show()
 
     return 0
 
