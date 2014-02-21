@@ -561,7 +561,7 @@ def argdict_varying_args(argdict):
 def run_sweep(args_dict, base_outdir, parallel_sweep=False):
 
     # Make a list of arguments that take multiple different values
-    varying_args = mm.argdict_varying_args(args_dict)
+    varying_args = argdict_varying_args(args_dict)
 
     # Generate list of parameter sets
     parameter_dicts = product_of_argdict(args_dict)
