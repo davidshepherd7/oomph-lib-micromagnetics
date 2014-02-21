@@ -82,9 +82,9 @@ namespace oomph
 
     /// \short Make a timestepper from an input argument using
     /// new. Assumption: this will be passed into a problem, which will
-    /// delete the pointer when it's done.
     TimeStepper* time_stepper_factory(const std::string& ts_name,
-                                      const std::string& mp_pred_name="rk4");
+                                      const std::string& mp_pred_name="ebdf3",
+                                      const int& mp_update_pinned=-1);
 
     /// Make an explicit time stepper
     ExplicitTimeStepper* explicit_time_stepper_factory(const std::string& ts_name);

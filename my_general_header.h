@@ -239,6 +239,9 @@ namespace oomph
 
         specify_command_line_flag("-dummy-adaptivity", &dummy_adaptivity);
         dummy_adaptivity = -1;
+
+        specify_command_line_flag("-mp-update-pinned", &mp_update_pinned);
+        mp_update_pinned = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -263,9 +266,10 @@ namespace oomph
       ts_name = to_lower(ts_name);
       mp_pred_name = to_lower(mp_pred_name);
 
-      // Build all the pointers to stuff
-      time_stepper_pt = time_stepper_factory(ts_name,
-                                             mp_pred_name);
+      // Build the time stepper
+      time_stepper_pt = time_stepper_factory(ts_name, mp_pred_name,
+                                             mp_update_pinned);
+
       if(time_stepper_pt == 0) // failed, so try explicit
         {
           explicit_time_stepper_pt =
@@ -440,6 +444,7 @@ namespace oomph
     double solution_norm_limit;
     bool disable_explicit_solver_optimisations;
     int predictor_as_initial_guess;
+    int mp_update_pinned;
 
     double newton_tol;
     double newton_max_residual;

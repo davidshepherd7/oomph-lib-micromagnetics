@@ -219,8 +219,9 @@ namespace oomph
     /// Make a timestepper from an input argument. Assumption: this will be
     /// passed into a problem, which will delete the pointer when it's
     /// done.
-    TimeStepper* time_stepper_factory
-    (const std::string& ts_name, const std::string& mp_pred_name)
+    TimeStepper* time_stepper_factory(const std::string& ts_name,
+                                      const std::string& mp_pred_name,
+                                      const int& mp_update_pinned)
     {
 
       // Always make timestepper adaptive, we can control adaptivity by
@@ -247,6 +248,10 @@ namespace oomph
           MidpointMethodByBDF* mp_pt = new MidpointMethodByBDF(adaptive_flag);
           ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
           mp_pt->set_predictor_pt(pred_pt);
+          if(mp_update_pinned != -1)
+            {
+              mp_pt->Update_pinned = bool(mp_update_pinned);
+            }
           return mp_pt;
         }
       else if(ts_name == "steady")
