@@ -17,40 +17,43 @@ from os.path import join as pjoin
 sys.path.insert(1, pjoin(os.path.dirname(__file__), "../../etc"))
 import oomphpy
 import oomphpy.micromagnetics as mm
+import oomphpy.tests as tests
 
-
-def small(f):
-    return abs(f) < 1e-4
 
 def main():
 
-    # ??ds ad "llg"?
-    for exact in ["ll"]:
-        for ts in ["rk2", "midpoint-bdf"]:
+    # Look for parallel in args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--parallel', action = "store_true")
+    args = parser.parse_args()
 
-            # parameters
-            valdir = pjoin(".", "Validation", exact+"_"+ts)
-            args = ['llgode', '-exact', exact,
-                    '-ts', ts,
-                    '-dt', 0.01,
-                    '-outdir', valdir]
-            # Run
-            mm.cleandir(valdir)
-            err_code = mm.run_driver(args, valdir)
+    # What to run
+    argdicts = {
+        "-driver" : 'llgode',
+         '-exact' : "ll",
+         '-ts' : ["rk2", "midpoint-bdf"],
+         '-dt' : 0.01,
+        }
 
-            assert(err_code == 0)
+    # Where it's going to end up
+    base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
-            # Check all errors are small
-            data = mm.parse_trace_file(pjoin(valdir, "trace"))
+    # Run
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir,
+                                      parallel_sweep=args.parallel)
 
+    # Get data
+    datasets = list(map(mm.parse_run, outdirs))
 
-            max_err = max(map(abs, data['error_norms']))
-            if max_err > 5e-5:
-                print("max error of", str(max_err), "is too large")
-                return 1
+    # Check all errors are small
+    ok = all([tests.check_error_norm(d, 1e-4) for d in datasets])
 
+    ran = all([e == 0 for e in err_codes])
 
-    return 0
+    if ran and ok:
+        return 0
+    else:
+        return 1
 
 
 if __name__ == "__main__":
