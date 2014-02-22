@@ -940,6 +940,15 @@ namespace oomph
              "./meshes/mumag4." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+      else if(mesh_name == "sq_mumag4" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
@@ -1050,6 +1059,15 @@ namespace oomph
              "./meshes/mumag4." + to_string(refinement_level) + ".ele",
              "./meshes/mumag4." + to_string(refinement_level) + ".face",
              time_stepper_pt);
+        }
+      else if(mesh_name == "sq_mumag4" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimpleCubicMesh<QMagnetostaticFieldElement<3, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
