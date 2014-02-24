@@ -151,9 +151,11 @@ def main():
     parser.add_argument('--clean', action='store_true', help='delete old data')
     parser.add_argument('--serial', action='store_true',
                          help="Don't do parallel sweeps")
+    parser.add_argument('--outdir', help='delete old data')
     args = parser.parse_args()
 
-    root_root_outdir = os.path.abspath('../experiments/intermag')
+    if args.outdir is None:
+        args.outdir = os.path.abspath('../experiments/intermag')
 
     argsdict = {
                 '-driver' : 'll',
@@ -173,7 +175,7 @@ def main():
     # The exact function to run
     f = par(locate_stable_points, refines_list = [1, 2, 3, 4, 5],
             dt_guess=0.1, dir_naming_args=mm.argdict_varying_args(argsdict),
-            root_outdir=root_root_outdir)
+            root_outdir=args.outdir)
 
     # Run for all combinations of args
     argsets = mm.product_of_argdict(argsdict)
