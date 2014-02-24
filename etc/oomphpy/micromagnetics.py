@@ -48,6 +48,9 @@ def red_colour(): return '\033[01;31m'
 def end_colour(): return '\033[0m'
 
 
+def exchange_length_ms(A, Ms):
+    mu0 = 4 * sp.pi * 1e-7
+    return sqrt((2*A) / (mu0 * (Ms**2)))
 
 # Helper functions
 # ============================================================
