@@ -58,7 +58,7 @@ def generate_tetgen_meshes(initial_poly_file):
 
     # Initial mesh generation
     initial_vol = 0.02
-    subp.check_call(['tetgen', '-q', '-a' + str(initial_vol), '-p',
+    subp.check_call(['tetgen', '-V', '-q', '-a' + str(initial_vol), '-p',
                      initial_poly_file])
 
 
@@ -71,7 +71,7 @@ def generate_tetgen_meshes(initial_poly_file):
                           + '.' + str(refine))
 
         # Refine tet volumes by a factor of 8 each time (i.e. 2^dim).
-        subp.check_call(['tetgen', '-q',
+        subp.check_call(['tetgen', '-V', '-q',
                          '-a' + str(initial_vol / (4 ** refine)),
                          '-r', file_to_refine])
 
@@ -88,7 +88,7 @@ def generate_mumag4_meshes(initial_poly_file):
 
     # Initial mesh generation
     initial_vol = 10
-    subp.check_call(['tetgen', '-q5', '-a' + str(initial_vol), '-p',
+    subp.check_call(['tetgen', '-V', '-q5', '-a' + str(initial_vol), '-p',
                      initial_poly_file])
 
 
@@ -101,7 +101,7 @@ def generate_mumag4_meshes(initial_poly_file):
                           + '.' + str(refine))
 
         # Refine tet volumes by a factor of 8 each time (i.e. 2^dim).
-        subp.check_call(['tetgen', '-q',
+        subp.check_call(['tetgen', '-V', '-q',
                          '-a' + str(initial_vol / (4 ** refine)),
                          '-r', file_to_refine])
 
@@ -127,6 +127,7 @@ def generate_sphere_mesh(mesh_dir, radius, refinement):
 
     # Now use the input file to create a mesh using tetgen
     subp.check_call(['tetgen',
+                     '-V', # dump info on quality
                      '-q', # "Good quality" mesh
                      '-a' + str(initial_vol / (4 ** refinement)), # specify an area
                      '-Y', # Don't split boundary faces (so that surface refinement
