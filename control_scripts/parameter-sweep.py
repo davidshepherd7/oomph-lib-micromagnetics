@@ -17,6 +17,7 @@ import subprocess as subp
 import itertools as it
 import functools as ft
 import scipy as sp
+import multiprocessing as mp
 
 
 # Imports for specific functions
@@ -59,10 +60,17 @@ def main():
     parser.add_argument('--clean', action='store_true',
                         help='clean up old results from the target folder')
 
+    parser.add_argument('--ncores', '-j', '-n',
+                        help='Number of processes to run at once')
+
     parser.add_argument('--no-build', action='store_true',
                         help="Don't rebuild anything")
 
     args = parser.parse_args()
+
+
+    if args.ncores is None:
+        args.ncores = mp.cpu_count()
 
 
     # Find the parameter set
@@ -143,7 +151,8 @@ def main():
 
     print("Running parameter sweep with parameter set", args.parameters)
     print("Output is going into", output_root)
-    mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode))
+    mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode),
+                 processes=args.ncores)
 
     return 0
 

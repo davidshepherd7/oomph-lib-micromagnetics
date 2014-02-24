@@ -325,7 +325,8 @@ def parse_parameter_sweep(root_dirs):
     return results
 
 
-def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
+def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False,
+                             **kwargs):
     """Run function with all combinations of parameters in parallel using
     all available cores.
 
@@ -345,11 +346,12 @@ def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False):
 
     else:
         # Run in all parameter sets in parallel
-        results = multiprocessing.Pool().map(function, parameter_sets, 1)
+        results = multiprocessing.Pool(**kwargs).map(function, parameter_sets, 1)
 
     return results
 
-def parallel_map(function, *args, serial_mode=False):
+
+def parallel_map(function, *args, serial_mode=False, **kwargs):
     """Run function with args in parallel using all available cores.
     """
 
@@ -362,7 +364,7 @@ def parallel_map(function, *args, serial_mode=False):
 
     else:
         # Run in all parameter sets in parallel
-        results = multiprocessing.Pool().starmap(function, unzip(args), 1)
+        results = multiprocessing.Pool(**kwargs).starmap(function, unzip(args), 1)
 
     return results
 
@@ -558,7 +560,7 @@ def argdict_varying_args(argdict):
     return varying_args
 
 
-def run_sweep(args_dict, base_outdir, parallel_sweep=False):
+def run_sweep(args_dict, base_outdir, parallel_sweep=False, **kwargs):
 
     # Make a list of arguments that take multiple different values
     varying_args = argdict_varying_args(args_dict)
@@ -572,7 +574,7 @@ def run_sweep(args_dict, base_outdir, parallel_sweep=False):
     if parallel_sweep:
         args = zip(parameter_dicts, it.repeat(base_outdir),
                    it.repeat(varying_args))
-        out = multiprocessing.Pool().map(_run_mp, args, 1)
+        out = multiprocessing.Pool(**kwargs).map(_run_mp, args, 1)
     else:
         out = map(_run, parameter_dicts, it.repeat(base_outdir),
                   it.repeat(varying_args))
