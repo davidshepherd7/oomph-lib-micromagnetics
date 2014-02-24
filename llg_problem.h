@@ -325,6 +325,9 @@ namespace oomph
         oomph_info << "Renormalising nodal magnetisations." << std::endl;
         renormalise_magnetisation();
 
+        // check neighbouring magnetisation angles if requested
+        maybe_check_angles();
+
         // Explicit timestep is over now
         Inside_explicit_timestep = false;
       }
@@ -369,36 +372,42 @@ namespace oomph
           renormalise_magnetisation();
         }
 
-
-      if(Check_angles)
-        {
-          // From the nmag user manual:
-          // [Begin quote M Donahue]
-          // * if the spin angle is approaching 180 degrees,
-          //   then the results are completely bogus.
-          // * over 90 degrees the results are highly questionable.
-          // * Under 30 degrees the results are probably reliable.
-          // [end quote]
-          // (the spin angle is the angle between two neighbouring magnetisations).
-
-          // Check this:
-          Vector<double> a = elemental_max_m_angle_variations();
-          double max_angle_var = *std::max_element(a.begin(), a.end());
-          if(max_angle_var > MathematicalConstants::Pi/6)
-            {
-              std::string error_msg
-                = "Large angle variations of " + to_string(max_angle_var)
-                + " > " + to_string(MathematicalConstants::Pi/6)
-                + " across a single element,\n";
-              error_msg += "this often means that your mesh is not sufficiently refined.";
-              OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-            }
-        }
+      // check neighbouring magnetisation angles if requested
+      maybe_check_angles();
 
       // Calculate and store the energy (ready to be output)
       calculate_energies();
     }
+
+    void maybe_check_angles()
+      {
+        if(Check_angles)
+          {
+            std::cout << "angles" << std::endl;
+            // From the nmag user manual:
+            // [Begin quote M Donahue]
+            // * if the spin angle is approaching 180 degrees,
+            //   then the results are completely bogus.
+            // * over 90 degrees the results are highly questionable.
+            // * Under 30 degrees the results are probably reliable.
+            // [end quote]
+            // (the spin angle is the angle between two neighbouring magnetisations).
+
+            // Check this:
+            Vector<double> a = elemental_max_m_angle_variations();
+            double max_angle_var = *std::max_element(a.begin(), a.end());
+            if(max_angle_var > MathematicalConstants::Pi/6)
+              {
+                std::string error_msg
+                  = "Large angle variations of " + to_string(max_angle_var)
+                  + " > " + to_string(MathematicalConstants::Pi/6)
+                  + " across a single element,\n";
+                error_msg += "this often means that your mesh is not sufficiently refined.";
+                OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+              }
+          }
+      }
 
     virtual void actions_before_newton_convergence_check()
       {
