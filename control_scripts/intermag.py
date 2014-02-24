@@ -40,6 +40,10 @@ import oomphpy.micromagnetics as mm
 def locate_stable_point(args, refine, dt_guess, dir_naming_args,
                         root_outdir):
 
+    # Catch failures immediately
+    if dt_guess is None:
+        return None
+
     maxallowederror = 0.01
     maxallowedangle = sp.pi/4 # radians
 
@@ -89,6 +93,10 @@ def locate_stable_point(args, refine, dt_guess, dir_naming_args,
         else:
             mm.okprint("Succedded in", os.path.relpath(outdir, root_outdir))
             return dt
+
+
+    # if we get here then it totally failed
+    return None
 
 
 def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
