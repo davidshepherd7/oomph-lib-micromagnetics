@@ -169,6 +169,8 @@ def main():
                 '-ts' : ['midpoint-bdf', 'rk2'],
                 '-scale' : 2,
                 '-fd-jac' : True,
+                '-damping' : [1.0, 0.1, 0.01],
+                '-check-angles' : 1,
                 }
 
 
@@ -179,6 +181,11 @@ def main():
 
     # Run for all combinations of args
     argsets = mm.product_of_argdict(argsdict)
+
+    # Remove an impossible combination
+    argsets = [a for a in argsets if not
+               (a['-ts'] == 'rk2' and a['-ms-method'] == 'implicit')]
+
     dts = list(mm.parallel_map(f, argsets, serial_mode=args.serial))
 
     print(dts)
