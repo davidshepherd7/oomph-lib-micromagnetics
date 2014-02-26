@@ -38,6 +38,13 @@ namespace oomph
         throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
+
+    if(Analytic_ms_fct_pt != 0 && !Disable_ms)
+      {
+        std::string err = "Other ms must be disabled to use analytical ms.";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
 #endif
 
     // Call the underlying build to deal with adding meshes and time stepper
@@ -64,6 +71,13 @@ namespace oomph
 
             // Set the residual calculation function
             elem_pt->Residual_calculator_pt = Residual_calculator_pt;
+
+            if(Analytic_ms_fct_pt != 0)
+              {
+                AnalyticalMagnetostatics* ams_pt = new AnalyticalMagnetostatics;
+                ams_pt->Magnetostatic_field_fct_pt = Analytic_ms_fct_pt;
+                elem_pt->Ms_calc_pt = ams_pt;
+              }
           }
       }
 

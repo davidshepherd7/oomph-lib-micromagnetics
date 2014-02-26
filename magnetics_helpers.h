@@ -415,6 +415,7 @@ namespace InitialM
 
   namespace MagnetostaticFieldFunctions
   {
+
     inline Vector<double> sphere(const double& time, const Vector<double>& x,
                                  const Vector<double>& m)
     {
@@ -426,6 +427,22 @@ namespace InitialM
         }
 
       return hms;
+    }
+
+
+    inline MagnetostaticFieldFctPt ms_factory(const std::string& ms_name)
+    {
+      if(ms_name == "sphere")
+        {
+          return &MagnetostaticFieldFunctions::sphere;
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised initial magnetostatic field name "
+                              + ms_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
     }
 
   }

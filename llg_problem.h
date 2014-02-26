@@ -58,6 +58,7 @@ namespace oomph
       Decoupled_ms = false;
       Extrapolate_decoupled_ms = false;
       Disable_ms = false;
+      Analytic_ms_fct_pt = 0;
       Inside_explicit_timestep = false;
 #ifdef PARANOID
       Check_angles = true;
@@ -880,6 +881,8 @@ namespace oomph
 
     bool Disable_ms;
 
+    MagnetostaticFieldFctPt Analytic_ms_fct_pt;
+
     bool Check_angles;
 
     /// Normalise magnetisation problem after each step?
@@ -1263,9 +1266,11 @@ public:
         }
       else
         {
-          std::string err = "Unrecognised ms method " + ms_method;
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
+          llg_pt->Decoupled_ms = false;
+          llg_pt->Disable_ms = true;
+          llg_pt->Extrapolate_decoupled_ms = false;
+          llg_pt->Analytic_ms_fct_pt =
+            MagnetostaticFieldFunctions::ms_factory(to_lower(ms_method));
         }
 
       // ??ds this should maybe be a general one?

@@ -32,6 +32,10 @@ namespace oomph
   typedef double (*TimeValueToDoubleFctPt) (const double& t,
                                             const double& u);
 
+  /// Function to calculate magnetostatic field analytically
+  typedef Vector<double> (*MagnetostaticFieldFctPt)
+  (const double& t, const Vector<double>& x, const Vector<double>& m);
+
   /// Function type for applied fields
   typedef TimeSpaceToDoubleVectFctPt HAppFctPt;
 

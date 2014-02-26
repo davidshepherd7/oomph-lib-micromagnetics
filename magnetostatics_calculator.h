@@ -4,16 +4,14 @@
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
 
+#include "micromag_types.h"
+
 namespace oomph
 {
 
   class MMInterpolator;
   template<unsigned VAL> class MMArrayInterpolator;
   class MagnetostaticFieldEquations;
-
-  typedef Vector<double> (*MagnetostaticFunction)
-  (const double& t, const Vector<double>& x, const Vector<double>& m);
-
 
   /// Class to calculate magnetostatic field
   class MagnetostaticsCalculator
@@ -110,11 +108,11 @@ namespace oomph
     void get_magnetostatic_field_time_derivative
     (MMInterpolator* intp_pt, Vector<double> &H_ms) const
     {
-      throw OomphLibError("Function not yet implemented",
-                          OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+      //??ds dummy value
+      H_ms.assign(3, -1000.0);
     }
 
-    MagnetostaticFunction Magnetostatic_field_fct_pt;
+    MagnetostaticFieldFctPt Magnetostatic_field_fct_pt;
   };
 
 } // End of oomph namespace
