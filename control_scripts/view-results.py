@@ -132,7 +132,7 @@ def main():
 
     # Run paraview
     print("Done, launching paraview.")
-    subp.call(['paraview', pjoin(args.dir, 'soln.pvd')])
+    subp.call(['paraview', os.path.abspath(pjoin(args.dir, 'soln.pvd'))])
 
     # Done!
     return 0
