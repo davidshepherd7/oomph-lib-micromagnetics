@@ -124,6 +124,8 @@ namespace oomph
 
     TimeStepper* ts_pt() const {return Ts_pt;}
 
+    unsigned dim() const {return Dim;}
+
     double x(const unsigned &i)
     {return x()[i];}
 
