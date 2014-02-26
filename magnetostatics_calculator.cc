@@ -79,8 +79,15 @@ namespace oomph
       }
 #endif
 
-    h_ms = Magnetostatic_field_fct_pt(intp_pt->time(), intp_pt->x(),
-                                      intp_pt->m());
+    // Copy to vectors
+    Vector<double> m(3, 0.0), x(intp_pt->dim(), 0.0);
+    for(unsigned j=0; j<intp_pt->dim(); j++)
+      {
+        m[j] = intp_pt->m()[j];
+        x[j] = intp_pt->x()[j];
+      }
+
+    h_ms = Magnetostatic_field_fct_pt(intp_pt->time(), x, m);
 
   }
 

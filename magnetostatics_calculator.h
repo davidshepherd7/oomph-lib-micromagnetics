@@ -11,8 +11,8 @@ namespace oomph
   template<unsigned VAL> class MMArrayInterpolator;
   class MagnetostaticFieldEquations;
 
-  typedef Vector<double> (*MagnetostaticFunction)(const double& t, const double* x,
-                                                  const double* m);
+  typedef Vector<double> (*MagnetostaticFunction)
+  (const double& t, const Vector<double>& x, const Vector<double>& m);
 
 
   /// Class to calculate magnetostatic field
