@@ -63,7 +63,7 @@ def main():
         '-doc-interval' : [0],
         '-hlib-bem' : [1],
         '-solver' : ['som-gmres'],
-        '-prec' : ['som-main-exact'],
+        '-prec' : ['som-main-ilu0'],
         }
 
     # Where it's going to end up
