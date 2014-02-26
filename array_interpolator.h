@@ -80,6 +80,8 @@ namespace oomph
     // Negative time to signify that it has not been calculated yet
       Intp_time(NotYetCalculatedValue)
     {
+      Ts_pt = this_element->node_pt(0)->time_stepper_pt();
+
       // Initialise storage
       for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
       for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
@@ -119,6 +121,8 @@ namespace oomph
       if(uninitialised(Intp_time)) {Intp_time = interpolate_time();}
       return Intp_time;
     }
+
+    TimeStepper* ts_pt() const {return Ts_pt;}
 
     double x(const unsigned &i)
     {return x()[i];}
@@ -245,6 +249,7 @@ namespace oomph
     const FiniteElement* This_element;
     const DenseMatrix<double>* Ts_weights_pt;
     const DenseMatrix<double>* Position_ts_weights_pt;
+    TimeStepper* Ts_pt;
 
     // Jacobian + shape/test functions
     double J;
