@@ -413,6 +413,22 @@ namespace InitialM
 }
 
 
+  namespace MagnetostaticFieldFunctions
+  {
+    inline Vector<double> sphere(const double& time, const Vector<double>& x,
+                                 const Vector<double>& m)
+    {
+      Vector<double> hms(3, 0.0);
+
+      for(unsigned j=0; j<3; j++)
+        {
+          hms[j] = -m[j]/3;
+        }
+
+      return hms;
+    }
+
+  }
 
 class MyProblem;
 
