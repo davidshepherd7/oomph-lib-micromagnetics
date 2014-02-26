@@ -71,6 +71,65 @@ namespace oomph
     return result;
   }
 
+
+  /// \short Helper function for calculation of magnetostatic field.
+  void MicromagEquations::get_magnetostatic_field
+  (const Vector<double> &s, Vector<double> &h_magnetostatic) const
+  {
+    // Construct an interpolator and call the underlying function.
+    MMArrayInterpolator<5> intp(this, s);
+    get_magnetostatic_field(&intp, h_magnetostatic);
+  }
+
+  /// Get the time derivative of the magnetostatic field at a point.
+  void MicromagEquations::get_magnetostatic_field_time_derivative
+  (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
+  {
+#ifdef PARANOID
+    if(intp_pt == 0)
+      {
+        std::string error_msg = "Null interpolator!";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+    if(Ms_calc_pt == 0)
+      {
+        std::string err = "Ms_calc_pt is null";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
+    Ms_calc_pt->
+      get_magnetostatic_field_time_derivative(intp_pt, dh_ms_dt);
+
+    for(unsigned j=0; j<3; j++)
+      {dh_ms_dt[j] *= magnetostatic_coeff();}
+  }
+
+  /// \short Calculation of magnetostatic field. Optimised version for
+  /// calculations when we aleady have an interpolator (e.g. during
+  /// residual calculations).
+  void MicromagEquations::get_magnetostatic_field
+  (MMArrayInterpolator<5>* intp_pt, Vector<double> &h_magnetostatic) const
+  {
+#ifdef PARANOID
+    if(intp_pt == 0)
+      {
+        std::string error_msg = "Null interpolator!";
+        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+    if(Ms_calc_pt == 0)
+      {
+        std::string err = "Ms_calc_pt is null";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+    Ms_calc_pt->get_magnetostatic_field(intp_pt, h_magnetostatic);
+  }
+
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
   ///
@@ -198,161 +257,6 @@ namespace oomph
     write_tecplot_zone_footer(outfile,n_plot);
   }
 
-  void MicromagEquations::
-  get_magnetostatic_field(const Vector<double> &s,
-                          Vector<double> &h_magnetostatic) const
-  {
-    // Construct an interpolator and call the underlying function.
-    MMArrayInterpolator<5> intp(this, s);
-    get_magnetostatic_field(&intp, h_magnetostatic);
-  }
-
-  void MicromagEquations::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
-                          Vector<double> &hms) const
-  {
-#ifdef PARANOID
-    if(intp_pt == 0)
-      {
-        std::string error_msg = "Null interpolator!";
-        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-    // Make sure the field has 3 dimensions (even if there are only two
-    // spatial dimensions).
-    hms.resize(3, 0.0);
-
-    const double* hms_temp;
-    // Copy the derivative elements into the field vector (it only has
-    // [nodal dimension] entries).
-    hms_temp = intp_pt->dvaluedx(this->phi_index_micromag());
-
-    // Multiply by -1 and normalise
-    for(unsigned j=0; j<3; j++)
-      {
-        hms[j] = -1 * magnetostatic_coeff() * hms_temp[j];
-      }
-  }
-
-  /// For micromagnetics the source function is the divergence of the
-  /// magnetisation.
-  void SemiImplicitMicromagEquations::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
-                          Vector<double> &h_ms) const
-  {
-    // Lots of checks because this is stupid really...
-#ifdef PARANOID
-    if(this->nnode() != magnetostatic_field_element_pt()->nnode())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must be the same geometry for this to "
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-
-    if(this->dim() != magnetostatic_field_element_pt()->dim())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must be the same geometry for this to "
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-
-    if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must have the same integration scheme for this to"
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-    // Get magnetostatic field from field element. Safe to assume that all
-    // nodes have the same time stepper becuase otherwise our interpolators
-    // don't work.
-    magnetostatic_field_element_pt()->magnetostatic_field
-      (intp_pt->s(), node_pt(0)->time_stepper_pt(), h_ms);
-  }
-
-  void MicromagEquations::
-  get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
-                                          Vector<double> &dh_ms_dt) const
-  {
-#ifdef PARANOID
-    if(intp_pt == 0)
-      {
-        std::string error_msg = "Null interpolator!";
-        throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-    // Copy the derivative elements into the field vector (it only has
-    // [nodal dimension] entries).
-    dh_ms_dt = intp_pt->d2valuedxdt(this->phi_index_micromag());
-
-    // Make sure the field has 3 dimensions (even if there are only two
-    // spatial dimensions).
-    dh_ms_dt.resize(3, 0.0);
-
-    // Multiply by -1 and normalise
-    for(unsigned j=0; j<3; j++)
-      {
-        dh_ms_dt[j] *= -1 * magnetostatic_coeff();
-      }
-  }
-
-  void SemiImplicitMicromagEquations::
-  get_magnetostatic_field_time_derivative(MMInterpolator* intp_pt,
-                                          Vector<double> &dh_ms_dt) const
-  {
-    // Lots of checks because this is stupid really...
-#ifdef PARANOID
-    if(this->nnode() != magnetostatic_field_element_pt()->nnode())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must be the same geometry for this to "
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-
-    if(this->dim() != magnetostatic_field_element_pt()->dim())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must be the same geometry for this to "
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-
-    if(this->integral_pt() != magnetostatic_field_element_pt()->integral_pt())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Elements must have the same integration scheme for this to"
-                  << "work... sorry for the hackyness. Maybe you can fix it.";
-        throw OomphLibError(error_msg.str(),
-                            OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-    // Get magnetostatic field derivative from field element
-    magnetostatic_field_element_pt()->magnetostatic_field_time_derivative(intp_pt->s(),
-                                                                          intp_pt->ts_pt(),
-                                                                          dh_ms_dt);
-  }
-
 
   //======================================================================
   /// Validate computed M against exact solution.
@@ -452,13 +356,4 @@ namespace oomph
   template class TMicromagElement<3,2>;
   template class TMicromagElement<3,3>;
 
-  template class QSemiImplicitMicromagElement<2,2>;
-  template class QSemiImplicitMicromagElement<2,3>;
-  template class QSemiImplicitMicromagElement<3,2>;
-  template class QSemiImplicitMicromagElement<3,3>;
-
-  template class TSemiImplicitMicromagElement<2,2>;
-  template class TSemiImplicitMicromagElement<2,3>;
-  template class TSemiImplicitMicromagElement<3,2>;
-  template class TSemiImplicitMicromagElement<3,3>;
 }

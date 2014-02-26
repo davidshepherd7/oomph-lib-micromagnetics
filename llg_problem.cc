@@ -339,13 +339,15 @@ namespace oomph
             MagnetostaticFieldEquations* phi_ele_pt =
               checked_dynamic_cast<MagnetostaticFieldEquations*>
               (phi_mesh_pt->element_pt(e));
-            SemiImplicitMicromagEquations* m_ele_pt =
-              checked_dynamic_cast<SemiImplicitMicromagEquations*>
+            MicromagEquations* m_ele_pt =
+              checked_dynamic_cast<MicromagEquations*>
               (llg_mesh_pt->element_pt(e));
 
             phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
             phi_ele_pt->set_micromag_element_pt(m_ele_pt);
-            m_ele_pt->magnetostatic_field_element_pt() = phi_ele_pt;
+            checked_dynamic_cast<SemiImplicitMagnetostaticsCalculator*>
+              (m_ele_pt->Ms_calc_pt)
+              ->magnetostatic_field_element_pt() = phi_ele_pt;
           }
       }
 
@@ -735,6 +737,15 @@ namespace oomph
       // Scale the mesh as requested
       scale_mesh(scaling_factor, mesh_pt);
 
+      // This should go inside an element factory but our meshes don't
+      // allow that :(
+      for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+        {
+          MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
+            (mesh_pt->element_pt(ele));
+          ele_pt->Ms_calc_pt = new ImplicitMagnetostaticsCalculator;
+        }
+
       // Done: pass out the mesh pointer
       return mesh_pt;
     }
@@ -885,13 +896,13 @@ namespace oomph
       if(mesh_name == "sq_square" && nnode1d == 2)
         {
           double lx = 1.0;
-          mesh_pt = new SimpleRectangularQuadMesh<QSemiImplicitMicromagElement<2,2> >
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
       else if(mesh_name == "st_square" && nnode1d == 2)
         {
           double lx = 1.0;
-          mesh_pt = new SimpleRectangularTriMesh<TSemiImplicitMicromagElement<2,2> >
+          mesh_pt = new SimpleRectangularTriMesh<TMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
@@ -903,7 +914,7 @@ namespace oomph
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
-          mesh_pt = new TriangleMesh<TSemiImplicitMicromagElement<2, 2> >
+          mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
             ("./meshes/square." + to_string(refinement_level) + ".node",
              "./meshes/square." + to_string(refinement_level) + ".ele",
              "./meshes/square." + to_string(refinement_level) + ".poly",
@@ -919,14 +930,14 @@ namespace oomph
           // nmag cubeoid
           double lx = 1, ly = lx, lz = 3*lx;
           unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
-          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, ny, nz, lx, ly, lz, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
              "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
              "./meshes/cubeoid." + to_string(refinement_level) + ".face",
@@ -934,7 +945,7 @@ namespace oomph
         }
       else if(mesh_name == "ut_mumag4" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("./meshes/mumag4." + to_string(refinement_level) + ".node",
              "./meshes/mumag4." + to_string(refinement_level) + ".ele",
              "./meshes/mumag4." + to_string(refinement_level) + ".face",
@@ -944,7 +955,7 @@ namespace oomph
         {
           unsigned this_nx = refinement_level;
 
-          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
             (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
@@ -952,18 +963,18 @@ namespace oomph
       else if(mesh_name == "st_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
-          mesh_pt = new SimpleCubicTetMesh<TSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
-          mesh_pt = new SimpleCubicMesh<QSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)
         {
-          mesh_pt = new TetgenMesh<TSemiImplicitMicromagElement<3, 2> >
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
             ("./meshes/sphere." + to_string(refinement_level) + ".node",
              "./meshes/sphere." + to_string(refinement_level) + ".ele",
              "./meshes/sphere." + to_string(refinement_level) + ".face",
@@ -978,6 +989,15 @@ namespace oomph
 
       // Scale the mesh as requested
       scale_mesh(scaling_factor, mesh_pt);
+
+      // This should go inside an element factory but our meshes don't
+      // allow that :(
+      for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+        {
+          MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
+            (mesh_pt->element_pt(ele));
+          ele_pt->Ms_calc_pt = new SemiImplicitMagnetostaticsCalculator;
+        }
 
       // Done: pass out the mesh pointer
       return mesh_pt;

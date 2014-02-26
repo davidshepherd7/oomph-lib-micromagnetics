@@ -29,7 +29,7 @@
 #include "./array_interpolator.h"
 #include "micromag_types.h"
 #include "./residual_calculator.h"
-
+#include "magnetostatics_calculator.h"
 
 namespace oomph
 {
@@ -54,7 +54,16 @@ namespace oomph
                           Phi_source_pt(0), Phi_1_source_pt(0),
                           Magnetic_parameters_pt(0),
                           Applied_field_pt(0)
-    {}
+    {
+      Ms_calc_pt = 0;
+    }
+
+    /// Virtual destructor
+    virtual ~MicromagEquations()
+    {
+      // easiest to just always have own calculator for now...
+      delete Ms_calc_pt; Ms_calc_pt = 0;
+    }
 
     /// Broken copy constructor
     MicromagEquations(const MicromagEquations& dummy)
@@ -79,7 +88,6 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
-
 
       return 0;
     }
@@ -212,38 +220,6 @@ namespace oomph
       else return (*Phi_1_source_pt)(t,x);
     }
 
-    // /// Access function: Pointer to source function
-    // TimeSpaceToDoubleVectFctPt& llg_source_pt() {return Llg_source_pt;}
-
-    // /// Access function: Pointer to source function. Const version
-    // TimeSpaceToDoubleVectFctPt llg_source_pt() const {return Llg_source_pt;}
-
-    // /// Get LLG source term at (Eulerian) position x.
-    // inline void get_source_llg(const double& t,
-    //                          const Vector<double>& x,
-    //                          Vector<double>& source) const
-    // {
-    //   if(Llg_source_pt==0) {for(unsigned j=0;j<3;j++) source[j] = 0.0;}
-    //   else (*Llg_source_pt)(t,x,source);
-    // }
-
-    /// \short Helper function for calculation of magnetostatic field
-    /// (overload the other version of this function for semi-implicit
-    /// calculations).
-    virtual void get_magnetostatic_field(const Vector<double> &s,
-                                         Vector<double> &h_magnetostatic) const;
-
-    /// \short Calculation of magnetostatic field (overload for
-    /// semi-implicit calculations). Optimised version for calculations
-    /// when we aleady have an interpolator (e.g. during residual
-    /// calculations).
-    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
-                                         Vector<double> &h_magnetostatic) const;
-
-    /// Get the time derivative of the magnetostatic field at a point.
-    virtual void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
-
     // APPLIED FIELD
     /// Access function: Pointer to applied field function
     TimeSpaceToDoubleVectFctPt& applied_field_pt() {return Applied_field_pt;}
@@ -310,6 +286,26 @@ namespace oomph
     {
       return magnetic_parameters_pt()->normalised_hms();
     }
+
+    // Magnetostatic field
+    // ============================================================
+
+    /// Object to calculate magnetostatic field
+    MagnetostaticsCalculator* Ms_calc_pt;
+
+    /// \short Helper function for calculation of magnetostatic field.
+    void get_magnetostatic_field(const Vector<double> &s,
+                                 Vector<double> &h_magnetostatic) const;
+
+    /// \short Calculation of magnetostatic field. Optimised version for
+    /// calculations when we aleady have an interpolator (e.g. during
+    /// residual calculations).
+    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+                                         Vector<double> &h_magnetostatic) const;
+
+    /// Get the time derivative of the magnetostatic field at a point.
+    virtual void get_magnetostatic_field_time_derivative
+    (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
 
     // // EXACT PHI FUNCTION POINTER
     // /// Access function: Pointer to exact phi function
@@ -1142,79 +1138,6 @@ namespace oomph
 
 
 
-  // =================================================================
-  /// Micromagnetics elements with additional coupling from magnetostatic
-  /// field elements via a pointer (for use in semi-implicit methods).
-  // =================================================================
-  class SemiImplicitMicromagEquations : public MicromagEquations
-  {
-  public:
-
-    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
-                                 Vector<double> &H_ms) const;
-
-    void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &H_ms) const;
-
-    /// \short Non-const access function for Magnetostatic_field_element_pt.
-    MagnetostaticFieldEquations*& magnetostatic_field_element_pt()
-    {return Magnetostatic_field_element_pt;}
-
-    /// \short Const access function for Magnetostatic_field_element_pt.
-    MagnetostaticFieldEquations* magnetostatic_field_element_pt() const
-    {
-#ifdef PARANOID
-      if(Magnetostatic_field_element_pt == 0)
-        {
-          std::ostringstream error_msg;
-          error_msg << "Magnetics element pointer not set.";
-          throw OomphLibError(error_msg.str(), OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Magnetostatic_field_element_pt;
-    }
-
-  private:
-
-    MagnetostaticFieldEquations* Magnetostatic_field_element_pt;
-  };
-
-
-  //====================================================================
-  /// A class combining the micromag equations with a QElement geometry
-  //====================================================================
-  template < unsigned DIM, unsigned NNODE_1D>
-  class QSemiImplicitMicromagElement : public QElement<DIM,NNODE_1D>,
-                                       public SemiImplicitMicromagEquations
-  {
-  public:
-
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {SemiImplicitMicromagEquations::output(outfile,n_plot);}
-
-  }; // end of QSemiImplicitMicromagElement class declaration
-
-
-
-  //====================================================================
-  /// A class combining the micromag equations with a TElement geometry
-  //====================================================================
-  template < unsigned DIM, unsigned NNODE_1D>
-  class TSemiImplicitMicromagElement : public TElement<DIM,NNODE_1D>,
-                                       public SemiImplicitMicromagEquations
-  {
-  public:
-
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {SemiImplicitMicromagEquations::output(outfile,n_plot);}
-
-  };
-
-
-
   /// \short Simpler (but slower) implementation of micromagnetics
   /// interpolator class.
   class MMInterpolator : public GeneralInterpolator
@@ -1390,13 +1313,6 @@ namespace oomph
   class FaceGeometry<QMicromagElement<DIM,NNODE_1D> >:
     public virtual QElement<DIM-1,NNODE_1D> {};
 
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<TSemiImplicitMicromagElement<DIM,NNODE_1D> >:
-    public virtual TElement<DIM-1,NNODE_1D> {};
-
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<QSemiImplicitMicromagElement<DIM,NNODE_1D> >:
-    public virtual QElement<DIM-1,NNODE_1D> {};
 }
 
 
