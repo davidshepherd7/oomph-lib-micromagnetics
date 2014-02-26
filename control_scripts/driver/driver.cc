@@ -324,8 +324,14 @@ int main(int argc, char *argv[])
             << "=============================================" << std::endl
             << std::endl;
 
+          double step_time_start = TimingHelpers::timer();
           // Do the newton solve (different ones depending flags set)
           dt = problem_pt->smart_time_step(dt, tol);
+          double step_time_stop = TimingHelpers::timer();
+
+          std::cout << "Time for step " << step_time_stop - step_time_start
+                    << std::endl;
+
 
           // Output
           problem_pt->doc_solution();
