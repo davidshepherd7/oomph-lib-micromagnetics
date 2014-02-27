@@ -469,6 +469,33 @@ namespace oomph
       else if(prec_name == "ilu0")
         { prec_pt = new ILUZeroPreconditioner<CRDoubleMatrix>; }
 
+      else if(prec_name == "ilu")
+        {
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* hp_pt = new HyprePreconditioner;
+
+          // Use Euclid (ILU)
+          hp_pt->use_Euclid();
+
+          // Simple parameters
+          hp_pt->euclid_droptol() = 0.0;
+          hp_pt->euclid_level() = 1;
+
+          // Use other algorithms
+          // hp_pt->enable_euclid_rowscale();
+          // hp_pt->enable_euclid_using_BJ() = 0.0;
+          // hp_pt->euclid_using_ILUT();
+
+          // Debugging info
+          hp_pt->euclid_print_level() = 0;
+
+          prec_pt = hp_pt;
+#else // If no Hypre then give a warning and use exact
+          throw OomphLibError("Don't have Hypre, can't do ilu",
+            OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+#endif
+        }
+
       else if(prec_name == "identity")
         { prec_pt = new IdentityPreconditioner; }
 
