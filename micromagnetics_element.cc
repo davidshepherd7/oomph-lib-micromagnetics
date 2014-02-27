@@ -130,6 +130,29 @@ namespace oomph
     Ms_calc_pt->get_magnetostatic_field(intp_pt, h_magnetostatic);
   }
 
+
+  /// For micromagnetics the source function is the divergence of the
+  /// magnetisation.
+  void MagnetostaticFieldEquations::get_source_poisson(const unsigned& ipt,
+      const Vector<double>& x,
+      double& source) const
+  {
+    source = 0;
+
+    // Get s (local coordinate)
+    Vector<double> s(nodal_dimension(),0.0);
+    for(unsigned i=0; i<nodal_dimension(); i++) {s[i] = integral_pt()->knot(ipt,i);}
+
+    // Get contribution from divergence of M at this integration point.
+    MMInterpolator intp(Micromag_element_pt, s);
+    source += intp.div_m();
+
+    // Get contribution from any real source functions.
+    double poisson_source=0;
+    TFPoissonEquations::get_source_poisson(ipt, x, poisson_source);
+    source += poisson_source;
+  }
+
   //======================================================================
   /// Compute element residual Vector and/or element Jacobian matrix
   ///
@@ -298,35 +321,29 @@ namespace oomph
       {
         // Get s (local coordinate)
         Vector<double> s(nodal_dimension(),0.0);
-        for(unsigned i=0; i<nodal_dimension(); i++) {s[i] = integral_pt()->knot(ipt,i);}
+        for(unsigned i=0; i<nodal_dimension(); i++)
+          {
+            s[i] = integral_pt()->knot(ipt,i);
+          }
 
-        // Get x (global coordinate) and output
-        Vector<double> x(nodal_dimension(),0.0);
-        interpolated_x(s,x);
-        for(unsigned i=0; i<nodal_dimension(); i++){outfile << x[i] << " ";}
+        MMInterpolator intp(this, s);
+        Vector<double> itp_soln = intp.value();
 
-        //Get the integral weight
-        double w = integral_pt()->weight(ipt);
-
-        // Get jacobian of mapping
-        double J=J_eulerian(s);
-
-        //Premultiply the weights and the Jacobian
-        double W = w*J;
-
-        // Get entire ipl solution at position s and current time
-        Vector<double> itp_soln(nvalues,0.0);
-        interpolated_solution_micromag(s,itp_soln);
+        double W = intp.j() * integral_pt()->weight(ipt);
 
         // Get entire exact solution at point x and time "time"
-        Vector<double> exact_soln(nvalues,0.0);
-        (*exact_soln_pt)(time,x,exact_soln);
+        Vector<double> exact_soln(nvalues, 0.0);
+        (*exact_soln_pt)(time, intp.x(), exact_soln);
 
         // Output the error (difference between exact and itp solutions)
-        for(unsigned i=0; i<nvalues; i++){outfile << exact_soln[i]- itp_soln[i] << " ";}
+        for(unsigned i=0; i<nvalues; i++)
+          {
+            outfile << exact_soln[i]- itp_soln[i] << " ";
+          }
         outfile << std::endl;
 
-        // Add contributions to the norms of the error and exact soln from this integration point
+        // Add contributions to the norms of the error and exact soln from
+        // this integration point
         for(unsigned i=0; i<nvalues; i++)
           {
             error_norm += (exact_soln[i] - itp_soln[i])

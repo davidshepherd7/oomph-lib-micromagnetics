@@ -507,14 +507,11 @@ namespace oomph
 
         for(unsigned e=0, ne=mesh_pt(msh)->nelement(); e < ne; e++)
           {
-            MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
-              (mesh_pt(msh)->element_pt(e));
+            // Get m and x
+            MMInterpolator intp(mesh_pt(msh)->finite_element_pt(e), s);
+            Vector<double> numerical_m = intp.m();
+            Vector<double> x = intp.x();
 
-            Vector<double> numerical_m(3,0.0);
-            ele_pt->interpolated_m_micromag(s, numerical_m);
-
-            Vector<double> x(dim(),0.0);
-            ele_pt->interpolated_x(s,x);
             Vector<double> exact_m = fct_pt(time(), x);
 
             for(unsigned j=0; j<3; j++)

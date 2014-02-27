@@ -307,214 +307,6 @@ namespace oomph
     virtual void get_magnetostatic_field_time_derivative
     (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
 
-    // // EXACT PHI FUNCTION POINTER
-    // /// Access function: Pointer to exact phi function
-    // TimeSpaceToDoubleFctPt& exact_phi_pt() {return Exact_phi_pt;}
-
-    // /// Access function: Pointer to exact phi function. Const version
-    // TimeSpaceToDoubleFctPt exact_phi_pt() const {return Exact_phi_pt;}
-
-    // /// Get exact phi at eulerian postition x.
-    // inline double get_exact_phi(const double& t, const Vector<double>& x) const
-    // {
-    //   // If no exact phi function has been set, return something crazy
-    //   if(Exact_phi_pt==0) {return -1000.0;}
-    //   else return (*Exact_phi_pt)(t,x);
-    // }
-
-    // // EXACT M FUNCTION POINTER
-    // /// Access function: Pointer to exact M function
-    // TimeSpaceToDoubleVectFctPt& exact_m_pt() {return Exact_m_pt;}
-
-    // /// Access function: Pointer to LLG exact M. Const version
-    // TimeSpaceToDoubleVectFctPt exact_m_pt() const {return Exact_m_pt;}
-
-    // /// Get exact M at eulerian postition x.
-    // inline void get_exact_m(const double& t, const Vector<double>& x,
-    //                       Vector<double>& m_exact) const
-    // {
-    //   // If no exact M function has been set empty the vector
-    //   if(Exact_m_pt==0) m_exact.clear();
-    //   else (*Exact_m_pt)(t,x,m_exact);
-    // }
-
-
-    /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    inline double dshape_dtest(const Vector<double> &s,
-                               Shape &psi, DShape &dpsidx,
-                               Shape &test, DShape &dtestdx) const
-    {
-      // Call the geometrical shape functions and derivatives
-      const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-      // Set the test functions equal to the shape functions
-      test = psi;
-      dtestdx= dpsidx;
-
-      // Return the jacobian
-      return J;
-    }
-
-    /// Return FE representation of function value phi(s) at local coordinate s
-    inline double interpolated_phi_micromag(const Vector<double> &s) const
-    {
-      //Find number of nodes
-      const unsigned n_node = nnode();
-
-      //Get the index at which the poisson unknown is stored
-      const unsigned phi_nodal_index = phi_index_micromag();
-
-      //Local shape function
-      Shape psi(n_node);
-
-      //Find values of shape function
-      shape(s,psi);
-
-      //Initialise value of u
-      double itp_phi = 0.0;
-
-      //Loop over the local nodes and sum
-      for(unsigned l=0;l<n_node;l++)
-        {
-          itp_phi += this->nodal_value(l,phi_nodal_index)*psi[l];
-        }
-
-      return(itp_phi);
-    }
-
-
-    /// Return FE representation of phi_1 at local coordinate s
-    inline double interpolated_phi_1_micromag(const Vector<double> &s) const
-    {
-      //Find number of nodes
-      const unsigned n_node = nnode();
-
-      //Get the index at which the poisson unknown is stored
-      const unsigned phi_1_nodal_index = phi_1_index_micromag();
-
-      //Local shape function
-      Shape psi(n_node);
-
-      //Find values of shape function
-      shape(s,psi);
-
-      //Initialise value of u
-      double itp_phi_1 = 0.0;
-
-      //Loop over the local nodes and sum
-      for(unsigned l=0;l<n_node;l++)
-        {
-          itp_phi_1 += this->nodal_value(l,phi_1_nodal_index)*psi[l];
-        }
-
-      return itp_phi_1;
-    }
-
-
-    /// Return FE representation of M at local coordinate s and current time.
-    inline void interpolated_m_micromag(const Vector<double> &s,
-                                        Vector<double>& itp_m) const
-    {
-      // Find number of nodes
-      const unsigned n_node = nnode();
-
-      // Get local shape function
-      Shape psi(n_node);
-      shape(s,psi);
-
-      // Interpolate m
-      itp_m.assign(3,0.0);
-      for(unsigned k=0; k<3; k++)
-        {
-          // For each component sum over the contributions due to each node
-          // in this element.
-          for(unsigned l=0;l<n_node;l++)
-            {
-              itp_m[k] += this->nodal_value(l, m_index_micromag(k))*psi[l];
-            }
-        }
-    }
-
-    /// Return FE representation of M at local coordinate s and current time.
-    void interpolated_dmdx_micromag(const Vector<double> &s,
-                                    Vector<Vector<double> >& itp_dmdx) const;
-
-
-    /// \short Return FE representation of solution vector (phis,M,H_ex)
-    /// at local coordinate s and current time.
-    inline void interpolated_solution_micromag(const Vector<double> &s,
-                                               Vector<double>& itp_solution) const
-    {
-      //Find number of nodes
-      const unsigned n_node = nnode();
-
-      // Get number of values required
-      const unsigned nvalue = required_nvalue(0);
-
-      //Local shape function
-      Shape psi(n_node);
-
-      //Find values of shape function
-      shape(s,psi);
-
-      // Initialise solution vector
-      itp_solution.assign(nvalue,0.0);
-
-      // Loop over the list of solutions
-      for(unsigned i=0; i<nvalue; i++)
-        {
-          //Loop over the local nodes and sum
-          for(unsigned l=0;l<n_node;l++)
-            {
-              itp_solution[i] += this->nodal_value(l,i)*psi[l];
-            }
-        }
-
-    }
-
-    // /// Get total field at position x. There is a more efficient private version
-    // /// of this function for use in residual calculations etc. This version does
-    // /// some extra calculations to get interpolated m and x and ensures
-    // /// initilisations.
-    // //??ds unchecked
-    // void interpolated_ht_micromag(const Vector<double>& s,
-    //                               Vector<double>& h_total)
-    // {
-    //   Vector<double> x(3,0.0);
-    //   interpolated_x(s,x);
-
-    //   Vector<double> m(3,0.0);
-    //   interpolated_m_micromag(s,m);
-
-    //   Vector<double> itp_dphidx(3,0.0);
-    //   interpolated_dphidx_micromag(s,itp_dphidx);
-
-    //   h_total.assign(3,0.0);
-    //   interpolated_ht_micromag_efficient(x,m,itp_dphidx,h_total);
-    // }
-
-    /// Get divergence of magnetisation (for poisson source).
-    double divergence_m(const unsigned &ipt)
-    {
-      // Get values
-      const unsigned n_node = nnode();
-      Shape psi(n_node);  DShape dpsidx(n_node, this->nodal_dimension());
-      dshape_eulerian_at_knot(ipt,psi,dpsidx);
-
-      // Sum up the derivatives
-      double div_m = 0.0;
-      for(unsigned j=0; j<nodal_dimension(); j++)
-        {
-          for(unsigned l=0; l<n_node; l++)
-            {
-              div_m += nodal_value(l,m_index_micromag(j)) * dpsidx(l,j);
-            }
-        }
-
-      return div_m;
-    }
-
-
 
     // OUTPUT FUNCTIONS
     /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
@@ -612,39 +404,6 @@ namespace oomph
     }
 
 
-    /// Put dM/dt at local node l (using timestepper and history values) in the vector dmdt.
-    void dm_dt_micromag(const unsigned& l, Vector<double>& dmdt) const
-    {
-      // Get the data's timestepper
-      TimeStepper* time_stepper_pt= this->node_pt(l)->time_stepper_pt();
-
-      //Initialise dM/dt to zero
-      dmdt.assign(3,0.0);
-
-      //Loop over the timesteps, if there is a non Steady timestepper
-      if (!time_stepper_pt->is_steady())
-        {
-          // Get number of timsteps to use (past & present)
-          const unsigned n_time_steps = time_stepper_pt->ntstorage();
-
-          // Loop over the directions
-          for (unsigned j=0; j<3; j++)
-            {
-              // Loop over past and present times and add the contributions to
-              // the time derivative
-              for(unsigned t=0;t<n_time_steps;t++)
-                {
-                  // The "1" in weights is the derivative order (i.e. 1:
-                  // dM/dt, 2: d^2M/dt^2)
-                  dmdt[j] += time_stepper_pt->weight(1,t)
-                    *nodal_value(t,l,m_index_micromag(j));
-                }
-            } // End of loop over directions
-        }
-
-    } // end of dM_dt_micromag
-
-
     /// \short Return a vector containing the magnetisation at a node.
     Vector<double> get_m(unsigned node) const
     {
@@ -698,40 +457,6 @@ namespace oomph
                                                         DenseMatrix<double> &jacobian,
                                                         const unsigned& flag);
 
-    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    // virtual double dshape_dtest(const Vector<double> &s, Shape &psi, DShape &dpsidx,
-    //                             Shape &test, DShape &dtestdx) const=0;
-
-    // /// Get the field at current time (pass in x,m, dphidx for
-    // /// efficiency).
-    // inline void interpolated_ht_micromag_efficient(const Vector<double>& x,
-    //                                                const Vector<double>& m,
-    //                                                const Vector<double>& itp_dphidx,
-    //                                                Vector<double>& h_total)
-    //   const
-    // {
-    //   // Get time
-    //   const double time = time_pt()->time();
-
-    //   Vector<double> h_applied(3,0.0);
-    //   get_applied_field(time, x,  h_applied);
-    //   Vector<double> h_cryst_anis(3,0.0);
-    //   get_H_cryst_anis_field(time, x, m, h_cryst_anis);
-
-    //   // Magnetostatic field is -1* dphi/dx, multiply by a coeff too alow easy
-    //   // switching on and off for debugging.
-    //   double magnetosttaic_coeff = magnetostatic_coeff(time,x);
-    //   Vector<double> h_ms(3,0.0);
-    //   for(unsigned i=0; i<h_ms.size(); i++)
-    //     h_ms[i] *= -1 * magnetostatic_coeff;
-
-    //   // Take total of all fields used
-    //   for(unsigned j=0; j<3; j++)
-    //     {
-    //       h_total[j] = h_applied[j] + h_ms[j] + h_cryst_anis[j];
-    //     }
-    // }
-
     /// Pointer to poisson source function - only for testing purposes since
     /// div(M) is our source function in calculation of the demagnetising
     /// potential.
@@ -743,12 +468,6 @@ namespace oomph
 
     /// Pointer to function giving applied field.
     TimeSpaceToDoubleVectFctPt Applied_field_pt;
-
-    // /// Pointer to the exact solution for M
-    // TimeSpaceToDoubleVectFctPt Exact_m_pt;
-
-    // /// Pointer to the exact solution for phi
-    // TimeSpaceToDoubleFctPt Exact_phi_pt;
 
     // List of face elements attached to this element
     std::set<FiniteElement*> Face_element_pts;
@@ -782,27 +501,6 @@ namespace oomph
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {MicromagEquations::output(outfile,n_plot);}
 
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {MicromagEquations::output(file_pt,n_plot);}
-
-    // /// Shape, test functions & derivs. w.r.t. to global coords. Return Jacobian.
-    // inline double dshape_dtest(const Vector<double> &s,
-    //                            Shape &psi, DShape &dpsidx,
-    //                            Shape &test, DShape &dtestdx) const
-    // {
-    //   // Call the geometrical shape functions and derivatives
-    //   const double J = this->dshape_eulerian(s,psi,dpsidx);
-
-    //   // Set the test functions equal to the shape functions
-    //   test = psi;
-    //   dtestdx= dpsidx;
-
-    //   // Return the jacobian
-    //   return J;
-    // }
-
-
   }; // end of QMicromagElement class declaration
 
 
@@ -832,10 +530,6 @@ namespace oomph
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {MicromagEquations::output(outfile,n_plot);}
-
-    // /// C-style output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    // void output(FILE* file_pt, const unsigned &n_plot = 5)
-    // {MicromagEquations::output(file_pt,n_plot);}
 
   }; // end of TMicromagElement class declaration
 
@@ -911,19 +605,9 @@ namespace oomph
 
     /// For micromagnetics the source function is the divergence of the
     /// magnetisation.
-    void get_source_poisson(const unsigned& ipt,
-                            const Vector<double>& x,
-                            double& source) const
-    {
-      source = 0;
-      // Get contribution from divergence of M at this integration point.
-      source += Micromag_element_pt->divergence_m(ipt);
+    void get_source_poisson(const unsigned& ipt, const Vector<double>& x,
+                            double& source) const;
 
-      // Get contribution from any real source functions.
-      double poisson_source=0;
-      TFPoissonEquations::get_source_poisson(ipt, x, poisson_source);
-      source += poisson_source;
-    }
 
     // Access functions
     // ============================================================

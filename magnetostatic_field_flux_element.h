@@ -47,13 +47,15 @@ namespace oomph
       MagnetostaticFieldEquations* field_ele_pt =
         checked_dynamic_cast<MagnetostaticFieldEquations*>(this->bulk_element_pt());
 
-      // Get magnetisation from bulk magnetics element.
-      unsigned dim = this->nodal_dimension();
-      Vector<double> m, bulk_s(dim,0.0);
+      const unsigned dim = this->nodal_dimension();
+
+      // Get magnetisation from bulk magnetics element. ??ds we have
+      // assumed (again) that the poisson and magnetic elements are in the
+      // same places. This is pretty stupid :(
+      Vector<double> bulk_s(dim,0.0);
       this->get_local_coordinate_in_bulk(face_s, bulk_s);
-      field_ele_pt->micromag_element_pt()->interpolated_m_micromag(bulk_s,m);
-      // ??ds we have assumed (again) that the poisson and magnetic
-      //elements are in the same places. This is pretty stupid :(
+      MMInterpolator mm_intp(field_ele_pt->micromag_element_pt(), bulk_s);
+      Vector<double> m = mm_intp.m();
 
       // Take dot product up to the dimension of the unit normal (m could
       // have a higher dimension since we always have 3 components of m. If
