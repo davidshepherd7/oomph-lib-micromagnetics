@@ -461,8 +461,8 @@ namespace oomph
     // calculating phi.
 
     //??ds
-    double dtnp1 = time_stepper_pt()->time_pt()->dt();
-    double dtn = time_stepper_pt()->time_pt()->dt(1);
+    double dtn = time_stepper_pt()->time_pt()->dt();
+    double dtnm1 = time_stepper_pt()->time_pt()->dt(1);
 
     const unsigned phi_index = phi_problem_pt()->poisson_dof_number();
 
@@ -476,7 +476,7 @@ namespace oomph
             double phi_nm1 = nd_pt->value(2, phi_index);
             double phi_n = nd_pt->value(1, phi_index);
 
-            double phi_np1 = ((dtnp1 + dtn)/dtn)*phi_n - (dtnp1/dtn)*phi_nm1;
+            double phi_np1 = ((dtn + dtnm1)/dtnm1)*phi_n - (dtn/dtnm1)*phi_nm1;
 
             nd_pt->set_value(0, phi_index, phi_np1);
           }
