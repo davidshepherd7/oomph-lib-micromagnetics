@@ -394,6 +394,18 @@ def main():
         multi_plot(all_results, args.split, plot_wall_time_vs_time)
 
 
+    if 'step-times' in args.plots:
+        # for d in all_results:
+            # print(sp.mean(d['total_step_time']))
+
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              x_value='initial_nnode',
+              y_value='total_step_time',
+              y_operation=sp.mean)
+
+        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+
     plt.show()
 
     return 0
