@@ -476,7 +476,11 @@ using namespace StringConversion;
         info_file
           << "real_time " << real_date_time() << std::endl
           << "unix_time " << std::time(0) << std::endl
-          << "driver_name " << problem_name() << std::endl;
+          << "driver_name " << problem_name() << std::endl
+          << "initial_nnode " << mesh_pt()->nnode() << std::endl
+          << "initial_nelement " << mesh_pt()->nelement() << std::endl
+          << "initial_nsub_mesh " << nsub_mesh() << std::endl;
+
         info_file << Doc_info.args_str;
         info_file.close();
 
