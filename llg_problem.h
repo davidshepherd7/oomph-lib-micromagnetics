@@ -404,8 +404,8 @@ namespace oomph
                   + " > " + to_string(MathematicalConstants::Pi/6)
                   + " across a single element,\n";
                 error_msg += "this often means that your mesh is not sufficiently refined.";
-                OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
+                throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                    OOMPH_EXCEPTION_LOCATION);
               }
           }
       }
