@@ -281,100 +281,12 @@ using namespace StringConversion;
           }
       }
 
-    double min_element_size()
-      {
-        // Check that we have finite elements ??ds this will still go wrong
-        // if there are only some none finite elements in the mesh...
-
-        //??ds what happens with face elements?
-        FiniteElement* test_pt = dynamic_cast<FiniteElement*>
-          (mesh_pt(0)->element_pt(0));
-
-        if(test_pt != 0)
-          {
-            double min_size = mesh_pt(0)->finite_element_pt(0)->size();
-
-            // Loop over all meshes in problem
-            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-              {
-                Mesh* mesh_pt = this->mesh_pt(msh);
-                for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
-                  {
-                    FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
-                    double new_size = ele_pt->size();
-                    if(new_size < min_size)
-                      {
-                        min_size = new_size;
-                      }
-                  }
-              }
-
-            return min_size;
-          }
-        // If it's not a finite element then we can't get a size so return
-        // a dummy value.
-        else
-          {
-            return Dummy_doc_data;
-          }
-      }
+    /// ??ds
+    double min_element_size();
 
     /// \short Write some general data about the previous time step to a
     /// trace file. Extend by overloading write_additional_trace_data(...).
-    void write_trace()
-    {
-      std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
-                               std::ios::app);
-      trace_file.precision(Output_precision);
-
-      double time = Dummy_doc_data, dt = Dummy_doc_data,
-        lte_norm = Dummy_doc_data;
-      if(!is_steady())
-        {
-          time = this->time();
-          dt = this->time_pt()->dt();
-          lte_norm = this->lte_norm();
-        }
-
-      // Write out data that can be done for every problem
-      trace_file
-        << Doc_info.number()
-        << Trace_seperator << time
-        << Trace_seperator << dt
-        << Trace_seperator << get_error_norm()
-
-        << Trace_seperator << Nnewton_iter_taken
-        << Trace_seperator << Solver_iterations
-
-        << Trace_seperator << Solver_times
-        << Trace_seperator << Jacobian_setup_times
-        << Trace_seperator << Preconditioner_setup_times
-
-        << Trace_seperator << lte_norm
-        << Trace_seperator << trace_values()
-
-        << Trace_seperator << std::time(0)
-        << Trace_seperator << min_element_size()
-        << Trace_seperator << get_solution_norm()
-        << Trace_seperator << Total_step_time
-
-        // Reserved slots in case I think of more things to add later
-        << Trace_seperator << Dummy_doc_data
-        << Trace_seperator << Dummy_doc_data
-        << Trace_seperator << Dummy_doc_data
-        << Trace_seperator << Dummy_doc_data
-        << Trace_seperator << Dummy_doc_data
-        << Trace_seperator << Dummy_doc_data;
-
-      //??ds residuals?
-
-      // Add problem specific data
-      write_additional_trace_data(trace_file);
-
-      // Finish off this line
-      trace_file << std::endl;
-      trace_file.close();
-    }
+    void write_trace();
 
 
     /// \short Overload to write problem specific data into trace
@@ -397,99 +309,7 @@ using namespace StringConversion;
     /// \short Outputs to be done at the start of a run (i.e. outputing
     /// basic info on command line args etc, writing trace file headers,
     /// outputting initial conditions).
-    void initial_doc()
-      {
-#ifdef PARANOID
-        if(*(Doc_info.directory().end()-1) == '/')
-          {
-            std::string error_msg = "Don't put a / on the end of results dir";
-            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-#endif
-
-        // Output Jacobian if requested
-        if((to_lower(Doc_info.output_jacobian) == "at_start")
-           || (to_lower(Doc_info.output_jacobian) == "always"))
-          {
-            dump_current_mm_or_jacobian_residuals("at_start");
-          }
-
-        // pvd file
-        // ============================================================
-        // Write start of .pvd XML file
-        std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
-                               std::ios::out);
-        pvd_file << "<?xml version=\"1.0\"?>" << std::endl
-                 << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">"
-                 << std::endl
-                 << "<Collection>" << std::endl;
-        pvd_file.close();
-
-
-        // Trace file
-        // ============================================================
-
-        // Clear (by overwriting) and write headers
-        std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
-        trace_file
-          << "DocInfo_numbers"
-          << Trace_seperator << "times"
-          << Trace_seperator << "dts"
-          << Trace_seperator << "error_norms"
-
-          << Trace_seperator << "n_newton_iters"
-          << Trace_seperator << "n_solver_iters"
-
-          << Trace_seperator << "solver_times"
-          << Trace_seperator << "jacobian_setup_times"
-          << Trace_seperator << "preconditioner_setup_times"
-
-          << Trace_seperator << "LTE_norms"
-          << Trace_seperator << "trace_values"
-
-          << Trace_seperator << "unix_timestamp"
-          << Trace_seperator << "min_element_size"
-          << Trace_seperator << "solution_norms"
-          << Trace_seperator << "total_step_time"
-
-
-          // Reserved slots in case I think of more things to add later
-          << Trace_seperator << "dummy"
-          << Trace_seperator << "dummy"
-          << Trace_seperator << "dummy"
-          << Trace_seperator << "dummy"
-          << Trace_seperator << "dummy"
-          << Trace_seperator << "dummy";
-
-        // Other headers depending on the derived class
-        write_additional_trace_headers(trace_file);
-
-        // Finish the line and close
-        trace_file << std::endl;
-        trace_file.close();
-
-
-        // Info file
-        // ============================================================
-        std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
-        info_file
-          << "real_time " << real_date_time() << std::endl
-          << "unix_time " << std::time(0) << std::endl
-          << "driver_name " << problem_name() << std::endl
-          << "initial_nnode " << mesh_pt()->nnode() << std::endl
-          << "initial_nelement " << mesh_pt()->nelement() << std::endl
-          << "initial_nsub_mesh " << nsub_mesh() << std::endl;
-
-        info_file << Doc_info.args_str;
-        info_file.close();
-
-
-        // Write initial solution and anything else problem specific
-        // (e.g. more trace file headers)
-        this->doc_solution();
-        initial_doc_additional();
-      }
+    void initial_doc();
 
     /// \short Outputs to be done at the end of a run (e.g. closing tags
     /// for XML files).
@@ -517,63 +337,7 @@ using namespace StringConversion;
     /// Jacobian depending on Doc_info.output_jacobian. Maybe output full
     /// solution depending on should_doc_this_step(..) function. Extend by
     /// overloading doc_solution_additional(...).
-    void doc_solution()
-      {
-        bool doc_this_step = true;
-        if(!is_steady())
-          {
-            doc_this_step = should_doc_this_step(time_pt()->dt(), time());
-          }
-
-        const std::string dir = Doc_info.directory();
-        const std::string num = to_string(Doc_info.number());
-
-        if(Always_write_trace || doc_this_step)
-          {
-            // Always output trace file data
-            write_trace();
-          }
-
-        // Output full set of data if requested for this timestep
-        if(doc_this_step)
-          {
-
-            // Solution itself
-            std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
-                                    std::ios::out);
-            soln_file.precision(Output_precision);
-            doc_solution_additional(soln_file);
-            soln_file.close();
-
-            if(!is_steady())
-              {
-                // Write the simulation time and filename to the pvd file
-                std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
-                                       std::ios::app);
-                pvd_file.precision(Output_precision);
-
-                pvd_file << "<DataSet timestep=\"" << time()
-                         << "\" group=\"\" part=\"0\" file=\"" << "soln"
-                         << num << ".vtu"
-                         << "\"/>" << std::endl;
-
-                pvd_file.close();
-              }
-
-
-            // Maybe dump the restart data
-            if(Dump)
-              {
-                std::ofstream dump_file((dir + "/" + "dump" + num + ".dat").c_str(),
-                                        std::ios::out);
-                this->dump(dump_file);
-              }
-
-
-            Doc_info.number()++;
-          }
-      }
-
+    void doc_solution();
 
     /// \short Dummy error norm calculator (overload in derived classes).
     virtual double get_error_norm() const
@@ -676,123 +440,10 @@ using namespace StringConversion;
     virtual std::string problem_name() const {return "unknown";}
 
     /// Set all history values/dts to be the same as the present values/dt.
-    virtual void set_up_impulsive_initial_condition()
-    {
-
-#ifdef PARANOID
-      if(nglobal_data() != 0)
-        {
-          std::string err = "Problem has global data which cannot be set from function pt.";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-      unsigned nprev_steps=this->time_stepper_pt()->nprev_values();
-      for(unsigned t=0; t< nprev_steps; t++)
-        {
-          // Loop over all nodes in all meshes in problem and set values.
-          for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-            {
-              Mesh* mesh_pt = this->mesh_pt(msh);
-
-              for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-                {
-                  Node* nd_pt = mesh_pt->node_pt(nd);
-                  for(unsigned j=0, nj=nd_pt->nvalue(); j<nj; j++)
-                    {
-                      nd_pt->set_value(t, j, nd_pt->value(0, j));
-                    }
-                }
-
-#ifdef PARANOID
-              for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
-                {
-                  FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
-                  if(ele_pt->ninternal_data() != 0)
-                    {
-                      std::string err =
-                        "Element with non-nodal data, cannot set via function...";
-                      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                          OOMPH_CURRENT_FUNCTION);
-                    }
-                }
-#endif
-
-            }
-        }
-
-      actions_after_set_initial_condition();
-    }
+    virtual void set_up_impulsive_initial_condition();
 
     /// Assign initial conditions from function pointer
-    virtual void set_initial_condition(InitialConditionFctPt ic_fpt)
-      {
-#ifdef PARANOID
-        if(ic_fpt == 0)
-          {
-            std::string err = "Null inital condition function pointer";
-            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
-          }
-
-        if(nglobal_data() != 0)
-          {
-            std::string err = "Problem has global data which cannot be set from function pt.";
-            throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
-          }
-#endif
-
-        // Loop over current & previous timesteps
-        int nprev_steps=this->time_stepper_pt()->nprev_values();
-        for (int t=nprev_steps; t>=0; t--)
-          {
-            double time = time_pt()->time(t);
-
-            // Loop over all nodes in all meshes in problem and set values.
-            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-              {
-                Mesh* mesh_pt = this->mesh_pt(msh);
-
-                for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-                  {
-                    Node* nd_pt = mesh_pt->node_pt(nd);
-
-                    // Get the position
-                    const unsigned dim = nd_pt->ndim();
-                    Vector<double> x(dim);
-                    nd_pt->position(t, x);
-
-                    // Get the values
-                    Vector<double> values = ic_fpt(time, x);
-
-                    // Copy into dofs
-                    for(unsigned j=0, nj=values.size(); j<nj; j++)
-                      {
-                        nd_pt->set_value(t, j, values[j]);
-                      }
-                  }
-
-#ifdef PARANOID
-                for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
-                  {
-                    FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
-                    if(ele_pt->ninternal_data() != 0)
-                      {
-                        std::string err =
-                          "Element with non-nodal data, cannot set via function...";
-                        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                            OOMPH_CURRENT_FUNCTION);
-                      }
-                  }
-#endif
-
-                //??ds can't set external/internal data like this though
-              }
-          }
-
-        actions_after_set_initial_condition();
-      }
+    virtual void set_initial_condition(InitialConditionFctPt ic_fpt);
 
     /// Hook to be overloaded with any calculations needed after setting of
     /// initial conditions.
