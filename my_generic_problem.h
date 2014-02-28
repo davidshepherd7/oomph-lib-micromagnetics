@@ -100,6 +100,7 @@ using namespace StringConversion;
       Dump = false;
 
       N_steps_taken = 0;
+      Total_step_time= 0;
     }
 
     /// Destructor
@@ -109,6 +110,8 @@ using namespace StringConversion;
     /// set).
     double smart_time_step(double dt, const double& tol)
     {
+      double step_time_start = TimingHelpers::timer();
+
       // The Newton step itself, adaptive if requested.
       if(explicit_flag())
         {
@@ -122,6 +125,13 @@ using namespace StringConversion;
         {
           unsteady_newton_solve(dt);
         }
+
+      double step_time_stop = TimingHelpers::timer();
+      Total_step_time = step_time_stop - step_time_start;
+
+
+      std::cout << "Time for step " << Total_step_time
+                << std::endl;
 
       N_steps_taken++;
 
@@ -346,9 +356,9 @@ using namespace StringConversion;
         << Trace_seperator << std::time(0)
         << Trace_seperator << min_element_size()
         << Trace_seperator << get_solution_norm()
+        << Trace_seperator << Total_step_time
 
         // Reserved slots in case I think of more things to add later
-        << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
         << Trace_seperator << Dummy_doc_data
@@ -441,9 +451,10 @@ using namespace StringConversion;
           << Trace_seperator << "unix_timestamp"
           << Trace_seperator << "min_element_size"
           << Trace_seperator << "solution_norms"
+          << Trace_seperator << "total_step_time"
+
 
           // Reserved slots in case I think of more things to add later
-          << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
           << Trace_seperator << "dummy"
@@ -833,6 +844,7 @@ using namespace StringConversion;
     unsigned Output_precision;
 
     unsigned N_steps_taken;
+    double Total_step_time;
 
     std::string Trace_filename;
     std::string Info_filename;
