@@ -306,24 +306,31 @@ def parse_run(results_folder):
     return d
 
 
-def parse_parameter_sweep(root_dirs):
-    """Get a list of dictionaries of results in directories (recursively)
-    contained in the list of root_dirs.
+def run_failed(dir):
+    """Try to check if the run in folder dir failed. Note that this only works if the driver was run through e.g.
     """
+    return any([os.path.exists(pjoin(dir, f))
+                for f in ["failed", "Failed", "FAILED"]])
 
+
+def parse_parameter_sweep(root_dirs, skip_failed=False):
+    """Recursively parse directories inside each root_dir.
+
+    If skip_failed then skip anything for which run_failed(dir) returns
+    false.
+    """
     results = []
     for root_dir in root_dirs:
-        # Recursively parse directories inside the root_dir
-        for root, dirs, filenames in os.walk(root_dir):
-            for d in dirs:
-                print("Parsing", pjoin(root, d))
-                results.append(parse_run(pjoin(root, d)))
+        for dirname, _, _ in os.walk(root_dir):
 
-        # Also parse the root directory if it contains results (i.e. at least
-        # an info file)
-        if os.path.isfile(pjoin(root_dir, "info")):
-            print("Parsing", root_dir)
-            results.append(parse_run(root_dir))
+            has_info = os.path.isfile(pjoin(dirname, "info"))
+            fail_skip = skip_failed and run_failed(dirname)
+
+            if has_info and not fail_skip:
+                print("Parsing", dirname)
+                results.append(parse_run(dirname))
+            elif fail_skip:
+                print("Skipping", dirname, "because it failed")
 
     return results
 

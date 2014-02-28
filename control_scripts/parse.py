@@ -265,6 +265,9 @@ def main():
     parser.add_argument('--split', '-s', action='append',
                         help="Split into different plots for different values of these keys, for keys begining with dash specify them as: `-s='-dt'` to avoid issues with `-` being read as a new argument.")
 
+    parser.add_argument('--skip-failed', action='store_true',
+                        help='Skip runs which failed (dir contains file named failed)')
+
     args = parser.parse_args()
 
     if args.plots is None:
@@ -287,8 +290,10 @@ def main():
     # ============================================================
 
     # Get the results that aren't just empty
-    really_all_results = mm.parse_parameter_sweep(args.dir)
+    really_all_results = mm.parse_parameter_sweep(args.dir,
+                                                  skip_failed=args.skip_failed)
     all_results = [d for d in really_all_results if d is not None]
+
     print(len(all_results), "data sets out of", len(really_all_results), "used",
           "(any others didn't have enough time steps finished).")
 
