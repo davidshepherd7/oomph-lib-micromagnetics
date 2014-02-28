@@ -58,6 +58,15 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
+def make_axis_label(p, op=None):
+    """Create a latex safe axis label.
+    """
+    if op is not None:
+        return latex_safe(op.__name__ + " of " + '"' + p + '"')
+    else:
+        return latex_safe(p)
+
+
 def plot_vs_thing(xthing, data, plot_values,
                   operations_on_values=None,
                   labels=None,
@@ -108,13 +117,7 @@ def plot_vs_thing(xthing, data, plot_values,
                 sys.stderr.write("Not plotting " + p
                                  + " because I couldn't find the data needed.\n")
 
-        # Label the axis
-        if op is not None:
-            ylabel = latex_safe(op.__name__ + " of " + p)
-        else:
-            ylabel = latex_safe(p)
-
-        axes.set_ylabel(ylabel)
+        axes.set_ylabel(make_axis_label(p, op))
 
     # x label only on last axis
     axesarray[-1].set_xlabel(xthing)
@@ -144,8 +147,7 @@ def plot_vs_step(*args, **kwargs):
     return plot_vs_thing('DocInfo_numbers', *args, **kwargs)
 
 
-
-def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean):
+def my_scatter(data, x_value, y_value, x_operation=None, y_operation=None):
     """Plot a scatter plot at point (x_value, y_value) for each dataset in
     data. Perform operations on data before plotting (by default take
     mean).
@@ -161,33 +163,41 @@ def my_scatter(data, x_value, y_value, x_operation=sp.mean, y_operation=sp.mean)
 
         fdata = [d for d in data if d['-ts'] == ts]
 
-        xs = [x_operation(d[x_value]) for d in fdata]
-        ys = [y_operation(d[y_value]) for d in fdata]
+        if x_operation is not None:
+            xs = [x_operation(d[x_value]) for d in fdata]
+        else:
+            xs = [d[x_value] for d in fdata]
+
+        if y_operation is not None:
+            ys = [y_operation(d[y_value]) for d in fdata]
+        else:
+            ys = [d[y_value] for d in fdata]
+
 
         # Plot
-        ax.scatter(xs, ys, s=80, marker=symbols.next(), c=colours.next(),
+        ax.scatter(xs, ys, s=80, marker=next(symbols), c=next(colours),
                    label=str(ts))
 
     # Label
-    ax.set_xlabel(str(x_operation) + " of " + x_value)
-    ax.set_ylabel(str(y_operation) + " of " + y_value)
+    ax.set_xlabel(make_axis_label(x_value, x_operation))
+    ax.set_ylabel(make_axis_label(y_value, y_operation))
 
-    try:
-        # log?
-        ax.set_yscale('log')
-        ax.set_xscale('log')
-    except:
-        return None
+    # try:
+    #     # log?
+    ax.set_yscale('log')
+    #     ax.set_xscale('log')
+    # except:
+    #     return None
 
     # Pick the right axis scales
     ax.axis('auto')
 
-    lims = ax.xaxis.get_data_interval()
-    xs = sp.linspace(lims[0], lims[1])
-    ax.plot(xs, map(lambda x: x, xs),'-', label="x")
-    ax.plot(xs, map(lambda x: x**2, xs),'k-', label="x^2")
-    ax.plot(xs, map(lambda x: x**3, xs),'r-', label="x^3")
-    ax.plot(xs, map(lambda x: x**4, xs),'b-', label="x^3")
+    # lims = ax.xaxis.get_data_interval()
+    # xs = sp.linspace(lims[0], lims[1])
+    # ax.plot(xs, map(lambda x: x, xs),'-', label="x")
+    # ax.plot(xs, map(lambda x: x**2, xs),'k-', label="x^2")
+    # ax.plot(xs, map(lambda x: x**3, xs),'r-', label="x^3")
+    # ax.plot(xs, map(lambda x: x**4, xs),'b-', label="x^3")
 
     ax.legend()
 
@@ -373,6 +383,7 @@ def main():
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
                                   y_operation=damping_error_mean)
         multi_plot(all_results, args.split, plot_damping_errors)
+
 
     if 'wc-time' in args.plots:
         plot_wall_time_vs_time = \
