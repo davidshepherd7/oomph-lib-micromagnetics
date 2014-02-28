@@ -229,20 +229,21 @@ namespace oomph
     {
       MyProblem::actions_before_implicit_timestep();
 
-      // ??ds adaptive midpoint doesn't restore phi state properly!  so
-      // recalculate ms. This needs to be done more efficiently eventually
-      if(Decoupled_ms)
-        {
-          // Solve for the magnetostatic field.
-          magnetostatics_solve();
+      // // ??ds adaptive midpoint doesn't restore phi state properly!  so
+      // // recalculate ms. This needs to be done more efficiently eventually
+      // if(Decoupled_ms)
+      //   {
+      //     // Solve for the magnetostatic field.
+      //     magnetostatics_solve();
+      // }
 
-          if(Extrapolate_decoupled_ms)
-            {
-              // Project to correct time
-              extrapolate_phi(time_stepper_pt()->time_pt()->dt(),
-                              time_stepper_pt()->time_pt()->dt(1));
-            }
+      if(Decoupled_ms && Extrapolate_decoupled_ms)
+        {
+          // Project to correct time
+          extrapolate_phi(time_stepper_pt()->time_pt()->dt(),
+                          time_stepper_pt()->time_pt()->dt(1));
         }
+
     }
 
     /// Overload shift time values to also shift phi problem if needed.
