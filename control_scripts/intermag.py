@@ -118,7 +118,7 @@ def locate_stable_points(args, refines_list, dt_guess, dir_naming_args,
     results_naming_args = copy.copy(dir_naming_args)
     dir_naming_args = dir_naming_args + ['-ref', '-dt']
 
-    results_naming_values = sorted([str(args[k]) for k in results_naming_args])
+    results_naming_values = [str(args[k]) for k in sorted(results_naming_args)]
     results_name = pjoin(root_outdir, 'stable_dts_'+'_'.join(results_naming_values))
 
     print("writing results to", results_name)
