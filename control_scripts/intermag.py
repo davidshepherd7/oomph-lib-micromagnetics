@@ -211,7 +211,7 @@ def main():
         args.outdir = os.path.abspath('../experiments/intermag')
 
     argsdict = {
-                '-driver' : 'll',
+                '-driver' : ['ll', 'llg'],
                 '-tmax' : 4,
                 '-hlib-bem' : 0,
                 '-renormalise' : 0,
@@ -246,14 +246,17 @@ def main():
     # Create list of all possible combinations of args
     argsets = mm.product_of_argdict(argsdict)
 
-    # Filter out impossible combinations
+    # Filter out impossible combinations, bit hacky...
     def is_bad_combination(data):
-        if data['-ts'] == 'rk2' and data['-ms-method'] == 'implicit':
-            return True
-        elif data['-ts'] == 'euler' and data['-ms-method'] == 'implicit':
-            return True
-        else:
-            return False
+        if data['-ts'] == 'rk2' or data['-ts'] == 'euler':
+            if data['-driver'] == 'llg' or data['-ms-method'] == 'implicit':
+                return True
+        elif data['-ts'] == 'midpoint-bdf' or data['-ts'] == 'bdf2':
+            if data['-driver'] == 'll':
+                return True
+
+        return False
+
     argsets = [a for a in argsets if not is_bad_combination(a)]
 
 
