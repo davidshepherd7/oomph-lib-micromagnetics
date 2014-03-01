@@ -1,1 +1,1 @@
-SUBDIRS = standard midpoint fully_implicit h_matrix analytical_ms
+SUBDIRS = standard midpoint fully_implicit hlib analytical_ms
