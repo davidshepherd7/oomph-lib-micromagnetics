@@ -283,6 +283,7 @@ namespace oomph
       << Trace_seperator << "trace_values"
 
       << Trace_seperator << "unix_timestamp"
+      << Trace_seperator << "dummy"
       << Trace_seperator << "solution_norms"
       << Trace_seperator << "total_step_time"
 
@@ -452,6 +453,7 @@ namespace oomph
       << Trace_seperator << trace_values()
 
       << Trace_seperator << std::time(0)
+      << Trace_seperator << Dummy_doc_data
       << Trace_seperator << get_solution_norm()
       << Trace_seperator << Total_step_time
 
