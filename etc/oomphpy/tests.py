@@ -121,12 +121,6 @@ def check_solns_match(main_dir="Validation", compare_dir="validata", **kwargs):
     return ok
 
 
-def is_arg_key(key):
-    """keys are from arguments if they start with a -
-    """
-    return key.find("-") == 0
-
-
 def check_mean_m_matches(data1, data2, tol=1e-4):
 
 
@@ -156,25 +150,10 @@ def check_solns_match_key(datasets, key_to_compare_over, **kwargs):
     """Given a dict of solutions split into pairs which only differ by
     key_to_compare_over then compare the pairs.
 
-    kwargs go into lower checkihg function
+    kwargs go into underlying checking function
     """
 
-    # List of arg keys which are not constant accross dicts
-    keys_which_differ = []
-    for k, v in datasets[0].items():
-        if is_arg_key(k):
-            for d in datasets[1:]:
-                if d[k] != v:
-                    keys_which_differ.append(k)
-
-    # List of keys which aren't our comparison key (and aren't outdir
-    # because that's always different
-    keys_which_differ = [k for k in keys_which_differ
-                         if (k != key_to_compare_over) and k != "-outdir"]
-
-    print(keys_which_differ)
-
-    pairs = mm.split_up_stuff(datasets, keys_to_split_on=keys_which_differ)
+    pairs = mm.split_to_comparable_groups(datasets, key_to_compare_over)
 
     ok = []
     for p in pairs:

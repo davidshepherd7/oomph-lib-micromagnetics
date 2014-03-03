@@ -167,6 +167,44 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     return newlist
 
 
+def is_arg_key(key):
+    """keys are from arguments if they start with a -
+    """
+    return key.find("-") == 0
+
+
+def split_to_comparable_groups(dicts, key_to_compare_over):
+    """Given a list of dicts, split into groups whose arguments (as determined
+    by is_arg_key(), outdir is excluded) only differ by
+    key_to_compare_over.
+
+    Warning: O(N^2) where N is the number of arguments in the dicts.
+
+    Could easily be extended to work with some general filter function instead of
+    """
+
+    # List of keys of interest (from the first dict), assumes that all
+    # dicts have the same keys.
+    argument_dict_keys = [k for k, _ in dicts[0].items()
+                          if (is_arg_key(k) and k != "-outdir")]
+
+    # List of arg keys which are not constant accross dicts. n^2 in number
+    # of entries in argument_dict_keys, should be fine.
+    keys_which_differ = []
+    for k in argument_dict_keys:
+        for d in dicts:
+            for d2 in dicts:
+                if d[k] != d2[k]:
+                    keys_which_differ.append(k)
+
+    # List of args which differ between dicts but aren't our comparison key
+    k_split = [k for k in keys_which_differ if (k != key_to_compare_over)]
+
+    comparable_groups = split_up_stuff(dicts, keys_to_split_on=k_split)
+
+    return comparable_groups
+
+
 
 # Parsing functions
 # ============================================================
