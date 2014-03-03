@@ -267,6 +267,12 @@ namespace oomph
             // Solve for the magnetostatic field.
             magnetostatics_solve();
           }
+
+        // check neighbouring magnetisation angles if requested
+        maybe_check_angles();
+
+        // Calculate and store the energy (ready to be output)
+        calculate_energies();
       }
 
 
@@ -409,12 +415,6 @@ namespace oomph
           oomph_info << "Renormalising nodal magnetisations." << std::endl;
           renormalise_magnetisation();
         }
-
-      // check neighbouring magnetisation angles if requested
-      maybe_check_angles();
-
-      // Calculate and store the energy (ready to be output)
-      calculate_energies();
     }
 
     void maybe_check_angles()
