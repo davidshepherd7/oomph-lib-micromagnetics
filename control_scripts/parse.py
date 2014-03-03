@@ -311,7 +311,7 @@ def main():
     parser.add_argument('--plots', '-p', action='append',
                         help='choose what to plot (default "m")')
 
-    parser.add_argument('--print-data', '-v', action='append',
+    parser.add_argument('--print-data', '-v', action='append', default=[],
                         help='Choose values to print')
 
     parser.add_argument('--label', '-l', action='append',
@@ -325,6 +325,8 @@ def main():
 
     args = parser.parse_args()
 
+    # Handle some defaults like this instead of inside argparse otherwise
+    # arguments are appended to defaults rather than replacing them.
     if args.plots is None:
         print("No plots requested, so plotting magnetisations")
         args.plots = ['m']
