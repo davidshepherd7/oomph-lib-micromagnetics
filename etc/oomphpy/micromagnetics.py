@@ -173,34 +173,36 @@ def is_arg_key(key):
     return key.find("-") == 0
 
 
-def split_to_comparable_groups(dicts, key_to_compare_over):
+def split_to_comparable_groups(dicts, key_to_compare_over, key_filter=None):
     """Given a list of dicts, split into groups whose arguments (as determined
     by is_arg_key(), outdir is excluded) only differ by
     key_to_compare_over.
 
     Warning: O(N^2) where N is the number of arguments in the dicts.
-
-    Could easily be extended to work with some general filter function instead of
     """
+
+    # Default: interested in arguments other than -outdir which always
+    # changes
+    if key_filter is None:
+        key_filter = lambda k: (is_arg_key(k) and k != "-outdir")
 
     # List of keys of interest (from the first dict), assumes that all
     # dicts have the same keys.
     argument_dict_keys = [k for k, _ in dicts[0].items()
-                          if (is_arg_key(k) and k != "-outdir")]
+                          if (key_filter(k) and k != key_to_compare_over)]
 
     # List of arg keys which are not constant accross dicts. n^2 in number
     # of entries in argument_dict_keys, should be fine.
-    keys_which_differ = []
+    keys_which_differ = set([])
     for k in argument_dict_keys:
         for d in dicts:
             for d2 in dicts:
                 if d[k] != d2[k]:
-                    keys_which_differ.append(k)
+                    keys_which_differ.add(k)
 
-    # List of args which differ between dicts but aren't our comparison key
-    k_split = [k for k in keys_which_differ if (k != key_to_compare_over)]
+    print(keys_which_differ)
 
-    comparable_groups = split_up_stuff(dicts, keys_to_split_on=k_split)
+    comparable_groups = split_up_stuff(dicts, keys_to_split_on=keys_which_differ)
 
     return comparable_groups
 
@@ -358,8 +360,12 @@ def parse_parameter_sweep(root_dirs, skip_failed=False):
     false.
     """
     results = []
+
+    dirs = []
     for root_dir in root_dirs:
         for dirname, _, _ in os.walk(root_dir):
+            dirs.append(dirname)
+
 
             has_info = os.path.isfile(pjoin(dirname, "info"))
             fail_skip = skip_failed and run_failed(dirname)
