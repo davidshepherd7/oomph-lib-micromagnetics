@@ -292,15 +292,6 @@ namespace oomph
 
     virtual void actions_before_newton_solve()
     {
-#ifdef PARANOID
-      if(Decoupled_ms && !Decoupled_ms_has_been_calculated)
-        {
-          std::string err = "Decoupled_ms_has_been_calculated not set";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-
       // Call base class version
       MyProblem::actions_before_newton_solve();
 
@@ -399,15 +390,6 @@ namespace oomph
 
     virtual void actions_before_explicit_stage()
     {
-#ifdef PARANOID
-      if(Decoupled_ms && !Decoupled_ms_has_been_calculated)
-        {
-          std::string err = "Decoupled_ms_has_been_calculated not set";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-
       MyProblem::actions_before_explicit_stage();
     }
 
@@ -1026,11 +1008,6 @@ public:
     /// call a function to get the boundary values filled in but c++ member
     /// functions pointers are useless...)
     Vector<DoubleVector*> Phi_boundary_values_pts;
-
-
-    /// Has decoupled ms been calculated yet? If not then we need to
-    /// calculate it before any steps.
-    bool Decoupled_ms_has_been_calculated;
 
   public:
 

@@ -448,9 +448,8 @@ namespace oomph
     oomph_info << "solving phi" << std::endl;
     phi_problem_pt()->newton_solve();
 
-    oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
 
-    Decoupled_ms_has_been_calculated = true;
+    oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
   }
 
 
