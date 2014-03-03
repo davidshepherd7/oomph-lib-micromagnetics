@@ -294,7 +294,10 @@ namespace oomph
 
       // Update BEM magnetostatics boundary conditions (if we are doing
       // them fully implicitly).
-      maybe_update_bem_boundary_conditions();
+      if(implicit_ms_flag())
+        {
+          Bem_handler_pt->get_bem_values_and_copy_into_values();
+        }
     }
 
     virtual void actions_before_explicit_timestep()
@@ -454,21 +457,11 @@ namespace oomph
 
         // Update BEM magnetostatics boundary conditions (if we are doing them
         // fully implicitly).
-        maybe_update_bem_boundary_conditions();
-      }
-
-    void maybe_update_bem_boundary_conditions()
-      {
         if(implicit_ms_flag())
           {
             Bem_handler_pt->get_bem_values_and_copy_into_values();
           }
-
-        // Otherwise don't do anything, if bem is being used
-        // semi-implicitly then it's done elsewhere. If it's not being used
-        // then nothing to update.
       }
-
 
     /// Output solution
     void doc_solution_additional(std::ofstream &some_file) const
