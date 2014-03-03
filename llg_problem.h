@@ -275,15 +275,6 @@ namespace oomph
       // Call base class version
       MyProblem::actions_before_newton_step();
 
-#ifdef PARANOID
-      if(Bem_handler_pt == 0 && !Disable_ms)
-        {
-          std::string err = "No bem handler pointer set but magnetostatics are enabled";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-
       oomph_info << std::endl
                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
                 << "---------------------------------------" << std::endl;
