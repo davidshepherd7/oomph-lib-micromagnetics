@@ -58,13 +58,17 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def make_axis_label(p, op=None):
-    """Create a latex safe axis label.
+def make_label(p, op=None):
+    """Create a label from field name and operation.
     """
     if op is not None:
-        return latex_safe(op.__name__ + " of " + '"' + p + '"')
+        return op.__name__ + " of " + '"' + p + '"'
     else:
-        return latex_safe(p)
+        return p
+
+
+def make_axis_label(*args, **kwargs):
+    return latex_safe(make_label(*args, **kwargs))
 
 
 def plot_vs_thing(xthing, data, plot_values,
@@ -237,6 +241,54 @@ def multi_plot(data, keys_to_split_on, plot_function):
     return
 
 
+def multi_print(data, keys_to_split_on, print_function):
+
+    # Divide into separate data sets
+    split_data = mm.split_up_stuff(data, keys_to_split_on)
+
+    for dataset in split_data:
+
+        # Make a title based on the keys which specify this data set (all
+        # data in dataset have the same value for the keys in
+        # keys_to_split_on so we just get it from the first one).
+        labels = []
+        for k in keys_to_split_on:
+            try:
+                this_str = str(dataset[0][k])
+                labels.append(this_str)
+
+            # Ignore keys that don't exist
+            except KeyError:
+                pass
+
+        print(' '.join(labels))
+
+        # Print data
+        print_function(dataset)
+
+
+    return
+
+
+def data_print(datasets, to_print, delim="; "):
+
+    for a, op in to_print:
+        print(make_label(a, op), end=delim)
+
+    print()
+
+    for d in datasets:
+        for a, op in to_print:
+            if op is None:
+                print(d[a], end=delim)
+            else:
+                print(op(d[a]), end=delim)
+
+        print()
+
+    print()
+
+
 def main():
     """
 
@@ -253,11 +305,14 @@ def main():
     parser.add_argument('--dir', '-d', action='append',
                         help='Set the directory to look for data in (default "results").')
 
-    parser.add_argument('--print-data', action='store_true',
-                        help='Pretty print data to stdout')
+    parser.add_argument('--print-all-data', action='store_true',
+                        help='Pretty print all data to stdout')
 
     parser.add_argument('--plots', '-p', action='append',
                         help='choose what to plot (default "m")')
+
+    parser.add_argument('--print-data', '-v', action='append',
+                        help='Choose values to print')
 
     parser.add_argument('--label', '-l', action='append',
                         help='Add addtional labels to line')
@@ -300,7 +355,7 @@ def main():
     print("Splitting plots based on values of", args.split)
 
     # Print if needed
-    if args.print_data:
+    if args.print_all_data:
         pprint(all_results)
 
 
@@ -412,6 +467,17 @@ def main():
         multi_plot(all_results, args.split, plot_mean_step_times_scatter)
 
     plt.show()
+
+
+    if 'step-times' in args.print_data:
+
+        print_mean_step_times = \
+          par(data_print,
+              to_print=[('initial_nnode', None),
+                        ('-ts', None),
+                        ('total_step_time', sp.mean)])
+
+        multi_print(all_results, args.split, print_mean_step_times)
 
     return 0
 
