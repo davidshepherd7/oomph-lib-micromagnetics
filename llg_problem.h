@@ -314,6 +314,47 @@ namespace oomph
     {
       MyProblem::actions_before_explicit_timestep();
 
+      // If phi values are in the main dofs then we need to pin them, they
+      // can't be explicitly timestepped in oomph-lib's framework!
+      if(!Decoupled_ms)
+        {
+          const unsigned phi_index = this->phi_index();
+          const unsigned phi_1_index = this->phi_1_index();
+
+          // Preallocate enough storage to make sure we don't do it
+          // repeatedly inside the loop.
+          const unsigned nnode = mesh_pt()->nnode();
+          unpinned_phi_nodes.reserve(nnode);
+          unpinned_phi_1_nodes.reserve(nnode);
+
+
+          // Store list of pointers to nodes with unpinned phi/phi1 and pin
+          // their phi values.
+          for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+            {
+              Mesh* mesh_pt = this->mesh_pt(msh);
+              for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+                {
+                  Node* nd_pt = mesh_pt->node_pt(nd);
+
+                  if(!nd_pt->is_pinned(phi_index))
+                    {
+                      unpinned_phi_nodes.push_back(nd_pt);
+                      nd_pt->pin(phi_index);
+                    }
+
+                  if(!nd_pt->is_pinned(phi_1_index))
+                    {
+                      unpinned_phi_1_nodes.push_back(nd_pt);
+                      nd_pt->pin(phi_1_index);
+                    }
+                }
+            }
+
+          // reassign equation numbers
+          std::cout << assign_eqn_numbers() << std::endl;
+        }
+
       // Set this variable to avoid getting BEM in mass matrix (due to a
       // hack in oomph core.. fix that instead?)
       Inside_explicit_timestep = true;
@@ -322,6 +363,29 @@ namespace oomph
     virtual void actions_after_explicit_timestep()
       {
         MyProblem::actions_after_explicit_timestep();
+
+        // Need to unpin any phi that we pinned earlier
+        if(!Decoupled_ms)
+          {
+            const unsigned phi_index = this->phi_index();
+            const unsigned phi_1_index = this->phi_1_index();
+
+            // unpin phi values
+            for(unsigned j=0; j<unpinned_phi_nodes.size(); j++)
+              {
+                unpinned_phi_nodes[j]->unpin(phi_index);
+              }
+
+            // unpin phi 1 values
+            for(unsigned j=0; j<unpinned_phi_1_nodes.size(); j++)
+              {
+                unpinned_phi_1_nodes[j]->unpin(phi_1_index);
+              }
+
+            // reassign equation numbers
+            std::cout << assign_eqn_numbers() << std::endl;
+
+          }
 
         // We need to keep M normalised...
         oomph_info << "Renormalising nodal magnetisations." << std::endl;
@@ -986,6 +1050,10 @@ public:
     BEMElementFactoryFctPt Bem_element_factory_pt;
 
     GenericPoissonProblem::FluxMeshFactoryFctPt Phi_1_flux_mesh_factory_fct_pt;
+
+    /// Storage for nodes to unpin after explicit step
+    Vector<Node*> unpinned_phi_nodes;
+    Vector<Node*> unpinned_phi_1_nodes;
 
     void build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
                             Vector<Mesh*>& phi_mesh_pts,
