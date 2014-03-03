@@ -21,10 +21,12 @@ import oomphpy
 import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
-def ndt(dataset):
-    return len(dataset['dts'])
-
 def main():
+
+    # Look for parallel in args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--parallel', action = "store_true")
+    args = parser.parse_args()
 
     # What to run
     argdicts = {
@@ -43,7 +45,8 @@ def main():
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir,
+                                      parallel_sweep=args.parallel)
 
     # Get data
     datasets = list(map(mm.parse_run, outdirs))
@@ -52,8 +55,6 @@ def main():
     ran = all((e == 0 for e in err_codes))
     t1 = all([tests.check_ndt_less_than(d, 40) for d in datasets])
     # t2 = all([tests.check_m_length(d, 1e-14) for d in datasets])
-
-    print([ndt(d) for d in datasets])
 
     if ran and t1:
         return 0
