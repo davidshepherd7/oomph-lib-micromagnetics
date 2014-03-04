@@ -261,7 +261,7 @@ using namespace StringConversion;
               Node* nd_pt = mesh_pt->node_pt(nd);
               for(unsigned j=0; j<indices.size(); j++)
                 {
-                  if(nd_pt->eqn_number(indices[j]) > 0)
+                  if(!nd_pt->is_pinned(indices[j]))
                     {
                       nd_pt->eqn_number(indices[j])
                         = Data::Is_segregated_solve_pinned;
