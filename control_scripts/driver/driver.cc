@@ -233,33 +233,19 @@ int main(int argc, char *argv[])
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
 
-      if(llg_pt->Disable_ms)
-        {
-          llg_pt->Bem_handler_pt = 0;
-        }
-      else if(llg_pt->Decoupled_ms)
-        {
-          //?? clean this up
-          // Build phi problems and link together
-          llg_pt->build_decoupled_ms(mm_args_pt->mesh_pts,
-                                     mm_args_pt->phi_mesh_pts,
-                                     mm_args_pt->phi_1_mesh_pts);
-
-          // Create the bem handler
-          llg_pt->Bem_handler_pt = Factories::bem_handler_factory
-            (mm_args_pt->phi_1_mesh_pts, 0,
-             mm_args_pt->hlib_bem,
-             false,
-             mm_args_pt->numerical_int_bem);
-        }
-      else
+      if(llg_pt->implicit_ms_flag() || llg_pt->Decoupled_ms)
         {
           // Create the bem handler
           llg_pt->Bem_handler_pt = Factories::bem_handler_factory
             (args_pt->mesh_pts, 0,
              mm_args_pt->hlib_bem,
              false,
-             mm_args_pt->numerical_int_bem);
+             mm_args_pt->numerical_int_bem,
+             llg_pt->Decoupled_ms);
+        }
+      else
+        {
+          llg_pt->Bem_handler_pt = 0;
         }
     }
 

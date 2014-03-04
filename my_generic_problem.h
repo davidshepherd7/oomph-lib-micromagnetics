@@ -248,6 +248,52 @@ using namespace StringConversion;
         Preconditioner_setup_times.clear();
       }
 
+
+
+
+    void segregated_pin_indices(const Vector<unsigned>& indices)
+    {
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        {
+          Mesh* mesh_pt = this->mesh_pt(msh);
+          for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+              for(unsigned j=0; j<indices.size(); j++)
+                {
+                  if(nd_pt->eqn_number(indices[j]) > 0)
+                    {
+                      nd_pt->eqn_number(indices[j])
+                        = Data::Is_segregated_solve_pinned;
+                    }
+                }
+            }
+        }
+      std::cout << "segregated eqs " << indices << std::endl;
+      std::cout << "n eqn " << assign_eqn_numbers()  << std::endl;
+    }
+
+    void undo_segregated_pinning()
+      {
+        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+          {
+            Mesh* mesh_pt = this->mesh_pt(msh);
+            for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+              {
+                Node* nd_pt = mesh_pt->node_pt(nd);
+                for(unsigned j=0; j<nd_pt->nvalue(); j++)
+                  {
+                    if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
+                      {
+                        nd_pt->eqn_number(j) = Data::Is_unclassified;
+                      }
+                  }
+              }
+          }
+        std::cout << "un-seg n eqn " << assign_eqn_numbers()  << std::endl;
+      }
+
+
     void check_norm_limits()
       {
         // If a limit has been set
