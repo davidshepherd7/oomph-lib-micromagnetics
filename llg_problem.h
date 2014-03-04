@@ -263,37 +263,52 @@ namespace oomph
 
     virtual void actions_before_newton_step()
     {
-      // Call base class version
-      MyProblem::actions_before_newton_step();
-
       oomph_info << std::endl
-                << "Newton step " << Nnewton_iter_taken + 1 << std::endl
-                << "---------------------------------------" << std::endl;
+                 << "Newton step " << Nnewton_iter_taken + 1 << std::endl
+                 << "---------------------------------------" << std::endl;
+
+      if(!Inside_segregated_magnetostatics)
+        {
+          // Call base class version
+          MyProblem::actions_before_newton_step();
+        }
+    }
+
+    virtual void actions_after_newton_step()
+    {
+      if(!Inside_segregated_magnetostatics)
+        {
+          // Call base class version
+          MyProblem::actions_after_newton_step();
+        }
     }
 
 
     virtual void actions_before_newton_solve()
     {
-      // Call base class version
-      MyProblem::actions_before_newton_solve();
-
-      // Update BEM magnetostatics boundary conditions (if we are doing
-      // them fully implicitly).
-      if(implicit_ms_flag())
+      if(!Inside_segregated_magnetostatics)
         {
-          Bem_handler_pt->get_bem_values_and_copy_into_values();
-        }
+          // Call base class version
+          MyProblem::actions_before_newton_solve();
 
-      // For decoupled solves pin everything but m
-      if(Decoupled_ms && !Inside_segregated_magnetostatics)
-        {
-          check_not_segregated();
+          // Update BEM magnetostatics boundary conditions (if we are doing
+          // them fully implicitly).
+          if(implicit_ms_flag())
+            {
+              Bem_handler_pt->get_bem_values_and_copy_into_values();
+            }
 
-          Vector<unsigned> non_m_indices;
-          non_m_indices.push_back(phi_1_index());
-          non_m_indices.push_back(phi_index());
+          // For decoupled solves pin everything but m
+          if(Decoupled_ms)
+            {
+              check_not_segregated();
 
-          segregated_pin_indices(non_m_indices);
+              Vector<unsigned> non_m_indices;
+              non_m_indices.push_back(phi_1_index());
+              non_m_indices.push_back(phi_index());
+
+              segregated_pin_indices(non_m_indices);
+            }
         }
     }
 
@@ -385,17 +400,20 @@ namespace oomph
 
     virtual void actions_after_newton_solve()
     {
-      MyProblem::actions_after_newton_solve();
-
       oomph_info << std::endl
-                << "Finalising" << std::endl
-                << "-------------------------------------------" << std::endl;
+                 << "Finalising" << std::endl
+                 << "-------------------------------------------" << std::endl;
 
-      // If we're using BDF we need to keep M normalised.
-      if(renormalise_each_time_step() && !Inside_segregated_magnetostatics)
+      if(!Inside_segregated_magnetostatics)
         {
-          oomph_info << "Renormalising nodal magnetisations." << std::endl;
-          renormalise_magnetisation();
+          MyProblem::actions_after_newton_solve();
+
+          // If we're using BDF we need to keep M normalised.
+          if(renormalise_each_time_step())
+            {
+              oomph_info << "Renormalising nodal magnetisations." << std::endl;
+              renormalise_magnetisation();
+            }
         }
     }
 
