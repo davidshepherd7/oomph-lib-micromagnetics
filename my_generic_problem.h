@@ -250,7 +250,10 @@ using namespace StringConversion;
 
 
 
-
+    /// Pin all dofs with index in node one of indices in all nodes. Uses a
+    /// different magic pinning number so that it can be easily undone
+    /// using undo_segregated_pinning(). Does not handle: global data,
+    /// element data, nodes with varying nvalue.
     void segregated_pin_indices(const Vector<unsigned>& indices)
     {
       for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
@@ -269,29 +272,30 @@ using namespace StringConversion;
                 }
             }
         }
-      std::cout << "segregated eqs " << indices << std::endl;
-      std::cout << "n eqn " << assign_eqn_numbers()  << std::endl;
+      oomph_info << "segregated solve without indices " << indices << std::endl;
+      oomph_info << "n eqn " << assign_eqn_numbers()  << std::endl;
     }
 
+    /// Remove pinning set up by segregated_pin_indices.
     void undo_segregated_pinning()
-      {
-        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-          {
-            Mesh* mesh_pt = this->mesh_pt(msh);
-            for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-              {
-                Node* nd_pt = mesh_pt->node_pt(nd);
-                for(unsigned j=0; j<nd_pt->nvalue(); j++)
-                  {
-                    if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
-                      {
-                        nd_pt->eqn_number(j) = Data::Is_unclassified;
-                      }
-                  }
-              }
-          }
-        std::cout << "un-seg n eqn " << assign_eqn_numbers()  << std::endl;
-      }
+    {
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        {
+          Mesh* mesh_pt = this->mesh_pt(msh);
+          for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+              for(unsigned j=0; j<nd_pt->nvalue(); j++)
+                {
+                  if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
+                    {
+                      nd_pt->eqn_number(j) = Data::Is_unclassified;
+                    }
+                }
+            }
+        }
+      oomph_info << "un-segregated n eqn " << assign_eqn_numbers() << std::endl;
+    }
 
 
     void check_norm_limits()
