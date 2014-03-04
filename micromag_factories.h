@@ -112,7 +112,7 @@ namespace oomph
     BoundaryElementHandler* bem_handler_factory
     (const Vector<Mesh*>& output_mesh_pts, const CornerDataInput* input_corner_data_pt=0,
      int hierarchical_bem=-1, bool disable_corner_angles=false,
-     int numerical_int_bem=-1);
+     int numerical_int_bem=-1, bool segregated_magnetostatics=false);
 
     /// Fill in and build an existing bem handler object.
     void bem_handler_factory(BoundaryElementHandler& new_bem_handler,
@@ -120,7 +120,8 @@ namespace oomph
                              const CornerDataInput* input_corner_data_pt=0,
                              int hierarchical_bem=-1,
                              bool disable_corner_angles=false,
-                             int numerical_int_bem=-1);
+                             int numerical_int_bem=-1,
+                             bool segregated_magnetostatics=false);
 
 
     /// Create an llg block preconditioner based on a string. Possibly

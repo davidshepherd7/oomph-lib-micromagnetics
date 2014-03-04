@@ -60,13 +60,12 @@ namespace oomph
       Disable_ms = false;
       Analytic_ms_fct_pt = 0;
       Inside_explicit_timestep = false;
+      Inside_segregated_magnetostatics = false;
 #ifdef PARANOID
       Check_angles = true;
 #else
       Check_angles = false;
 #endif
-      Phi_problem_pt = 0;
-      Phi_1_problem_pt = 0;
 
       // Debugging switches
       Pin_boundary_m = false;
@@ -194,8 +193,6 @@ namespace oomph
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
       delete Residual_calculator_pt; Residual_calculator_pt = 0;
       delete Bem_handler_pt; Bem_handler_pt = 0;
-      delete Phi_problem_pt; Phi_problem_pt = 0;
-      delete Phi_1_problem_pt; Phi_1_problem_pt = 0;
 
       // Kill boundary value storage vectors
       for(unsigned j=0; j<Phi_boundary_values_pts.size(); j++)
@@ -233,9 +230,6 @@ namespace oomph
       // recalculate ms. This needs to be done more efficiently eventually
       if(Decoupled_ms)
         {
-          // Solve for the magnetostatic field.
-          magnetostatics_solve();
-
           if(Extrapolate_decoupled_ms)
             {
               // Project to correct time
@@ -245,18 +239,6 @@ namespace oomph
         }
     }
 
-    /// Overload shift time values to also shift phi problem if needed.
-    void shift_time_values()
-    {
-      Problem::shift_time_values();
-
-      if(Decoupled_ms)
-        {
-          // Push old phi values back in time (so that we can use them
-          // later to get time derivatives of the field).
-          phi_problem_pt()->shift_time_values();
-        }
-    }
 
     virtual void actions_after_implicit_timestep()
       {
@@ -264,6 +246,9 @@ namespace oomph
 
         if(Decoupled_ms)
           {
+            // Unpin phis (from m solve)
+            undo_segregated_pinning();
+
             // Solve for the magnetostatic field.
             magnetostatics_solve();
           }
@@ -298,6 +283,44 @@ namespace oomph
         {
           Bem_handler_pt->get_bem_values_and_copy_into_values();
         }
+
+      // For decoupled solves pin everything but m
+      if(Decoupled_ms && !Inside_segregated_magnetostatics)
+        {
+          check_not_segregated();
+
+          Vector<unsigned> non_m_indices;
+          non_m_indices.push_back(phi_1_index());
+          non_m_indices.push_back(phi_index());
+
+          segregated_pin_indices(non_m_indices);
+        }
+    }
+
+    /// Check that nothing is currently pinned for a segregated solve.
+    void check_not_segregated() const
+    {
+#ifdef PARANOID
+      std::string err = "Some dofs already segregated going into ";
+      err += "segregated magnetostatics solve.";
+
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        {
+          Mesh* mesh_pt = this->mesh_pt(msh);
+          for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+              for(unsigned j=0; j<nd_pt->nvalue(); j++)
+                {
+                  if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
+                    {
+                      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                          OOMPH_CURRENT_FUNCTION);
+                    }
+                }
+            }
+        }
+#endif
     }
 
     virtual void actions_before_explicit_timestep()
@@ -308,41 +331,8 @@ namespace oomph
       // can't be explicitly timestepped in oomph-lib's framework!
       if(!Decoupled_ms)
         {
-          const unsigned phi_index = this->phi_index();
-          const unsigned phi_1_index = this->phi_1_index();
-
-          // Preallocate enough storage to make sure we don't do it
-          // repeatedly inside the loop.
-          const unsigned nnode = mesh_pt()->nnode();
-          unpinned_phi_nodes.reserve(nnode);
-          unpinned_phi_1_nodes.reserve(nnode);
-
-
-          // Store list of pointers to nodes with unpinned phi/phi1 and pin
-          // their phi values.
-          for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-            {
-              Mesh* mesh_pt = this->mesh_pt(msh);
-              for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-                {
-                  Node* nd_pt = mesh_pt->node_pt(nd);
-
-                  if(!nd_pt->is_pinned(phi_index))
-                    {
-                      unpinned_phi_nodes.push_back(nd_pt);
-                      nd_pt->pin(phi_index);
-                    }
-
-                  if(!nd_pt->is_pinned(phi_1_index))
-                    {
-                      unpinned_phi_1_nodes.push_back(nd_pt);
-                      nd_pt->pin(phi_1_index);
-                    }
-                }
-            }
-
-          // reassign equation numbers
-          std::cout << assign_eqn_numbers() << std::endl;
+          throw OomphLibError("Function not yet implemented",
+                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
         }
 
       // Set this variable to avoid getting BEM in mass matrix (due to a
@@ -413,7 +403,7 @@ namespace oomph
                 << "-------------------------------------------" << std::endl;
 
       // If we're using BDF we need to keep M normalised.
-      if(renormalise_each_time_step())
+      if(renormalise_each_time_step() && !Inside_segregated_magnetostatics)
         {
           oomph_info << "Renormalising nodal magnetisations." << std::endl;
           renormalise_magnetisation();
@@ -471,20 +461,6 @@ namespace oomph
 
       // Output solution with specified number of plot points per element
       mesh_pt()->output(some_file, npts);
-
-      if(Decoupled_ms)
-        {
-          // Output the magnetostatic field data
-          std::ofstream field_file((Doc_info.directory() + "/field"
-                                    + Doc_info.number_as_string() + ".dat").c_str());
-          phi_problem_pt()->mesh_pt()->output(field_file, npts);
-          field_file.close();
-
-          std::ofstream phi1_file((Doc_info.directory() + "/phione"
-                                   + Doc_info.number_as_string() + ".dat").c_str());
-          phi_1_problem_pt()->mesh_pt()->output(phi1_file, npts);
-          phi1_file.close();
-        }
     }
 
     void write_additional_trace_headers(std::ofstream& trace_file) const
@@ -596,9 +572,6 @@ namespace oomph
           {
             // Solve for initial field and phi values
             magnetostatics_solve();
-
-            // Copy phi backwards in time
-            phi_problem_pt()->set_up_impulsive_initial_condition();
           }
 
         calculate_energies(false);
@@ -609,30 +582,14 @@ namespace oomph
       // Set very high precision to avoid any issues
       dump_file.precision(14);
 
-      // Dump sub problems if needed
-      if(Decoupled_ms)
-        {
-          phi_problem_pt()->dump(dump_file);
-          phi_1_problem_pt()->dump(dump_file);
-        }
-
       // Let base class handle the rest
       MyProblem::dump(dump_file);
     }
 
     virtual void read(std::ifstream& restart_file)
     {
-
-      // Read sub problems if needed
-      if(Decoupled_ms)
-        {
-          phi_problem_pt()->read(restart_file);
-          phi_1_problem_pt()->read(restart_file);
-        }
-
       // Let base class handle the rest
       MyProblem::read(restart_file);
-
 
       actions_after_set_initial_condition();
     }
@@ -699,79 +656,8 @@ namespace oomph
     /// or something, but instead I've just averaged it element-wise..
     Vector<double> average_magnetostatic_field() const
     {
-      if(Decoupled_ms)
-        {
-          const unsigned nodal_dim = checked_dynamic_cast<MagnetostaticFieldEquations*>
-            (phi_problem_pt()->mesh_pt()->element_pt(0))->node_pt(0)->ndim();
-
-          // Pick a point in the middle of the element
-          const Vector<double> s(nodal_dim, 0.3);
-          Vector<double> total_ms(3, 0.0);
-
-          // // Loop over all elements calculating the value in the middle of the element
-          // for(unsigned e=0, ne=phi_problem_pt()->mesh_pt()->nelement(); e < ne; e++)
-          //   {
-          //     MagnetostaticFieldEquations* ele_pt
-          //       = checked_dynamic_cast<MagnetostaticFieldEquations*>
-          //       (phi_problem_pt()->mesh_pt()->element_pt(e));
-
-          //     // Get the shape function and eulerian coordinate derivative at
-          //     // position s.
-          //     unsigned n_node = ele_pt->nnode();
-          //     Shape psi(n_node); DShape dpsidx(n_node,nodal_dim);
-          //     ele_pt->dshape_eulerian(s,psi,dpsidx);
-
-          //     // Interpolate grad phi
-          //     Vector<double> interpolated_dphidx(nodal_dim,0.0);
-          //     for(unsigned l=0;l<n_node;l++)
-          //       {
-          //         double phi_value = ele_pt->raw_nodal_value(l,0);
-          //         for(unsigned i=0; i<nodal_dim; i++)
-          //           {interpolated_dphidx[i] += phi_value*dpsidx(l,i);}
-          //       }
-
-          //     // Add this grad phi to the sum
-          //     for(unsigned j=0; j<nodal_dim; j++)
-          //       {
-          //         total_dphidx[j] += interpolated_dphidx[j];
-          //       }
-          //   }
-
-          // Loop over all elements calculating the value in the middle of the element
-          for(unsigned e=0, ne=mesh_pt()->nelement(); e < ne; e++)
-            {
-              MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
-                (mesh_pt()->element_pt(e));
-
-              // Interpolate
-              Vector<double> ms;
-              ele_pt->get_magnetostatic_field(s, ms);
-
-              // Add this to the sum
-              for(unsigned j=0; j<3; j++)
-                {
-                  total_ms[j] += ms[j];
-                }
-            }
-
-          // Divide sum by number of elements to get the average. Take the
-          // negative to get the field.
-          double nele = double(phi_problem_pt()->mesh_pt()->nelement());
-          Vector<double> average_magnetostatic_field(3,0.0);
-          for(unsigned j=0; j<nodal_dim; j++)
-            {
-              average_magnetostatic_field[j] = total_ms[j] / nele;
-            }
-
-          return average_magnetostatic_field;
-        }
-      else
-        {
-          throw OomphLibError("Function not yet implemented for fully coupled ms",
-                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-        }
-
-
+      // ??ds implement..
+      return Vector<double>();
     }
 
     // Access functions
@@ -921,6 +807,8 @@ namespace oomph
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
 
+    bool Inside_segregated_magnetostatics;
+
     LLGResidualCalculator* Residual_calculator_pt;
 
   private:
@@ -984,10 +872,6 @@ public:
 
   private:
 
-    /// Sub problems for the magnetostatics solve
-    GenericPoissonProblem* Phi_1_problem_pt;
-    GenericPoissonProblem* Phi_problem_pt;
-
     /// Intermediate storage for results of bem (ideally we would have it
     /// call a function to get the boundary values filled in but c++ member
     /// functions pointers are useless...)
@@ -1015,47 +899,11 @@ public:
     Vector<Node*> unpinned_phi_nodes;
     Vector<Node*> unpinned_phi_1_nodes;
 
-    void build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
-                            Vector<Mesh*>& phi_mesh_pts,
-                            Vector<Mesh*>& phi_1_mesh_pts);
-
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();
 
-    GenericPoissonProblem* phi_1_problem_pt() const
-    {
-#ifdef PARANOID
-      if(Phi_1_problem_pt == 0)
-        {
-          std::string error_msg = "Phi 1 problem pointer is null!";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Phi_1_problem_pt;
-    }
-
     /// Linearly extrapolate phi
     void extrapolate_phi(const double& new_dt, const double& prev_dt);
-
-    void set_phi_1_problem_pt(GenericPoissonProblem* p)
-    { Phi_1_problem_pt = p;}
-
-    GenericPoissonProblem* phi_problem_pt() const
-    {
-#ifdef PARANOID
-      if(Phi_problem_pt == 0)
-        {
-          std::string error_msg = "Phi problem pointer is null!";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Phi_problem_pt;
-    }
-
-    void set_phi_problem_pt(GenericPoissonProblem* p)
-    { Phi_problem_pt = p;}
 
 
   };
@@ -1097,42 +945,6 @@ public:
 
     FluxMeshFactoryFctPt
     mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
-  }
-
-  /// \short A namespace full of functions that take some "dynamic"
-  /// (i.e. can be calculated at runtime) input and create a new instance
-  /// of the appropriate object, using the new command (Factory Method
-  /// design pattern).
-  ///
-  /// Typically these objects are passed straight into other classes and
-  /// will be deleted by the destructor of that class. If not it is your
-  /// responsibility to make sure the objects are deleted.
-  namespace SemiImplicitFactories
-  {
-    /// \short Make a mesh of Micromag elements as specified by an
-    /// input argument. Refined according to the given refinement level (in
-    /// some way appropriate for that mesh type).
-    Mesh* llg_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           double scaling_factor = 1.0,
-                           unsigned nnode1d = 2);
-
-
-    /// \short Make a mesh of MagnetostaticField elements as specified by an
-    /// input argument. Refined according to the given refinement level (in
-    /// some way appropriate for that mesh type).
-    Mesh* phi_mesh_factory(const std::string& _mesh_name,
-                           int refinement_level,
-                           TimeStepper* time_stepper_pt,
-                           double scaling_factor = 1.0,
-                           unsigned nnode1d = 2);
-
-
-    /// \short Return a factory function which will create the appropriate
-    /// "flux mesh" for the bulk element pointer given.
-    GenericPoissonProblem::FluxMeshFactoryFctPt
-    phi_1_flux_mesh_factory_factory(const FiniteElement* bulk_phi_1_ele_pt);
   }
 
 
@@ -1191,19 +1003,10 @@ public:
 
     virtual void run_factories()
     {
-      using namespace SemiImplicitFactories;
       using namespace LLGFactories;
       using namespace Factories;
 
-      // Figure out how to build meshes
-      if(is_decoupled(ms_method))
-        {
-          mesh_factory_pt = &llg_mesh_factory;
-        }
-      else
-        {
-          mesh_factory_pt = &mesh_factory;
-        }
+      mesh_factory_pt = &mesh_factory;
 
 
       MyCliArgs::run_factories();
@@ -1223,43 +1026,7 @@ public:
 
       // Copy flags into bools in this class
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
-
-      if(is_decoupled(ms_method))
-        {
-          // Pick the factory function for creating the phi 1 surface mesh
-          phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_factory
-            (phi_1_mesh_pts[0]->finite_element_pt(0));
-
-          // Pick the factory function for creating the BEM elements
-          bem_element_factory_fct_pt = bem_element_factory_factory
-            (mesh_pts[0]->finite_element_pt(0));
-        }
-
     }
-
-    void build_meshes()
-      {
-        // Build the main mesh(es)
-        MyCliArgs::build_meshes();
-
-        if(is_decoupled(ms_method))
-          {
-            // Time stepper for phi, store history values for derivative
-            // calculations and extrapolation.
-            TimeStepper* phi_time_stepper_pt = new Steady<2>;
-
-            // Time stepper for phi1, don't store history values.
-            TimeStepper* phi1_time_stepper_pt = new Steady<0>;
-
-
-            // Also build separate poisson meshes if needed
-            using namespace SemiImplicitFactories;
-            phi_mesh_pts = build_meshes_helper(phi_mesh_factory,
-                                               phi_time_stepper_pt);
-            phi_1_mesh_pts = build_meshes_helper(phi_mesh_factory,
-                                                 phi1_time_stepper_pt);
-          }
-      }
 
     virtual void assign_specific_parameters(MyProblem* problem_pt) const
     {

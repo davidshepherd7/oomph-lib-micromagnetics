@@ -288,7 +288,6 @@ void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
     get_bem_values(full_vector);
 
 
-    // Now split it up into vectors on each boundary
     for(unsigned i=0, ni=Bem_boundaries.size(); i < ni; i++)
       {
         // Get info on this boundary

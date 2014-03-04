@@ -104,7 +104,7 @@ namespace oomph
       }
 
     // Set up bem stuff if we are doing it
-    if(implicit_ms_flag())
+    if(implicit_ms_flag() || Decoupled_ms)
       {
         // Figure out how to build the flux meshes that we're going to need
         // for neumann boundaries.
@@ -148,9 +148,27 @@ namespace oomph
 
           }
 
+        // If decoupled then boundary values of phi need to be pinned
+        if(Decoupled_ms)
+          {
+            // Loop over all meshes in problem
+            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+              {
+                Mesh* mesh_pt = this->mesh_pt(msh);
+                for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+                  {
+                    for(unsigned nd=0, nnd=mesh_pt->nboundary_node(b); nd<nnd; nd++)
+                      {
+                        Node* nd_pt = mesh_pt->boundary_node_pt(b, nd);
+                        nd_pt->pin(phi_index());
+                      }
+                  }
+              }
+          }
+
       }
     // Otherwise pin all phi and phi_1 dofs to zero
-    else
+    else if(Disable_ms)
       {
         oomph_info << "Pinning phi values in main problem's meshes." << std::endl;
 
@@ -167,6 +185,12 @@ namespace oomph
                 nd_pt->set_value(phi_1_index(),0.0);
               }
           }
+      }
+    else
+      {
+        std::string err = "Not sure how to set up ms...";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
       }
 
 
@@ -203,170 +227,6 @@ namespace oomph
     oomph_info << "Number of sub meshes: " << this->nsub_mesh() << std::endl;
 
   }
-
-  void LLGProblem::build_decoupled_ms(Vector<Mesh*>& llg_mesh_pts,
-                                      Vector<Mesh*>& phi_mesh_pts,
-                                      Vector<Mesh*>& phi_1_mesh_pts)
-  {
-
-    // Throughout this function we need to be careful not to use each
-    // problem's global mesh pointer because they are built only during
-    // this function.
-
-    // Set up phi_1 problem
-    // ============================================================
-
-    //??ds move outside?
-    Phi_1_problem_pt = new GenericPoissonProblem;
-    phi_1_problem_pt()->set_flux_mesh_factory(Phi_1_flux_mesh_factory_fct_pt);
-    phi_1_problem_pt()->newton_solver_tolerance() = newton_solver_tolerance();
-
-    // phi_1 b.c.s are all Neumann but with flux determined elsewhere (by m).
-    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-      {
-        Mesh* mesh_pt = phi_1_mesh_pts[msh];
-        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
-          {
-            phi_1_problem_pt()->add_neumann_boundary(mesh_pt, b, 0);
-          }
-      }
-
-    // Finish off the problem
-    phi_1_problem_pt()->build(phi_1_mesh_pts);
-
-
-    // Check that all three types of mesh match up
-#ifdef PARANOID
-    if((llg_mesh_pts.size() != phi_mesh_pts.size())
-       || (llg_mesh_pts.size() != phi_1_mesh_pts.size()))
-      {
-        std::string err = "All mesh lists must be the same size!";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-#endif
-
-
-    // Phi problem
-    // ============================================================
-
-    Phi_problem_pt = new GenericPoissonProblem;
-    phi_problem_pt()->newton_solver_tolerance() = newton_solver_tolerance();
-
-    // phi b.c.s are all Dirichlet, determined by a vector of BEM
-    // values. Create these vectors and link them into the phi problem.
-    for(unsigned msh=0, nmsh=phi_mesh_pts.size(); msh<nmsh; msh++)
-      {
-        Mesh* mesh_pt = phi_mesh_pts[msh];
-        for(unsigned b=0, nb=mesh_pt->nboundary(); b < nb; b++)
-          {
-            // Create the vector
-            LinearAlgebraDistribution* dist_pt =
-              new LinearAlgebraDistribution(MPI_Helpers::communicator_pt(),
-                                            mesh_pt->nboundary_node(b), false);
-            DoubleVector* db_vec_pt = new DoubleVector(dist_pt);
-
-            // Plug it into the phi problem and our list of bem controlled
-            // values.
-            Phi_boundary_values_pts.push_back(db_vec_pt);
-            phi_problem_pt()->add_dirichlet_boundary_by_vector(mesh_pt, b,
-                                                               db_vec_pt);
-          }
-
-      }
-
-    phi_problem_pt()->build(phi_mesh_pts);
-
-
-    // Coupling between problems
-    // ============================================================
-
-    // Assign bulk elements pointers to each other (and check that it is
-    // safe).
-    for(unsigned msh=0; msh<llg_mesh_pts.size(); msh++)
-      {
-        Mesh* phi_mesh_pt = phi_mesh_pts[msh];
-        Mesh* llg_mesh_pt = llg_mesh_pts[msh];
-        Mesh* phi_1_mesh_pt = phi_1_mesh_pts[msh];
-
-#ifdef PARANOID
-        // Things will go wrong if the nodes of all meshes are not in
-        // the same place:
-        if((phi_1_mesh_pt->nnode() != phi_mesh_pt->nnode())
-           || (phi_1_mesh_pt->nnode() != llg_mesh_pt->nnode()))
-          {
-            std::ostringstream error_msg;
-            error_msg << "Mesh nnodes must be the same.";
-            throw OomphLibError(error_msg.str(),
-                                OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-
-        if((phi_1_mesh_pt->nelement() != phi_mesh_pt->nelement())
-           || (phi_1_mesh_pt->nelement() != llg_mesh_pt->nelement()))
-          {
-            std::ostringstream error_msg;
-            error_msg << "Mesh nelements must be the same.";
-            throw OomphLibError(error_msg.str(),
-                                OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-
-        unsigned dim = phi_mesh_pt->node_pt(0)->ndim();
-        for(unsigned j=0; j<dim; j++)
-          {
-            for(unsigned nd=0, nnode= phi_1_mesh_pt->nnode(); nd<nnode; nd++)
-              {
-                if((phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                    phi_mesh_pt->node_pt(nd)->x(j))
-                   ||
-                   (phi_1_mesh_pt->node_pt(nd)->x(j) !=
-                    llg_mesh_pt->node_pt(nd)->x(j)))
-                  {
-                    Vector<double> phi1x(dim), phix(dim), llgx(dim);
-                    phi_1_mesh_pt->node_pt(nd)->position(phi1x);
-                    phi_mesh_pt->node_pt(nd)->position(phix);
-                    llg_mesh_pt->node_pt(nd)->position(llgx);
-
-                    std::ostringstream error_msg;
-                    error_msg << "Mesh nodes must be in the same places."
-                              << " Problem in node " << nd
-                              << "\nphi1 position " << phi1x
-                              << "\nphi position " << phix
-                              << "\nllg position " << llgx;
-                    throw OomphLibError(error_msg.str(),
-                                        OOMPH_CURRENT_FUNCTION,
-                                        OOMPH_EXCEPTION_LOCATION);
-                  }
-              }
-          }
-#endif
-
-        // Assign the various elements pointers to each other
-        for(unsigned e=0, ne=phi_1_mesh_pt->nelement(); e < ne; e++)
-          {
-
-            // Get the element pointers
-            MagnetostaticFieldEquations* phi_1_ele_pt =
-              checked_dynamic_cast<MagnetostaticFieldEquations*>
-              (phi_1_mesh_pt->element_pt(e));
-            MagnetostaticFieldEquations* phi_ele_pt =
-              checked_dynamic_cast<MagnetostaticFieldEquations*>
-              (phi_mesh_pt->element_pt(e));
-            MicromagEquations* m_ele_pt =
-              checked_dynamic_cast<MicromagEquations*>
-              (llg_mesh_pt->element_pt(e));
-
-            phi_1_ele_pt->set_micromag_element_pt(m_ele_pt);
-            phi_ele_pt->set_micromag_element_pt(m_ele_pt);
-            checked_dynamic_cast<SemiImplicitMagnetostaticsCalculator*>
-              (m_ele_pt->Ms_calc_pt)
-              ->magnetostatic_field_element_pt() = phi_ele_pt;
-          }
-      }
-
-  }
-
 
   /// \short Error for adaptive timestepper (rms of nodal error determined by
   /// comparison with explicit timestepper result).
@@ -427,29 +287,96 @@ namespace oomph
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                             OOMPH_CURRENT_FUNCTION);
       }
+
+    check_not_segregated();
 #endif
+
+    Inside_segregated_magnetostatics = true;
+
+    // We really need c++11, this array initialisation is ridiculous
+    Vector<unsigned> non_phi_1_indices, non_phi_indices;
+    non_phi_1_indices.push_back(phi_index());
+    non_phi_1_indices.push_back(m_index(0));
+    non_phi_1_indices.push_back(m_index(1));
+    non_phi_1_indices.push_back(m_index(2));
+
+    non_phi_indices.push_back(phi_1_index());
+    non_phi_indices.push_back(m_index(0));
+    non_phi_indices.push_back(m_index(1));
+    non_phi_indices.push_back(m_index(2));
 
     oomph_info << std::endl
                << "Decoupled BEM solve" << std::endl
                << "--------------------------" <<std::endl;
 
-    // solve for phi1
-    oomph_info << "solving phi1" << std::endl;
-    phi_1_problem_pt()->newton_solve();
 
-    // update boundary values of phi
+    // solve for phi1
+    // ============================================================
+    oomph_info << "solving phi1" << std::endl;
+
+    segregated_pin_indices(non_phi_1_indices);
+    newton_solve();
+    undo_segregated_pinning();
+
+
+    // update boundary values of phi via bem
+    // ============================================================
+
     oomph_info << "solving BEM" << std::endl;
     double t_start = TimingHelpers::timer();
-    Bem_handler_pt->get_bem_values(Phi_boundary_values_pts);
+
+    // Get bem values. Note that the order is implicitly defined
+    LinearAlgebraDistribution dist;
+    Bem_handler_pt->get_bm_distribution(dist);
+    DoubleVector phi_boundary_values(dist);
+    Bem_handler_pt->get_bem_values(phi_boundary_values);
+
+    // Copy into phi values
+    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+      {
+        Mesh* mesh_pt = this->mesh_pt(msh);
+        for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
+          {
+            unsigned nnode = mesh_pt->nboundary_node(b);
+
+            // Set the phi entry in this node to the corresponding value
+            // from the doublevector.
+            for(unsigned nd=0; nd<nnode; nd++)
+              {
+                Node* node_pt = mesh_pt->boundary_node_pt(b,nd);
+                unsigned g_eqn = node_pt->eqn_number(Bem_handler_pt->output_index());
+                unsigned out_eqn =
+                  Bem_handler_pt->output_lookup_pt()->main_to_added(g_eqn);
+
+                node_pt->set_value(phi_index(), phi_boundary_values[out_eqn]);
+              }
+          }
+      }
+
+    // ??ds hack: using "output_index()" for lookup but writing to
+    // phi_index()...
+
+
     double t_end = TimingHelpers::timer();
     oomph_info << "BEM time taken: " << t_end - t_start << std::endl;
 
+
     // solve for phi
+    // ============================================================
+
     oomph_info << "solving phi" << std::endl;
-    phi_problem_pt()->newton_solve();
+
+    segregated_pin_indices(non_phi_indices);
+    newton_solve();
+    undo_segregated_pinning();
 
 
-    oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
+    // Done
+    // ============================================================
+
+    // oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
+
+    Inside_segregated_magnetostatics = false;
   }
 
 
@@ -459,27 +386,10 @@ namespace oomph
     // Don't change phi_1 values because we don't need them except for
     // calculating phi.
 
-    //??ds
-    double dtn = time_stepper_pt()->time_pt()->dt();
-    double dtnm1 = time_stepper_pt()->time_pt()->dt(1);
 
-    const unsigned phi_index = phi_problem_pt()->poisson_dof_number();
 
-    // Loop over all meshes in problem
-    for(unsigned msh=0, nmsh=phi_problem_pt()->nsub_mesh(); msh<nmsh; msh++)
-      {
-        Mesh* mesh_pt = phi_problem_pt()->mesh_pt(msh);
-        for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-          {
-            Node* nd_pt = mesh_pt->node_pt(nd);
-            double phi_nm1 = nd_pt->value(2, phi_index);
-            double phi_n = nd_pt->value(1, phi_index);
 
-            double phi_np1 = ((dtn + dtnm1)/dtnm1)*phi_n - (dtn/dtnm1)*phi_nm1;
 
-            nd_pt->set_value(0, phi_index, phi_np1);
-          }
-      }
 
   }
 
