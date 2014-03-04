@@ -226,13 +226,11 @@ namespace oomph
     {
       MyProblem::actions_before_implicit_timestep();
 
-      // ??ds adaptive midpoint doesn't restore phi state properly!  so
-      // recalculate ms. This needs to be done more efficiently eventually
+      // Project phi to correct time if necessary
       if(Decoupled_ms)
         {
           if(Extrapolate_decoupled_ms)
             {
-              // Project to correct time
               extrapolate_phi(time_stepper_pt()->time_pt()->dt(),
                               time_stepper_pt()->time_pt()->dt(1));
             }
