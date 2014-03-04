@@ -180,13 +180,102 @@ namespace oomph
 
           } // End of loop over test functions, end of residual calculations
 
-        // Don't do Jacobian calculations yet
-        if(flag)
-          {
-            throw OomphLibError("Jacobian calculation not yet implemented.",
-                                OOMPH_EXCEPTION_LOCATION,
-                                OOMPH_CURRENT_FUNCTION);
+
+        //======================================================================
+        // If we want the Jacobian as well then calculate it (otherwise
+        // continue to next integration point). Only for decoupled phi
+        // terms so far! Doesn't handle BEM!
+        // =====================================================================
+        if(!flag) continue;
+
+
+        // Double loop over nodes for the jacobian
+        for(unsigned l=0; l<n_node; l++){
+
+          for(unsigned l2=0;l2<n_node;l2++){
+
+            double gradtestldotgradpsil2 = 0.0;
+            for(unsigned i=0; i < ndim; i++)
+              {
+                gradtestldotgradpsil2 += intp.dtestdx(l,i) * intp.dpsidx(l2,i);
+              }
+
+            // Total potential (phi)
+            const int phi_eqn = e_pt->nodal_local_eqn(l,e_pt->phi_index_micromag());
+            if(phi_eqn >= 0)
+              {
+                const int phi_unknown = e_pt->nodal_local_eqn(l2,e_pt->phi_index_micromag());
+
+                // w.r.t. phi
+                if(phi_unknown >= 0)
+                  {
+                    jacobian(phi_eqn,phi_unknown) += -gradtestldotgradpsil2 * W;
+                  }
+#ifdef PARANOID
+                const int phi_1_unknown =
+                  e_pt->nodal_local_eqn(l2,e_pt->phi_1_index_micromag());
+                if(phi_1_unknown >= 0)
+                  {
+                    throw OomphLibError("dphi/dphi1 not yet implemented",
+                                        OOMPH_EXCEPTION_LOCATION,
+                                        OOMPH_CURRENT_FUNCTION);
+                  }
+#endif
+              }
+
+
+            // Reduced potential (phi_1), only difference between this and phi
+            // is in b.c.s
+            const int phi_1_eqn = e_pt->nodal_local_eqn(l,e_pt->phi_1_index_micromag());
+            if(phi_1_eqn >= 0)
+              {
+                // w.r.t. phi_1
+                const int phi_1_unknown = e_pt->nodal_local_eqn(l2,e_pt->phi_1_index_micromag());
+                if(phi_1_unknown >= 0)
+                  {
+                    jacobian(phi_1_eqn,phi_1_unknown) += - gradtestldotgradpsil2 * W;
+                  }
+
+#ifdef PARANOID
+                // w.r.t. phi
+                const int phi_unknown =
+                  e_pt->nodal_local_eqn(l2,e_pt->phi_index_micromag());
+                if(phi_unknown >= 0)
+                  {
+                    std::cout << phi_unknown << " " << phi_1_eqn << std::endl;
+                    throw OomphLibError("dphi1/dphi not yet implemented",
+                                        OOMPH_EXCEPTION_LOCATION,
+                                        OOMPH_CURRENT_FUNCTION);
+                  }
+#endif
+              }
+
+
+
+#ifdef PARANOID
+            int m_eqn[3], m_unknown[3];
+
+            for(unsigned j=0; j<3; j++)
+              {
+                m_unknown[j] = e_pt->nodal_local_eqn(l2,e_pt->m_index_micromag(j));
+                m_eqn[j] = e_pt->nodal_local_eqn(l,e_pt->m_index_micromag(j));
+              }
+            // w.r.t. m
+            for(unsigned j=0; j<3; j++) // loop over the m we differentiate by
+              {
+                if((m_unknown[j] >= 0) || (m_eqn[j] >= 0))
+                  {
+                    throw OomphLibError("Jacobian calculation not yet implemented for magnetism part of ll (only for magnetostatics).",
+                                        OOMPH_EXCEPTION_LOCATION,
+                                        OOMPH_CURRENT_FUNCTION);
+                  }
+
+              }
+#endif
+
           }
+        }// End of Jacobian calculations
+
       }
 
   }
