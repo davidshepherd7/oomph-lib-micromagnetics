@@ -373,6 +373,31 @@ using namespace StringConversion;
     }
 
 
+    /// Check that nothing is currently pinned for a segregated solve.
+    void check_not_segregated(const char* function) const
+    {
+#ifdef PARANOID
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        {
+          Mesh* mesh_pt = this->mesh_pt(msh);
+          for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+              for(unsigned j=0; j<nd_pt->nvalue(); j++)
+                {
+                  if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
+                    {
+                      throw OomphLibError("Some dofs already segregated",
+                                          OOMPH_EXCEPTION_LOCATION,
+                                          function);
+                    }
+                }
+            }
+        }
+#endif
+    }
+
+
     void check_norm_limits()
       {
         // If a limit has been set

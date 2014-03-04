@@ -301,7 +301,7 @@ namespace oomph
           // For decoupled solves pin everything but m
           if(Decoupled_ms)
             {
-              check_not_segregated();
+              check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
               Vector<unsigned> non_m_indices;
               non_m_indices.push_back(phi_1_index());
@@ -312,31 +312,6 @@ namespace oomph
         }
     }
 
-    /// Check that nothing is currently pinned for a segregated solve.
-    void check_not_segregated() const
-    {
-#ifdef PARANOID
-      std::string err = "Some dofs already segregated going into ";
-      err += "segregated magnetostatics solve.";
-
-      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-        {
-          Mesh* mesh_pt = this->mesh_pt(msh);
-          for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-            {
-              Node* nd_pt = mesh_pt->node_pt(nd);
-              for(unsigned j=0; j<nd_pt->nvalue(); j++)
-                {
-                  if(nd_pt->eqn_number(j) == Data::Is_segregated_solve_pinned)
-                    {
-                      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                          OOMPH_CURRENT_FUNCTION);
-                    }
-                }
-            }
-        }
-#endif
-    }
 
     virtual void actions_before_explicit_timestep()
     {
@@ -346,7 +321,7 @@ namespace oomph
       // can't be explicitly timestepped in oomph-lib's framework!
       if(!Decoupled_ms)
         {
-          check_not_segregated();
+          check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
           Vector<unsigned> non_m_indices;
           non_m_indices.push_back(phi_1_index());
