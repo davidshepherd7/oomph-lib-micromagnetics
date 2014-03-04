@@ -138,7 +138,6 @@ def main():
         "-ms-method" : ["disabled"],
         "-ts" : ["rk2", "rk4"],
         "-tmax" : [3],
-        "-fd-jac" : [True],
         }
     noms_passes = mm.parallel_parameter_sweep(test_error_norms, noms_argdicts,
                                               serial_mode=True)
@@ -172,7 +171,6 @@ def main():
         "-ts" : ["rk2"], # Don't run rk4 because 4th order makes it
                          # hard to compare with implicit methods (no
                          # A-stable 4th order methods).
-        "-fd-jac" : [True],
         }
 
     # Now run explicit ones and compare
