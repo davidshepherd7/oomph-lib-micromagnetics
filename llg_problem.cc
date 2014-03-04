@@ -319,7 +319,7 @@ namespace oomph
                             OOMPH_CURRENT_FUNCTION);
       }
 
-    check_not_segregated();
+    check_not_segregated(OOMPH_CURRENT_FUNCTION);
 #endif
 
     Inside_segregated_magnetostatics = true;
