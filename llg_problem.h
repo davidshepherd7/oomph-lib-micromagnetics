@@ -331,8 +331,13 @@ namespace oomph
       // can't be explicitly timestepped in oomph-lib's framework!
       if(!Decoupled_ms)
         {
-          throw OomphLibError("Function not yet implemented",
-                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+          check_not_segregated();
+
+          Vector<unsigned> non_m_indices;
+          non_m_indices.push_back(phi_1_index());
+          non_m_indices.push_back(phi_index());
+
+          segregated_pin_indices(non_m_indices);
         }
 
       // Set this variable to avoid getting BEM in mass matrix (due to a
@@ -347,24 +352,8 @@ namespace oomph
         // Need to unpin any phi that we pinned earlier
         if(!Decoupled_ms)
           {
-            const unsigned phi_index = this->phi_index();
-            const unsigned phi_1_index = this->phi_1_index();
-
-            // unpin phi values
-            for(unsigned j=0; j<unpinned_phi_nodes.size(); j++)
-              {
-                unpinned_phi_nodes[j]->unpin(phi_index);
-              }
-
-            // unpin phi 1 values
-            for(unsigned j=0; j<unpinned_phi_1_nodes.size(); j++)
-              {
-                unpinned_phi_1_nodes[j]->unpin(phi_1_index);
-              }
-
-            // reassign equation numbers
-            std::cout << assign_eqn_numbers() << std::endl;
-
+            // Unpin phis (from m solve)
+            undo_segregated_pinning();
           }
 
         // We need to keep M normalised...
