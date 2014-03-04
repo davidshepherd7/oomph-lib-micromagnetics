@@ -906,6 +906,10 @@ public:
     Vector<Node*> unpinned_phi_nodes;
     Vector<Node*> unpinned_phi_1_nodes;
 
+    /// Solver parameter sets to use in segregated phi/phi1 solves.
+    SolverParameters Phi_seg_solve_parameters;
+    SolverParameters Phi_1_seg_solve_parameters;
+
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();
 

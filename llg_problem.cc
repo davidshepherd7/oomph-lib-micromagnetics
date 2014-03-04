@@ -214,6 +214,37 @@ namespace oomph
       }
 
 
+    // Select solver parameters to use for phi solves.
+    // ============================================================
+
+    // Start with current ones as defaults.
+    get_solver_parameters(Phi_seg_solve_parameters);
+
+    // Optimisations for linear problems
+    Phi_seg_solve_parameters.jacobian_reuse_is_enabled = true;
+    Phi_seg_solve_parameters.problem_is_nonlinear = false;
+
+    // A good solver
+    Phi_seg_solve_parameters.linear_solver_pt
+      = Factories::linear_solver_factory("cg");
+    checked_dynamic_cast<IterativeLinearSolver*>(Phi_seg_solve_parameters.linear_solver_pt)
+      ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+
+
+    // Similarly for phi1 (but we keep them separate because stored
+    // Jacobians differ).
+    get_solver_parameters(Phi_1_seg_solve_parameters);
+    Phi_1_seg_solve_parameters.jacobian_reuse_is_enabled = true;
+    Phi_1_seg_solve_parameters.problem_is_nonlinear = false;
+    Phi_1_seg_solve_parameters.linear_solver_pt
+      = Factories::linear_solver_factory("cg");
+    checked_dynamic_cast<IterativeLinearSolver*>(Phi_1_seg_solve_parameters.linear_solver_pt)
+      ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+
+
+
+    // Finish building
+    // ============================================================
 
     // Build the global mesh
     this->build_global_mesh();
@@ -310,13 +341,22 @@ namespace oomph
                << "--------------------------" <<std::endl;
 
 
+    SolverParameters previous_solver_parameters;
+    get_solver_parameters(previous_solver_parameters);
+
+
     // solve for phi1
     // ============================================================
     oomph_info << "solving phi1" << std::endl;
 
+    set_solver_parameters(Phi_1_seg_solve_parameters);
+
     segregated_pin_indices(non_phi_1_indices);
     newton_solve();
     undo_segregated_pinning();
+
+    get_solver_parameters(Phi_1_seg_solve_parameters);
+
 
 
     // update boundary values of phi via bem
@@ -366,13 +406,20 @@ namespace oomph
 
     oomph_info << "solving phi" << std::endl;
 
+    set_solver_parameters(Phi_seg_solve_parameters);
+
     segregated_pin_indices(non_phi_indices);
     newton_solve();
     undo_segregated_pinning();
 
+    get_solver_parameters(Phi_seg_solve_parameters);
+
+
 
     // Done
     // ============================================================
+
+    set_solver_parameters(previous_solver_parameters);
 
     // oomph_info << "mean field is " << average_magnetostatic_field() << std::endl;
 

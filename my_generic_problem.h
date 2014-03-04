@@ -53,6 +53,35 @@ using namespace StringConversion;
     return std::string(buffer);
   }
 
+  struct SolverParameters
+  {
+    SolverParameters()
+    {
+      linear_solver_pt = 0;
+      explicit_solver_pt = 0;
+    }
+
+    LinearSolver* linear_solver_pt;
+
+    // Newton options
+    double newton_solver_tolerance;
+    unsigned max_newton_iterations;
+    double max_residuals;
+    bool shut_up_in_newton_solve;
+    bool always_take_one_newton_step;
+
+    // Linear optimisations
+    bool jacobian_reuse_is_enabled;
+    bool jacobian_has_been_computed;
+    bool problem_is_nonlinear;
+
+    // Explicit solver
+    LinearSolver* explicit_solver_pt;
+    bool mass_matrix_reuse_is_enabled;
+    bool mass_matrix_has_been_computed;
+    bool discontinuous_element_formulation;
+  };
+
 
   class MyDocInfo : public DocInfo
   {
@@ -136,6 +165,52 @@ using namespace StringConversion;
       N_steps_taken++;
 
       return dt;
+    }
+
+    void get_solver_parameters(SolverParameters& sp)
+    {
+      sp.linear_solver_pt = linear_solver_pt();
+
+      // Newton options
+      sp.newton_solver_tolerance = newton_solver_tolerance();
+      sp.max_newton_iterations = max_newton_iterations();
+      sp.max_residuals = max_residuals();
+      sp.shut_up_in_newton_solve = Shut_up_in_newton_solve;
+      sp.always_take_one_newton_step = Always_take_one_newton_step;
+
+      // Linear optimisations
+      sp.jacobian_reuse_is_enabled = jacobian_reuse_is_enabled();
+      sp.jacobian_has_been_computed = Jacobian_has_been_computed;
+      sp.problem_is_nonlinear = Problem_is_nonlinear;
+
+      // Explicit solver
+      sp.explicit_solver_pt = explicit_solver_pt();
+      sp.mass_matrix_reuse_is_enabled = mass_matrix_reuse_is_enabled();
+      sp.mass_matrix_has_been_computed = Mass_matrix_has_been_computed;
+      sp.discontinuous_element_formulation = Discontinuous_element_formulation;
+    }
+
+    void set_solver_parameters(SolverParameters& sp)
+    {
+      linear_solver_pt() = sp.linear_solver_pt;
+
+      // Newton options
+      newton_solver_tolerance() = sp.newton_solver_tolerance;
+      max_newton_iterations() = sp.max_newton_iterations;
+      max_residuals() = sp.max_residuals;
+      Shut_up_in_newton_solve = sp.shut_up_in_newton_solve;
+      Always_take_one_newton_step = sp.always_take_one_newton_step;
+
+      // Linear optimisations
+      Jacobian_reuse_is_enabled = sp.jacobian_reuse_is_enabled;
+      Jacobian_has_been_computed = sp.jacobian_has_been_computed;
+      Problem_is_nonlinear = sp.problem_is_nonlinear;
+
+      // Explicit solver
+      explicit_solver_pt() = sp.explicit_solver_pt;
+      Mass_matrix_reuse_is_enabled = sp.mass_matrix_reuse_is_enabled;
+      Mass_matrix_has_been_computed = sp.mass_matrix_has_been_computed;
+      Discontinuous_element_formulation = sp.discontinuous_element_formulation;
     }
 
     bool explicit_flag()
