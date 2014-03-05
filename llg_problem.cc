@@ -202,26 +202,41 @@ namespace oomph
     // Start with current ones as defaults.
     get_solver_parameters(Phi_seg_solve_parameters);
 
-    // Optimisations for linear problems
-    Phi_seg_solve_parameters.jacobian_reuse_is_enabled = true;
-    Phi_seg_solve_parameters.problem_is_nonlinear = false;
+    if(!Disable_magnetostatic_solver_optimistations)
+      {
+        // Optimisations for linear problems
+        Phi_seg_solve_parameters.jacobian_reuse_is_enabled = true;
+        Phi_seg_solve_parameters.problem_is_nonlinear = false;
 
-    // A good solver
-    Phi_seg_solve_parameters.linear_solver_pt
-      = Factories::linear_solver_factory("cg");
-    checked_dynamic_cast<IterativeLinearSolver*>(Phi_seg_solve_parameters.linear_solver_pt)
-      ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+        // A good solver
+        Phi_seg_solve_parameters.linear_solver_pt
+          = Factories::linear_solver_factory("cg");
+        checked_dynamic_cast<IterativeLinearSolver*>(Phi_seg_solve_parameters.linear_solver_pt)
+          ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+      }
+    else
+      {
+        Phi_seg_solve_parameters.linear_solver_pt
+          = Factories::linear_solver_factory("superlu");
+      }
 
-
-    // Similarly for phi1 (but we keep them separate because stored
-    // Jacobians differ).
+    // Similarly for phi1 (keep them separate because stored Jacobians
+    // differ).
     get_solver_parameters(Phi_1_seg_solve_parameters);
-    Phi_1_seg_solve_parameters.jacobian_reuse_is_enabled = true;
-    Phi_1_seg_solve_parameters.problem_is_nonlinear = false;
-    Phi_1_seg_solve_parameters.linear_solver_pt
-      = Factories::linear_solver_factory("cg");
-    checked_dynamic_cast<IterativeLinearSolver*>(Phi_1_seg_solve_parameters.linear_solver_pt)
-      ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+    if(!Disable_magnetostatic_solver_optimistations)
+      {
+        Phi_1_seg_solve_parameters.jacobian_reuse_is_enabled = true;
+        Phi_1_seg_solve_parameters.problem_is_nonlinear = false;
+        Phi_1_seg_solve_parameters.linear_solver_pt
+          = Factories::linear_solver_factory("cg");
+        checked_dynamic_cast<IterativeLinearSolver*>(Phi_1_seg_solve_parameters.linear_solver_pt)
+          ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
+      }
+    else
+      {
+        Phi_seg_solve_parameters.linear_solver_pt
+          = Factories::linear_solver_factory("superlu");
+      }
 
 
 
@@ -323,10 +338,8 @@ namespace oomph
     // ============================================================
     oomph_info << "solving phi1" << std::endl;
 
-    if(!Disable_magnetostatic_solver_optimistations)
-      {
-        set_solver_parameters(Phi_1_seg_solve_parameters);
-      }
+
+    set_solver_parameters(Phi_1_seg_solve_parameters);
 
     segregated_pin_indices(non_phi_1_indices);
     newton_solve();
@@ -402,10 +415,7 @@ namespace oomph
           }
       }
 
-    if(!Disable_magnetostatic_solver_optimistations)
-      {
-        set_solver_parameters(Phi_seg_solve_parameters);
-      }
+    set_solver_parameters(Phi_seg_solve_parameters);
 
     segregated_pin_indices(non_phi_indices);
     newton_solve();
