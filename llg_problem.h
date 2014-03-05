@@ -707,9 +707,10 @@ namespace oomph
     }
 
     bool implicit_ms_flag() const
-      {
-        return (!Decoupled_ms) && (!Disable_ms) && (!Inside_explicit_timestep);
-      }
+    {
+      return (!Decoupled_ms) && (!Disable_ms)
+        && (!Inside_explicit_timestep) && (!Inside_segregated_magnetostatics);
+    }
 
     bool fembem_ms_flag() const
     {
