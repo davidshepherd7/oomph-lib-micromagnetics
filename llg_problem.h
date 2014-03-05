@@ -707,6 +707,11 @@ namespace oomph
         return (!Decoupled_ms) && (!Disable_ms) && (!Inside_explicit_timestep);
       }
 
+    bool analytic_ms_flag() const
+    {
+      return Analytic_ms_fct_pt != 0;
+    }
+
 
     bool renormalise_each_time_step() const
     {

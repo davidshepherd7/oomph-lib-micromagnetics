@@ -310,17 +310,9 @@ namespace oomph
   /// \short Solve for the magnetostatic field.
   void LLGProblem::magnetostatics_solve()
   {
-#ifdef PARANOID
-    if(!Decoupled_ms)
-      {
-        std::string err = "Requested a decoupled magnetostatics solve";
-        err += "  but problem is not decoupled!";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
+    if(Disable_ms || analytic_ms_flag()) return;
 
     check_not_segregated(OOMPH_CURRENT_FUNCTION);
-#endif
 
     Inside_segregated_magnetostatics = true;
 
