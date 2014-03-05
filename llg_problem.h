@@ -99,20 +99,20 @@ namespace oomph
         {
           // Add the bem matrix to the jacobian in the right places. Don't
           // delete it when done.
-          jacobian.add_matrix(Bem_handler_pt->bem_matrix_pt(),
-                              Bem_handler_pt->row_lookup_pt(),
-                              Bem_handler_pt->col_lookup_pt(),
+          jacobian.add_matrix(bem_handler_pt()->bem_matrix_pt(),
+                              bem_handler_pt()->row_lookup_pt(),
+                              bem_handler_pt()->col_lookup_pt(),
                               false);
 
           // Create identity CRDoubleMatrix
-          unsigned bem_nnode = Bem_handler_pt->bem_mesh_pt()->nnode();
+          unsigned bem_nnode = bem_handler_pt()->bem_mesh_pt()->nnode();
           unsigned nrow = fem_jacobian_pt->nrow();
           LinearAlgebraDistribution* dist_pt = fem_jacobian_pt->distribution_pt();
           Vector<double> values(bem_nnode, -1.0);
           Vector<int> row_index(bem_nnode), row_start;
           for(unsigned nd=0; nd<bem_nnode; nd++)
             {
-              unsigned i = Bem_handler_pt->output_lookup_pt()
+              unsigned i = bem_handler_pt()->output_lookup_pt()
                 ->added_to_main(nd);
               row_index[nd] = i;
             }
@@ -288,7 +288,7 @@ namespace oomph
           // them fully implicitly).
           if(implicit_ms_flag())
             {
-              Bem_handler_pt->get_bem_values_and_copy_into_values();
+              bem_handler_pt()->get_bem_values_and_copy_into_values();
             }
 
           // For decoupled solves pin everything but m
@@ -420,7 +420,7 @@ namespace oomph
         // fully implicitly).
         if(implicit_ms_flag())
           {
-            Bem_handler_pt->get_bem_values_and_copy_into_values();
+            bem_handler_pt()->get_bem_values_and_copy_into_values();
           }
       }
 
@@ -502,7 +502,7 @@ namespace oomph
       // If we have a H matrix then write out its rank data
       if(Bem_handler_pt != 0)
         {
-          Bem_handler_pt->maybe_write_h_matrix_data(Doc_info.directory());
+          bem_handler_pt()->maybe_write_h_matrix_data(Doc_info.directory());
         }
     }
 
@@ -677,6 +677,19 @@ namespace oomph
     MicromagEquations* ele_pt() const
     {
       return checked_dynamic_cast<MicromagEquations*>(mesh_pt(0)->element_pt(0));
+    }
+
+    BoundaryElementHandler* bem_handler_pt() const
+    {
+#ifdef PARANOID
+      if(Bem_handler_pt == 0)
+        {
+          std::string err = "Null Bem_handler_pt.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      return Bem_handler_pt;
     }
 
     Mesh* flux_mesh_factory(Mesh* mesh_pt,
