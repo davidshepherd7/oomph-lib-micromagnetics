@@ -194,12 +194,6 @@ namespace oomph
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
       delete Residual_calculator_pt; Residual_calculator_pt = 0;
       delete Bem_handler_pt; Bem_handler_pt = 0;
-
-      // Kill boundary value storage vectors
-      for(unsigned j=0; j<Phi_boundary_values_pts.size(); j++)
-        {
-          delete Phi_boundary_values_pts[j];
-        }
     }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
@@ -852,13 +846,6 @@ public:
 
     // Decoupled ms code
     // ============================================================
-
-  private:
-
-    /// Intermediate storage for results of bem (ideally we would have it
-    /// call a function to get the boundary values filled in but c++ member
-    /// functions pointers are useless...)
-    Vector<DoubleVector*> Phi_boundary_values_pts;
 
   public:
 
