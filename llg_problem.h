@@ -313,47 +313,40 @@ namespace oomph
 
     virtual void actions_before_explicit_timestep()
     {
+      // Set this variable to avoid getting BEM in mass matrix (due to a
+      // hack in oomph core.. fix that instead?)
+      Inside_explicit_timestep = true;
+
       MyProblem::actions_before_explicit_timestep();
 
       // If phi values are in the main dofs then we need to pin them, they
       // can't be explicitly timestepped in oomph-lib's framework!
-      if(!Decoupled_ms)
-        {
-          check_not_segregated(OOMPH_CURRENT_FUNCTION);
+      check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
-          Vector<unsigned> non_m_indices;
-          non_m_indices.push_back(phi_1_index());
-          non_m_indices.push_back(phi_index());
+      Vector<unsigned> non_m_indices;
+      non_m_indices.push_back(phi_1_index());
+      non_m_indices.push_back(phi_index());
 
-          segregated_pin_indices(non_m_indices);
-        }
-
-      // Set this variable to avoid getting BEM in mass matrix (due to a
-      // hack in oomph core.. fix that instead?)
-      Inside_explicit_timestep = true;
+      segregated_pin_indices(non_m_indices);
     }
 
     virtual void actions_after_explicit_timestep()
-      {
-        MyProblem::actions_after_explicit_timestep();
+    {
+      MyProblem::actions_after_explicit_timestep();
 
-        // Need to unpin any phi that we pinned earlier
-        if(!Decoupled_ms)
-          {
-            // Unpin phis (from m solve)
-            undo_segregated_pinning();
-          }
+      // Need to unpin any phi that we pinned earlier
+      undo_segregated_pinning();
 
-        // We need to keep M normalised...
-        oomph_info << "Renormalising nodal magnetisations." << std::endl;
-        renormalise_magnetisation();
+      // We need to keep M normalised...
+      oomph_info << "Renormalising nodal magnetisations." << std::endl;
+      renormalise_magnetisation();
 
-        // check neighbouring magnetisation angles if requested
-        maybe_check_angles();
+      // check neighbouring magnetisation angles if requested
+      maybe_check_angles();
 
-        // Explicit timestep is over now
-        Inside_explicit_timestep = false;
-      }
+      // Explicit timestep is over now
+      Inside_explicit_timestep = false;
+    }
 
     virtual void actions_before_explicit_stage()
     {
@@ -363,10 +356,14 @@ namespace oomph
     virtual void actions_after_explicit_stage()
     {
       // Solve for the new magnetostatic field.
-      if(Decoupled_ms)
-        {
-          magnetostatics_solve();
-        }
+      undo_segregated_pinning();
+      magnetostatics_solve();
+
+      Vector<unsigned> non_m_indices;
+      non_m_indices.push_back(phi_1_index());
+      non_m_indices.push_back(phi_index());
+
+      segregated_pin_indices(non_m_indices);
 
       MyProblem::actions_after_explicit_stage();
     }
