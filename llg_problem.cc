@@ -104,7 +104,7 @@ namespace oomph
       }
 
     // Set up bem stuff if we are doing it
-    if(implicit_ms_flag() || Decoupled_ms)
+    if(fembem_ms_flag())
       {
         // Figure out how to build the flux meshes that we're going to need
         // for neumann boundaries.
@@ -307,7 +307,7 @@ namespace oomph
   /// \short Solve for the magnetostatic field.
   void LLGProblem::magnetostatics_solve()
   {
-    if(Disable_ms || analytic_ms_flag()) return;
+    if(!fembem_ms_flag()) return;
 
     check_not_segregated(OOMPH_CURRENT_FUNCTION);
 

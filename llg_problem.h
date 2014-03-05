@@ -291,8 +291,8 @@ namespace oomph
               bem_handler_pt()->get_bem_values_and_copy_into_values();
             }
 
-          // For decoupled solves pin everything but m
-          if(Decoupled_ms)
+          // For decoupled fem/bem solves pin everything but m
+          else if(fembem_ms_flag())
             {
               check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
@@ -711,8 +711,21 @@ namespace oomph
         return (!Decoupled_ms) && (!Disable_ms) && (!Inside_explicit_timestep);
       }
 
+    bool fembem_ms_flag() const
+    {
+      return !Disable_ms;
+    }
+
     bool analytic_ms_flag() const
     {
+#ifdef PARANOID
+      if(!Disable_ms)
+        {
+          std::string err = "This is a weird state... prob won't work.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
       return Analytic_ms_fct_pt != 0;
     }
 
