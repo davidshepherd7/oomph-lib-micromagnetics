@@ -43,8 +43,7 @@ namespace oomph
                              const CornerDataInput* input_corner_data_pt,
                              int hierarchical_bem,
                              bool disable_corner_angles,
-                             int numerical_int_bem,
-                             bool segregated_magnetostatics)
+                             int numerical_int_bem)
     {
       // Figure out what defaults to use if any bool-like options are -1
       // ============================================================
@@ -121,12 +120,7 @@ namespace oomph
         (output_mesh_pts[0]->element_pt(0));
       TFPoissonEquations* pele_pt = dynamic_cast<TFPoissonEquations*>
         (output_mesh_pts[0]->element_pt(0));
-      if(segregated_magnetostatics)
-        {
-          new_bem_handler.set_input_index(mele_pt->phi_1_index_micromag());
-          new_bem_handler.set_output_index(mele_pt->phi_1_index_micromag());
-        }
-      else if(mele_pt != 0)
+      if(mele_pt != 0)
         {
           // Fully implicit/all in one mesh
           new_bem_handler.set_input_index(mele_pt->phi_1_index_micromag());
@@ -178,16 +172,14 @@ namespace oomph
      const CornerDataInput* input_corner_data_pt,
      int hierarchical_bem,
      bool disable_corner_angles,
-     int numerical_int_bem,
-     bool segregated_magnetostatics)
+     int numerical_int_bem)
     {
       // Create with new, fill in with factory
       BoundaryElementHandler* bem_handler_pt = new BoundaryElementHandler;
       bem_handler_factory(*bem_handler_pt, output_mesh_pts,
                           input_corner_data_pt,
                           hierarchical_bem, disable_corner_angles,
-                          numerical_int_bem,
-                          segregated_magnetostatics);
+                          numerical_int_bem);
       return bem_handler_pt;
     }
 
