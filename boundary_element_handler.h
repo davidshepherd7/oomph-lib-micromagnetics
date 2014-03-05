@@ -509,6 +509,23 @@ namespace oomph
     void maybe_write_h_matrix_data(const std::string& outdir) const;
 
 
+    /// Get the (internal, bem only) output lookup's equation number of a
+    /// node.
+    unsigned output_equation_number(const Node* node_pt) const
+    {
+      unsigned g_eqn = node_pt->eqn_number(output_index());
+      return output_lookup_pt()->main_to_added(g_eqn);
+    }
+
+    /// Get the (internal, bem only) input lookup's equation number of a
+    /// node.
+    unsigned input_equation_number(const Node* node_pt) const
+    {
+      unsigned g_eqn = node_pt->eqn_number(input_index());
+      return input_lookup_pt()->main_to_added(g_eqn);
+    }
+
+
     // Access functions:
     // ============================================================
 
