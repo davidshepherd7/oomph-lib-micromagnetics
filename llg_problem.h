@@ -386,7 +386,6 @@ namespace oomph
       {
         if(Check_angles)
           {
-            std::cout << "angles" << std::endl;
             // From the nmag user manual:
             // [Begin quote M Donahue]
             // * if the spin angle is approaching 180 degrees,

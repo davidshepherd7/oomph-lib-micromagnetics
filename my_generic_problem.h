@@ -159,8 +159,8 @@ using namespace StringConversion;
       Total_step_time = step_time_stop - step_time_start;
 
 
-      std::cout << "Time for step " << Total_step_time
-                << std::endl;
+      oomph_info << "Time for step " << Total_step_time
+                 << std::endl;
 
       N_steps_taken++;
 
@@ -347,8 +347,8 @@ using namespace StringConversion;
                 }
             }
         }
-      oomph_info << "segregated solve without indices " << indices << std::endl;
-      oomph_info << "n eqn " << assign_eqn_numbers()  << std::endl;
+      oomph_info << "segregated solve, without indices: " << indices
+                 << " n eqn: " << assign_eqn_numbers()  << std::endl;
     }
 
     /// Remove pinning set up by segregated_pin_indices.
