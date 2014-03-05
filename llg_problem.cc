@@ -362,7 +362,7 @@ namespace oomph
     // dofs cannot be pinned (although this can be hacked around by setting
     // up the lookup scheme to use a different index to the real index and
     // setting the pinned values by hand).
-    Bem_handler_pt->get_bem_values_and_copy_into_values();
+    bem_handler_pt()->get_bem_values_and_copy_into_values();
 
     double t_end = TimingHelpers::timer();
     oomph_info << "BEM time taken: " << t_end - t_start << std::endl;
@@ -375,10 +375,10 @@ namespace oomph
 
     // boundary values of phi need to be pinned, use segregated pinning
     // number so that it can be easily undone.
-    for(unsigned j=0; j<Bem_handler_pt->Bem_boundaries.size(); j++)
+    for(unsigned j=0; j<bem_handler_pt()->Bem_boundaries.size(); j++)
       {
-        const Mesh* mesh_pt = Bem_handler_pt->Bem_boundaries[j].second;
-        unsigned b = Bem_handler_pt->Bem_boundaries[j].first;
+        const Mesh* mesh_pt = bem_handler_pt()->Bem_boundaries[j].second;
+        unsigned b = bem_handler_pt()->Bem_boundaries[j].first;
 
         for(unsigned nd=0, nnd=mesh_pt->nboundary_node(b); nd<nnd; nd++)
           {
