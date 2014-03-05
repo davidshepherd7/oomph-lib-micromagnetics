@@ -323,7 +323,10 @@ namespace oomph
     // ============================================================
     oomph_info << "solving phi1" << std::endl;
 
-    set_solver_parameters(Phi_1_seg_solve_parameters);
+    if(!Disable_magnetostatic_solver_optimistations)
+      {
+        set_solver_parameters(Phi_1_seg_solve_parameters);
+      }
 
     segregated_pin_indices(non_phi_1_indices);
     newton_solve();
@@ -399,7 +402,10 @@ namespace oomph
           }
       }
 
-    set_solver_parameters(Phi_seg_solve_parameters);
+    if(!Disable_magnetostatic_solver_optimistations)
+      {
+        set_solver_parameters(Phi_seg_solve_parameters);
+      }
 
     segregated_pin_indices(non_phi_indices);
     newton_solve();
