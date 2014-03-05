@@ -523,12 +523,8 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
 
     # Write the command used to a file
     with open(pjoin(outdir, "run_script"), 'w') as script_file:
-        script_file.write("#!/bin/sh\n")
-        script_file.write("# Command used in run\n")
-        script_file.write(' '.join(mpi_command + [binary] + arglist))
-        script_file.write("\n")
-        script_file.write("# stdout and stderr go into "
-                          + pjoin(outdir, "stdout") + "\n")
+        script = generate_run_script(mpi_command, binary, arglist, outdir)
+        script_file.write(script)
 
     # Run with specified args, and in the driver folder. Put output (stdout
     # and stderr) into a file.
@@ -544,6 +540,38 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
             print('This run failed!', file=fail_file)
 
     return err_code
+
+def generate_run_script(mpi_command, binary, arglist, outdir):
+
+    # Strip directory
+    dirname, actual_binary = os.path.split(binary)
+
+    # Strip -outdir and it's arg
+    for i, a in enumerate(arglist):
+        if a == "-outdir":
+            i_outdir = i
+    arglist = arglist[:i_outdir] + arglist[i_outdir+2:]
+
+    command_string = ' '.join([binary] + arglist)
+
+    string = "#! /bin/sh\n"
+    string += "# The command run.\n"
+    string += "command=\""+command_string+"\"\n"
+    string += "#It should have been run in the directory cd'd into below\n"
+    string += "cd " + dirname + "\n"
+    string += "# Output dir args have been stripped (so that things aren't overwritten).\n"
+    string += "#Output went into " + outdir + ".\n"
+    string += "#stdout and stderr went into \"stdout\" in that folder\n"
+    string += "\n"
+    string += "# Run with gdb if any args given, otherwise just run\n"
+    string += "echo \"Running\" $command\n"
+    string += "if [ $# -ne 0 ]; then\n"
+    string += ' '.join(mpi_command) + " gdb -ex \"run\" --args $command\n"
+    string += "else\n"
+    string += ' '.join(mpi_command) + " $command\n"
+    string += "fi\n"
+
+    return string
 
 
 def success_message(arglist, outdir):
