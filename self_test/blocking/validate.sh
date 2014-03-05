@@ -81,7 +81,7 @@ cd $CONTROL_SCRIPTS/driver/
 # Check that gmres converges in one step (i.e. block-exact == exact
 # solution of J), two Newton steps expected here.
 cut -d\; -f6 < $valdir/trace | tail -n1 > $valdir/iters
-wrapped_fpdiff $valdir/iters <(echo "[1, 1]")
+wrapped_fpdiff $valdir/iters <(echo "[1]")
 
 # Check that we got the expected number of blocks
 wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "49")
@@ -108,7 +108,7 @@ cd $CONTROL_SCRIPTS/driver/
 # Check that gmres converges in one step (i.e. block-exact == exact
 # solution of J), two Newton steps expected here.
 cut -d\; -f6 < $valdir/trace | tail -n1 > $valdir/iters
-wrapped_fpdiff $valdir/iters <(echo "[1, 1]")
+wrapped_fpdiff $valdir/iters <(echo "[1]")
 
 # Check that we got the expected number of blocks
 wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "25")
