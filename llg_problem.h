@@ -312,25 +312,15 @@ namespace oomph
       // hack in oomph core.. fix that instead?)
       Inside_explicit_timestep = true;
 
-      MyProblem::actions_before_explicit_timestep();
-
-      // If phi values are in the main dofs then we need to pin them, they
-      // can't be explicitly timestepped in oomph-lib's framework!
+      // Check we're not inside a segregated solve already
       check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
-      Vector<unsigned> non_m_indices;
-      non_m_indices.push_back(phi_1_index());
-      non_m_indices.push_back(phi_index());
-
-      segregated_pin_indices(non_m_indices);
+      MyProblem::actions_before_explicit_timestep();
     }
 
     virtual void actions_after_explicit_timestep()
     {
       MyProblem::actions_after_explicit_timestep();
-
-      // Need to unpin any phi that we pinned earlier
-      undo_segregated_pinning();
 
       // We need to keep M normalised...
       oomph_info << "Renormalising nodal magnetisations." << std::endl;
@@ -346,19 +336,24 @@ namespace oomph
     virtual void actions_before_explicit_stage()
     {
       MyProblem::actions_before_explicit_stage();
+
+      // Check we're not inside a segregated solve already
+      check_not_segregated(OOMPH_CURRENT_FUNCTION);
+
+      // Segregated-pin phi values ready for m step
+      Vector<unsigned> non_m_indices;
+      non_m_indices.push_back(phi_1_index());
+      non_m_indices.push_back(phi_index());
+      segregated_pin_indices(non_m_indices);
     }
 
     virtual void actions_after_explicit_stage()
     {
-      // Solve for the new magnetostatic field.
+      // Remove m-only segregation
       undo_segregated_pinning();
+
+      // Solve for the new magnetostatic field.
       magnetostatics_solve();
-
-      Vector<unsigned> non_m_indices;
-      non_m_indices.push_back(phi_1_index());
-      non_m_indices.push_back(phi_index());
-
-      segregated_pin_indices(non_m_indices);
 
       MyProblem::actions_after_explicit_stage();
     }
