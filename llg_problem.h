@@ -534,11 +534,8 @@ namespace oomph
       {
         MyProblem::actions_after_set_initial_condition();
 
-        if(Decoupled_ms)
-          {
-            // Solve for initial field and phi values
-            magnetostatics_solve();
-          }
+        // Solve for initial field and phi values
+        magnetostatics_solve();
 
         calculate_energies(false);
       }
