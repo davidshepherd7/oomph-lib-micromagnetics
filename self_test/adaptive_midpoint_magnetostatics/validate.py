@@ -37,6 +37,7 @@ def main():
         "-prec" : "som-main-exact",
         "-tmax" : 100,
         "-tol" : 0.1,
+        "-mp-pred" : ["rk4", "ebdf3"],
         # "-h-app" : "z",
         # "-initial-m" : "exactly_z",
         }
