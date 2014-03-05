@@ -36,9 +36,8 @@ def main():
         "-solver" : "som-gmres",
         "-prec" : "som-main-exact",
         "-tmax" : 100,
-        "-tol" : 0.1,
-        "-mp-pred" : ["rk4", "ebdf3"],
-        # "-h-app" : "z",
+        "-tol" : 0.01,
+        "-mp-pred" : "ebdf3",
         # "-initial-m" : "exactly_z",
         }
 
@@ -54,10 +53,14 @@ def main():
 
     # Check things
     ran = all((e == 0 for e in err_codes))
-    t1 = all([tests.check_ndt_less_than(d, 40) for d in datasets])
-    # t2 = all([tests.check_m_length(d, 1e-14) for d in datasets])
+    t1 = all([tests.check_ndt_less_than(d, 80) for d in datasets
+              if d['-ms-method'] != "decoupled"])
+    t2 = all([tests.check_ndt_less_than(d, 115) for d in datasets
+              if d['-ms-method'] == "decoupled"])
 
-    if ran and t1:
+    # Decoupled ms introduces wiggles which put an effective cap on the step size.
+
+    if all([ran, t1, t2]):
         return 0
     else:
         return 1
