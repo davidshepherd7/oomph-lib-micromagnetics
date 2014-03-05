@@ -85,16 +85,13 @@ void BoundaryElementHandler::build_bem_matrix()
       for(unsigned l=0;l<n_element_node;l++)
         {
           // Get the node number (in the bem mesh) from the global equation number.
-          int global_l_number = elem_pt->node_pt(l)->eqn_number(input_index());
-          unsigned l_number = input_lookup_pt()->main_to_added(global_l_number);
+          unsigned l_number = input_equation_number(elem_pt->node_pt(l));
 
           // Loop over all nodes in the mesh and add contributions from this element
           for(unsigned long s_nd=0; s_nd<n_node; s_nd++)
             {
-              int global_s_number
-                = bem_mesh_pt()->node_pt(s_nd)->eqn_number(output_index());
-              unsigned s_number = output_lookup_pt()->
-                main_to_added(global_s_number);
+              unsigned s_number
+                = output_equation_number(bem_mesh_pt()->node_pt(s_nd));
 
               // Rows are indexed by output (source node) number, columns
               // are indexed by input (l) number.
@@ -217,9 +214,7 @@ get_bem_values(DoubleVector &bem_output_values) const
   // Get input values
   for(unsigned nd=0, nnode=bem_mesh_pt()->nnode(); nd<nnode; nd++)
     {
-      unsigned geqn = bem_mesh_pt()->node_pt(nd)->eqn_number(input_index());
-      unsigned in_eqn = input_lookup_pt()->main_to_added(geqn);
-
+      unsigned in_eqn = input_equation_number(bem_mesh_pt()->node_pt(nd));
       input_values[in_eqn] = bem_mesh_pt()->node_pt(nd)->value(input_index());
     }
 
@@ -272,9 +267,7 @@ get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
       // Fill it in
       for(unsigned nd=0; nd<nnode; nd++)
         {
-          unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
-          unsigned out_eqn = output_lookup_pt()->main_to_added(g_eqn);
-
+          unsigned out_eqn = output_equation_number(m_pt->boundary_node_pt(b,nd));
           (*bem_output_values[i])[nd] = full_vector[out_eqn];
         }
     }
@@ -299,9 +292,7 @@ void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
         // to the corresponding value from the doublevector.
         for(unsigned nd=0; nd<nnode; nd++)
           {
-            unsigned g_eqn = m_pt->boundary_node_pt(b,nd)->eqn_number(output_index());
-            unsigned out_eqn = output_lookup_pt()->main_to_added(g_eqn);
-
+            unsigned out_eqn = output_equation_number(m_pt->boundary_node_pt(b,nd));
             m_pt->boundary_node_pt(b, nd)->set_value(output_index(),
                                                      full_vector[out_eqn]);
           }
