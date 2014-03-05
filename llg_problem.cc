@@ -355,38 +355,14 @@ namespace oomph
     oomph_info << "solving BEM" << std::endl;
     double t_start = TimingHelpers::timer();
 
-
-    // Get bem values. Note that the order is implicitly defined
-    LinearAlgebraDistribution dist;
-    Bem_handler_pt->get_bm_distribution(dist);
-    DoubleVector phi_boundary_values(dist);
-    Bem_handler_pt->get_bem_values(phi_boundary_values);
-
-    // Copy into phi values
-    for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-      {
-        Mesh* mesh_pt = this->mesh_pt(msh);
-        for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-          {
-            unsigned nnode = mesh_pt->nboundary_node(b);
-
-            // Set the phi entry in this node to the corresponding value
-            // from the doublevector.
-            for(unsigned nd=0; nd<nnode; nd++)
-              {
-                Node* node_pt = mesh_pt->boundary_node_pt(b,nd);
-                unsigned g_eqn = node_pt->eqn_number(Bem_handler_pt->output_index());
-                unsigned out_eqn =
-                  Bem_handler_pt->output_lookup_pt()->main_to_added(g_eqn);
-
-                node_pt->set_value(phi_index(), phi_boundary_values[out_eqn]);
-              }
-          }
-      }
-
-    // ??ds hack: using "output_index()" for lookup but writing to
-    // phi_index()...
-
+    // Get bem values. Note that dofs must be in the same equation
+    // numbering as when the bem handler was built at this point for this
+    // to work (due to how the lookup schemes work). In particular the
+    // pinning/segregated pinning MUST be the same. Additionally the phi
+    // dofs cannot be pinned (although this can be hacked around by setting
+    // up the lookup scheme to use a different index to the real index and
+    // setting the pinned values by hand).
+    Bem_handler_pt->get_bem_values_and_copy_into_values();
 
     double t_end = TimingHelpers::timer();
     oomph_info << "BEM time taken: " << t_end - t_start << std::endl;

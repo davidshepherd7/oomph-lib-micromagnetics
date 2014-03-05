@@ -288,7 +288,7 @@ void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
         const Mesh* m_pt = Bem_boundaries[i].second;
         unsigned nnode = m_pt->nboundary_node(b);
 
-        // Set the entry corresponding to output_value_index in this node
+        // Set the entry corresponding to output_index in this node
         // to the corresponding value from the doublevector.
         for(unsigned nd=0; nd<nnode; nd++)
           {
