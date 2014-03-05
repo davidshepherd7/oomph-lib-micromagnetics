@@ -148,24 +148,6 @@ namespace oomph
 
           }
 
-        // If decoupled then boundary values of phi need to be pinned
-        if(Decoupled_ms)
-          {
-            // Loop over all meshes in problem
-            for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-              {
-                Mesh* mesh_pt = this->mesh_pt(msh);
-                for(unsigned b=0, nb=mesh_pt->nboundary(); b<nb; b++)
-                  {
-                    for(unsigned nd=0, nnd=mesh_pt->nboundary_node(b); nd<nnd; nd++)
-                      {
-                        Node* nd_pt = mesh_pt->boundary_node_pt(b, nd);
-                        nd_pt->pin(phi_index());
-                      }
-                  }
-              }
-          }
-
       }
     // Otherwise pin all phi and phi_1 dofs to zero
     else if(Disable_ms)
@@ -351,11 +333,12 @@ namespace oomph
 
 
 
-    // update boundary values of phi via bem
+    // pin and set boundary values of phi via bem
     // ============================================================
 
     oomph_info << "solving BEM" << std::endl;
     double t_start = TimingHelpers::timer();
+
 
     // Get bem values. Note that the order is implicitly defined
     LinearAlgebraDistribution dist;
@@ -397,6 +380,24 @@ namespace oomph
     // ============================================================
 
     oomph_info << "solving phi" << std::endl;
+
+    // boundary values of phi need to be pinned, use segregated pinning
+    // number so that it can be easily undone.
+    for(unsigned j=0; j<Bem_handler_pt->Bem_boundaries.size(); j++)
+      {
+        const Mesh* mesh_pt = Bem_handler_pt->Bem_boundaries[j].second;
+        unsigned b = Bem_handler_pt->Bem_boundaries[j].first;
+
+        for(unsigned nd=0, nnd=mesh_pt->nboundary_node(b); nd<nnd; nd++)
+          {
+            Node* nd_pt = mesh_pt->boundary_node_pt(b, nd);
+            if(!nd_pt->is_pinned(phi_index()))
+              {
+                nd_pt->eqn_number(phi_index())
+                  = Data::Is_segregated_solve_pinned;
+              }
+          }
+      }
 
     set_solver_parameters(Phi_seg_solve_parameters);
 

@@ -160,14 +160,15 @@ def main():
 
 
     # Test with magnetostatics by comparison with (fully) implicit
-    # timesteppers.
+    # timesteppers. Implicit needs to work the same as decoupled so that
+    # adaptive midpoint works.
     ms_argdicts = {
         "-driver" : ["ll"],
         "-dt": [0.01],
         "-scale": [5],
         "-ref" : [2],
         "-mesh": ["sq_square"],
-        "-ms-method" : ["decoupled"],
+        "-ms-method" : ["decoupled", "implicit"],
         "-ts" : ["rk2"], # Don't run rk4 because 4th order makes it
                          # hard to compare with implicit methods (no
                          # A-stable 4th order methods).
