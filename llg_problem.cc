@@ -307,13 +307,15 @@ namespace oomph
   /// \short Solve for the magnetostatic field.
   void LLGProblem::magnetostatics_solve()
   {
+    // Do nothing if no solve is needed
     if(!fembem_ms_flag()) return;
 
+    // Check we're not inside a segregated solve already
     check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
     Inside_segregated_magnetostatics = true;
 
-    // We really need c++11, this array initialisation is ridiculous
+    // We really need c++11, this array initialisation is ridiculous!
     Vector<unsigned> non_phi_1_indices, non_phi_indices;
     non_phi_1_indices.push_back(phi_index());
     non_phi_1_indices.push_back(m_index(0));
