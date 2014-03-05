@@ -66,6 +66,7 @@ namespace oomph
 #else
       Check_angles = false;
 #endif
+      Disable_magnetostatic_solver_optimistations = false;
 
       // Debugging switches
       Pin_boundary_m = false;
@@ -885,6 +886,10 @@ public:
     SolverParameters Phi_seg_solve_parameters;
     SolverParameters Phi_1_seg_solve_parameters;
 
+    /// Bool to disable optimisations on phi/phi1 segregated solves (linear,
+    /// constant Jacobian, CG w/ AMG solver) for debugging.
+    bool Disable_magnetostatic_solver_optimistations;
+
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();
 
@@ -978,6 +983,10 @@ public:
 
       specify_command_line_flag("-check-angles", &check_angles);
       check_angles = -1;
+
+      specify_command_line_flag("-disable-magnetostatic-solver-optimistations",
+                                &disable_magnetostatic_solver_optimistations);
+      disable_magnetostatic_solver_optimistations = -1;
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -1073,6 +1082,12 @@ public:
           llg_pt->Check_angles = bool(check_angles);
         }
 
+      if(disable_magnetostatic_solver_optimistations != -1)
+        {
+          llg_pt->Disable_magnetostatic_solver_optimistations
+            = bool(disable_magnetostatic_solver_optimistations);
+        }
+
       llg_pt->Phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_fct_pt;
 
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
@@ -1097,6 +1112,7 @@ public:
     int hlib_bem;
     int mallinson;
     int check_angles;
+    int disable_magnetostatic_solver_optimistations;
 
     std::string ms_method;
 
