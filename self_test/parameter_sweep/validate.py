@@ -45,6 +45,7 @@ def main():
         assert(not os.path.isfile(pjoin(odir, "FAILED")))
 
     # and when it fails
+    print("Note that the following run is supposed to fail!")
     subp.check_call([parameter_sweep_path, '-p', 'fail_test', '--clean',
                      '--no-build'])
     root = pjoin(mm.rootdir(), 'experiments/parameter_sweeps/fail_test')
