@@ -179,6 +179,20 @@ namespace HApp
     return h;
   }
 
+
+  inline Vector<double> smooth_start_minus_z(const double& t,
+                                             const Vector<double> &x)
+  {
+    double a = 5;
+    double smoothing = (1 - std::exp(-a*t));
+    Vector<double> h = HApp::z(t, x);
+    for(unsigned j=0; j<3; j++)
+      {
+        h[j] *= smoothing;
+      }
+    return h;
+  }
+
   inline HAppFctPt h_app_factory(const std::string& field_name)
   {
     if(field_name == "zero")
@@ -252,6 +266,10 @@ namespace HApp
     else if(field_name == "mumag4_field2")
       {
         return &HApp::mumag4_field2;
+      }
+    else if(field_name == "smooth_start_minus_z")
+      {
+        return &HApp::smooth_start_minus_z;
       }
     else
       {
