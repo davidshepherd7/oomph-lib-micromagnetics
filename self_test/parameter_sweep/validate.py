@@ -37,24 +37,33 @@ def main():
     subp.check_call([parameter_sweep_path, '-p', 'self_test', '--clean',
                      '--no-build'])
     root = pjoin(mm.rootdir(), 'experiments/parameter_sweeps/self_test')
-    for odir in os.listdir(root):
-        odir = pjoin(root, odir)
-        assert(os.path.isfile(pjoin(odir, "trace")))
-        assert(os.path.isfile(pjoin(odir, "info")))
-        assert(os.path.isfile(pjoin(odir, "run_script")))
-        assert(not os.path.isfile(pjoin(odir, "FAILED")))
+    for _, odirs, _ in os.walk(root):
+        for odir in odirs:
+            odir = pjoin(root, odir)
+            print("checking files in", odir)
+            assert os.path.isfile(pjoin(odir, "trace")), pjoin(odir, "trace")
+            assert(os.path.isfile(pjoin(odir, "info")))
+            assert(os.path.isfile(pjoin(odir, "run_script")))
+            assert(not os.path.isfile(pjoin(odir, "FAILED")))
+
+    assert(os.path.isfile(pjoin(root, "parameter_file")))
+
 
     # and when it fails
     print("Note that the following run is supposed to fail!")
     subp.check_call([parameter_sweep_path, '-p', 'fail_test', '--clean',
                      '--no-build'])
     root = pjoin(mm.rootdir(), 'experiments/parameter_sweeps/fail_test')
-    for odir in os.listdir(root):
-        odir = pjoin(root, odir)
-        assert(os.path.isfile(pjoin(odir, "trace")))
-        assert(os.path.isfile(pjoin(odir, "info")))
-        assert(os.path.isfile(pjoin(odir, "run_script")))
-        assert(os.path.isfile(pjoin(odir, "FAILED")))
+    for _, odirs, _ in os.walk(root):
+        for odir in odirs:
+            odir = pjoin(root, odir)
+            assert(os.path.isfile(pjoin(odir, "trace")))
+            assert(os.path.isfile(pjoin(odir, "info")))
+            assert(os.path.isfile(pjoin(odir, "run_script")))
+            assert(os.path.isfile(pjoin(odir, "FAILED")))
+
+    assert(os.path.isfile(pjoin(root, "parameter_file")))
+
 
     return 0
 

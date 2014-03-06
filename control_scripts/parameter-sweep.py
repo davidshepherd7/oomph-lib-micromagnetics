@@ -84,6 +84,7 @@ def main():
         for f in files:
             if f == args.parameters:
                 parameter_files.append(pjoin(root, f))
+    parameter_file = parameter_files[0]
 
 
     # Error check number of files
@@ -97,13 +98,13 @@ def main():
         return 6
 
 
-    # Parse file
+    # Parse parameters file
     # ============================================================
 
     output_root = pjoin(mm.rootdir(), "experiments", "parameter_sweeps",
                         '_'.join(args.parameters.split()))
 
-    with open(parameter_files[0], 'r') as pfile:
+    with open(parameter_file, 'r') as pfile:
         args_dict = ast.literal_eval(pfile.read())
 
 
@@ -143,6 +144,9 @@ def main():
         shutil.rmtree(output_root)
         os.mkdir(output_root)
 
+    # Copy parameters file to output dir
+    os.makedirs(output_root, exist_ok=True)
+    shutil.copyfile(parameter_file, pjoin(output_root, "parameter_file"))
 
 
 
