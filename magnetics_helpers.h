@@ -180,12 +180,25 @@ namespace HApp
   }
 
 
+  inline Vector<double> smooth_start_z(const double& t,
+                                       const Vector<double> &x)
+  {
+    double a = 5;
+    double smoothing = (1 - std::exp(-a*t));
+    Vector<double> h = HApp::z(t, x);
+    for(unsigned j=0; j<3; j++)
+      {
+        h[j] *= smoothing;
+      }
+    return h;
+  }
+
   inline Vector<double> smooth_start_minus_z(const double& t,
                                              const Vector<double> &x)
   {
     double a = 5;
     double smoothing = (1 - std::exp(-a*t));
-    Vector<double> h = HApp::z(t, x);
+    Vector<double> h = HApp::minus_z(t, x);
     for(unsigned j=0; j<3; j++)
       {
         h[j] *= smoothing;
@@ -270,6 +283,10 @@ namespace HApp
     else if(field_name == "smooth_start_minus_z")
       {
         return &HApp::smooth_start_minus_z;
+      }
+    else if(field_name == "smooth_start_z")
+      {
+        return &HApp::smooth_start_z;
       }
     else
       {
