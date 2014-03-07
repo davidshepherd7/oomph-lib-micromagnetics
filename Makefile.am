@@ -55,7 +55,8 @@ headers = array_interpolator.h \
 	unsteady_heat_problem.h \
 	micromag_factories.h \
 	micromag_types.h \
-	magnetostatics_calculator.h
+	magnetostatics_calculator.h \
+       llg_preconditioners.h
 
 # If we have hlib then compile that header too
 if OOMPH_HAS_HLIB

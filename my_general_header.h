@@ -327,30 +327,6 @@ namespace oomph
             }
         }
 
-
-      // If possible then set the dof to block mapping, otherwise check
-      // that we didn't want to set one.
-      GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* gpbp_pt
-        = smart_cast_preconditioner<GeneralPurposeBlockPreconditioner<CRDoubleMatrix>*>
-        (prec_pt);
-
-      // Test for case where the preconditioner itself is a block preconditioner
-      if(gpbp_pt != 0)
-        {
-          dof_to_block_map = dof_to_block_factory(blocking_name);
-          gpbp_pt->set_dof_to_block_map(dof_to_block_map);
-        }
-      else
-        {
-          if(blocking_name != "none")
-            {
-              std::string err = "Dof to block map specified but cannot be set";
-              err += " because preconditioner is not a GeneralPurposeBlockPreconditioner.";
-              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-            }
-        }
-
       doc_times = doc_times_factory(doc_times_interval, tmax);
 
       // Store boolean flags

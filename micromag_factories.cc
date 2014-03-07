@@ -31,6 +31,7 @@
 #include "../../src/generic/general_purpose_preconditioners.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 #include "sum_of_matrices_preconditioner.h"
+#include "llg_preconditioners.h"
 
 
 namespace oomph
@@ -542,6 +543,15 @@ namespace oomph
       else if(split_string(prec_name, '-')[0] == "blockllg")
         {
           prec_pt = block_llg_factory(prec_name);
+        }
+
+      // ??ds new one, clean up old one later
+      else if(prec_name == "llgblock")
+        {
+          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
+          llgp_pt->build();
+          prec_pt = llgp_pt;
+
         }
 
       else
