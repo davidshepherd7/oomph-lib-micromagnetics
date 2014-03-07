@@ -477,37 +477,6 @@ namespace oomph
           prec_pt = preconditioner_factory("exact");
 #endif
         }
-
-      else if(prec_name == "ilu0")
-        { prec_pt = new ILUZeroPreconditioner<CRDoubleMatrix>; }
-
-      else if(prec_name == "ilu")
-        {
-#ifdef OOMPH_HAS_HYPRE
-          HyprePreconditioner* hp_pt = new HyprePreconditioner;
-
-          // Use Euclid (ILU)
-          hp_pt->use_Euclid();
-
-          // Simple parameters
-          hp_pt->euclid_droptol() = 0.0;
-          hp_pt->euclid_level() = 1;
-
-          // Use other algorithms
-          // hp_pt->enable_euclid_rowscale();
-          // hp_pt->enable_euclid_using_BJ() = 0.0;
-          // hp_pt->euclid_using_ILUT();
-
-          // Debugging info
-          hp_pt->euclid_print_level() = 0;
-
-          prec_pt = hp_pt;
-#else // If no Hypre then give a warning and use exact
-          throw OomphLibError("Don't have Hypre, can't do ilu",
-            OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
-#endif
-        }
-
       else if(prec_name == "identity")
         { prec_pt = new IdentityPreconditioner; }
 
@@ -543,6 +512,46 @@ namespace oomph
       else if(split_string(prec_name, '-')[0] == "blockllg")
         {
           prec_pt = block_llg_factory(prec_name);
+        }
+
+      else if(split_string(prec_name, '-')[0] == "ilu")
+        {
+// ??ds make more robust and move to function!
+
+#ifdef OOMPH_HAS_HYPRE
+          HyprePreconditioner* hp_pt = new HyprePreconditioner;
+
+          // Use Euclid (ILU)
+          hp_pt->use_Euclid();
+
+          // Use level specified
+          hp_pt->euclid_level() = atoi((split_string(prec_name, '-')[1]).c_str());
+
+
+          // Simple parameters
+          hp_pt->euclid_droptol() = 0.0;
+
+          // Use other algorithms
+          // hp_pt->enable_euclid_rowscale();
+          // hp_pt->enable_euclid_using_BJ() = 0.0;
+          // hp_pt->euclid_using_ILUT();
+
+          // Debugging info
+          hp_pt->euclid_print_level() = 0;
+
+          prec_pt = hp_pt;
+
+#else // If no Hypre can only do ilu 0
+          if(prec_name == "ilu-0")
+            {
+              prec_pt = new ILUZeroPreconditioner<CRDoubleMatrix>;
+            }
+          else
+            {
+              throw OomphLibError("Don't have Hypre, can't do ilu non-zero fill in",
+                                  OOMPH_CURRENT_FUNCTION,OOMPH_EXCEPTION_LOCATION);
+            }
+#endif
         }
 
       // ??ds new one, clean up old one later

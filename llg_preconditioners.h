@@ -137,7 +137,7 @@ public:
       else
         {
           llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
-            (Factories::preconditioner_factory("ilu"), 0);
+            (Factories::preconditioner_factory("ilu-2"), 0);
         }
 
       // phi bulk block

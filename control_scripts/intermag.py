@@ -218,7 +218,7 @@ def main():
                 '-mesh' : ['ut_sphere'], # 'sq_square'],
                 '-ms-method' : ['implicit', 'disabled', 'decoupled', 'sphere'],
                 '-solver' : 'som-gmres',
-                '-prec' : 'som-main-ilu',
+                '-prec' : 'som-main-ilu-1',
                 '-ts' : ['rk2', 'midpoint-bdf', 'euler'],
                 '-scale' : 2,
                 '-fd-jac' : True,
