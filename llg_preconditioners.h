@@ -19,7 +19,7 @@ public:
 
 
     void build(bool exact_phi1=false, bool exact_phi=false,
-               bool exact_llg=false)
+               bool exact_llg=true, bool schur_complement_llg=false)
     {
       {
         // this->upper_triangular();
@@ -52,7 +52,8 @@ public:
         }
       else
         {
-          set_subsidiary_preconditioner_pt(Factories::preconditioner_factory("poisson-amg"), 1);
+          set_subsidiary_preconditioner_pt
+            (Factories::preconditioner_factory("poisson-amg"), 1);
         }
 
 
@@ -114,7 +115,7 @@ public:
 
         llg_phi_bulk_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
         llg_phi_bulk_prec_pt->set_dof_to_block_map(dof_to_block);
-        llg_phi_bulk_prec_pt->lower_triangular(); //??ds should be upper, ordering weird...
+        // llg_phi_bulk_prec_pt->lower_triangular(); //??ds should be upper, ordering weird...
 
         llg_phi_bulk_prec_pt->turn_into_subsidiary_block_preconditioner
           (llg_phi_prec_pt, master_to_subs_block_map);
@@ -122,9 +123,13 @@ public:
       llg_phi_prec_pt->set_subsidiary_preconditioner_pt
         (llg_phi_bulk_prec_pt, 0);
 
-
-      // phi bulk block
-      if(exact_phi)
+      // llg block
+      if(schur_complement_llg)
+        {
+          throw OomphLibError("Not yet implemented",
+                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
+        }
+      if(exact_llg)
         {
           llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
             (new SuperLUPreconditioner, 0);
@@ -132,11 +137,11 @@ public:
       else
         {
           llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
-            (Factories::preconditioner_factory("poisson-amg"), 0);
+            (Factories::preconditioner_factory("ilu"), 0);
         }
 
-      // llg block
-      if(exact_llg)
+      // phi bulk block
+      if(exact_phi)
         {
           llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
             (new SuperLUPreconditioner, 1);
@@ -144,8 +149,9 @@ public:
       else
         {
           llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
-            (Factories::preconditioner_factory("ilu"), 1);
+            (Factories::preconditioner_factory("poisson-amg"), 1);
         }
+
     }
 
     ~LLGBlockPreconditioner() {}
