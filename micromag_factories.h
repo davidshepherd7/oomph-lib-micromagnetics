@@ -91,7 +91,8 @@ namespace oomph
 
 
     /// Create a new linear solver as specified by the solver name.
-    LinearSolver* linear_solver_factory(const std::string& _solver_name);
+    LinearSolver* linear_solver_factory(const std::string& _solver_name,
+                                        const double& krylov_tol=-1);
 
     /// Create a new (general-purpose) preconditioner as specified by the
     /// name.

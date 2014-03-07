@@ -245,6 +245,9 @@ namespace oomph
 
         specify_command_line_flag("-mp-update-pinned", &mp_update_pinned);
         mp_update_pinned = -1;
+
+        specify_command_line_flag("-krylov-tol", &krylov_tol);
+        krylov_tol = -1;
       }
 
     void parse(int argc, char *argv[])
@@ -453,6 +456,7 @@ namespace oomph
     double newton_max_residual;
     unsigned newton_max_iterations;
     int crash_newton_fail;
+    double krylov_tol;
 
     std::string outdir;
     std::string output_jacobian;

@@ -384,7 +384,8 @@ namespace oomph
 
 
 
-    LinearSolver* linear_solver_factory(const std::string& _solver_name)
+    LinearSolver* linear_solver_factory(const std::string& _solver_name,
+                                        const double& krylov_tol)
     {
       const std::string solver_name = to_lower(_solver_name);
 
@@ -418,6 +419,16 @@ namespace oomph
           err += solver_name;
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
+        }
+
+      IterativeLinearSolver* its_pt
+        = dynamic_cast<IterativeLinearSolver*>(solver_pt);
+      if(its_pt != 0)
+        {
+          if(krylov_tol != -1)
+            {
+              its_pt->tolerance() = krylov_tol;
+            }
         }
 
       return solver_pt;
