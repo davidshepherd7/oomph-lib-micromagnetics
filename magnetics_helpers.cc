@@ -141,271 +141,277 @@ namespace oomph
                    ElementFactoryFctPt element_factory_fpt,
                    TetMeshBase& out_mesh)
     {
-#ifdef PARANOID
-      if(brick_mesh.finite_element_pt(0)->dim() != 3)
-        {
-          std::string err = "Only for bricks! (3D)";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-      if(brick_mesh.finite_element_pt(0)->nnode() != 8
-         || brick_mesh.finite_element_pt(0)->nnode_1d() != 2)
-        {
-          std::string err = "Only for bricks w/ nnode1d = 2! (nnode = 8)";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-      if(brick_mesh.finite_element_pt(0)->nnode() != 8)
-        {
-          std::string err = "Only for bricks w/ nnode1d = 2! (nnode = 8)";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
+      std::string err = "Disabled because can't work with private Boundary_node_pt.";
+      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                          OOMPH_CURRENT_FUNCTION);
+      // Could use add function but would be very slow. Disable for now
+      // since not in use...
 
-      // Copy number of boundaries over first
-      out_mesh.set_nboundary(brick_mesh.nboundary());
+// #ifdef PARANOID
+//       if(brick_mesh.finite_element_pt(0)->dim() != 3)
+//         {
+//           std::string err = "Only for bricks! (3D)";
+//           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+//                               OOMPH_CURRENT_FUNCTION);
+//         }
+//       if(brick_mesh.finite_element_pt(0)->nnode() != 8
+//          || brick_mesh.finite_element_pt(0)->nnode_1d() != 2)
+//         {
+//           std::string err = "Only for bricks w/ nnode1d = 2! (nnode = 8)";
+//           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+//                               OOMPH_CURRENT_FUNCTION);
+//         }
+//       if(brick_mesh.finite_element_pt(0)->nnode() != 8)
+//         {
+//           std::string err = "Only for bricks w/ nnode1d = 2! (nnode = 8)";
+//           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+//                               OOMPH_CURRENT_FUNCTION);
+//         }
+// #endif
 
-
-      // From "How to Subdivide Pyramids, Prisms and Hexahedra into
-      // Tetrahedra" by Julien Dompierre Paul Labbé Marie-Gabrielle Vallet
-      // Ricardo Camarero: Can subdivide by creating tets with these nodes
-      // from the brick.
-
-      // Note to go from their ordering to ours
-
-      // 1) convert One-based -> Zero-based
-      // {{0, 1, 2, 5},
-      //  {0, 2, 7, 5},
-      //  {0, 2, 3, 7},
-      //  {0, 5, 7, 4},
-      //  {3, 7, 5, 6}};
-      // In emacs we can do this automatically with:
-      // M-x query-replace-regexp
-      // \([0-9]+\)
-      // \,(- \#1 1)
-
-      // 2) 2 <-> 3 and 6 <->7 to convert between brick node orderings:
-      // {{0, 1, 3, 5},
-      //  {0, 3, 6, 5},
-      //  {0, 3, 2, 6},
-      //  {0, 5, 6, 4},
-      //  {2, 6, 5, 7}};
-
-      // unsigned brick2tet_map[4][6][4] = {
-
-      //   // Zero diags through "VI7"
-      //   {{0, 1, 3, 5}, // Nodes in tet one
-      //    {0, 3, 6, 5}, // Nodes in tet two
-      //    {0, 3, 2, 6}, // etc...
-      //    {0, 5, 6, 4},
-      //    {2, 6, 5, 7},
-      //    {0, 0, 0, 0}},
-
-      //   // One
-      //   {{0, 5, 6, 4},
-      //    {0, 1, 6, 5},
-      //    {1, 7, 6, 5},
-      //    {0, 6, 3, 2},
-      //    {0, 6, 1, 3},
-      //    {1, 6, 7, 3}},
-
-      //   // two
-      //   {{0, 4, 5, 7},
-      //    {0, 2, 6, 7},
-      //    {0, 6, 4, 7},
-      //    {0, 1, 3, 5},
-      //    {0, 2, 7, 3},
-      //    {0, 7, 5, 3}},
-
-      //   // three
-      //   {{0, 3, 2, 7},
-      //    {0, 2, 6, 7},
-      //    {0, 6, 4, 7},
-      //    {0, 5, 7, 4},
-      //    {1, 5, 7, 0},
-      //    {1, 7, 3, 0}}
-      // };
-
-      unsigned brick2tet_map[4][6][4] = {
-
-        // Zero diags through "VI7"
-        {{0, 3, 1, 5}, // Nodes in tet one
-         {0, 6, 3, 5}, // Nodes in tet two
-         {0, 2, 3, 6}, // etc...
-         {0, 6, 5, 4},
-         {2, 5, 6, 7},
-         {0, 0, 0, 0}},
-
-        // One
-        {{0, 6, 5, 4},
-         {0, 6, 1, 5},
-         {1, 6, 7, 5},
-         {0, 3, 6, 2},
-         {0, 1, 6, 3},
-         {1, 7, 6, 3}},
-
-        // two
-        {{0, 5, 4, 7},
-         {0, 6, 2, 7},
-         {0, 4, 6, 7},
-         {0, 3, 1, 5},
-         {0, 7, 2, 3},
-         {0, 5, 7, 3}},
-
-        // three
-        {{0, 2, 3, 7},
-         {0, 6, 2, 7},
-         {0, 4, 6, 7},
-         {0, 7, 5, 4},
-         {1, 7, 5, 0},
-         {1, 3, 7, 0}}
-      };
+//       // Copy number of boundaries over first
+//       out_mesh.set_nboundary(brick_mesh.nboundary());
 
 
-      // oomph-lib face indicies are weird
-      int faces[6] = {-3, -2, -1, 1, 2, 3};
+//       // From "How to Subdivide Pyramids, Prisms and Hexahedra into
+//       // Tetrahedra" by Julien Dompierre Paul Labbé Marie-Gabrielle Vallet
+//       // Ricardo Camarero: Can subdivide by creating tets with these nodes
+//       // from the brick.
+
+//       // Note to go from their ordering to ours
+
+//       // 1) convert One-based -> Zero-based
+//       // {{0, 1, 2, 5},
+//       //  {0, 2, 7, 5},
+//       //  {0, 2, 3, 7},
+//       //  {0, 5, 7, 4},
+//       //  {3, 7, 5, 6}};
+//       // In emacs we can do this automatically with:
+//       // M-x query-replace-regexp
+//       // \([0-9]+\)
+//       // \,(- \#1 1)
+
+//       // 2) 2 <-> 3 and 6 <->7 to convert between brick node orderings:
+//       // {{0, 1, 3, 5},
+//       //  {0, 3, 6, 5},
+//       //  {0, 3, 2, 6},
+//       //  {0, 5, 6, 4},
+//       //  {2, 6, 5, 7}};
+
+//       // unsigned brick2tet_map[4][6][4] = {
+
+//       //   // Zero diags through "VI7"
+//       //   {{0, 1, 3, 5}, // Nodes in tet one
+//       //    {0, 3, 6, 5}, // Nodes in tet two
+//       //    {0, 3, 2, 6}, // etc...
+//       //    {0, 5, 6, 4},
+//       //    {2, 6, 5, 7},
+//       //    {0, 0, 0, 0}},
+
+//       //   // One
+//       //   {{0, 5, 6, 4},
+//       //    {0, 1, 6, 5},
+//       //    {1, 7, 6, 5},
+//       //    {0, 6, 3, 2},
+//       //    {0, 6, 1, 3},
+//       //    {1, 6, 7, 3}},
+
+//       //   // two
+//       //   {{0, 4, 5, 7},
+//       //    {0, 2, 6, 7},
+//       //    {0, 6, 4, 7},
+//       //    {0, 1, 3, 5},
+//       //    {0, 2, 7, 3},
+//       //    {0, 7, 5, 3}},
+
+//       //   // three
+//       //   {{0, 3, 2, 7},
+//       //    {0, 2, 6, 7},
+//       //    {0, 6, 4, 7},
+//       //    {0, 5, 7, 4},
+//       //    {1, 5, 7, 0},
+//       //    {1, 7, 3, 0}}
+//       // };
+
+//       unsigned brick2tet_map[4][6][4] = {
+
+//         // Zero diags through "VI7"
+//         {{0, 3, 1, 5}, // Nodes in tet one
+//          {0, 6, 3, 5}, // Nodes in tet two
+//          {0, 2, 3, 6}, // etc...
+//          {0, 6, 5, 4},
+//          {2, 5, 6, 7},
+//          {0, 0, 0, 0}},
+
+//         // One
+//         {{0, 6, 5, 4},
+//          {0, 6, 1, 5},
+//          {1, 6, 7, 5},
+//          {0, 3, 6, 2},
+//          {0, 1, 6, 3},
+//          {1, 7, 6, 3}},
+
+//         // two
+//         {{0, 5, 4, 7},
+//          {0, 6, 2, 7},
+//          {0, 4, 6, 7},
+//          {0, 3, 1, 5},
+//          {0, 7, 2, 3},
+//          {0, 5, 7, 3}},
+
+//         // three
+//         {{0, 2, 3, 7},
+//          {0, 6, 2, 7},
+//          {0, 4, 6, 7},
+//          {0, 7, 5, 4},
+//          {1, 7, 5, 0},
+//          {1, 3, 7, 0}}
+//       };
 
 
-      // Copy nodes directly into mesh, add to boundaries if needed
-      for(unsigned nd=0, nnd=brick_mesh.nnode(); nd<nnd; nd++)
-        {
-          Node* nd_pt = brick_mesh.node_pt(nd);
-          out_mesh.add_node_pt(nd_pt);
-        }
-
-      // For each node: if on a boundary then loop over boundaries adding to
-      // the mesh's boundary node lists. ??ds move into mesh?
-      for(unsigned nd=0, nnd=out_mesh.nnode(); nd<nnd; nd++)
-        {
-          Node* nd_pt = out_mesh.node_pt(nd);
-
-          if(nd_pt->is_on_boundary())
-            {
-              std::set<unsigned>* boundaries_pt;
-              nd_pt->get_boundaries_pt(boundaries_pt);
-
-              std::set<unsigned>::const_iterator it;
-              for(it=boundaries_pt->begin(); it!=boundaries_pt->end(); it++)
-                {
-                  out_mesh.Boundary_node_pt[*it].push_back(nd_pt);
-                }
-            }
-        }
+//       // oomph-lib face indicies are weird
+//       int faces[6] = {-3, -2, -1, 1, 2, 3};
 
 
-      // Create a reverse lookup ready for element creation
-      std::map<Node*, unsigned> node_number_lookup;
-      for(unsigned nd=0, nnd=brick_mesh.nnode(); nd<nnd; nd++)
-        {
-          Node* nd_pt = brick_mesh.node_pt(nd);
-          node_number_lookup[nd_pt] = nd;
-        }
+//       // Copy nodes directly into mesh, add to boundaries if needed
+//       for(unsigned nd=0, nnd=brick_mesh.nnode(); nd<nnd; nd++)
+//         {
+//           Node* nd_pt = brick_mesh.node_pt(nd);
+//           out_mesh.add_node_pt(nd_pt);
+//         }
+
+//       // For each node: if on a boundary then loop over boundaries adding to
+//       // the mesh's boundary node lists. ??ds move into mesh?
+//       for(unsigned nd=0, nnd=out_mesh.nnode(); nd<nnd; nd++)
+//         {
+//           Node* nd_pt = out_mesh.node_pt(nd);
+
+//           if(nd_pt->is_on_boundary())
+//             {
+//               std::set<unsigned>* boundaries_pt;
+//               nd_pt->get_boundaries_pt(boundaries_pt);
+
+//               std::set<unsigned>::const_iterator it;
+//               for(it=boundaries_pt->begin(); it!=boundaries_pt->end(); it++)
+//                 {
+//                   out_mesh.Boundary_node_pt[*it].push_back(nd_pt);
+//                 }
+//             }
+//         }
 
 
-      // Create new elements
-      for(unsigned ele=0, nele=brick_mesh.nelement(); ele<nele; ele++)
-        {
-          const FiniteElement* qele_pt = brick_mesh.finite_element_pt(ele);
-
-#ifdef PARANOID
-          if(dynamic_cast<const FaceElement*>(qele_pt) != 0)
-            {
-              throw OomphLibError("Function not implemented for face elements",
-                                  OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-            }
-#endif
-
-          // vertex I 7 in the paper is equivalent to our node 7, nodes
-          // diagonally opposite to it are equivalent to our nodes 1,2,6.
-          Vector<Node*> VI7_nodes;
-          VI7_nodes.push_back(qele_pt->node_pt(7));
-          VI7_nodes.push_back(qele_pt->node_pt(1));
-          VI7_nodes.push_back(qele_pt->node_pt(2));
-          VI7_nodes.push_back(qele_pt->node_pt(6));
+//       // Create a reverse lookup ready for element creation
+//       std::map<Node*, unsigned> node_number_lookup;
+//       for(unsigned nd=0, nnd=brick_mesh.nnode(); nd<nnd; nd++)
+//         {
+//           Node* nd_pt = brick_mesh.node_pt(nd);
+//           node_number_lookup[nd_pt] = nd;
+//         }
 
 
-          unsigned ndiag = 0;
-          for(unsigned face_i=0; face_i<6; face_i++)
-            {
+//       // Create new elements
+//       for(unsigned ele=0, nele=brick_mesh.nelement(); ele<nele; ele++)
+//         {
+//           const FiniteElement* qele_pt = brick_mesh.finite_element_pt(ele);
 
-              unsigned face = faces[face_i];
+// #ifdef PARANOID
+//           if(dynamic_cast<const FaceElement*>(qele_pt) != 0)
+//             {
+//               throw OomphLibError("Function not implemented for face elements",
+//                                   OOMPH_EXCEPTION_LOCATION,
+//                                   OOMPH_CURRENT_FUNCTION);
+//             }
+// #endif
 
-              // Get list of nodes in face
-              Vector<Node*> Face_nodes;
-              for(unsigned j=0; j<4; j++)
-                {
-                  unsigned nd = qele_pt->get_bulk_node_number(face, j);
-                  Face_nodes.push_back(qele_pt->node_pt(nd));
-                }
-
-              // Get the first node in the face (by the brick mesh ordering).
-              unsigned first_node_num = min_node_number(Face_nodes,
-                                                        node_number_lookup);
-              Node* first_node_pt = brick_mesh.node_pt(first_node_num);
-
-              bool through_VI7 = (std::find(VI7_nodes.begin(), VI7_nodes.end(),
-                                            first_node_pt)
-                                  != VI7_nodes.end());
-
-              if(through_VI7) {ndiag++;}
-            }
+//           // vertex I 7 in the paper is equivalent to our node 7, nodes
+//           // diagonally opposite to it are equivalent to our nodes 1,2,6.
+//           Vector<Node*> VI7_nodes;
+//           VI7_nodes.push_back(qele_pt->node_pt(7));
+//           VI7_nodes.push_back(qele_pt->node_pt(1));
+//           VI7_nodes.push_back(qele_pt->node_pt(2));
+//           VI7_nodes.push_back(qele_pt->node_pt(6));
 
 
-          // Create new elements and assign nodes
-#ifdef PARANOID
-          double tvol = 0.0;
-#endif
-          for(unsigned j=0; j<6; j++)
-            {
-              // if ndiag == 0 we only need 5 elements so skip the last one
-              if(ndiag == 0 && j != 6) {continue;}
+//           unsigned ndiag = 0;
+//           for(unsigned face_i=0; face_i<6; face_i++)
+//             {
 
-              // Create the new T element and assign nodes
-              FiniteElement* tele_pt = element_factory_fpt();
-              tele_pt->node_pt(0) = qele_pt->node_pt(brick2tet_map[ndiag][j][0]);
-              tele_pt->node_pt(1) = qele_pt->node_pt(brick2tet_map[ndiag][j][1]);
-              tele_pt->node_pt(2) = qele_pt->node_pt(brick2tet_map[ndiag][j][2]);
-              tele_pt->node_pt(3) = qele_pt->node_pt(brick2tet_map[ndiag][j][3]);
+//               unsigned face = faces[face_i];
 
-#ifdef PARANOID
-              tvol += tele_pt->size();
-#endif
+//               // Get list of nodes in face
+//               Vector<Node*> Face_nodes;
+//               for(unsigned j=0; j<4; j++)
+//                 {
+//                   unsigned nd = qele_pt->get_bulk_node_number(face, j);
+//                   Face_nodes.push_back(qele_pt->node_pt(nd));
+//                 }
 
-              // Put it into the element list
-              out_mesh.add_element_pt(tele_pt);
-            }
+//               // Get the first node in the face (by the brick mesh ordering).
+//               unsigned first_node_num = min_node_number(Face_nodes,
+//                                                         node_number_lookup);
+//               Node* first_node_pt = brick_mesh.node_pt(first_node_num);
 
-#ifdef PARANOID
-          // Check that volumes are unchanged
-          double qvol = qele_pt->size();
-          if(std::abs(tvol - qvol) > 1e-8)
-            {
-              std::string err = "Element volume changed by more than 1e-8";
-              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                                  OOMPH_CURRENT_FUNCTION);
-            }
-#endif
-        }
+//               bool through_VI7 = (std::find(VI7_nodes.begin(), VI7_nodes.end(),
+//                                             first_node_pt)
+//                                   != VI7_nodes.end());
+
+//               if(through_VI7) {ndiag++;}
+//             }
 
 
-      // Use TetMeshBase to sort out boundary element stuff
-      out_mesh.setup_boundary_element_info();
+//           // Create new elements and assign nodes
+// #ifdef PARANOID
+//           double tvol = 0.0;
+// #endif
+//           for(unsigned j=0; j<6; j++)
+//             {
+//               // if ndiag == 0 we only need 5 elements so skip the last one
+//               if(ndiag == 0 && j != 6) {continue;}
+
+//               // Create the new T element and assign nodes
+//               FiniteElement* tele_pt = element_factory_fpt();
+//               tele_pt->node_pt(0) = qele_pt->node_pt(brick2tet_map[ndiag][j][0]);
+//               tele_pt->node_pt(1) = qele_pt->node_pt(brick2tet_map[ndiag][j][1]);
+//               tele_pt->node_pt(2) = qele_pt->node_pt(brick2tet_map[ndiag][j][2]);
+//               tele_pt->node_pt(3) = qele_pt->node_pt(brick2tet_map[ndiag][j][3]);
+
+// #ifdef PARANOID
+//               tvol += tele_pt->size();
+// #endif
+
+//               // Put it into the element list
+//               out_mesh.add_element_pt(tele_pt);
+//             }
+
+// #ifdef PARANOID
+//           // Check that volumes are unchanged
+//           double qvol = qele_pt->size();
+//           if(std::abs(tvol - qvol) > 1e-8)
+//             {
+//               std::string err = "Element volume changed by more than 1e-8";
+//               throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+//                                   OOMPH_CURRENT_FUNCTION);
+//             }
+// #endif
+//         }
+
+
+//       // Use TetMeshBase to sort out boundary element stuff
+//       out_mesh.setup_boundary_element_info();
 
 
 
-#ifdef PARANOID
-      // Check jacobians are not inverted
-      Shape psi(4);
-      DShape dpsidx(4, 3);
-      Vector<double> s(3, 0.3);
-      for(unsigned ele=0, nele=out_mesh.nelement(); ele<nele; ele++)
-        {
-          double J = out_mesh.finite_element_pt(ele)->dshape_eulerian(s,psi,dpsidx);
-          J++; // suppress unused variable warning
-        }
-#endif
+// #ifdef PARANOID
+//       // Check jacobians are not inverted
+//       Shape psi(4);
+//       DShape dpsidx(4, 3);
+//       Vector<double> s(3, 0.3);
+//       for(unsigned ele=0, nele=out_mesh.nelement(); ele<nele; ele++)
+//         {
+//           double J = out_mesh.finite_element_pt(ele)->dshape_eulerian(s,psi,dpsidx);
+//           J++; // suppress unused variable warning
+//         }
+// #endif
 
 
     }
