@@ -191,6 +191,12 @@ int main(int argc, char *argv[])
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
 
+  if(args_pt->crash_newton_fail != -1)
+    {
+      problem_pt->time_adaptive_newton_crash_on_solve_fail()
+        = args_pt->crash_newton_fail;
+    }
+
   if(args_pt->dummy_adaptivity == 1)
     {
       delete problem_pt->time_step_rescaler_pt();

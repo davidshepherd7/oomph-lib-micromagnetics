@@ -172,6 +172,9 @@ namespace oomph
         specify_command_line_flag("-newton-max-iterations", &newton_max_iterations);
         newton_max_iterations = 10;
 
+        specify_command_line_flag("-crash-newton-fail", &crash_newton_fail);
+        crash_newton_fail = -1;
+
         specify_command_line_flag("-fd-jac");
 
         specify_command_line_flag("-outdir", &outdir);
@@ -449,6 +452,7 @@ namespace oomph
     double newton_tol;
     double newton_max_residual;
     unsigned newton_max_iterations;
+    int crash_newton_fail;
 
     std::string outdir;
     std::string output_jacobian;
