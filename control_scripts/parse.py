@@ -151,21 +151,29 @@ def plot_vs_step(*args, **kwargs):
     return plot_vs_thing('DocInfo_numbers', *args, **kwargs)
 
 
-def my_scatter(data, x_value, y_value, x_operation=None, y_operation=None):
+def my_scatter(data, x_value, y_value,
+               x_operation=None, y_operation=None,
+               **kwargs):
     """Plot a scatter plot at point (x_value, y_value) for each dataset in
     data. Perform operations on data before plotting (by default take
     mean).
     """
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(subplot_kw=kwargs)
 
-    symbols = iter(['x', 'o', '+', '^', '*'])
-    colours = iter(['r', 'g', 'b', 'k', 'c'])
+
+    a = list(it.product(['x', 'o', '+', '^', '*'],
+                                  ['r', 'g', 'b', 'k', 'c']))
+    symbols = it.cycle(map(''.join, a))
+
+    dataset_split_keys = ["-damping", "-dt", "-scale"]
+    split_data = mm.split_up_stuff(data, dataset_split_keys)
+
 
     # Plot each time stepper
-    for ts in set([d['-ts'] for d in data]):
+    for fdata in split_data:
 
-        fdata = [d for d in data if d['-ts'] == ts]
+        name = " ".join([str(fdata[0][l]) for l in dataset_split_keys])
 
         if x_operation is not None:
             xs = [x_operation(d[x_value]) for d in fdata]
@@ -177,31 +185,18 @@ def my_scatter(data, x_value, y_value, x_operation=None, y_operation=None):
         else:
             ys = [d[y_value] for d in fdata]
 
-
         # Plot
-        ax.scatter(xs, ys, s=80, marker=next(symbols), c=next(colours),
-                   label=str(ts))
+        ax.plot(xs, ys, next(symbols),
+                markersize=10,
+                label=name)
 
     # Label
     ax.set_xlabel(make_axis_label(x_value, x_operation))
     ax.set_ylabel(make_axis_label(y_value, y_operation))
 
-    # try:
-    #     # log?
-    ax.set_yscale('log')
-    #     ax.set_xscale('log')
-    # except:
-    #     return None
 
     # Pick the right axis scales
     ax.axis('auto')
-
-    # lims = ax.xaxis.get_data_interval()
-    # xs = sp.linspace(lims[0], lims[1])
-    # ax.plot(xs, map(lambda x: x, xs),'-', label="x")
-    # ax.plot(xs, map(lambda x: x**2, xs),'k-', label="x^2")
-    # ax.plot(xs, map(lambda x: x**3, xs),'r-', label="x^3")
-    # ax.plot(xs, map(lambda x: x**4, xs),'b-', label="x^3")
 
     ax.legend()
 
@@ -417,6 +412,12 @@ def main():
                                     labels=args.label)
         multi_plot(all_results, args.split, plot_ml_error_vs_time)
 
+    if 'lte' in args.plots:
+        plot_ml_error_vs_time = par(plot_vs_time,
+                                    plot_values=['LTE_norms', 'dts'],
+                                    labels=args.label)
+        multi_plot(all_results, args.split, plot_ml_error_vs_time)
+
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
@@ -464,6 +465,27 @@ def main():
           par(my_scatter,
               x_value='initial_nnode',
               y_value='total_step_time',
+              y_operation=sp.mean)
+
+        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+
+
+    if 'scatter-its' in args.plots:
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              x_value='initial_nnode',
+              y_value='n_solver_iters',
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              yscale='log')
+
+        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+
+
+    if 'scatter-newt' in args.plots:
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              x_value='initial_nnode',
+              y_value='n_newton_iters',
               y_operation=sp.mean)
 
         multi_plot(all_results, args.split, plot_mean_step_times_scatter)
