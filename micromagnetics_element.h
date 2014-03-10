@@ -73,6 +73,9 @@ namespace oomph
     void operator=(const MicromagEquations&)
     {BrokenCopy::broken_assign("MicromagEquations");}
 
+    void add_face_element_pt(FiniteElement* const face_element_pt)
+    { Face_element_pts.insert(face_element_pt); }
+
     /// Self-test: Return 0 for OK.
     unsigned self_test()
     {
@@ -93,6 +96,11 @@ namespace oomph
     }
 
     // Equation numbering
+    // ============================================================
+
+    /// \short We need 5 values: 3 magnetisation + phi + phi1.
+    unsigned required_nvalue(const unsigned &n) const {return 5;}
+
     /// Specify nodal index for phi.
     unsigned phi_index_micromag() const {return 0;} // equation number 0
 
@@ -116,15 +124,16 @@ namespace oomph
     /// Function determining how to block the Jacobian.
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
                                       block_lookup_list)
-
     {
-      // Clear list (just in case)
-      block_lookup_list.clear();
-
-      int nvalue = required_nvalue(0);
-
-      // Use a map because it's easier to overwrite entries
+      // Temporarily use a map for storage because it's easier to overwrite
+      // entries.
       std::map<unsigned long, unsigned> block_lookup_map;
+
+      // Different dof numbers for boundary values (because BEM means they
+      // sometimes have different equations), put them at the end for
+      // simplicity.
+      int boundary_phi_dof_number = required_nvalue(0);
+      int boundary_phi_1_dof_number = required_nvalue(0) + 1;
 
       // Loop over all nodes then all unpinned values (dofs) at each node. For
       // each of these we create a pair giving the global equation number and
@@ -152,14 +161,14 @@ namespace oomph
               if(phi_local_eqn_number >= 0)
                 {
                   int global_eqn_number = eqn_number(phi_local_eqn_number);
-                  block_lookup_map[global_eqn_number] = nvalue;
+                  block_lookup_map[global_eqn_number] = boundary_phi_dof_number;
                 }
 
               int phi_1_local_eqn_number = this->nodal_local_eqn(nd, phi_1_index_micromag());
               if(phi_1_local_eqn_number >= 0)
                 {
                   int global_eqn_number = eqn_number(phi_1_local_eqn_number);
-                  block_lookup_map[global_eqn_number] = nvalue + 1;
+                  block_lookup_map[global_eqn_number] = boundary_phi_1_dof_number;
                 }
             }
         }
@@ -167,23 +176,16 @@ namespace oomph
       // Convert to a list
       block_lookup_list.assign(block_lookup_map.begin(),
                                block_lookup_map.end());
-
     }
-
-    void add_face_element_pt(FiniteElement* const face_element_pt)
-    { Face_element_pts.insert(face_element_pt); }
-
-    /// \short We need 5 values: 3 magnetisation + phi + phi1.
-    unsigned required_nvalue(const unsigned &n) const
-    {return 5;}
 
     /// \short 7 dof types for preconditioning: the 5 values and 2 more for
     /// boundary phi values.
     unsigned ndof_types()
     {return required_nvalue(0) + 2;}
 
-    bool Use_fd_jacobian;
-    LLGResidualCalculator* Residual_calculator_pt;
+
+    // Pointers to things..
+    // ============================================================
 
     const MagneticParameters* magnetic_parameters_pt() const
     {return Magnetic_parameters_pt;}
@@ -309,6 +311,8 @@ namespace oomph
 
 
     // OUTPUT FUNCTIONS
+    // ============================================================
+
     /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5);
 
@@ -323,6 +327,8 @@ namespace oomph
                        const double& time, double& error, double& norm);
 
     // RESIDUALS + JACOBIAN
+    // ============================================================
+
     /// Add the element's contribution to its residual vector (wrapper)
     void fill_in_contribution_to_residuals(Vector<double> &residuals)
     {
@@ -404,6 +410,25 @@ namespace oomph
     }
 
 
+  protected:
+    /// Fill in contribution to residuals and jacobian (if flag is set) from
+    /// these equations (compatible with multiphysics).
+    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
+                                                        DenseMatrix<double> &jacobian,
+                                                        const unsigned& flag);
+
+  public:
+
+
+    // Energy and other auxilary calculations
+    // ============================================================
+
+    /// \short Integrate a function given by func_pt over the element using
+    /// the given integral_pt(). Because C++ sucks we have to do this with
+    /// weird function objects.
+    double integrate_over_element(const ElementalFunction* func_pt) const;
+
+
     /// \short Return a vector containing the magnetisation at a node.
     Vector<double> get_m(unsigned node) const
     {
@@ -414,7 +439,6 @@ namespace oomph
         }
       return m;
     }
-
 
     /// \short Get the maximum difference in angle between the
     /// magnetisation of two nodes of the element. If this is large there
@@ -440,30 +464,36 @@ namespace oomph
     }
 
 
-    // Energy calculations
+    // Data storage
     // ============================================================
 
-    /// \short Integrate a function given by func_pt over the element using
-    /// the given integral_pt(). Because C++ sucks we have to do this with
-    /// weird function objects.
-    double integrate_over_element(const ElementalFunction* func_pt) const;
+    // Leave these public for now because access functions are a pain and
+    // we would need public write access functions anyway (so no "safer"
+    // with access functions).
 
+    /// Should the Jacobian be calcuated by (element level) finite
+    /// differencing?
+    bool Use_fd_jacobian;
+
+    /// Pointer to the class (a glorified functor really) used to calculate
+    /// the residual and Jacobian. Done like this rather than hard coded so
+    /// that we can easily switch between LL and LLG formulations, e.g. for
+    /// use in predictor step of adaptive midpoint.
+    LLGResidualCalculator* Residual_calculator_pt;
 
   protected:
 
-    /// Fill in contribution to residuals and jacobian (if flag is set) from
-    /// these equations (compatible with multiphysics)
-    void fill_in_generic_residual_contribution_micromag(Vector<double> &residuals,
-                                                        DenseMatrix<double> &jacobian,
-                                                        const unsigned& flag);
-
-    /// Pointer to poisson source function - only for testing purposes since
-    /// div(M) is our source function in calculation of the demagnetising
-    /// potential.
+    /// Pointer to poisson source function for phi. Only for testing
+    /// purposes since div(M) is our source function in calculation of the
+    /// demagnetising potential.
     TimeSpaceToDoubleFctPt Phi_source_pt;
 
+    /// Pointer to poisson source function for phi1. Only for testing
+    /// purposes since div(M) is our source function in calculation of the
+    /// demagnetising potential.
     TimeSpaceToDoubleFctPt Phi_1_source_pt;
 
+    /// Pointer to class storing the magnetic parameter data.
     const MagneticParameters* Magnetic_parameters_pt;
 
     /// Pointer to function giving applied field.
