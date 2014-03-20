@@ -119,11 +119,11 @@ namespace oomph
 
           // Sort the row index list then create row starts vector. DO NOT
           // COPY THIS CODE FOR CREATION OF OTHER MATRICES: sorting is only
-          // safe because all the values are the same (1.0).
+          // safe because all the values are the same.
           std::sort(row_index.begin(), row_index.end());
           VectorOps::rowindex2rowstart(row_index, nrow, row_start);
 
-          // Create the matrix
+          // Create the matrix (col_index == row index since on diagonal)
           CRDoubleMatrix bem_block_identity(dist_pt, nrow, values,
                                             row_index, row_start);
 

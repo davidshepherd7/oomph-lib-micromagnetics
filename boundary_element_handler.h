@@ -10,13 +10,6 @@
 
   * Fix for non-rectangle boundaries!!
 
-  * Output_index doesn't do what it seems like it should do: it corresponds
-  * to the index used for the node lookup (because it can't use the actual
-  * output index because they are pinned, by definition since bem is being
-  * used to determine those values). Probably I should use input_index for
-  * all lookups.
-
-
   */
 
 #include "../../src/generic/sum_of_matrices.h"

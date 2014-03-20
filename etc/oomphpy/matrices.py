@@ -17,7 +17,7 @@ def ascii2coo(filename):
     notation to scipy sparse in coordinate notation."""
 
     # Check the file exists
-    assert(os.path.isfile(filename))
+    assert os.path.isfile(filename), "no file " + filename
 
 
     # If it's empty then make an empty matrix
