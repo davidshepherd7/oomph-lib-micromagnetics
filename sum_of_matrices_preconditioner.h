@@ -135,6 +135,78 @@ namespace oomph
   };
 
 
+  /// Preconditioner which merges the diagonals of the added matrices into
+  /// a new main matrix for preconditioning.
+  class MainMatrixAndDiagsPreconditioner : public SoMPreconditioner
+  {
+  public:
+
+    MainMatrixAndDiagsPreconditioner()
+    {
+      Preconditioner_matrix_pt = 0;
+    }
+
+    virtual ~MainMatrixAndDiagsPreconditioner()
+    {
+      delete Preconditioner_matrix_pt; Preconditioner_matrix_pt = 0;
+    }
+
+  protected:
+
+    /// ??ds
+    void set_preconditioner_matrix_pt(SumOfMatrices* s_matrix_pt)
+    {
+      CRDoubleMatrix* main_pt = checked_dynamic_cast<CRDoubleMatrix*>
+        (s_matrix_pt->main_matrix_pt());
+
+      // Copy main matrix into the new one
+      Preconditioner_matrix_pt = new CRDoubleMatrix(*main_pt);
+
+      for(unsigned k=0; k<s_matrix_pt->n_added_matrix(); k++)
+        {
+          DoubleMatrixBase* added_pt = s_matrix_pt->added_matrix_pt(k);
+
+          // Create diagonal CR version of added matrix 1
+          std::list<VectorOps::RowColVal> rcvs;
+          for(unsigned j=0; j<added_pt->nrow(); j++)
+            {
+              VectorOps::RowColVal rcv;
+              rcv.row = s_matrix_pt->row_map_pt(k)->added_to_main(j);
+              rcv.col = s_matrix_pt->col_map_pt(k)->added_to_main(j);
+              rcv.val = (*added_pt)(j, j);
+
+              rcvs.push_back(rcv);
+            }
+
+          // Build the cr matrix of the diag of this added matrix
+          CRDoubleMatrix diag_added_matrix;
+          VectorOps::rowcolvals_to_crmatrix(rcvs, main_pt->distribution_pt(),
+                                            main_pt->ncol(),
+                                            diag_added_matrix);
+
+          // Add to the total matrix
+          VectorOps::cr_matrix_add(*Preconditioner_matrix_pt, diag_added_matrix,
+                                   *Preconditioner_matrix_pt);
+        }
+
+      // Finally assign it in the preconditioner
+      Underlying_prec_pt->set_matrix_pt(Preconditioner_matrix_pt);
+    }
+
+  private:
+
+    CRDoubleMatrix* Preconditioner_matrix_pt;
+
+    /// Broken copy constructor
+    MainMatrixAndDiagsPreconditioner(const MainMatrixAndDiagsPreconditioner& dummy)
+    {BrokenCopy::broken_copy("MainMatrixAndDiagsPreconditioner");}
+
+    /// Broken assignment operator
+    void operator=(const MainMatrixAndDiagsPreconditioner& dummy)
+    {BrokenCopy::broken_assign("MainMatrixAndDiagsPreconditioner");}
+  };
+
+
 } // End of oomph namespace
 
 #endif

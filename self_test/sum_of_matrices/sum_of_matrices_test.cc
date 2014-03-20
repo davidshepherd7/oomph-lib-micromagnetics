@@ -2,6 +2,7 @@
 
 #include "generic.h"
 #include "../../vector_helpers.h"
+#include "../../sum_of_matrices_preconditioner.h"
 
 // Accumulate command
 #include <numeric>
@@ -39,6 +40,7 @@ int main()
   const unsigned n_tests = 10;
 
   Vector<double> norm_error(0);
+  Vector<unsigned> diag_prec_iterations;
 
   for(unsigned i_rand=0; i_rand<n_tests; i_rand++)
     {
@@ -134,6 +136,25 @@ int main()
       std::cout << "\nmax error is: " <<  a << std::endl;
 
       norm_error.push_back(a);
+
+
+      // Also test SoM diag preconditioner
+      // ============================================================
+
+      // Build a SoM with only a diag matrix added
+      SumOfMatrices diag_sum_matrix;
+      diag_sum_matrix.main_matrix_pt() = &main_matrix;
+      diag_sum_matrix.add_matrix(&id_matrix, &row_map, &col_map);
+
+      // Build gmres with a som diag preconditioner
+      GMRES<SumOfMatrices> diag_prec_gmres;
+      MainMatrixAndDiagsPreconditioner prec;
+      prec.set_underlying_prec_pt(new SuperLUPreconditioner);
+      diag_prec_gmres.preconditioner_pt() = &prec;
+
+      // Solve it
+      diag_prec_gmres.solve(&diag_sum_matrix, rhs, solve_solution);
+      diag_prec_iterations.push_back(diag_prec_gmres.iterations());
     }
 
   double mean_norm_error = std::accumulate(norm_error.begin(), norm_error.end(), 0.0)
@@ -145,5 +166,18 @@ int main()
     {
       return 1;
     }
+
+  const unsigned ni = diag_prec_iterations.size();
+  for(unsigned i=0; i<ni; i++)
+    {
+      if(diag_prec_iterations[i] != 1)
+        {
+          std::cout << ">1 iteration needed for supposedly exact prec" << std::endl;
+          return 1;
+        }
+    }
+
+
+
   return 0;
 }

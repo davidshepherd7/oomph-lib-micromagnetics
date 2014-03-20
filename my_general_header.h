@@ -319,6 +319,18 @@ namespace oomph
               prec_pt = mm_prec_pt;
               its_pt->preconditioner_pt() = prec_pt;
             }
+          // Make a preconditioner which only acts on the main matrix and
+          // diagonals of added matrices of a sum of matrices.
+          else if(has_prefix("som-maindiag-", prec_name))
+            {
+              std::string ul_prec_name = rest_of_name("som-maindiag-", prec_name);
+              Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
+              MainMatrixAndDiagsPreconditioner* mm_prec_pt
+                = new MainMatrixAndDiagsPreconditioner;
+              mm_prec_pt->set_underlying_prec_pt(ul_prec);
+              prec_pt = mm_prec_pt;
+              its_pt->preconditioner_pt() = prec_pt;
+            }
           // Otherwise just make a normal preconditioner
           else if(prec_name != "none")
             {
