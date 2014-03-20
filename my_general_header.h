@@ -74,7 +74,7 @@ namespace oomph
         if(som_main_prec_pt != 0)
           {
             T ul_bp_pt = dynamic_cast<T>
-              (som_main_prec_pt->underlying_preconditioner_pt());
+              (som_main_prec_pt->underlying_prec_pt());
             if(ul_bp_pt != 0)
               {
                 return ul_bp_pt;
@@ -314,8 +314,9 @@ namespace oomph
             {
               std::string ul_prec_name = rest_of_name("som-main-", prec_name);
               Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
-              prec_pt = new MainMatrixOnlyPreconditioner(ul_prec);
-
+              MainMatrixOnlyPreconditioner* mm_prec_pt = new MainMatrixOnlyPreconditioner;
+              mm_prec_pt->set_underlying_prec_pt(ul_prec);
+              prec_pt = mm_prec_pt;
               its_pt->preconditioner_pt() = prec_pt;
             }
           // Otherwise just make a normal preconditioner
