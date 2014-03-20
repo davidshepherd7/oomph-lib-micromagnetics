@@ -391,7 +391,9 @@ namespace VectorOps
 #endif
 
     row_start.clear();
-    row_start.reserve(row_index.back()+1);
+
+    // size of row start is 1 more than number of rows
+    row_start.reserve(nrow+1);
 
     row_start.push_back(0);
 
@@ -626,7 +628,7 @@ namespace VectorOps
 #ifdef PARANOID
     if(m1.nrow() != m2.nrow())
       {
-        std::string err = "The two matrices have a different number of rows";
+        std::string err = "The two matrices have a different number of rows ";
         err += "matrix 1 has " + to_string(m1.nrow()) + " rows ";
         err += "but matrix 2 has " + to_string(m2.nrow()) +".";
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
@@ -634,7 +636,7 @@ namespace VectorOps
       }
     if(m1.ncol() != m2.ncol())
       {
-        std::string err = "The two matrices have a different number of cols";
+        std::string err = "The two matrices have a different number of cols ";
         err += "matrix 1 has " + to_string(m1.ncol()) + " cols ";
         err += "but matrix 2 has " + to_string(m2.ncol()) +".";
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
@@ -783,6 +785,94 @@ namespace VectorOps
     mout.build(&dist, ncol, vs, cs, sum_row_start);
 
   }
+
+
+  struct RowColVal
+  {
+    int row;
+    int col;
+    double val;
+  };
+
+  inline bool operator<(const RowColVal& first,
+                        const RowColVal& second)
+  {
+    if(first.row == second.row)
+      {
+        return first.col < second.col;
+      }
+    else
+      {
+        return first.row < second.row;
+      }
+  }
+
+  /// Make cr matrix from row/col/value data. Sorts row/col/value data in
+  /// place (so non-const).
+  inline void rowcolvals_to_crmatrix(std::list<RowColVal>& rcv,
+                                     const LinearAlgebraDistribution* dist_pt,
+                                     const unsigned& ncol,
+                                     CRDoubleMatrix& out)
+  {
+      // Sort by row index then column index
+      rcv.sort();
+
+      // Merge values in the same element by addition. Double iteration
+      // over the same list. Since entries are sorted same row + col =>
+      // adjacent, so we only need to check adjacent entries.
+      std::list<RowColVal>::iterator it1, it2;
+      for(it1 = rcv.begin(), it2 = ++rcv.begin();
+          it2 != rcv.end();
+          ++it1, ++it2)
+        {
+#ifdef PARANOID
+          if(it1 == it2)
+            {
+              std::string err = "iterators ended up the same somehow...";
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
+#endif
+
+          // If same row and col
+          if((it1->row == it2->row)
+             && (it1->col == it2->col))
+            {
+              std::cout << "Removing" << std::endl;
+
+              // Add the values
+              it1->val += it2->val;
+
+              // Delete the entry, get iterator to new entry in that
+              // location.
+              it2 = rcv.erase(it2);
+
+              // Step iterators back by one
+              --it1;
+              --it2;
+            }
+        }
+
+      // Convert to vectors
+      const unsigned ni = rcv.size();
+      Vector<int> col(ni), row(ni), row_start;
+      Vector<double> val(ni);
+
+      std::list<RowColVal>::iterator it;
+      unsigned i=0;
+      for(it = rcv.begin(); it != rcv.end(); it++, i++)
+        {
+          row[i] = it->row;
+          col[i] = it->col;
+          val[i] = it->val;
+        }
+
+      // Convert to rowstart
+      rowindex2rowstart(row, dist_pt->nrow(), row_start);
+
+      // build matrix
+      out.build(dist_pt, ncol, val, col, row_start);
+    }
 
 
 }
