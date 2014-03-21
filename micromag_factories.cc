@@ -237,14 +237,14 @@ namespace oomph
         {
           return new BDF<2>(adaptive_flag);
         }
-      else if(ts_name == "midpoint")
+      else if((ts_name == "midpoint") || (ts_name == "old-imr"))
         {
           MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
           ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
           mp_pt->set_predictor_pt(pred_pt);
           return mp_pt;
         }
-      else if(ts_name == "midpoint-bdf")
+      else if((ts_name == "midpoint-bdf") || (ts_name == "imr"))
         {
           MidpointMethodByBDF* mp_pt = new MidpointMethodByBDF(adaptive_flag);
           ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
