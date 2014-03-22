@@ -422,6 +422,9 @@ namespace oomph
             }
 
         }
+
+
+      actions_after_set_initial_condition();
     }
 
     virtual void write_additional_trace_headers(std::ofstream& trace_file) const
