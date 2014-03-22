@@ -42,6 +42,7 @@ callgrind*
 *.bak
 *.edge
 sphere.0
+mesh_construction_output
 
 # Other outputs
 soln*.dat
@@ -64,6 +65,9 @@ micromag.h
 experiments
 experiments/*
 */old_experiments*/*
+
+# and restart files folder
+restart_files
 
 # Link to folder of parameter sets
 etc/parameter_sets/my_parameter_sets
