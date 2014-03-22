@@ -152,6 +152,8 @@ def plot_vs_step(*args, **kwargs):
 
 
 def my_scatter(data, x_value, y_value,
+               dataset_split_keys=None,
+               labels=None,
                x_operation=None, y_operation=None,
                **kwargs):
     """Plot a scatter plot at point (x_value, y_value) for each dataset in
@@ -159,21 +161,36 @@ def my_scatter(data, x_value, y_value,
     mean).
     """
 
+    # Is dt or tol more interesting for labels? Use dt if all tols are zero
+    # (i.e. non-adaptive)
+    if all([d['-tol'] == 0 for d in data]):
+        dt_label = '-dt'
+    else:
+        dt_label = '-tol'
+
+    if labels is None:
+        labels = ['-ref', '-ts', dt_label]
+    else:
+        labels = ['-ref', '-ts', dt_label] + labels
+
+    if dataset_split_keys is None:
+        dataset_split_keys = ["-damping", "-dt", "-scale"]
+    else:
+        labels=dataset_split_keys
+
     fig, ax = plt.subplots(subplot_kw=kwargs)
 
 
-    a = list(it.product(['x', 'o', '+', '^', '*'],
-                                  ['r', 'g', 'b', 'k', 'c']))
+    a = list(it.product(['r', 'g', 'b', 'k', 'c'], ['x', 'o', '+', '^', '*']))
     symbols = it.cycle(map(''.join, a))
 
-    dataset_split_keys = ["-damping", "-dt", "-scale"]
     split_data = mm.split_up_stuff(data, dataset_split_keys)
 
 
     # Plot each time stepper
     for fdata in split_data:
 
-        name = " ".join([str(fdata[0][l]) for l in dataset_split_keys])
+        name = " ".join([str(fdata[0][l]) for l in labels])
 
         if x_operation is not None:
             xs = [x_operation(d[x_value]) for d in fdata]
@@ -310,10 +327,13 @@ def main():
                         help='Choose values to print')
 
     parser.add_argument('--label', '-l', action='append',
-                        help='Add addtional labels to line')
+                        help='Add additional labels to line, for keys begining with dash specify them as: `-s=-dt` to avoid issues with `-` being read as a new argument.')
 
     parser.add_argument('--split', '-s', action='append',
-                        help="Split into different plots for different values of these keys, for keys begining with dash specify them as: `-s='-dt'` to avoid issues with `-` being read as a new argument.")
+                        help="Split into different plots for different values of these keys, for keys begining with dash specify them as: `-s=-dt` to avoid issues with `-` being read as a new argument.")
+
+    parser.add_argument('--scatter-split', '-t', action='append',
+                        help="Split into different data sets in a scatter plot for different values of these keys, for keys begining with dash specify them as: `-s=-dt` to avoid issues with `-` being read as a new argument.")
 
     parser.add_argument('--skip-failed', action='store_true',
                         help='Skip runs which failed (dir contains file named failed)')
@@ -334,10 +354,6 @@ def main():
         args.split = ['mesh', 'h-app', 'initial-m', 'mag-params', 'scale']
 
 
-    if args.label is not None:
-        for i, l in enumerate(args.label):
-            args.label[i] = "-" + l
-
     # Main function
     # ============================================================
 
@@ -350,6 +366,7 @@ def main():
           "(any others didn't have enough time steps finished).")
 
     print("Splitting plots based on values of", args.split)
+    print("Labeling  plots based on values of", args.label)
 
     # Print if needed
     if args.print_all_data:
@@ -379,7 +396,7 @@ def main():
 
     if 'trace' in args.plots:
         plot_traces = par(plot_vs_time,
-                          plot_values=['trace_values', 'dts'],
+                          plot_values=['exact', 'trace_values', 'dts'],
                           labels=args.label)
         multi_plot(all_results, args.split, plot_traces)
 
@@ -444,6 +461,8 @@ def main():
             return sp.mean(e)
 
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
+                                  dataset_split_keys=args.scatter_split,
+                                  labels=args.label,
                                   y_operation=damping_error_mean)
         multi_plot(all_results, args.split, plot_damping_errors)
 
@@ -463,6 +482,8 @@ def main():
 
         plot_mean_step_times_scatter = \
           par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
               x_value='initial_nnode',
               y_value='total_step_time',
               y_operation=sp.mean)
@@ -473,10 +494,11 @@ def main():
     if 'scatter-its' in args.plots:
         plot_mean_step_times_scatter = \
           par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
               x_value='initial_nnode',
               y_value='n_solver_iters',
-              y_operation=lambda x:sp.mean(list(it.chain(*x))),
-              yscale='log')
+              y_operation=lambda x:sp.mean(list(it.chain(*x))))
 
         multi_plot(all_results, args.split, plot_mean_step_times_scatter)
 
@@ -484,6 +506,8 @@ def main():
     if 'scatter-newt' in args.plots:
         plot_mean_step_times_scatter = \
           par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
               x_value='initial_nnode',
               y_value='n_newton_iters',
               y_operation=sp.mean)
