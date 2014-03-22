@@ -24,6 +24,7 @@
 #include "../../src/generic/timesteppers.h"
 #include "../../src/generic/midpoint_method.h"
 #include "../../src/generic/explicit_timesteppers.h"
+#include "tr.h"
 
 
 // Preconditioner factories
@@ -260,6 +261,12 @@ namespace oomph
           // 2 steps so that we have enough space to do reasonable time
           // derivative estimates in e.g. energy derivatives.
           return new Steady<3>;
+        }
+      else if(ts_name == "tr")
+        {
+          // 2 steps so that we have enough space to do reasonable time
+          // derivative estimates in e.g. energy derivatives.
+          return new TR(adaptive_flag);
         }
       else
         {

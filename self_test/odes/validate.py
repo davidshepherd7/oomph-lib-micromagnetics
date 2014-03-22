@@ -143,7 +143,7 @@ def main():
     passes = []
 
     exacts = ["sin", "cos", "poly3", "poly2"]
-    timesteppers = ["rk2", "rk4", "midpoint-bdf", "bdf2"]
+    timesteppers = ["rk2", "rk4", "midpoint-bdf", "bdf2", "tr"]
 
     for exact, timestepper in it.product(exacts, timesteppers):
         passes.append(constant_dt_test(exact, timestepper))
