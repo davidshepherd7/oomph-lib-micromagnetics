@@ -21,9 +21,6 @@
 #include "micromag_types.h"
 #include "prettyprint98.hpp"
 
-// ??ds get rid of
-#include "tr.h"
-
 
 
 // #include "./my_general_header.h"
@@ -600,42 +597,7 @@ using namespace StringConversion;
 
     /// Hook to be overloaded with any calculations needed after setting of
     /// initial conditions.
-    virtual void actions_after_set_initial_condition()
-    {
-      TR* tr_pt = dynamic_cast<TR*>(time_stepper_pt());
-      if(tr_pt != 0)
-        {
-          oomph_info << "Solving for derivative at initial time."
-                     << " Warning: if residual is not in the correct form this may fail."
-                     << std::endl;
-
-          // Make all the implicit timesteppers steady
-          unsigned n_time_steppers = ntime_stepper();
-          std::vector<bool> was_steady(n_time_steppers);
-          for(unsigned i=0;i<n_time_steppers;i++)
-            {
-              was_steady[i]=time_stepper_pt(i)->is_steady();
-              time_stepper_pt(i)->make_steady();
-            }
-
-          // Get the derivative at initial time and store in slot ready for
-          // use in timestepping.
-          DoubleVector f0;
-          this->get_inverse_mass_matrix_times_residuals(f0);
-          this->set_dofs(tr_pt->derivative_index(0), f0);
-
-          // Reset the is_steady status of all timesteppers that
-          // weren't already steady when we came in here.
-          for(unsigned i=0;i<n_time_steppers;i++)
-            {
-              if (!was_steady[i])
-                {
-                  time_stepper_pt(i)->undo_make_steady();
-                }
-           }
-        }
-    }
-
+    virtual void actions_after_set_initial_condition();
 
     /// Integrate a function given by func_pt over every element in a mesh
     /// and return the total. This should probably be in the mesh class but

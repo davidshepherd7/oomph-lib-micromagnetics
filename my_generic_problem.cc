@@ -231,6 +231,10 @@ namespace oomph
       }
   }
 
+  /// Hook to be overloaded with any calculations needed after setting of
+  /// initial conditions.
+  void MyProblem::actions_after_set_initial_condition() {}
+
   void MyProblem::initial_doc()
   {
 #ifdef PARANOID
