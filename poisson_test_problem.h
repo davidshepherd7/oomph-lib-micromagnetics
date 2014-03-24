@@ -5,8 +5,6 @@
   description of file goes here
 */
 
-#include "generic.h"
-
 #include "./generic_poisson_problem.h"
 
 // Mesh for running Poisson tests
