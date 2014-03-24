@@ -19,7 +19,7 @@ public:
 
 
     void build(bool exact_phi1=false, bool exact_phi=false,
-               bool exact_llg=true, bool schur_complement_llg=false)
+               bool exact_llg=false, bool schur_complement_llg=false)
     {
       {
         // this->upper_triangular();

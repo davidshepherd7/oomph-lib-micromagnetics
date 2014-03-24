@@ -565,7 +565,15 @@ namespace oomph
       else if(prec_name == "llgblock")
         {
           LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
-          llgp_pt->build();
+          llgp_pt->build(false, false, true);
+          prec_pt = llgp_pt;
+
+        }
+      else if(prec_name == "llgblock-exact") // Same but with exact llg
+                                             // block solve
+        {
+          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
+          llgp_pt->build(false, false, true);
           prec_pt = llgp_pt;
 
         }
