@@ -1095,12 +1095,14 @@ public:
       // ??ds this should maybe be a general one?
       llg_pt->Use_fd_jacobian = use_fd_jacobian;
 
-      // Set exact solution if we have one
+      // Set exact solution if we have one: only for spherical
+      // nano-particles or when ms is disabled.
       if(((h_app_name == "minus_z")
           && (initial_m_name == "z")
           && (mag_params_pt->gilbert_damping() != 0.0)
-          && (to_lower(ms_method) == "disabled"))
-         || mallinson == 1)
+          && ((to_lower(ms_method) == "disabled")
+              || (mesh_name == "ut_sphere")))
+          || mallinson == 1)
         {
           llg_pt->Compare_with_mallinson = true;
         }
