@@ -83,65 +83,20 @@ namespace oomph
                      << " Warning: if residual is not in the correct form this may fail."
                      << std::endl;
 
-          // Make all the implicit timesteppers steady
-          unsigned n_time_steppers = problem_pt->ntime_stepper();
-          std::vector<bool> was_steady(n_time_steppers);
-          for(unsigned i=0;i<n_time_steppers;i++)
-            {
-              was_steady[i]=problem_pt->time_stepper_pt(i)->is_steady();
-              problem_pt->time_stepper_pt(i)->make_steady();
-            }
-
-          // If it's an llg problem then we need some extra hacks so that BEM
-          // doesn't interfere with get_jacobian and so that we are using the
-          // explicit form. ??ds get rid of this somehow?
-          LLGProblem* llg_pt = dynamic_cast<LLGProblem*>(problem_pt);
-          bool needs_reset = false;
-          if(llg_pt != 0)
-            {
-              llg_pt->Inside_explicit_timestep = true;
-              if(llg_pt->Residual_calculator_pt->use_gilbert_form())
-                {
-                  llg_pt->Residual_calculator_pt->set_use_ll_form();
-                  needs_reset = true;
-                }
-            }
-
           // Shift time backwards because we have already shifted it to t_1
-          // when this function is called but we actually want the derivative
-          // at t_0.
+          // when this function is called but we actually want the
+          // derivative at t_0.
           double backup_time = time_pt()->time();
           time_pt()->time() -= time_pt()->dt();
 
           // Get the derivative at initial time and store in derivatives slot
           // ready for use in timestepping.
           DoubleVector f0;
-          problem_pt->get_inverse_mass_matrix_times_residuals(f0);
+          problem_pt->get_dvaluesdt(f0);
           problem_pt->set_dofs(this->derivative_index(0), f0);
 
           // Revert time value
           time_pt()->time() = backup_time;
-
-          // Revert llg settings
-          if(llg_pt != 0)
-            {
-              llg_pt->Inside_explicit_timestep = false;
-              if(needs_reset)
-                {
-                  llg_pt->Residual_calculator_pt->set_use_gilbert_form();
-                  llg_pt->Inside_explicit_timestep = false;
-                }
-            }
-
-          // Reset the is_steady status of all timesteppers that
-          // weren't already steady when we came in here.
-          for(unsigned i=0;i<n_time_steppers;i++)
-            {
-              if (!was_steady[i])
-                {
-                  problem_pt->time_stepper_pt(i)->undo_make_steady();
-                }
-            }
 
           Initial_derivative_set = true;
         }

@@ -14,7 +14,6 @@
 #include "residual_calculator.h"
 #include "boundary_element_handler.h"
 #include "micromagnetics_flux_element.h"
-#include "residual_swapping_explicit_timestepper.h"
 #include "generic_poisson_problem.h"
 #include "micromag_types.h"
 
@@ -182,6 +181,30 @@ namespace oomph
           Problem::get_jacobian(residuals, jacobian);
         }
     }
+
+    /// Overload to set flag to avoid BEM interfering with get mass matrix
+    /// and to swap to ll form of residual if needed.
+    void get_dvaluesdt(DoubleVector& f)
+      {
+        Inside_explicit_timestep = true;
+
+        bool needs_reset = false;
+        if(Residual_calculator_pt->use_gilbert_form())
+          {
+            Residual_calculator_pt->set_use_ll_form();
+            needs_reset = true;
+          }
+
+        Problem::get_dvaluesdt(f);
+
+        if(needs_reset)
+          {
+            Residual_calculator_pt->set_use_gilbert_form();
+            Inside_explicit_timestep = false;
+          }
+
+        Inside_explicit_timestep = false;
+      }
 
     /// Function that does the real work of the constructors.
     void build(Vector<Mesh*>& bulk_mesh_pts);

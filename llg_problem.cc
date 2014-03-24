@@ -176,25 +176,6 @@ namespace oomph
       }
 
 
-    // If we are using llg residual with midpoint method then we need to
-    // swap residuals over in the explicit predictor time steps. Put in
-    // the class to do this here.
-    if(Residual_calculator_pt->use_gilbert_form()
-       && dynamic_cast<MidpointMethodBase*>(time_stepper_pt()) != 0)
-      {
-        MidpointMethodBase* mp_pt = checked_dynamic_cast<MidpointMethodBase*>
-          (time_stepper_pt());
-
-        // Create and set up our residual swapping timestepper.
-        ResidualSwappingExplicitTimestepper* rsts_pt
-          = new ResidualSwappingExplicitTimestepper;
-        rsts_pt->underlying_time_stepper_pt = mp_pt->predictor_pt();
-        rsts_pt->residual_pt = checked_dynamic_cast<LLGResidualCalculator*>
-          (Residual_calculator_pt);
-
-        mp_pt->set_predictor_pt(rsts_pt);
-      }
-
 
     // Select solver parameters to use for phi solves.
     // ============================================================
