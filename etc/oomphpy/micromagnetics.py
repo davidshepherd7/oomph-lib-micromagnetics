@@ -39,7 +39,7 @@ def driver_path():
 def boolean_flags():
     """A list of flags which are just either enabled or not.
     """
-    return ['-fd-jac', "-disable-explicit-solver-optimisations"]
+    return ['-fd-jac', "-disable-mm-opt"]
 
 
 # Terminal codes for colours

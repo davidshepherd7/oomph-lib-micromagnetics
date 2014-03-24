@@ -44,10 +44,10 @@ def main():
         "-ts" : ["bdf2", "midpoint-bdf"],
         "-tmax" : 5,
         "-tol" : 1e-5,
-        "-disable-explicit-solver-optimisations" : True,
+        "-disable-mm-opt" : True,
         }
 
-    # ??ds not sure why we need "-disable-explicit-solver-optimisations",
+    # ??ds not sure why we need "-disable-mm-opt",
     # but there's something stupid going on with mass matrix storage
 
     # Where it's going to end up

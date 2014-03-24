@@ -61,7 +61,7 @@ using namespace StringConversion;
     SolverParameters()
     {
       linear_solver_pt = 0;
-      explicit_solver_pt = 0;
+      mass_matrix_solver_pt = 0;
     }
 
     LinearSolver* linear_solver_pt;
@@ -79,7 +79,7 @@ using namespace StringConversion;
     bool problem_is_nonlinear;
 
     // Explicit solver
-    LinearSolver* explicit_solver_pt;
+    LinearSolver* mass_matrix_solver_pt;
     bool mass_matrix_reuse_is_enabled;
     bool mass_matrix_has_been_computed;
     bool discontinuous_element_formulation;
@@ -124,7 +124,7 @@ using namespace StringConversion;
       // does not exist.
       Doc_info.enable_error_if_directory_does_not_exist();
 
-      Disable_explicit_solver_optimisations = false;
+      Disable_mass_matrix_solver_optimisations = false;
 
       // By default output to trace file every step
       Always_write_trace = true;
@@ -187,7 +187,7 @@ using namespace StringConversion;
       sp.problem_is_nonlinear = Problem_is_nonlinear;
 
       // Explicit solver
-      sp.explicit_solver_pt = explicit_solver_pt();
+      sp.mass_matrix_solver_pt = mass_matrix_solver_pt();
       sp.mass_matrix_reuse_is_enabled = mass_matrix_reuse_is_enabled();
       sp.mass_matrix_has_been_computed = Mass_matrix_has_been_computed;
       sp.discontinuous_element_formulation = Discontinuous_element_formulation;
@@ -210,7 +210,7 @@ using namespace StringConversion;
       Problem_is_nonlinear = sp.problem_is_nonlinear;
 
       // Explicit solver
-      explicit_solver_pt() = sp.explicit_solver_pt;
+      mass_matrix_solver_pt() = sp.mass_matrix_solver_pt;
       Mass_matrix_reuse_is_enabled = sp.mass_matrix_reuse_is_enabled;
       Mass_matrix_has_been_computed = sp.mass_matrix_has_been_computed;
       Discontinuous_element_formulation = sp.discontinuous_element_formulation;
@@ -253,12 +253,12 @@ using namespace StringConversion;
     virtual void actions_after_explicit_stage()
     {
       Jacobian_setup_times.push_back
-        (this->explicit_solver_pt()->jacobian_setup_time());
+        (this->mass_matrix_solver_pt()->jacobian_setup_time());
       Solver_times.push_back
-        (this->explicit_solver_pt()->linear_solver_solution_time());
+        (this->mass_matrix_solver_pt()->linear_solver_solution_time());
 
       const IterativeLinearSolver* its_pt
-        = dynamic_cast<const IterativeLinearSolver*>(this->explicit_solver_pt());
+        = dynamic_cast<const IterativeLinearSolver*>(this->mass_matrix_solver_pt());
       if(its_pt != 0)
         {
           Solver_iterations.push_back(its_pt->iterations());
@@ -696,7 +696,7 @@ using namespace StringConversion;
 
     /// Option to turn off optimisation of the linear solves needed for
     /// explicit timestepping (for debugging purposes).
-    bool Disable_explicit_solver_optimisations;
+    bool Disable_mass_matrix_solver_optimisations;
 
     // Should we output to trace file every step?
     bool Always_write_trace;

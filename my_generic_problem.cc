@@ -208,7 +208,7 @@ namespace oomph
         Dim = 0;
       }
 
-    if(!Disable_explicit_solver_optimisations)
+    if(!Disable_mass_matrix_solver_optimisations)
       {
         // Set the solver for explicit timesteps (mass matrix) to CG with a
         // diagonal predconditioner.
@@ -220,7 +220,7 @@ namespace oomph
         // certainly gone wrong!
         expl_solver_pt->max_iter() = 100;
         expl_solver_pt->enable_error_after_max_iter();
-        explicit_solver_pt() = expl_solver_pt;
+        mass_matrix_solver_pt() = expl_solver_pt;
 
         // expl_solver_pt->enable_doc_convergence_history();
 

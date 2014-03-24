@@ -225,7 +225,7 @@ namespace oomph
         specify_command_line_flag("-solution-norm-limit", &solution_norm_limit);
         solution_norm_limit = -1.0;
 
-        specify_command_line_flag("-disable-explicit-solver-optimisations");
+        specify_command_line_flag("-disable-mm-opt");
 
         specify_command_line_flag("-predictor-as-initial-guess",
                                   &predictor_as_initial_guess);
@@ -344,8 +344,8 @@ namespace oomph
 
       // Store boolean flags
       use_fd_jacobian = command_line_flag_has_been_set("-fd-jac");
-      disable_explicit_solver_optimisations =
-        command_line_flag_has_been_set("-disable-explicit-solver-optimisations");
+      disable_mass_matrix_solver_optimisations =
+        command_line_flag_has_been_set("-disable-mm-opt");
 
       // Build the meshes using whatever function the sub class defines
       build_meshes();
@@ -437,7 +437,7 @@ namespace oomph
     unsigned max_steps;
     double error_norm_limit;
     double solution_norm_limit;
-    bool disable_explicit_solver_optimisations;
+    bool disable_mass_matrix_solver_optimisations;
     int predictor_as_initial_guess;
     int mp_update_pinned;
 

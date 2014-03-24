@@ -206,8 +206,8 @@ int main(int argc, char *argv[])
   // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
   problem_pt->Error_norm_limit = args_pt->error_norm_limit;
   problem_pt->Solution_norm_limit = args_pt->solution_norm_limit;
-  problem_pt->Disable_explicit_solver_optimisations =
-    args_pt->disable_explicit_solver_optimisations;
+  problem_pt->Disable_mass_matrix_solver_optimisations =
+    args_pt->disable_mass_matrix_solver_optimisations;
 
   if(args_pt->dump != -1)
     {

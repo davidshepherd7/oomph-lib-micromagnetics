@@ -52,7 +52,7 @@ def constant_dt_test(exact, timestepper):
     mm.cleandir(outdir)
 
     arglist = ["ode",
-               "-disable-explicit-solver-optimisations",
+               "-disable-mm-opt",
                "-outdir", outdir,
                 "-dt", "0.05",
                  "-tmax", "4",
@@ -91,7 +91,7 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
     mm.cleandir(outdir)
 
     arglist = ["ode",
-               "-disable-explicit-solver-optimisations", # bugs? :(
+               "-disable-mm-opt", # bugs? :(
                "-outdir", outdir,
                "-tol", str(tol),
                "-tmax", "4",
