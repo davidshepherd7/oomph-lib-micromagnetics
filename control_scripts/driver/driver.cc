@@ -84,10 +84,6 @@ namespace oomph
          {
            problem_pt = new GenericPoissonProblem;
          }
-       else if(problem_name == "heat")
-         {
-           problem_pt = new UnsteadyHeatProblem;
-         }
 
        else
          {
@@ -119,11 +115,6 @@ namespace oomph
         {
           cli_args_pt = new MyCliArgs;
         }
-      else if(cli_args_name == "heat")
-        {
-          cli_args_pt = new UnsteadyHeatArgs;
-        }
-
        else
          {
            Factories::unrecognised_name(cli_args_name, OOMPH_CURRENT_FUNCTION);

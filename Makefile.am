@@ -52,7 +52,6 @@ headers = array_interpolator.h \
 	sum_of_matrices_preconditioner.h \
 	single_element_mesh.h \
 	ode_problem.h \
-	unsteady_heat_problem.h \
 	micromag_factories.h \
 	micromag_types.h \
 	magnetostatics_calculator.h \
