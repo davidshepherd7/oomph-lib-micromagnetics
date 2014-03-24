@@ -167,6 +167,13 @@ using namespace StringConversion;
       return dt;
     }
 
+    /// Use to specify a condition for time stepping to halt early. By
+    /// default never halt early.
+    virtual bool finished() const
+    {
+      return false;
+    }
+
     void get_solver_parameters(SolverParameters& sp)
     {
       sp.linear_solver_pt = linear_solver_pt();

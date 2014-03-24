@@ -284,7 +284,8 @@ int main(int argc, char *argv[])
 
       // Time step to end or to max number of steps
       while((problem_pt->time() < tmax)
-            && (problem_pt->N_steps_taken < max_steps))
+            && (problem_pt->N_steps_taken < max_steps)
+            && (!problem_pt->finished()))
         {
           // Output some basic info
           oomph_info
