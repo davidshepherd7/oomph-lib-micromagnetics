@@ -14,5 +14,5 @@ endif
 
 # Required libraries:
 # $(FLIBS) is included in case the solver involves fortran sources.
-driver_LDADD = -L@libdir@ -lgeneric -lmicromag $(HMATRIX_LIBS) $(EXTERNAL_LIBS) $(FLIBS)
+driver_LDADD = -L@libdir@ -lgeneric -lmicromag -lunsteady_heat $(HMATRIX_LIBS) $(EXTERNAL_LIBS) $(FLIBS)
 AM_CPPFLAGS += -isystem @includedir@
