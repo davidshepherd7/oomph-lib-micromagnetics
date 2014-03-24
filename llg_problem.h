@@ -994,6 +994,9 @@ public:
       specify_command_line_flag("-damping", &damping);
       damping = -10;
 
+      specify_command_line_flag("-k1", &k1);
+      k1 = -10;
+
       // Flags automatically default to false
       specify_command_line_flag("-pin-boundary-m");
 
@@ -1045,6 +1048,11 @@ public:
       if(command_line_flag_has_been_set("-damping"))
         {
           mag_params_pt->Gilbert_damping = damping;
+        }
+
+      if(command_line_flag_has_been_set("-k1"))
+        {
+          mag_params_pt->Anisotropy_coeff = k1;
         }
 
       // Copy flags into bools in this class
@@ -1137,6 +1145,7 @@ public:
     int renormalise;
 
     double damping;
+    double k1;
 
     int numerical_int_bem;
     int hlib_bem;
