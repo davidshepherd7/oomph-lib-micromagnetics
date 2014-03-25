@@ -35,6 +35,8 @@ namespace oomph
       Applied_field_fct_pt(0),
       Previous_energies(5, 0.0)
     {
+      Boundary_solution_fpt = 0;
+
       // Needed for if we want to switch solvers in runs
       Super_LU_solver_pt = new SuperLUSolver;
 
@@ -253,6 +255,69 @@ namespace oomph
                               time_stepper_pt()->time_pt()->dt(1));
             }
         }
+
+      // If we are using Dirichlet boundary conditions then update them.
+      if(Pin_boundary_m)
+        {
+          update_dirichlet_conditions();
+        }
+    }
+
+    void update_dirichlet_conditions()
+    {
+      const double t = time_pt()->time();
+
+      const unsigned n_msh = nsub_mesh();
+      for(unsigned msh=0; msh<n_msh; msh++)
+        {
+          Mesh* mesh_pt = this->mesh_pt(msh);
+          const unsigned n_boundary = mesh_pt->nboundary();
+          for(unsigned b=0; b<n_boundary; b++)
+            {
+              const unsigned n_boundary_node = mesh_pt->nboundary_node(b);
+              for(unsigned nd=0; nd<n_boundary_node; nd++)
+                {
+                  Node* nd_pt = mesh_pt->boundary_node_pt(b, nd);
+
+                  // Get position
+                  Vector<double> x(dim(), 0.0); nd_pt->position(x);
+
+                  // Calculate m
+                  Vector<double> m = boundary_solution(t, x);
+
+                  // Write to node data
+                  for(unsigned j=0; j<3; j++)
+                    {
+                      unsigned i = m_index(j);
+#ifdef PARANOID
+                      if(!nd_pt->is_pinned(i))
+                        {
+                          std::string err
+                            = "Boundary m value not pinned but tried to set condition";
+                          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                              OOMPH_CURRENT_FUNCTION);
+                        }
+#endif
+
+                      nd_pt->set_value(i, m[i]);
+                    }
+                }
+            }
+        }
+
+    }
+
+    Vector<double> boundary_solution(const double& t, Vector<double>& x) const
+    {
+#ifdef PARANOID
+      if(Boundary_solution_fpt == 0)
+        {
+          std::string err = "Boundary_solution_fpt is null!";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      return Boundary_solution_fpt(t, x);
     }
 
 
@@ -868,6 +933,9 @@ public:
     /// dimension etc.)
     FluxMeshFactoryFctPt Flux_mesh_factory_pt;
 
+    /// Pointer to function deteriminig values of Dirichlet boundaries.
+    InitialMFctPt Boundary_solution_fpt;
+
     /// \short Recomputed effective damping constant for the last time step
     /// (based on actual change in energy).
     double Effective_damping_constant;
@@ -1065,7 +1133,14 @@ public:
       llg_pt->applied_field_fct_pt() = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(mag_params_pt);
       llg_pt->Renormalise_each_time_step = renormalise;
+
+      // Dirichlet boundries, just use same function for b.c. as initial
+      // cond.
       llg_pt->Pin_boundary_m = pin_boundary_m;
+      if(pin_boundary_m)
+        {
+          llg_pt->Boundary_solution_fpt = initial_condition_fpt;
+        }
 
       if(to_lower(ms_method) == "implicit")
         {
