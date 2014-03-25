@@ -12,14 +12,20 @@ namespace oomph
   class TR : public TimeStepper
   {
   public:
-    /// Constructor, storage for two past derivatives, one past value and
-    /// present value.
-    TR(bool adaptive=false) : TimeStepper(2+2, 1)
+    /// Constructor, storage for two past derivatives, one past value,
+    /// present value and predicted value.
+    TR(bool adaptive=false) : TimeStepper(2+2+1, 1)
     {
       //Set the weight for the zero-th derivative
       Weight(0,0) = 1.0;
 
       Initial_derivative_set = false;
+
+      Adaptive_Flag = adaptive;
+
+      // Initialise adaptivity stuff
+      Predictor_weight.assign(4, 0.0);
+      Error_weight = 0.0;
     }
 
     /// Virtual destructor
@@ -35,6 +41,30 @@ namespace oomph
       Weight(1,0) = 2.0/dt;
       Weight(1,1) = -2.0/dt;
       Weight(1,derivative_index(0)) = -1.0; // old derivative
+    }
+
+    void set_error_weights()
+    {
+      double dt=Time_pt->dt(0);
+      double dtprev=Time_pt->dt(1);
+      Error_weight = 1/(3*(1 + (dtprev/dt)));
+    }
+
+    /// Function to set the predictor weights
+    void set_predictor_weights()
+    {
+      // Read the value of the time steps
+      double dt=Time_pt->dt(0);
+      double dtprev=Time_pt->dt(1);
+      double dtr = dt/dtprev;
+
+      // y weights
+      Predictor_weight[0] = 0.0;
+      Predictor_weight[1] = 1.0;
+
+      // dy weights
+      Predictor_weight[derivative_index(0)] = (dt/2)*(2 + dtr);
+      Predictor_weight[derivative_index(1)] = -(dt/2)*dtr;
     }
 
     /// Number of previous values available.
@@ -54,7 +84,10 @@ namespace oomph
       return t + 2;
     }
 
-    /// Number of timestep increments that need to be stored by the scheme
+    /// Location of predicted value
+    unsigned predicted_value_index() const {return derivative_index(1)+1;}
+
+     /// Number of timestep increments that need to be stored by the scheme
     unsigned ndt() {return 2;}
 
     /// \short Initialise the time-history for the Data values, corresponding
@@ -183,7 +216,84 @@ namespace oomph
     }
 
 
+
+    /// Function to calculate predicted positions at a node
+    void calculate_predicted_positions(Node* const &node_pt)
+    {
+      // Loop over the dimensions
+      unsigned n_dim = node_pt->ndim();
+      for(unsigned j=0;j<n_dim;j++)
+        {
+          // If the node is not copied
+          if(!node_pt->position_is_a_copy(j))
+            {
+              // Initialise the predictor to zero
+              double predicted_value = 0.0;
+
+              // Loop over all the stored data and add appropriate values
+              // to the predictor
+              for(unsigned i=1;i<4;i++)
+                {
+                  predicted_value += node_pt->x(i,j)*Predictor_weight[i];
+                }
+
+              // Store the predicted value
+              node_pt->x(predicted_value_index(), j) = predicted_value;
+            }
+        }
+    }
+
+    /// Function to calculate predicted data values in a Data object
+    void calculate_predicted_values(Data* const &data_pt)
+    {
+      // Loop over the values
+      unsigned n_value = data_pt->nvalue();
+      for(unsigned j=0;j<n_value;j++)
+        {
+          // If the value is not copied
+          if(!data_pt->is_a_copy(j))
+            {
+              // Loop over all the stored data and add appropriate
+              // values to the predictor
+              double predicted_value = 0.0;
+              for(unsigned i=1;i<4;i++)
+                {
+                  predicted_value += data_pt->value(i,j)*Predictor_weight[i];
+                }
+
+              // Store the predicted value
+              data_pt->set_value(predicted_value_index(), j, predicted_value);
+            }
+        }
+    }
+
+
+    /// Compute the error in the position i at a node
+    double temporal_error_in_position(Node* const &node_pt,
+                                      const unsigned &i)
+    {
+      return Error_weight*(node_pt->x(i) -
+                           node_pt->x(predicted_value_index(), i));
+    }
+
+    /// Compute the error in the value i in a Data structure
+    double temporal_error_in_value(Data* const &data_pt,
+                                   const unsigned &i)
+    {
+      return Error_weight*(data_pt->value(i)
+                           - data_pt->value(predicted_value_index(), i));
+    }
+
+
+
   private:
+
+    ///Private data for the predictor weights
+    Vector<double> Predictor_weight;
+
+    /// Private data for the error weight
+    double Error_weight;
+
     /// Broken copy constructor
     TR(const TR& dummy)
     {BrokenCopy::broken_copy("TR");}
