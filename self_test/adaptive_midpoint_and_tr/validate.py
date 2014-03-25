@@ -41,7 +41,7 @@ def main():
     argdicts = {
         "-driver" : "ode",
         "-exact" : ["sin", "poly3", "poly2", "stiff_test"],
-        "-ts" : ["bdf2", "midpoint-bdf"],
+        "-ts" : ["bdf2", "midpoint-bdf", "tr"],
         "-tmax" : 5,
         "-tol" : 1e-5,
         "-disable-mm-opt" : True,
@@ -67,14 +67,26 @@ def main():
     # Check errors are small
     test_results.append(all([tests.check_error_norm(d, 0.05) for d in datasets]))
 
-    # Check ndt are close for mp vs bdf2
-    split_datasets = mm.split_up_stuff(datasets, ['-exact'])
-    bdf_ndts = [len(d['dts']) * 1.2 for d in datasets if d['-ts'] == 'bdf2']
+    # Split into data for each time stepper (we assume that the order of
+    # data is preserved here so that bdf_data[n] is the same exact solution
+    # as imr_data[n] etc.).
+    bdf_data = [d for d in datasets if d['-ts'] == 'bdf2']
+    imr_data = [d for d in datasets if d['-ts'] == 'midpoint-bdf']
+    tr_data = [d for d in datasets if d['-ts'] == 'tr']
 
-    non_bdf = [d for d in datasets if d['-ts'] != 'bdf2']
+    # Use bdf's nsteps as a maximum, tr and imr are more accurate than bdf2
+    # so this should be true (unless bdf2's numerical damping has kicked in
+    # and caused it to jump to a steady state too soon),
+    max_steps = [1.2*len(d['times']) for d in bdf_data]
 
-    test_results.append(all([tests.check_ndt_less_than(d, max_ndt)
-                              for d, max_ndt in zip(non_bdf, bdf_ndts)]))
+    # Check all the runs:
+    imr_nsteps_ok = [tests.check_ndt_less_than(d, m)
+                     for d, m in zip(imr_data, max_steps)]
+    test_results.append(all(imr_nsteps_ok))
+
+    tr_nsteps_ok = [tests.check_ndt_less_than(d, m)
+                     for d, m in zip(tr_data, max_steps)]
+    test_results.append(all(tr_nsteps_ok))
 
 
     if all(test_results):
