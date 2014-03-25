@@ -569,11 +569,11 @@ namespace oomph
           prec_pt = llgp_pt;
 
         }
-      else if(prec_name == "llgblock-exact") // Same but with exact llg
+      else if(prec_name == "llgblock-inexact") // Same but with exact llg
                                              // block solve
         {
           LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
-          llgp_pt->build(false, false, true);
+          llgp_pt->build(false, false, false);
           prec_pt = llgp_pt;
 
         }
