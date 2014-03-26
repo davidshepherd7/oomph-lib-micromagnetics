@@ -20,7 +20,7 @@
 
 #include "micromag_types.h"
 #include "prettyprint98.hpp"
-
+#include "energy_functions.h"
 
 
 // #include "./my_general_header.h"
@@ -498,7 +498,18 @@ using namespace StringConversion;
 
     /// \short Dummy error norm calculator (overload in derived classes).
     virtual double get_error_norm() const
-    {return Dummy_doc_data;}
+    {
+      if(Exact_solution_fpt != 0)
+        {
+          ExactFunctionDiff f;
+          f.Exact_fpt = Exact_solution_fpt;
+          return integrate_over_problem(&f);
+        }
+      else
+        {
+          return Dummy_doc_data;
+        }
+    }
 
     /// \short Dummy solution norm calculator (overload in derived classes).
     virtual double get_solution_norm() const
@@ -672,6 +683,23 @@ using namespace StringConversion;
 
     /// Should we dump ready for a restart?
     bool Dump;
+
+    /// Function pointer for exact solution
+    InitialConditionFctPt Exact_solution_fpt;
+
+    /// Get exact solution
+    Vector<double> exact_solution(const double& t, Vector<double>& x) const
+    {
+      #ifdef PARANOID
+      if(Exact_solution_fpt == 0)
+        {
+          std::string err = "Exact_solution_fpt is null!";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+      return Exact_solution_fpt(t, x);
+    }
 
   protected:
 

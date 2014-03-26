@@ -248,7 +248,10 @@ namespace oomph
 
         specify_command_line_flag("-krylov-tol", &krylov_tol);
         krylov_tol = -1;
-      }
+
+        specify_command_line_flag("-initial-is-exact", &initial_is_exact);
+        initial_is_exact = 0;
+       }
 
     void parse(int argc, char *argv[])
     {
@@ -354,6 +357,19 @@ namespace oomph
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
+    /// Use initial condition if we can, otherwise non so far.
+    InitialConditionFctPt exact_solution_fpt() const
+      {
+        if(initial_is_exact)
+          {
+            return initial_condition_fpt;
+          }
+        else
+          {
+            return 0;
+          }
+      }
+
     /// Explcit if an explicit_time_stepper_pt has been set
     bool explicit_flag() const
     {
@@ -451,6 +467,8 @@ namespace oomph
     std::string output_jacobian;
 
     InitialConditionFctPt initial_condition_fpt;
+    int initial_is_exact;
+
     TimeStepper* time_stepper_pt;
     ExplicitTimeStepper* explicit_time_stepper_pt;
     LinearSolver* solver_pt;

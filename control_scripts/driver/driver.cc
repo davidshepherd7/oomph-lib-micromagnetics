@@ -181,6 +181,7 @@ int main(int argc, char *argv[])
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
+  problem_pt->Exact_solution_fpt = args_pt->exact_solution_fpt();
 
   if(args_pt->crash_newton_fail != -1)
     {

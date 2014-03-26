@@ -687,10 +687,6 @@ namespace oomph
 
     double get_error_norm() const
     {
-      //??ds temp
-      bool Boundary_fct_pt_is_exact_solution = true;
-
-
       if(Compare_with_mallinson)
         {
           using namespace CompareSolutions;
@@ -701,16 +697,9 @@ namespace oomph
 
           return std::abs(exact_time - time);
         }
-      else if(Boundary_fct_pt_is_exact_solution
-              && Boundary_solution_fpt != 0)
-        {
-          ExactFunctionDiff f;
-          f.Exact_fpt = Boundary_solution_fpt;
-          return integrate_over_problem(&f);
-        }
       else
         {
-          return MyProblem::Dummy_doc_data;
+          return MyProblem::get_error_norm();
         }
     }
 
