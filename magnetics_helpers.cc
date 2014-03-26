@@ -7,6 +7,48 @@
 namespace oomph
 {
 
+  namespace InitialM
+  {
+    /// Wave-like exact solution from Jeong2014 and various other papers.
+    Vector<double> periodic_exact_helper(const double& t, const Vector<double> &x,
+                                         const double& damping, const double& dim)
+    {
+      using namespace MathematicalConstants;
+      using namespace std;
+
+      // solution parameters
+      double a = Pi/12;
+      double l = 2;
+      double k = l * Pi;
+
+      // Rescale time because this is a solution to the LL equation
+      double tmod = t; //??ds
+
+      double sum_x = x[0];
+      // for(unsigned j=0; j<dim; j++) {sum_x += x[j];}
+
+      Vector<double> m(5, 0.0);
+      if(damping == 0.0)
+        {
+          m[2] = sin(a) * cos(k*sum_x + 2*k*k*cos(a)*t);
+          m[3] = sin(a) * sin(k*sum_x + 2*k*k*cos(a)*t);
+          m[4] = cos(a);
+        }
+      else
+        {
+          double b = Pi*Pi*l*l*damping*tmod;
+          double d = sqrt(sin(a)*sin(a) + exp(2*dim*b) * cos(a) * cos(a));
+          double g = (1/damping) * log((d + exp(dim*b) * cos(a))/(1 + cos(a)));
+
+          m[2] = (1/d) * sin(a) * cos(Pi*l*sum_x + g);
+          m[3] = (1/d) * sin(a) * sin(Pi*l*sum_x + g);
+          m[4] = (1/d) * cos(a) * exp(dim*b);
+        }
+
+      return m;
+    }
+  }
+
   namespace MManipulation
   {
 
