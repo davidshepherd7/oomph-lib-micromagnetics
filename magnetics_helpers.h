@@ -545,6 +545,10 @@ namespace MManipulation
     void brick2tet(const Mesh& brick_mesh,
                    ElementFactoryFctPt element_factory_fpt,
                    TetMeshBase& out_mesh);
+
+    void make_boundaries_periodic(Mesh* mesh_pt, const unsigned& b1,
+                                  const unsigned& b2,
+                                  const unsigned& direction);
   }
 
 }

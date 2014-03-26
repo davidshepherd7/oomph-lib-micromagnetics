@@ -455,8 +455,142 @@ namespace oomph
 //         }
 // #endif
 
-
     }
 
+    /// File-private helper function to check that nodal coords match in
+    /// all dimensions except one.
+    bool periodic_coords_match(const Node* nd1_pt, const Node* nd2_pt,
+                               const unsigned& dir)
+    {
+#ifdef PARANOID
+      if(nd1_pt->ndim() != nd2_pt->ndim())
+        {
+          std::string err = "Nodes have different dimensions!";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+      const unsigned dim = nd1_pt->ndim();
+      for(unsigned j=0; j<dim; j++)
+        {
+          if(j != dir)
+            {
+              if(nd1_pt->x(j) != nd2_pt->x(j))
+                {
+                  return false;
+                }
+            }
+        }
+
+      return true;
+    }
+
+    /// File-private helper function to tell if two nodes are linked via
+    /// copying.
+    bool copied_equivalents(Node* nd1_pt, Node* nd2_pt)
+    {
+      return
+        (   (nd1_pt == nd2_pt)
+            || (nd1_pt->copied_node_pt() == nd2_pt)
+            || (nd2_pt->copied_node_pt() == nd1_pt)
+            || ((nd1_pt->copied_node_pt() != 0)
+                && (nd1_pt->copied_node_pt() == nd2_pt->copied_node_pt()))
+            );
+    }
+
+
+    /// Helper function to make two boundaries of a simple mesh periodic.
+    void make_boundaries_periodic(Mesh* mesh_pt, const unsigned& b1,
+                                  const unsigned& b2,
+                                  const unsigned& direction)
+    {
+      const unsigned nbn = mesh_pt->nboundary_node(b1);
+
+#ifdef PARANOID
+      if(nbn != mesh_pt->nboundary_node(b2))
+        {
+          std::string err = "Boundaries must have same number of nodes";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+      Vector<std::pair<Node*, Node*> > dodgy_node_pairs;
+
+      // Handle case where nodes are in the opposite order on opposite
+      // boundaries. Note that we can't handle more complex variations of
+      // ordering here, but these cases will get caught by the paranoid
+      // check below.
+      bool opposite_direction_flag =
+        periodic_coords_match(mesh_pt->boundary_node_pt(b1, 0),
+                              mesh_pt->boundary_node_pt(b2, nbn-1),
+                              direction);
+
+      // Loop over nodes setting up copys
+      for(unsigned nd=0; nd<nbn; nd++)
+        {
+          Node* nd1_pt = mesh_pt->boundary_node_pt(b1, nd);
+
+          // Second node index depends on flag
+          unsigned nd2_index = opposite_direction_flag ? (nbn-nd-1) : nd;
+          Node* nd2_pt = mesh_pt->boundary_node_pt(b2, nd2_index);
+
+          // Check the coordinates look ok for them to be periodic
+#ifdef PARANOID
+          if(!periodic_coords_match(nd1_pt, nd2_pt, direction))
+            {
+          std::string err = "Nodal positions don't match up.";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+            OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+          // Catch the case that they are already copies of each other or
+          // both copies of the same node. This is ok, just leave
+          // everything as it is.
+          if(copied_equivalents(nd1_pt, nd2_pt)) {}
+
+          // If both nodes are already copies then we need to do
+          // something weird: link both the nodes to one of the copied
+          // nodes and record pointers to both copied nodes so that we
+          // can check this is consistent later.
+          else if(nd1_pt->is_a_copy() && nd2_pt->is_a_copy())
+            {
+              Node* old_copied_pt = nd1_pt->copied_node_pt();
+
+              nd1_pt->clear_copied_pointers();
+              nd1_pt->make_periodic(nd2_pt);
+
+              dodgy_node_pairs.push_back
+                (std::make_pair(nd1_pt->copied_node_pt(), old_copied_pt));
+            }
+
+          // Otherwise it's easy: just make a node which isn't already a
+          // copy into a copy.
+          else if(nd1_pt->is_a_copy())
+            {
+              nd2_pt->make_periodic(nd1_pt);
+            }
+          else
+            {
+              nd1_pt->make_periodic(nd2_pt);
+            }
+        }
+
+
+      // Finally check that the nodes we flagged as dodgy match up
+      const unsigned ni = dodgy_node_pairs.size();
+      for(unsigned i=0; i<ni; i++)
+        {
+          if(!copied_equivalents(dodgy_node_pairs[i].first,
+                                 dodgy_node_pairs[i].second))
+            {
+              std::string err = "Inconsistent!";
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
+        }
+    }
   }
 }
