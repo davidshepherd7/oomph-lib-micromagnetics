@@ -4,6 +4,8 @@
 #include "../../src/generic/Vector.h" // Vectors
 #include <utility> // pairs
 
+#include "../../src/generic/Qelements.h" // Q face element geometry
+
 
 // Header for typedefs needed in multiple places in the library
 
@@ -81,6 +83,24 @@ namespace oomph
 
   /// Type to hold data on the locations of sharp corners in bem meshes
   typedef Vector<std::pair<Vector<double>, double> > CornerDataInput;
+
+
+  // QElement face geometries which for some strange reason are not in
+  // oomph core.
+  // ============================================================
+
+  /// Face geometry for the 1D Qelements: Point elements
+  template<unsigned NNODE_1D>
+  class FaceGeometry<QElement<1,NNODE_1D> >:
+    public PointElement {};
+
+  /// Face geometry for the QElements: The spatial dimension of the face
+  /// elements is one lower than that of the bulk element but they have the
+  /// same number of points along their 1D edges.
+  template<unsigned DIM, unsigned NNODE_1D>
+  class FaceGeometry<QElement<DIM,NNODE_1D> >:
+    public QElement<DIM-1,NNODE_1D>
+    {};
 
 }
 

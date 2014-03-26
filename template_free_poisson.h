@@ -586,53 +586,6 @@ namespace oomph
 
 
 
-  ////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////
-
-
-
-  //=======================================================================
-  /// Face geometry for the QElements: The spatial
-  /// dimension of the face elements is one lower than that of the
-  /// bulk element but they have the same number of points
-  /// along their 1D edges.
-  //=======================================================================
-  template<unsigned DIM, unsigned NNODE_1D>
-  class FaceGeometry<QElement<DIM,NNODE_1D> >:
-    public virtual QElement<DIM-1,NNODE_1D>
-  {
-
-  public:
-
-    /// \short Constructor: Call the constructor for the
-    /// appropriate lower-dimensional QElement
-    FaceGeometry() : QElement<DIM-1,NNODE_1D>() {}
-
-  };
-
-  ////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////
-
-
-  //=======================================================================
-  /// Face geometry for the 1D QTFPoissonElement elements: Point elements
-  //=======================================================================
-  template<unsigned NNODE_1D>
-  class FaceGeometry<QElement<1,NNODE_1D> >:
-    public virtual PointElement
-  {
-
-  public:
-
-    /// \short Constructor: Call the constructor for the
-    /// appropriate lower-dimensional QElement
-    FaceGeometry() : PointElement() {}
-
-  };
-
-
   //======================================================================
   /// TTFPoissonElement elements are linear/quadrilateral/brick-shaped
   /// Poisson elements with isoparametric interpolation for the function.
