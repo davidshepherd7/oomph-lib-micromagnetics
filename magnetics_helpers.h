@@ -393,10 +393,10 @@ namespace InitialM
 
   Vector<double> periodic_exact_helper(const double& t, const Vector<double> &x,
                                        const double& damping, const double& dim);
-
+  inline Vector<double> periodic_exact_1d(const double& t, const Vector<double> &x)
+  {return periodic_exact_helper(t, x, 0, 1);}
   inline Vector<double> periodic_exact_2d(const double& t, const Vector<double> &x)
   {return periodic_exact_helper(t, x, 0, 2);}
-
   inline Vector<double> periodic_exact_3d(const double& t, const Vector<double> &x)
   {return periodic_exact_helper(t, x, 0.1, 3);}
 
@@ -446,6 +446,10 @@ namespace InitialM
     else if(m_name == "smoothly_varying_5000")
       {
         return &InitialM::smoothly_varying_5000;
+      }
+    else if(m_name == "periodic_exact_1d")
+      {
+        return &InitialM::periodic_exact_1d;
       }
     else if(m_name == "periodic_exact_2d")
       {

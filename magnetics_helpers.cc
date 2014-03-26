@@ -24,8 +24,8 @@ namespace oomph
       // Rescale time because this is a solution to the LL equation
       double tmod = t; //??ds
 
-      double sum_x = x[0];
-      // for(unsigned j=0; j<dim; j++) {sum_x += x[j];}
+      double sum_x = 0.0;
+      for(unsigned j=0; j<dim; j++) {sum_x += x[j];}
 
       Vector<double> m(5, 0.0);
       if(damping == 0.0)
