@@ -565,7 +565,11 @@ namespace oomph
         {
           double lx = 1.0;
           mesh_pt = new RectangularQuadMesh<QMicromagElement<2,2> >
-            (nx, nx, lx, lx, true, time_stepper_pt);
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          // Link boundary 0 to boundary 2 and boundary 1 to boundary 3
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
         }
       else if(mesh_name == "sq_line" && nnode1d == 2)
         {
@@ -580,9 +584,7 @@ namespace oomph
           mesh_pt = new OneDMesh<QMicromagElement<1,2> >
             (nx, lx, time_stepper_pt);
 
-          const unsigned nnode = mesh_pt->nnode();
-          mesh_pt->node_pt(0)->make_periodic(mesh_pt->node_pt(nnode-1));
-
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 1, 0); // x
           mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "st_square" && nnode1d == 2)
