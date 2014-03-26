@@ -72,7 +72,7 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
-      Renormalise_each_time_step = -1;
+      Renormalise_each_time_step = false;
     }
 
     std::string problem_name() const {return "LLG";}
@@ -824,24 +824,7 @@ namespace oomph
 
     bool renormalise_each_time_step() const
     {
-      // If flag not set then only do it for bdf timesteppers
-      if(Renormalise_each_time_step == -1)
-        {
-          return ((dynamic_cast<const BDF<2>*>(time_stepper_pt()) != 0)
-                  || (dynamic_cast<const BDF<1>*>(time_stepper_pt()) != 0));
-        }
-      // Otherwise do what the flag says
-      else if((Renormalise_each_time_step == +1) || (Renormalise_each_time_step == 0))
-        {
-          return bool(Renormalise_each_time_step);
-        }
-      else
-        {
-          std::string err = "Undefined state for renormalise ";
-          err += to_string(Renormalise_each_time_step);
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
+      return Renormalise_each_time_step;
     }
 
     /// \short Calculate energies and store them for easy reference
@@ -896,7 +879,7 @@ namespace oomph
     bool Check_angles;
 
     /// Normalise magnetisation problem after each step?
-    int Renormalise_each_time_step;
+    bool Renormalise_each_time_step;
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
@@ -1143,7 +1126,17 @@ public:
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
       llg_pt->applied_field_fct_pt() = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(mag_params_pt);
-      llg_pt->Renormalise_each_time_step = renormalise;
+
+
+      if(renormalise == -1)
+        {
+          llg_pt->Renormalise_each_time_step =
+            (ts_name == "bdf1" || ts_name == "bdf2" || ts_name == "tr");
+        }
+      else
+        {
+          llg_pt->Renormalise_each_time_step = renormalise;
+        }
 
       // Dirichlet boundries, just use same function for b.c. as initial
       // cond.
