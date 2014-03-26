@@ -547,7 +547,7 @@ namespace oomph
 
     // Loop over current & previous timesteps
     int nprev_steps=this->time_stepper_pt()->nprev_values();
-    for (int t=nprev_steps; t>=0; t--)
+    for(int t=nprev_steps; t>=0; t--)
       {
         double time = time_pt()->time(t);
 
@@ -568,6 +568,14 @@ namespace oomph
                 // Get the values
                 Vector<double> values = ic_fpt(time, x);
 
+#ifdef PARANOID
+                if(values.size() != nd_pt->nvalue())
+                  {
+                    std::string err = "Wrong number of values in initial condition.";
+                    throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                        OOMPH_CURRENT_FUNCTION);
+                  }
+#endif
                 // Copy into dofs
                 for(unsigned j=0, nj=values.size(); j<nj; j++)
                   {
