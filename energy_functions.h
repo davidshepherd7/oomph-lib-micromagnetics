@@ -13,6 +13,8 @@
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/elements.h"
 
+#include "micromag_types.h"
+
 namespace oomph
 {
 
@@ -89,6 +91,13 @@ namespace oomph
 
   class DmdtDotHeff : public ElementalFunction
   {
+    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+  };
+
+  class ExactFunctionDiff : public ElementalFunction
+  {
+    public:
+    InitialMFctPt Exact_fpt;
     double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 

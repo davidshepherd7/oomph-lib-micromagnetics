@@ -204,6 +204,33 @@ namespace oomph
     return val;
   }
 
+  InitialMFctPt Exact_fpt;
+
+  double ExactFunctionDiff::call(const GeneralisedElement* ele_pt,
+                                 MMInterpolator* intp_pt) const
+  {
+#ifdef PARANOID
+    if(Exact_fpt == 0)
+      {
+        std::string err = "Exact_fpt is null!";
+        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+      }
+#endif
+
+    const MicromagEquations* m_ele_pt
+      = dynamic_cast<const MicromagEquations*>(ele_pt);
+
+    Vector<double> exact = Exact_fpt(intp_pt->time(), intp_pt->x());
+
+    // Assume that m indices are contiguous and extract m from entire
+    // solution.
+    unsigned mi0 = m_ele_pt->m_index_micromag(0);
+    Vector<double> exact_m; exact_m.assign(exact.begin()+mi0, exact.end());
+
+    return VectorOps::two_norm_diff(intp_pt->m(), exact_m);
+  }
+
 
 
 }
