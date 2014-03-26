@@ -1019,6 +1019,10 @@ namespace oomph
   class FaceGeometry<QMagnetostaticFieldElement<DIM,NNODE_1D> >:
     public virtual QElement<DIM-1,NNODE_1D> {};
 
+  template<unsigned NNODE_1D>
+  class FaceGeometry<QMagnetostaticFieldElement<1, NNODE_1D> >:
+    public PointElement {};
+
   template<unsigned DIM, unsigned NNODE_1D>
   class FaceGeometry<TMicromagElement<DIM,NNODE_1D> >:
     public virtual TElement<DIM-1,NNODE_1D> {};
@@ -1026,6 +1030,10 @@ namespace oomph
   template<unsigned DIM, unsigned NNODE_1D>
   class FaceGeometry<QMicromagElement<DIM,NNODE_1D> >:
     public virtual QElement<DIM-1,NNODE_1D> {};
+
+  template<unsigned NNODE_1D>
+  class FaceGeometry<QMicromagElement<1, NNODE_1D> >:
+    public PointElement {};
 
 }
 

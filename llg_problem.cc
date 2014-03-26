@@ -6,6 +6,8 @@
 
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"
+#include "../../src/meshes/rectangular_quadmesh.h"
+#include "../../src/meshes/one_d_mesh.h"
 #include "../../src/meshes/simple_rectangular_tri_mesh.h"
 #include "../../src/meshes/simple_cubic_tet_mesh.h"
 #include "../../src/meshes/simple_cubic_mesh.h"
@@ -559,6 +561,30 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "sq_square_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new RectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, true, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_line" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new OneDMesh<QMicromagElement<1,2> >
+            (nx, lx, time_stepper_pt);
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sq_line_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new OneDMesh<QMicromagElement<1,2> >
+            (nx, lx, time_stepper_pt);
+
+          const unsigned nnode = mesh_pt->nnode();
+          mesh_pt->node_pt(0)->make_periodic(mesh_pt->node_pt(nnode-1));
+
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "st_square" && nnode1d == 2)
         {
           double lx = 1.0;
@@ -761,6 +787,10 @@ namespace oomph
           return &bem_element_factory<TMicromagBEMElement<3,2> >;
         }
 
+      else if(dynamic_cast<const QElement<1,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<1,2> >;
+        }
       else if(dynamic_cast<const QElement<2,2>*>(bulk_ele_pt) != 0)
         {
           return &bem_element_factory<QMicromagBEMElement<2,2> >;
@@ -794,6 +824,11 @@ namespace oomph
             <MicromagFluxElement<TMicromagElement<3, 2> > >;
         }
 
+      else if(dynamic_cast<const QMicromagElement<1,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<1,2> > >;
+        }
       else if(dynamic_cast<const QMicromagElement<2,2>*>(bulk_ele_pt) != 0)
         {
           return Factories::surface_mesh_factory

@@ -363,6 +363,7 @@ namespace oomph
   //====================================================================
   // Force building of templates
   //====================================================================
+  template class QMicromagElement<1,2>;
   template class QMicromagElement<2,2>;
   template class QMicromagElement<2,3>;
   template class QMicromagElement<3,2>;
