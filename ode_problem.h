@@ -408,7 +408,7 @@ namespace oomph
       oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
-    void set_initial_condition(InitialConditionFct& ic_fpt)
+    void set_initial_condition(const InitialConditionFct& ic)
     {
       // Loop over current & previous timesteps
       for (int t=time_stepper_pt()->nprev_values(); t>=0; t--)

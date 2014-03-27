@@ -638,7 +638,7 @@ using namespace StringConversion;
     virtual void set_up_impulsive_initial_condition();
 
     /// Assign initial conditions from function pointer
-    virtual void set_initial_condition(InitialConditionFct& ic_fpt);
+    virtual void set_initial_condition(const InitialConditionFct& ic);
 
     /// Hook to be overloaded with any calculations needed after setting of
     /// initial conditions.
