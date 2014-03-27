@@ -164,6 +164,9 @@ namespace oomph
 
         specify_command_line_flag("-initial-is-exact", &initial_is_exact);
         initial_is_exact = 0;
+
+        specify_command_line_flag("-always-write-trace", &always_write_trace);
+        always_write_trace = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -399,6 +402,7 @@ namespace oomph
 
     double doc_times_interval;
     Vector<double> doc_times;
+    int always_write_trace;
 
     int dump;
     std::string restart_file;

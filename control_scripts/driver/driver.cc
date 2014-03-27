@@ -212,6 +212,11 @@ int main(int argc, char *argv[])
   problem_pt->Doc_info.output_jacobian = args_pt->output_jacobian;
   problem_pt->set_doc_times(args_pt->doc_times);
 
+  if(args_pt->always_write_trace != -1)
+    {
+      problem_pt->Always_write_trace = args_pt->always_write_trace;
+    }
+
   if(args_pt->predictor_as_initial_guess != -1)
     {
       problem_pt->use_predictor_values_as_initial_guess()

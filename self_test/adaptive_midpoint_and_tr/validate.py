@@ -45,6 +45,7 @@ def main():
         "-tmax" : 5,
         "-tol" : 1e-5,
         "-disable-mm-opt" : True,
+        "-always-write-trace" : 1, # Otherwise we get wrong ndts by counting len(dts)
         }
 
     # ??ds not sure why we need "-disable-mm-opt",
