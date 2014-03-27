@@ -64,57 +64,64 @@ namespace oomph
 
     virtual void set_flags()
       {
-        specify_command_line_flag("-dt", &dt);
+        specify_command_line_flag("-dt", &dt, "Time step size");
         dt = 1e-6;
 
-        specify_command_line_flag("-tmax", &tmax);
+        specify_command_line_flag("-tmax", &tmax, "Time at which to stop");
         tmax = 1.0;
 
-        specify_command_line_flag("-tol", &tol);
+        specify_command_line_flag("-tol", &tol,
+                                  "Adaptive time step tolerance (default 0 = fixed step)");
         tol = 0.0;
 
-        specify_command_line_flag("-ref", &refinement);
+        specify_command_line_flag("-ref", &refinement, "Spatial refinement level of mesh");
         refinement = 1;
 
-        specify_command_line_flag("-newton-tol", &newton_tol);
+        specify_command_line_flag("-newton-tol", &newton_tol, "Newton solver tolerance");
         newton_tol = 1e-8;
 
-        specify_command_line_flag("-newton-max-residual", &newton_max_residual);
+        specify_command_line_flag("-newton-max-residual", &newton_max_residual,
+                                  "Maximum Newton residual before we give up");
         newton_max_residual = 10.0;
 
-        specify_command_line_flag("-newton-max-iterations", &newton_max_iterations);
+        specify_command_line_flag("-newton-max-iterations", &newton_max_iterations,
+                                  "Maximum Newton iterations before we give up");
         newton_max_iterations = 10;
 
-        specify_command_line_flag("-crash-newton-fail", &crash_newton_fail);
+        specify_command_line_flag("-crash-newton-fail", &crash_newton_fail,
+                                  "If set then always throw an error on Newton solve fails (normally with adaptive time stepping we try again with a reduced step)");
         crash_newton_fail = -1;
 
-        specify_command_line_flag("-fd-jac");
+        specify_command_line_flag("-fd-jac", "Use finite differences to calculate the elemental Jacobians");
 
-        specify_command_line_flag("-outdir", &outdir);
+        specify_command_line_flag("-outdir", &outdir, "Directory to write output to, default is results");
         outdir = "results";
 
-        specify_command_line_flag("-output-jac", &output_jacobian);
+        specify_command_line_flag("-output-jac", &output_jacobian,
+                                  "When should we write out Jacobian/mass matrix/residuals, valid settings are 'never' (default), 'always', 'at_start' or 'at_end");
         output_jacobian = "never";
 
-        specify_command_line_flag("-ts", &ts_name);
+        specify_command_line_flag("-ts", &ts_name, "The time stepper to use, default is bdf2.");
         ts_name = "bdf2";
 
-        specify_command_line_flag("-mp-pred", &mp_pred_name);
+        specify_command_line_flag("-mp-pred", &mp_pred_name, "The explicit time stepper to use as a predictor for implicit midpoint rule, default is ebdf3.");
         mp_pred_name = "ebdf3";
 
-        specify_command_line_flag("-solver", &solver_name);
+        specify_command_line_flag("-solver", &solver_name, "The linear solver to use, default is SuperLU.");
         solver_name = "superlu";
 
-        specify_command_line_flag("-prec", &prec_name);
+        specify_command_line_flag("-prec", &prec_name, "The preconditioner to use for iterative solves.");
         prec_name = "none";
 
-        specify_command_line_flag("-doc-interval", &doc_times_interval);
+        specify_command_line_flag("-doc-interval", &doc_times_interval,
+                                  "The amount of (simulated) time to allow between writing out all data. Default is 0.1. Set to 0 to output at every step. Trace file is usually updated after every step regardless (unless -always-write-trace is set to false).");
         doc_times_interval = 0.1;
 
-        specify_command_line_flag("-mesh", &mesh_name);
+        specify_command_line_flag("-mesh", &mesh_name, "The name of the mesh to use.");
         mesh_name = "sq_square";
 
-        specify_command_line_flag("-nnode1d", &nnode1d);
+        specify_command_line_flag("-nnode1d", &nnode1d,
+                                  "The number of nodes that will lie along one axis of each element, default is 2 (linear elements).");
         nnode1d = 2;
 
         specify_command_line_flag("-xshift", &xshift);
