@@ -614,7 +614,7 @@ using namespace StringConversion;
     virtual void set_up_impulsive_initial_condition();
 
     /// Assign initial conditions from function pointer
-    virtual void set_initial_condition(InitialConditionFctPt ic_fpt);
+    virtual void set_initial_condition(InitialConditionFct& ic_fpt);
 
     /// Hook to be overloaded with any calculations needed after setting of
     /// initial conditions.
@@ -688,12 +688,12 @@ using namespace StringConversion;
     bool Dump;
 
     /// Function pointer for exact solution
-    InitialConditionFctPt Exact_solution_fpt;
+    InitialConditionFct* Exact_solution_fpt;
 
     /// Get exact solution
     Vector<double> exact_solution(const double& t, Vector<double>& x) const
     {
-      #ifdef PARANOID
+#ifdef PARANOID
       if(Exact_solution_fpt == 0)
         {
           std::string err = "Exact_solution_fpt is null!";
@@ -701,7 +701,7 @@ using namespace StringConversion;
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return Exact_solution_fpt(t, x);
+      return (*Exact_solution_fpt)(t, x);
     }
 
   protected:

@@ -246,6 +246,9 @@ int main(int argc, char *argv[])
         }
     }
 
+  // Give the initial condition functor any problem info it needs
+  args_pt->initial_condition_fpt->initialise_from_problem(problem_pt);
+
   // Get initial condition from either a function pt or a restart file
   if(args_pt->restart_file == "")
     {
@@ -253,7 +256,7 @@ int main(int argc, char *argv[])
       problem_pt->initialise_dt(args_pt->dt);
 
       // Set values useing the initial condition function
-      problem_pt->set_initial_condition(args_pt->initial_condition_fpt);
+      problem_pt->set_initial_condition(*args_pt->initial_condition_fpt);
     }
   else
     {

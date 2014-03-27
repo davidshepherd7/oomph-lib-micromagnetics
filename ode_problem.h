@@ -156,43 +156,49 @@ namespace oomph
   {
 
     // Pick an exact solution using a name
-    inline TimeSpaceToDoubleVectFctPt exact_solutions_factory
+    inline SolutionFunctor* exact_solutions_factory
     (const std::string& exact_name)
     {
-      if(exact_name == "sin") return &deriv_functions::sin;
-      else if(exact_name == "cos") return &deriv_functions::cos;
-      else if(exact_name == "exp") return &deriv_functions::exp;
-      else if(exact_name == "poly3") return &deriv_functions::poly3;
-      else if(exact_name == "stiff_test") return &deriv_functions::stiff_test;
-      else if(exact_name == "poly2") return &deriv_functions::poly2;
-      else if(exact_name == "ll") return &deriv_functions::ll;
-      else if(exact_name == "llg") return &deriv_functions::llg;
+      TimeSpaceToDoubleVectFctPt fpt;
+      if(exact_name == "sin") fpt = &deriv_functions::sin;
+      else if(exact_name == "cos") fpt = &deriv_functions::cos;
+      else if(exact_name == "exp") fpt = &deriv_functions::exp;
+      else if(exact_name == "poly3") fpt = &deriv_functions::poly3;
+      else if(exact_name == "stiff_test") fpt = &deriv_functions::stiff_test;
+      else if(exact_name == "poly2") fpt = &deriv_functions::poly2;
+      else if(exact_name == "ll") fpt = &deriv_functions::ll;
+      else if(exact_name == "llg") fpt = &deriv_functions::llg;
       else
         {
           throw OomphLibError("Unrecognised exact solution " + exact_name,
                               OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
+
+      return new SolutionFunctor(fpt);
     }
 
     // Pick a derivative function using a name
-    inline TimeValueToDoubleVectFctPt derivative_function_factory
+    inline SolutionFunctor* derivative_function_factory
     (const std::string& exact_name)
     {
-      if(exact_name == "sin") return &deriv_functions::dsin;
-      else if(exact_name == "cos") return &deriv_functions::dcos;
-      else if(exact_name == "exp") return &deriv_functions::dexp;
-      else if(exact_name == "poly3") return &deriv_functions::dpoly3;
-      else if(exact_name == "stiff_test") return &deriv_functions::dstiff_test;
-      else if(exact_name == "poly2") return &deriv_functions::dpoly2;
-      else if(exact_name == "ll") return &deriv_functions::dll;
-      else if(exact_name == "llg") return &deriv_functions::dllg;
+      TimeSpaceToDoubleVectFctPt fpt;
+      if(exact_name == "sin") fpt = &deriv_functions::dsin;
+      else if(exact_name == "cos") fpt = &deriv_functions::dcos;
+      else if(exact_name == "exp") fpt = &deriv_functions::dexp;
+      else if(exact_name == "poly3") fpt = &deriv_functions::dpoly3;
+      else if(exact_name == "stiff_test") fpt = &deriv_functions::dstiff_test;
+      else if(exact_name == "poly2") fpt = &deriv_functions::dpoly2;
+      else if(exact_name == "ll") fpt = &deriv_functions::dll;
+      else if(exact_name == "llg") fpt = &deriv_functions::dllg;
       else
         {
           throw OomphLibError("Unrecognised exact solution " + exact_name,
                               OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
+
+      return new SolutionFunctor(fpt);
     }
 
   }
@@ -210,17 +216,21 @@ namespace oomph
 
     /// Constructor: Pass timestepper
     ODEElement(TimeStepper* timestepper_pt,
-               TimeSpaceToDoubleVectFctPt exact_solution_pt,
-               TimeValueToDoubleVectFctPt derivative_function_pt)
+               SolutionFunctor* exact_solution_pt,
+               SolutionFunctor* derivative_function_pt)
     {
       Exact_solution_pt = exact_solution_pt;
       Derivative_function_pt = derivative_function_pt;
 
-      Vector<double> dummy(3, 1.0);
-      Vector<double> deriv = derivative_function(0, dummy);
-      unsigned nvalue = deriv.size();
+      Vector<double> exact = this->exact_solution(0);
+      unsigned nvalue = exact.size();
 
       add_internal_data(new Data(timestepper_pt, nvalue));
+    }
+
+    virtual ~ODEElement()
+    {
+      delete Derivative_function_pt; Derivative_function_pt = 0;
     }
 
     unsigned nvalue() const
@@ -294,8 +304,8 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      Vector<double> dummy;
-      return Exact_solution_pt(t, dummy);
+      Vector<double> dummy_x;
+      return (*Exact_solution_pt)(t, dummy_x);
     }
 
     /// Exact solution
@@ -310,14 +320,11 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return Derivative_function_pt(t, u);
+      return (*Derivative_function_pt)(t, u);
     }
 
-
-  private:
-
-    TimeSpaceToDoubleVectFctPt Exact_solution_pt;
-    TimeValueToDoubleVectFctPt Derivative_function_pt;
+    SolutionFunctor* Exact_solution_pt;
+    SolutionFunctor* Derivative_function_pt;
   };
 
 
@@ -325,8 +332,11 @@ namespace oomph
   {
   public:
 
-    ODECliArgs() : exact_solution_pt(0), derivative_function_pt(0) {}
-    virtual ~ODECliArgs() {}
+    ODECliArgs() : derivative_function_pt(0) {}
+    virtual ~ODECliArgs()
+    {
+      delete derivative_function_pt; derivative_function_pt = 0;
+    }
 
     virtual void set_flags()
     {
@@ -344,12 +354,11 @@ namespace oomph
     {
 
       exact_name = to_lower(exact_name);
-      exact_solution_pt = ODEFactories::exact_solutions_factory(exact_name);
+      initial_condition_fpt = ODEFactories::exact_solutions_factory(exact_name);
+      initial_is_exact = true;
       derivative_function_pt = ODEFactories::derivative_function_factory(exact_name);
 
       MyCliArgs::run_factories();
-
-      initial_condition_fpt = exact_solution_pt;
     }
 
     /// Overloaded to just create a single ode element
@@ -357,13 +366,12 @@ namespace oomph
     {
       mesh_pts.push_back(new Mesh);
       mesh_pts[0]->
-        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_pt,
+        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_fpt(),
                                       derivative_function_pt));
     }
 
     std::string exact_name;
-    TimeSpaceToDoubleVectFctPt exact_solution_pt;
-    TimeValueToDoubleVectFctPt derivative_function_pt;
+    SolutionFunctor* derivative_function_pt;
 
     // for micromag odes only
     std::string initial_m_name;
@@ -382,28 +390,26 @@ namespace oomph
       Always_write_trace = false;
     }
 
+    virtual ~ODEProblem() {}
+
     void build(Vector<Mesh*>& bulk_mesh_pts)
     {
       // Call the underlying build
       MyProblem::build(bulk_mesh_pts);
 
-      // Set up the global mesh and assign equation numbers
+      // Set up the global mesh
       build_global_mesh();
+
+      // Set problem data in the derivative function
+      element_pt()->Derivative_function_pt->initialise_from_problem(this);
+
+      // assign equation numbers
       this->assign_eqn_numbers();
       oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
-    void set_initial_condition(InitialConditionFctPt ic_fpt)
+    void set_initial_condition(InitialConditionFct& ic_fpt)
     {
-#ifdef PARANOID
-      if(ic_fpt == 0)
-        {
-          std::string err = "Null initial condition function pointer.";
-          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-#endif
-
       // Loop over current & previous timesteps
       for (int t=time_stepper_pt()->nprev_values(); t>=0; t--)
         {
@@ -420,9 +426,7 @@ namespace oomph
               mesh_pt()->element_pt(0)->internal_data_pt(0)
                 ->set_value(t, j, values[j]);
             }
-
         }
-
 
       actions_after_set_initial_condition();
     }

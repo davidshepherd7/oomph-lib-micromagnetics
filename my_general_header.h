@@ -147,6 +147,7 @@ namespace oomph
         delete solver_pt; solver_pt = 0;
         delete time_stepper_pt; time_stepper_pt = 0;
         delete explicit_time_stepper_pt; explicit_time_stepper_pt = 0;
+        delete initial_condition_fpt; initial_condition_fpt = 0;
       }
 
     virtual void set_flags()
@@ -357,12 +358,12 @@ namespace oomph
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}
 
-    /// Use initial condition if we can, otherwise non so far.
-    InitialConditionFctPt exact_solution_fpt() const
+    /// Use initial condition if we can, otherwise none so far.
+    InitialConditionFct* exact_solution_fpt() const
       {
         if(initial_is_exact)
           {
-            return initial_condition_fpt;
+            return new SolutionFunctor(*initial_condition_fpt);
           }
         else
           {
@@ -466,7 +467,7 @@ namespace oomph
     std::string outdir;
     std::string output_jacobian;
 
-    InitialConditionFctPt initial_condition_fpt;
+    InitialConditionFct* initial_condition_fpt;
     int initial_is_exact;
 
     TimeStepper* time_stepper_pt;

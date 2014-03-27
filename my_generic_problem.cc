@@ -527,16 +527,9 @@ namespace oomph
     actions_after_set_initial_condition();
   }
 
-  void MyProblem::set_initial_condition(InitialConditionFctPt ic_fpt)
+  void MyProblem::set_initial_condition(InitialConditionFct& ic_fpt)
   {
 #ifdef PARANOID
-    if(ic_fpt == 0)
-      {
-        std::string err = "Null inital condition function pointer";
-        throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                            OOMPH_CURRENT_FUNCTION);
-      }
-
     if(nglobal_data() != 0)
       {
         std::string err = "Problem has global data which cannot be set from function pt.";

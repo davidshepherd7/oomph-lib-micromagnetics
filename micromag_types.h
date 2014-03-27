@@ -88,13 +88,11 @@ namespace oomph
   };
 
   /// Function type for initial magnetisation
-  typedef TimeSpaceToDoubleVectFctPt InitialMFctPt;
+  typedef SolutionFunctor InitialMFct;
 
-  /// Function type for use as general initial condition. Slight overhead
-  /// of vectors is worth it even in cases with one dof/space dimensions
-  /// for the generality. No overhead for returning a vector due to return
-  /// value optimisation.
-  typedef TimeSpaceToDoubleVectFctPt InitialConditionFctPt;
+  /// Function type for use as general initial condition
+  typedef SolutionFunctor InitialConditionFct;
+
 
 
   // Factory function pointers

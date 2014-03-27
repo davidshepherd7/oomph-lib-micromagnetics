@@ -401,63 +401,65 @@ namespace InitialM
   {return periodic_exact_helper(t, x, 0.1, 3);}
 
 
-  inline InitialMFctPt initial_m_factory(const std::string& m_name)
+  inline InitialMFct* initial_m_factory(const std::string& m_name)
   {
+    TimeSpaceToDoubleVectFctPt fpt;
+
     if(m_name == "x")
       {
-        return &InitialM::x;
+        fpt = &InitialM::x;
       }
     else if(m_name == "y")
       {
-        return &InitialM::y;
+        fpt = &InitialM::y;
       }
     else if(m_name == "z")
       {
-        return &InitialM::z;
+        fpt = &InitialM::z;
       }
     else if(m_name == "xyz")
       {
-        return &InitialM::xyz;
+        fpt = &InitialM::xyz;
       }
     else if(m_name == "xy")
       {
-        return &InitialM::xy;
+        fpt = &InitialM::xy;
       }
     else if(m_name == "xz")
       {
-        return &InitialM::xz;
+        fpt = &InitialM::xz;
       }
     else if(m_name == "exactly_z")
       {
-        return &InitialM::exactly_z;
+        fpt = &InitialM::exactly_z;
       }
     else if(m_name == "smoothly_varying_5")
       {
-        return &InitialM::smoothly_varying_5;
+        fpt = &InitialM::smoothly_varying_5;
       }
     else if(m_name == "smoothly_varying_50")
       {
-        return &InitialM::smoothly_varying_50;
+        fpt = &InitialM::smoothly_varying_50;
       }
     else if(m_name == "smoothly_varying_500")
       {
-        return &InitialM::smoothly_varying_500;
+        fpt = &InitialM::smoothly_varying_500;
       }
     else if(m_name == "smoothly_varying_5000")
       {
-        return &InitialM::smoothly_varying_5000;
+        fpt = &InitialM::smoothly_varying_5000;
       }
     else if(m_name == "periodic_exact_1d")
       {
-        return &InitialM::periodic_exact_1d;
+        fpt = &InitialM::periodic_exact_1d;
       }
     else if(m_name == "periodic_exact_2d")
       {
-        return &InitialM::periodic_exact_2d;
+        fpt = &InitialM::periodic_exact_2d;
       }
     else if(m_name == "periodic_exact_3d")
       {
-        return &InitialM::periodic_exact_3d;
+        fpt = &InitialM::periodic_exact_3d;
       }
     else
       {
@@ -465,6 +467,7 @@ namespace InitialM
                             OOMPH_CURRENT_FUNCTION,
                             OOMPH_EXCEPTION_LOCATION);
       }
+    return new SolutionFunctor(fpt);
   }
 }
 

@@ -313,7 +313,7 @@ namespace oomph
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return Boundary_solution_fpt(t, x);
+      return (*Boundary_solution_fpt)(t, x);
     }
 
 
@@ -651,7 +651,7 @@ namespace oomph
 
     /// \short Abs of mean difference of actual m and m given by a function
     /// at the middle of each element.
-    double compare_m_with_function(const InitialM::InitialMFctPt fct_pt) const;
+    double compare_m_with_function(const SolutionFunctor& fct) const;
 
     /// \short ??ds
     double mean_norm_m_error() const;
@@ -913,7 +913,7 @@ public:
     FluxMeshFactoryFctPt Flux_mesh_factory_pt;
 
     /// Pointer to function deteriminig values of Dirichlet boundaries.
-    InitialMFctPt Boundary_solution_fpt;
+    InitialMFct* Boundary_solution_fpt;
 
     /// \short Recomputed effective damping constant for the last time step
     /// (based on actual change in energy).

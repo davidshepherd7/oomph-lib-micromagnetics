@@ -428,7 +428,7 @@ namespace oomph
 
   /// \short Abs of mean difference of actual m and m given by a function
   /// at the middle of each element.
-  double LLGProblem::compare_m_with_function(const InitialM::InitialMFctPt fct_pt) const
+  double LLGProblem::compare_m_with_function(const SolutionFunctor& fct) const
   {
     double diff = 0.0;
 
@@ -453,7 +453,7 @@ namespace oomph
             Vector<double> numerical_m = intp.m();
             Vector<double> x = intp.x();
 
-            Vector<double> exact_m = fct_pt(time(), x);
+            Vector<double> exact_m = fct(time(), x);
 
             for(unsigned j=0; j<3; j++)
               {
