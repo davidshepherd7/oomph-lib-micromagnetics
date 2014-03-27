@@ -951,8 +951,6 @@ public:
 
     BEMElementFactoryFctPt Bem_element_factory_pt;
 
-    GenericPoissonProblem::FluxMeshFactoryFctPt Phi_1_flux_mesh_factory_fct_pt;
-
     /// Storage for nodes to unpin after explicit step
     Vector<Node*> unpinned_phi_nodes;
     Vector<Node*> unpinned_phi_1_nodes;

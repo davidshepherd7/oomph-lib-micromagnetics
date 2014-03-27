@@ -190,8 +190,6 @@ namespace oomph
             = bool(disable_magnetostatic_solver_optimistations);
         }
 
-      llg_pt->Phi_1_flux_mesh_factory_fct_pt = phi_1_flux_mesh_factory_fct_pt;
-
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
     }
 
@@ -224,7 +222,6 @@ namespace oomph
     Vector<Mesh*> phi_1_mesh_pts;
     Vector<Mesh*> phi_mesh_pts;
 
-    GenericPoissonProblem::FluxMeshFactoryFctPt phi_1_flux_mesh_factory_fct_pt;
     BEMElementFactoryFctPt bem_element_factory_fct_pt;
 
   };
