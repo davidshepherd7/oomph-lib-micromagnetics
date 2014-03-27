@@ -41,9 +41,9 @@ def main():
     argdicts = {
         "-driver" : "ode",
         "-exact" : ["sin", "poly3", "poly2", "stiff_test"],
-        "-ts" : ["bdf2", "midpoint-bdf", "tr"],
-        "-tmax" : 5,
-        "-tol" : 1e-5,
+        "-ts" : ["bdf2", "midpoint-bdf", "tr", "bdf1"],
+        "-tmax" : 10,
+        "-tol" : 1e-4,
         "-disable-mm-opt" : True,
         "-always-write-trace" : 1, # Otherwise we get wrong ndts by counting len(dts)
         }
@@ -65,29 +65,36 @@ def main():
     test_results = []
     test_results.append(all([e == 0 for e in err_codes]))
 
-    # Check errors are small
-    test_results.append(all([tests.check_error_norm(d, 0.05) for d in datasets]))
 
-    # Split into data for each time stepper (we assume that the order of
-    # data is preserved here so that bdf_data[n] is the same exact solution
-    # as imr_data[n] etc.).
-    bdf_data = [d for d in datasets if d['-ts'] == 'bdf2']
-    imr_data = [d for d in datasets if d['-ts'] == 'midpoint-bdf']
-    tr_data = [d for d in datasets if d['-ts'] == 'tr']
+    # Use bdf2's nsteps as a maximum, tr and imr are more accurate than
+    # bdf2 so this should be true (unless bdf2's numerical damping has
+    # kicked in and caused it to jump to a steady state too soon), (we
+    # assume that the order of data is preserved here so that bdf_data[n]
+    # is the same exact solution as imr_data[n] etc.).
+    bdf2_data = [d for d in datasets if d['-ts'] == 'bdf2']
 
-    # Use bdf's nsteps as a maximum, tr and imr are more accurate than bdf2
-    # so this should be true (unless bdf2's numerical damping has kicked in
-    # and caused it to jump to a steady state too soon),
-    max_steps = [1.2*len(d['times']) for d in bdf_data]
 
-    # Check all the runs:
-    imr_nsteps_ok = [tests.check_ndt_less_than(d, m)
-                     for d, m in zip(imr_data, max_steps)]
-    test_results.append(all(imr_nsteps_ok))
 
-    tr_nsteps_ok = [tests.check_ndt_less_than(d, m)
-                     for d, m in zip(tr_data, max_steps)]
-    test_results.append(all(tr_nsteps_ok))
+    for ts in argdicts['-ts']:
+
+        # bdf1 sucks (first order) so it needs far more steps, do it
+        # manually.
+        if ts == "bdf1":
+            max_err = 0.4
+            max_steps = [550, 3800, 1050, 70]
+        else:
+            max_err = 0.07
+            max_steps = [1.3*len(d['times']) for d in bdf2_data]
+
+        ts_data = [d for d in datasets if d['-ts'] == ts]
+
+        # Check errors are small
+        test_results.append(all([tests.check_error_norm(d, max_err) for d in ts_data]))
+
+        # Check all the runs:
+        nsteps_ok = [tests.check_ndt_less_than(d, m)
+                     for d, m in zip(ts_data, max_steps)]
+        test_results.append(all(nsteps_ok))
 
 
     if all(test_results):
