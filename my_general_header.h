@@ -64,26 +64,6 @@ namespace oomph
     return std::abs(test_double) < 1e-5;
   }
 
-  struct RowColVal
-  {
-  public:
-    RowColVal(int row_, int col_, double val_)
-      : row(row_), col(col_), val(val_)
-    {}
-
-    int row;
-    int col;
-    double val;
-
-    bool operator<(const RowColVal& other) const
-    {
-      if (this->row == other.row)
-        return (this->col < other.col);
-      else
-        return (this->row < other.row);
-    }
-  };
-
 
   /// \short Parse inputs and store in a struct-like format. The objects
   /// specified are created using factory functions. Extension to specific
