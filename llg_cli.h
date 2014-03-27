@@ -3,7 +3,9 @@
 
 #include "my_cli.h"
 #include "micromag_factories.h"
-#include  "llg_problem.h"
+
+#include "llg_factories.h"
+#include "llg_problem.h"
 
 namespace oomph
 {
@@ -75,10 +77,9 @@ namespace oomph
 
     virtual void run_factories()
     {
-      using namespace LLGFactories;
       using namespace Factories;
 
-      mesh_factory_pt = &mesh_factory;
+      mesh_factory_pt = &llg_mesh_factory;
 
 
       MyCliArgs::run_factories();

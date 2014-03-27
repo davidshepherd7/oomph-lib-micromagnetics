@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   args.parse(argc, argv);
   LLGProblem problem;
   problem.Residual_calculator_pt
-    = LLGFactories::residual_calculator_factory("llg");
+    = Factories::residual_calculator_factory("llg");
   problem.add_time_stepper_pt(args.time_stepper_pt);
   args.assign_specific_parameters(&problem);
   problem.build(args.mesh_pts);

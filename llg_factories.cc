@@ -1,6 +1,20 @@
+#include "llg_factories.h"
 
 #include "llg_problem.h"
 #include "boundary_element_handler.h"
+
+
+// Meshes for mesh factory
+#include "../../src/meshes/simple_rectangular_quadmesh.h"
+#include "../../src/meshes/rectangular_quadmesh.h"
+#include "../../src/meshes/one_d_mesh.h"
+#include "../../src/meshes/simple_rectangular_tri_mesh.h"
+#include "../../src/meshes/simple_cubic_tet_mesh.h"
+#include "../../src/meshes/simple_cubic_mesh.h"
+#include "../../src/meshes/tetgen_mesh.h"
+#include "../../src/meshes/triangle_mesh.h"
+#include "./multi_mesh.h"
+#include "./single_element_mesh.h"
 
 namespace oomph
 {
@@ -76,11 +90,11 @@ namespace oomph
       // Figure out which element type we should use in the bem mesh
       // (based on the element type used in the bulk mesh) and store the
       // function needed to create them.
-      new_bem_handler.Bem_element_factory_fpt = LLGFactories::
+      new_bem_handler.Bem_element_factory_fpt = Factories::
         bem_element_factory_factory(bulk_fe_pt);
 
       // Create an integration scheme
-      new_bem_handler.integration_scheme_pt() = LLGFactories::
+      new_bem_handler.integration_scheme_pt() = Factories::
         variable_order_integrator_factory(bulk_fe_pt);
 
       // Figure out if we are doing phi/phi1 in separate meshes (and
@@ -391,5 +405,318 @@ namespace oomph
       return dof_to_block;
     }
 
+    /// \short Make a mesh as specified by an input argument. Refined
+    /// according to the given refinement level (in some way appropriate
+    /// for that mesh type). Assumption: this will be passed into a
+    /// problem, which will delete the pointer when it's done.
+    Mesh* llg_mesh_factory(const std::string& _mesh_name,
+                           int refinement_level,
+                           TimeStepper* time_stepper_pt,
+                           double scaling_factor,
+                           unsigned nnode1d)
+    {
+      // Ignore case in mesh names
+      const std::string mesh_name = to_lower(_mesh_name);
+
+      // Refinement always roughly the same for structured meshes
+      unsigned nx = 5 * std::pow(2, refinement_level-1);
+
+      // Make the mesh and store a pointer to it
+      Mesh* mesh_pt = 0;
+      if(mesh_name == "sq_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_square_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new RectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          // Link boundary 0 to boundary 2 and boundary 1 to boundary 3
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
+        }
+      else if(mesh_name == "sq_line" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new OneDMesh<QMicromagElement<1,2> >
+            (nx, lx, time_stepper_pt);
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sq_line_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new OneDMesh<QMicromagElement<1,2> >
+            (nx, lx, time_stepper_pt);
+
+          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 1, 0); // x
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "st_square" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularTriMesh<TMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
+        }
+      else if(mesh_name == "single-element" && nnode1d == 2)
+        {
+          mesh_pt = new SingleElementMesh<QMicromagElement<2,2> >(time_stepper_pt);
+        }
+      else if(mesh_name == "ut_square" && nnode1d == 2)
+        {
+          mesh_pt = new TriangleMesh<TMicromagElement<2, 2> >
+            ("./meshes/square." + to_string(refinement_level) + ".node",
+             "./meshes/square." + to_string(refinement_level) + ".ele",
+             "./meshes/square." + to_string(refinement_level) + ".poly",
+             time_stepper_pt);
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
+        }
+      else if(mesh_name == "st_cubeoid" && nnode1d == 2)
+        {
+          // nmag cubeoid
+          double lx = 1, ly = lx, lz = 3*lx;
+          unsigned ny = nx, nz = std::ceil(lz/lx) * nx;
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (nx, ny, nz, lx, ly, lz, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sqt_cubeoid" && nnode1d == 2)
+        {
+          Mesh* qmesh_pt = llg_mesh_factory("sq_cubeoid", refinement_level,
+                                        time_stepper_pt,
+                                        1, nnode1d);
+          //??ds memory leak, fix? Can't delete this mesh or nodes will
+          //go...
+
+          TetMeshBase* tmesh_pt = new TetMeshBase;
+          ElementFactoryFctPt factory_fpt =
+            MeshCreationHelpers::new_element<TMicromagElement<3, 2> >;
+
+          MeshCreationHelpers::brick2tet(*qmesh_pt, factory_fpt, *tmesh_pt);
+
+          mesh_pt = tmesh_pt;
+        }
+      else if(mesh_name == "ut_cubeoid" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/cubeoid." + to_string(refinement_level) + ".node",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".ele",
+             "./meshes/cubeoid." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "ut_mumag4" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/mumag4." + to_string(refinement_level) + ".node",
+             "./meshes/mumag4." + to_string(refinement_level) + ".ele",
+             "./meshes/mumag4." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else if(mesh_name == "st_mumag4" && nnode1d == 2)
+        {
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3, 2> >
+            (5*nx, std::ceil(1.25*nx), 1, 500, 125, 3, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sq_mumag4" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sqt_mumag4" && nnode1d == 2)
+        {
+          Mesh* qmesh_pt = llg_mesh_factory("sq_mumag4", refinement_level,
+                                            time_stepper_pt,
+                                            1, nnode1d);
+          //??ds memory leak, fix? Can't delete this mesh or nodes will
+          //go...
+
+          // Convert to tet mesh
+          TetMeshBase* tmesh_pt = new TetMeshBase;
+          ElementFactoryFctPt factory_fpt =
+            MeshCreationHelpers::new_element<TMicromagElement<3, 2> >;
+          MeshCreationHelpers::brick2tet(*qmesh_pt, factory_fpt, *tmesh_pt);
+
+          mesh_pt = tmesh_pt;
+        }
+      else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
+        {
+          double lx = 1, ly = lx, lz = 3*lx;
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+            (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
+        }
+      else if(mesh_name == "ut_sphere" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/sphere." + to_string(refinement_level) + ".node",
+             "./meshes/sphere." + to_string(refinement_level) + ".ele",
+             "./meshes/sphere." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
+      else
+        {
+          throw OomphLibError("Unrecognised mesh name " + mesh_name,
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // Scale the mesh as requested
+      scale_mesh(scaling_factor, mesh_pt);
+
+      // This should go inside an element factory but our meshes don't
+      // allow that :(
+      for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
+        {
+          MicromagEquations* ele_pt = checked_dynamic_cast<MicromagEquations*>
+            (mesh_pt->element_pt(ele));
+          ele_pt->Ms_calc_pt = new ImplicitMagnetostaticsCalculator;
+        }
+
+      // Done: pass out the mesh pointer
+      return mesh_pt;
+    }
+
+    /// Pick and create a residual calculator to use
+    LLGResidualCalculator* residual_calculator_factory(const std::string& residual)
+    {
+      if(residual == "llg")
+        return new LLGResidualCalculator(true);
+      else if(residual == "ll")
+        return new LLGResidualCalculator(false);
+      else
+        throw OomphLibError("Unrecognised residual "+residual,
+                            OOMPH_EXCEPTION_LOCATION,
+                            OOMPH_CURRENT_FUNCTION);
+    }
+
+
+    /// \short Create a variable order quadrature object based on the
+    /// dimension and shape of the element. Only works for
+    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
+    {
+      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
+        {
+          return new TVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
+        {
+          return new QVariableOrderGaussLegendre<1>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
+        {
+          return new TVariableOrderGaussLegendre<2>;
+        }
+      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
+        {
+          return new QVariableOrderGaussLegendre<2>;
+        }
+      else
+        {
+          std::string err("Cannot determine element type.\n");
+          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
+          err += "Variable order quadratures are not supported for this case.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
+
+
+    /// \short Return a function which will create the appropriate BEM face
+    /// element for the bulk element pointer given (should work for a
+    /// pointer to any bulk element type i.e., field or llg).
+    BEMElementFactoryFctPt bem_element_factory_factory
+    (const FiniteElement* bulk_ele_pt)
+    {
+      if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const TElement<3, 2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<3,2> >;
+        }
+
+      else if(dynamic_cast<const QElement<1,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<1,2> >;
+        }
+      else if(dynamic_cast<const QElement<2,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<2,2> >;
+        }
+      else if(dynamic_cast<const QElement<3,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<3,2> >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+    }
+
+    /// \short Return a factory function which will create the appropriate
+    /// "flux mesh" for the bulk element pointer given.
+    FluxMeshFactoryFctPt
+    mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt)
+    {
+      if(dynamic_cast<const TMicromagElement<2, 2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<TMicromagElement<2, 2> > >;
+        }
+      else if(dynamic_cast<const TMicromagElement<3, 2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<TMicromagElement<3, 2> > >;
+        }
+
+      else if(dynamic_cast<const QMicromagElement<1,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<1,2> > >;
+        }
+      else if(dynamic_cast<const QMicromagElement<2,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<2,2> > >;
+        }
+      else if(dynamic_cast<const QMicromagElement<3,2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<3,2> > >;
+        }
+
+      else
+        {
+          throw OomphLibError("Unrecognised element type",
+                              OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+    }
   }
 }

@@ -62,14 +62,14 @@ namespace oomph
          {
            LLGProblem* llgp_pt = new LLGProblem;
            llgp_pt->Residual_calculator_pt
-             = LLGFactories::residual_calculator_factory("llg");
+             = Factories::residual_calculator_factory("llg");
            problem_pt = llgp_pt;
          }
        else if(problem_name == "ll")
          {
            LLGProblem* llgp_pt = new LLGProblem;
            llgp_pt->Residual_calculator_pt
-             = LLGFactories::residual_calculator_factory("ll");
+             = Factories::residual_calculator_factory("ll");
            problem_pt = llgp_pt;
          }
        else if(problem_name == "ode")

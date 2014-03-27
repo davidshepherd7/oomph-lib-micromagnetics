@@ -974,46 +974,6 @@ public:
 
   };
 
-
-  /// \short Functions for constructing things needed for LLG problems
-  namespace LLGFactories
-  {
-    /// \short Make a mesh as specified by an input argument. Refined
-    /// according to the given refinement level (in some way appropriate
-    /// for that mesh type). Assumption: this will be passed into a
-    /// problem, which will delete the pointer when it's done.
-    Mesh* mesh_factory(const std::string& _mesh_name,
-                       int refinement_level,
-                       TimeStepper* time_stepper_pt,
-                       double scaling_factor=1.0,
-                       unsigned nnode1d = 2);
-
-    LLGResidualCalculator* residual_calculator_factory(const std::string& residual);
-
-    /// \short Create a variable order quadrature object based on the
-    /// dimension and shape of the element. Only works for some element
-    /// types.
-    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt);
-
-    /// \short Create a function to create bem elements based on the
-    /// elements used in the bulk mesh.
-    BEMElementFactoryFctPt bem_element_factory_factory
-    (const FiniteElement* bulk_ele_pt);
-
-    /// \short very simple function: create a new face element of type
-    /// ELEMENT.
-    template<class ELEMENT>
-    MicromagBEMElementEquations* bem_element_factory(FiniteElement* ele,
-                                                     const int& face)
-    {
-      return new ELEMENT(ele, face);
-    }
-
-    FluxMeshFactoryFctPt
-    mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
-  }
-
-
 }
 
 #endif
