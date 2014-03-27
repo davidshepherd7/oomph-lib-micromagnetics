@@ -10,6 +10,7 @@ sources = micromagnetics_element.cc \
 	template_free_poisson.cc \
 	magnetic_materials.cc \
 	llg_problem.cc \
+	llg_factories.cc \
 	variable_order_quadrature.cc \
 	generic_poisson_problem.cc \
 	boundary_element_handler.cc \
@@ -35,6 +36,7 @@ headers = array_interpolator.h \
 	my_generic_problem.h \
 	llg_problem.h \
 	llg_cli.h \
+	llg_factories.h \
 	magnetic_materials.h \
 	template_free_poisson_flux.h \
 	magnetics_helpers.h \

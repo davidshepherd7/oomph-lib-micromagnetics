@@ -7,8 +7,6 @@
 #include "../../src/generic/Vector.h"
 
 
-using namespace oomph;
-
 namespace oomph
 {
 
