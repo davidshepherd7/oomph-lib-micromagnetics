@@ -67,7 +67,7 @@ namespace oomph
     }
 
     /// Call the function.
-    Vector<double> operator()(const double& t, const Vector<double>&x) const
+    virtual Vector<double> operator()(const double& t, const Vector<double>&x) const
     {
 #ifdef PARANOID
       if(Solution_fpt == 0)

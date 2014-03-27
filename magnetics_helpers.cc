@@ -2,6 +2,8 @@
 #include "magnetics_helpers.h"
 #include "energy_functions.h"
 
+#include "llg_problem.h"
+
 #include "../../src/meshes/tetgen_mesh.h"
 
 namespace oomph
@@ -10,8 +12,8 @@ namespace oomph
   namespace InitialM
   {
     /// Wave-like exact solution from Jeong2014 and various other papers.
-    Vector<double> periodic_exact_helper(const double& t, const Vector<double> &x,
-                                         const double& damping, const double& dim)
+    Vector<double> LLGWaveSolution::operator()(const double& t,
+                                               const Vector<double>& x) const
     {
       using namespace MathematicalConstants;
       using namespace std;
@@ -46,6 +48,14 @@ namespace oomph
         }
 
       return m;
+    }
+
+    void LLGWaveSolution::initialise_from_problem(const Problem* problem_pt)
+    {
+      const LLGProblem* llg_pt
+        = checked_dynamic_cast<const LLGProblem*>(problem_pt);
+      dim = llg_pt->dim();
+      damping = llg_pt->mag_parameters_pt()->Gilbert_damping;
     }
   }
 

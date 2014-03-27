@@ -391,18 +391,31 @@ namespace InitialM
   inline Vector<double> smoothly_varying_5000(const double& t, const Vector<double> &x)
   {return smoothly_varying_m_helper(5000.0, t, x);}
 
-  Vector<double> periodic_exact_helper(const double& t, const Vector<double> &x,
-                                       const double& damping, const double& dim);
-  inline Vector<double> periodic_exact_1d(const double& t, const Vector<double> &x)
-  {return periodic_exact_helper(t, x, 0, 1);}
-  inline Vector<double> periodic_exact_2d(const double& t, const Vector<double> &x)
-  {return periodic_exact_helper(t, x, 0, 2);}
-  inline Vector<double> periodic_exact_3d(const double& t, const Vector<double> &x)
-  {return periodic_exact_helper(t, x, 0.1, 3);}
+  class LLGWaveSolution : public SolutionFunctor
+  {
+  public:
+    /// Constructor
+    LLGWaveSolution() {}
+
+    /// Virtual destructor
+    virtual ~LLGWaveSolution() {}
+    void initialise_from_problem(const Problem* problem_pt);
+    Vector<double> operator()(const double& t, const Vector<double>& x) const;
+
+  private:
+
+    unsigned dim;
+    double damping;
+  };
 
 
   inline InitialMFct* initial_m_factory(const std::string& m_name)
   {
+    if(m_name == "periodic_exact")
+      {
+        return new LLGWaveSolution;
+      }
+
     TimeSpaceToDoubleVectFctPt fpt;
 
     if(m_name == "x")
@@ -448,18 +461,6 @@ namespace InitialM
     else if(m_name == "smoothly_varying_5000")
       {
         fpt = &InitialM::smoothly_varying_5000;
-      }
-    else if(m_name == "periodic_exact_1d")
-      {
-        fpt = &InitialM::periodic_exact_1d;
-      }
-    else if(m_name == "periodic_exact_2d")
-      {
-        fpt = &InitialM::periodic_exact_2d;
-      }
-    else if(m_name == "periodic_exact_3d")
-      {
-        fpt = &InitialM::periodic_exact_3d;
       }
     else
       {
