@@ -59,12 +59,6 @@ namespace oomph
 
 
 
-  inline bool small(const double& test_double)
-  {
-    return std::abs(test_double) < 1e-5;
-  }
-
-
   /// \short Parse inputs and store in a struct-like format. The objects
   /// specified are created using factory functions. Extension to specific
   /// problems can be done by inheriting and overloading set_flags and
