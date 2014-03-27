@@ -7,7 +7,7 @@
 #include "../../src/generic/general_purpose_preconditioners.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 
-#include "micromag_factories.h"
+#include "oomph_factories.h"
 #include "llg_factories.h"
 
 namespace oomph

@@ -3,7 +3,7 @@
 #include "llg_problem.h"
 #include "llg_factories.h"
 
-#include "micromag_factories.h"
+#include "oomph_factories.h"
 #include "micromag_types.h"
 
 #include "micromagnetics_element.h"

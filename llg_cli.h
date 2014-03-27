@@ -2,7 +2,7 @@
 #define OOMPH_LLG_CLI_H
 
 #include "my_cli.h"
-#include "micromag_factories.h"
+#include "oomph_factories.h"
 
 #include "llg_factories.h"
 #include "llg_problem.h"

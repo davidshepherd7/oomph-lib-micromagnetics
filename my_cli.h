@@ -12,7 +12,7 @@
 
 #include "magnetics_helpers.h"
 #include "micromag_types.h"
-#include "micromag_factories.h"
+#include "oomph_factories.h"
 
 // solver factories
 #include "../../src/generic/linear_solver.h"

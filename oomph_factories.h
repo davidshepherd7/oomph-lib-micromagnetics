@@ -1,5 +1,5 @@
-#ifndef OOMPH_MICROMAG_FACTORIES_H
-#define OOMPH_MICROMAG_FACTORIES_H
+#ifndef OOMPH_FACTORIES_H
+#define OOMPH_FACTORIES_H
 
 #include "micromag_types.h"
 #include <string>

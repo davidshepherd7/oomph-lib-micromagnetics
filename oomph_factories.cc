@@ -1,5 +1,5 @@
 
-#include "micromag_factories.h"
+#include "oomph_factories.h"
 
 // for llg block prec, fix? ??ds
 #include "llg_factories.h"

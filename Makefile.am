@@ -16,7 +16,7 @@ sources = micromagnetics_element.cc \
 	boundary_element_handler.cc \
 	template_free_poisson_flux.cc \
 	residual_calculator.cc \
-	micromag_factories.cc \
+	oomph_factories.cc \
 	my_generic_problem.cc \
 	magnetics_helpers.cc \
 	magnetostatics_calculator.cc
@@ -54,7 +54,7 @@ headers = array_interpolator.h \
 	sum_of_matrices_preconditioner.h \
 	single_element_mesh.h \
 	ode_problem.h \
-	micromag_factories.h \
+	oomph_factories.h \
 	micromag_types.h \
 	magnetostatics_calculator.h \
 	llg_preconditioners.h \
