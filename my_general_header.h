@@ -363,7 +363,7 @@ namespace oomph
       {
         if(initial_is_exact)
           {
-            return new SolutionFunctor(*initial_condition_fpt);
+            return initial_condition_fpt;
           }
         else
           {
