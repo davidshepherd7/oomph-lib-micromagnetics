@@ -41,6 +41,52 @@ namespace oomph
   /// Function type for applied fields
   typedef TimeSpaceToDoubleVectFctPt HAppFctPt;
 
+  /// Function class for exact solutions/initial conditions/boundary
+  /// conditions. This is needed so that we can have solutions that depend
+  /// on problem parameters with resorting to global variables.
+  class SolutionFunctor
+  {
+    public:
+    SolutionFunctor() {}
+
+    SolutionFunctor(TimeSpaceToDoubleVectFctPt solution_fpt)
+    {
+      Solution_fpt = solution_fpt;
+    }
+
+    virtual ~SolutionFunctor() {}
+
+    SolutionFunctor(const SolutionFunctor& that)
+    {
+      Solution_fpt = that.Solution_fpt;
+    }
+
+    void operator=(const SolutionFunctor& that)
+    {
+      this->Solution_fpt = that.Solution_fpt;
+    }
+
+    /// Call the function.
+    Vector<double> operator()(const double& t, const Vector<double>&x) const
+    {
+#ifdef PARANOID
+      if(Solution_fpt == 0)
+        {
+          std::string err = "Solution_fpt is null!";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Solution_fpt(t, x);
+    }
+
+    /// Overload to grab data from the problem.
+    virtual void initialise_from_problem(const Problem* problem_pt) {}
+
+    private:
+    TimeSpaceToDoubleVectFctPt Solution_fpt;
+  };
+
   /// Function type for initial magnetisation
   typedef TimeSpaceToDoubleVectFctPt InitialMFctPt;
 
