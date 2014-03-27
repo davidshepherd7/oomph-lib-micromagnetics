@@ -206,8 +206,8 @@ namespace oomph
 
   InitialMFct Exact_fpt;
 
-  double ExactFunctionDiff::call(const GeneralisedElement* ele_pt,
-                                 MMInterpolator* intp_pt) const
+  double ExactFunctionDiffSquared::call(const GeneralisedElement* ele_pt,
+                                        MMInterpolator* intp_pt) const
   {
     const MicromagEquations* m_ele_pt
       = dynamic_cast<const MicromagEquations*>(ele_pt);
@@ -219,7 +219,14 @@ namespace oomph
     unsigned mi0 = m_ele_pt->m_index_micromag(0);
     Vector<double> exact_m; exact_m.assign(exact.begin()+mi0, exact.end());
 
-    return VectorOps::two_norm_diff(intp_pt->m(), exact_m);
+    double diff = 0;
+    const unsigned ni = exact_m.size();
+    for(unsigned i=0; i<ni; i++)
+      {
+        diff += std::pow(intp_pt->m()[i] - exact_m[i], 2);
+      }
+
+    return diff;
   }
 
 

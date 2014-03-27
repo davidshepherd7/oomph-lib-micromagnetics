@@ -499,14 +499,38 @@ using namespace StringConversion;
     /// overloading doc_solution_additional(...).
     void doc_solution();
 
-    /// \short Dummy error norm calculator (overload in derived classes).
+    /// \short Error norm calculator
     virtual double get_error_norm() const
     {
       if(Exact_solution_fpt != 0)
         {
-          ExactFunctionDiff f;
-          f.Exact_fpt = Exact_solution_fpt;
-          return integrate_over_problem(&f);
+          // ExactFunctionDiffSquared f;
+          // f.Exact_fpt = Exact_solution_fpt;
+          // return std::sqrt(integrate_over_problem(&f));
+
+          // Nodal rms difference
+          const double t = time_pt()->time();
+
+          double diffsq = 0;
+
+          const unsigned n_node = mesh_pt()->nnode();
+          for(unsigned nd=0; nd<n_node; nd++)
+            {
+              Node* nd_pt = mesh_pt()->node_pt(nd);
+              Vector<double> values(nd_pt->nvalue(), 0.0), x(dim(), 0.0);
+              nd_pt->position(x);
+              nd_pt->value(values);
+
+              Vector<double> exact = exact_solution(t, x);
+
+              const unsigned ni = values.size();
+              for(unsigned i=0; i<ni; i++)
+                {
+                  diffsq += std::pow(values[i] - exact[i], 2);
+                }
+            }
+
+          return std::sqrt(diffsq);
         }
       else
         {
