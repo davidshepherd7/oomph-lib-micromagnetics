@@ -207,6 +207,43 @@ namespace oomph
   };
 
 
+  /// Given a preconditioner:
+  /// 1) if it's a the right type of preconditioner return it
+  /// 2) otherwise if its a SoM preconditioner containing" the right type
+  /// of preconditioner then return a pointer to the underlying
+  /// preconditioner.
+  /// 3) otherwise return null
+  template<class T>
+  T smart_cast_preconditioner(Preconditioner* prec_pt)
+  {
+    T bp_pt = dynamic_cast<T> (prec_pt);
+    if(bp_pt != 0)
+      {
+        return bp_pt;
+      }
+    else
+      {
+        MainMatrixOnlyPreconditioner* som_main_prec_pt
+          = dynamic_cast<MainMatrixOnlyPreconditioner*>(prec_pt);
+        if(som_main_prec_pt != 0)
+          {
+            T ul_bp_pt = dynamic_cast<T>
+              (som_main_prec_pt->underlying_prec_pt());
+            if(ul_bp_pt != 0)
+              {
+                return ul_bp_pt;
+              }
+          }
+        else
+          {
+            return 0;
+          }
+      }
+
+    // Never get here?
+    return 0;
+  }
+
 } // End of oomph namespace
 
 #endif
