@@ -1,9 +1,5 @@
-#ifndef OOMPH_MY_GENERAL_HEADER_H
-#define OOMPH_MY_GENERAL_HEADER_H
-
-/*
-  A header for all my debug and output stuff.
-*/
+#ifndef OOMPH_MY_CLI_H
+#define OOMPH_MY_CLI_H
 
 
 // Include the appropriate version of the pretty print header depending on if we
@@ -36,11 +32,6 @@
 // solver factories
 #include "../../src/generic/linear_solver.h"
 #include "../../src/generic/iterative_linear_solver.h"
-
-// timestepper factories
-#include "../../src/generic/timesteppers.h"
-#include "../../src/generic/midpoint_method.h"
-#include "../../src/generic/explicit_timesteppers.h"
 
 // Preconditioner factories
 #include "../../src/generic/preconditioner.h"

@@ -14,7 +14,7 @@
 #include "./template_free_poisson.h"
 #include "./template_free_poisson_flux.h"
 
-#include "./my_general_header.h"
+#include "./my_cli.h"
 #include "./my_generic_problem.h"
 
 

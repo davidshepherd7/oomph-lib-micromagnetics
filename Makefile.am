@@ -31,7 +31,7 @@ headers = array_interpolator.h \
 	micromagnetics_element.h \
 	generic_poisson_problem.h \
 	micromagnetics_flux_element.h \
-	my_general_header.h \
+	my_cli.h \
 	my_generic_problem.h \
 	llg_problem.h \
 	magnetic_materials.h \

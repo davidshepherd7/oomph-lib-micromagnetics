@@ -6,8 +6,7 @@
 #include "../../src/generic/problem.h"
 #include "../../src/generic/sum_of_matrices.h"
 
-// just for prec cast, move?
-#include "my_general_header.h"
+#include "sum_of_matrices_preconditioner.h"
 
 
 namespace oomph
