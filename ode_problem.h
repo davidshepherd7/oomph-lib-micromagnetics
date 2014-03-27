@@ -462,15 +462,20 @@ namespace oomph
 
     Vector<double> trace_values() const {return solution();}
 
+    ODEElement* element_pt()
+    {return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0));}
+
+    const ODEElement* element_pt() const
+    {return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0));}
+
     TimeStepper* ts_pt() const
     {
-      return mesh_pt()->element_pt(0)->internal_data_pt(0)->time_stepper_pt();
+      return element_pt()->internal_data_pt(0)->time_stepper_pt();
     }
 
     unsigned nvalue() const
     {
-      return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0))
-        ->nvalue();
+      return element_pt()->nvalue();
     }
 
     // Output solution

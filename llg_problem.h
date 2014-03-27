@@ -75,6 +75,12 @@ namespace oomph
       Renormalise_each_time_step = false;
     }
 
+    /// Virtual destructor. Policy decision: my problem classes won't call
+    /// delete on anything. That's up to the driver code or
+    /// whatever. Ideally we should just start using c++11 smart pointers
+    /// and not have to worry so much about memory management!
+    virtual ~LLGProblem() {}
+
     std::string problem_name() const {return "LLG";}
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
@@ -210,16 +216,6 @@ namespace oomph
 
     /// Function that does the real work of the constructors.
     void build(Vector<Mesh*>& bulk_mesh_pts);
-
-    /// Destructor
-    virtual ~LLGProblem()
-    {
-      // mesh is cleaned up by problem base class
-      // timestepper is cleaned up by problem base class
-      delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
-      delete Residual_calculator_pt; Residual_calculator_pt = 0;
-      delete Bem_handler_pt; Bem_handler_pt = 0;
-    }
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
     void renormalise_magnetisation()
@@ -1025,6 +1021,11 @@ public:
   public:
     /// Constructor: Initialise pointers to null.
     MMArgs() : h_app_fct_pt(0), mag_params_pt(0) {}
+
+    virtual ~MMArgs()
+      {
+        delete mag_params_pt; mag_params_pt = 0;
+      }
 
     virtual void set_flags()
     {

@@ -132,7 +132,10 @@ using namespace StringConversion;
       Total_step_time= 0;
     }
 
-    /// Destructor
+    /// Virtual destructor. Policy decision: my problem classes won't call
+    /// delete on anything. That's up to the driver code or
+    /// whatever. Ideally we should just start using c++11 smart pointers
+    /// and not have to worry so much about memory management!
     virtual ~MyProblem() {}
 
     /// Do the newton solve or explicit step (different ones depending flags

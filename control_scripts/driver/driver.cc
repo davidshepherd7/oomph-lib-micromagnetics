@@ -309,6 +309,15 @@ int main(int argc, char *argv[])
 
   problem_pt->final_doc();
 
+  // Maybe have to clean up bem handler, I wish we could use c++11 so we
+  // could not have to do this stuff by hand...
+  LLGProblem* llg_pt = dynamic_cast<LLGProblem*>(problem_pt);
+  if(llg_pt != 0)
+    {
+      delete llg_pt->Bem_handler_pt; llg_pt->Bem_handler_pt = 0;
+      delete llg_pt->Residual_calculator_pt; llg_pt->Residual_calculator_pt = 0;
+    }
+
   // Done with problem and args pointers
   delete problem_pt; problem_pt = 0;
   delete args_pt; args_pt = 0;
