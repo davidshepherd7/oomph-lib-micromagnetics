@@ -34,6 +34,7 @@ headers = array_interpolator.h \
 	my_cli.h \
 	my_generic_problem.h \
 	llg_problem.h \
+	llg_cli.h \
 	magnetic_materials.h \
 	template_free_poisson_flux.h \
 	magnetics_helpers.h \
