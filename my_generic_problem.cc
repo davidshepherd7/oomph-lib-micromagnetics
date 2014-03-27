@@ -529,6 +529,8 @@ namespace oomph
   void MyProblem::set_initial_condition(const InitialConditionFct& ic)
   {
 #ifdef PARANOID
+    // Can't set global data from a function of space... have to overload this
+    // if you have any
     if(nglobal_data() != 0)
       {
         std::string err = "Problem has global data which cannot be set from function pt.";
@@ -538,13 +540,14 @@ namespace oomph
 #endif
 
     // Loop over current & previous timesteps
-    int nprev_steps=this->time_stepper_pt()->nprev_values();
-    for(int t=nprev_steps; t>=0; t--)
+    const int nprev_steps = this->time_stepper_pt()->nprev_values();
+    const unsigned nmsh = nsub_mesh();
+    for(int t=0; t<nprev_steps; t++)
       {
         double time = time_pt()->time(t);
 
         // Loop over all nodes in all meshes in problem and set values.
-        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        for(unsigned msh=0; msh<nmsh; msh++)
           {
             Mesh* mesh_pt = this->mesh_pt(msh);
 
@@ -576,6 +579,7 @@ namespace oomph
               }
 
 #ifdef PARANOID
+            // Can't set internal data like this so check that we have none.
             for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
               {
                 FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
@@ -588,8 +592,6 @@ namespace oomph
                   }
               }
 #endif
-
-            //??ds can't set external/internal data like this though
           }
       }
 
