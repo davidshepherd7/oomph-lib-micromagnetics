@@ -10,24 +10,9 @@
 #include "prettyprint98.hpp"
 #endif
 
-#include <ostream>
-#include <climits>
-
-#include "../../src/generic/Vector.h"
-
-#include "../../src/generic/preconditioner.h"
-
-
 #include "magnetics_helpers.h"
 #include "micromag_types.h"
 #include "micromag_factories.h"
-
-
-
-//??ds tidy up this list
-
-// mesh factories
-#include "../../src/generic/mesh.h"
 
 // solver factories
 #include "../../src/generic/linear_solver.h"
