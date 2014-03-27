@@ -35,7 +35,7 @@ namespace oomph
       Applied_field_fct_pt(0),
       Previous_energies(5, 0.0)
     {
-      Boundary_solution_fpt = 0;
+      Boundary_solution_pt = 0;
 
       // Needed for if we want to switch solvers in runs
       Super_LU_solver_pt = new SuperLUSolver;
@@ -306,14 +306,14 @@ namespace oomph
     Vector<double> boundary_solution(const double& t, Vector<double>& x) const
     {
 #ifdef PARANOID
-      if(Boundary_solution_fpt == 0)
+      if(Boundary_solution_pt == 0)
         {
-          std::string err = "Boundary_solution_fpt is null!";
+          std::string err = "Boundary_solution_pt is null!";
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return (*Boundary_solution_fpt)(t, x);
+      return (*Boundary_solution_pt)(t, x);
     }
 
 
@@ -913,7 +913,7 @@ public:
     FluxMeshFactoryFctPt Flux_mesh_factory_pt;
 
     /// Pointer to function deteriminig values of Dirichlet boundaries.
-    InitialMFct* Boundary_solution_fpt;
+    InitialMFct* Boundary_solution_pt;
 
     /// \short Recomputed effective damping constant for the last time step
     /// (based on actual change in energy).
@@ -1093,7 +1093,7 @@ public:
       h_app_name = to_lower(h_app_name);
       mag_params_name = to_lower(mag_params_name);
 
-      initial_condition_fpt = InitialM::initial_m_factory(initial_m_name);
+      initial_condition_pt = InitialM::initial_m_factory(initial_m_name);
       h_app_fct_pt = HApp::h_app_factory(h_app_name);
       mag_params_pt = magnetic_parameters_factory(mag_params_name);
 
@@ -1133,7 +1133,7 @@ public:
       llg_pt->Pin_boundary_m = pin_boundary_m;
       if(pin_boundary_m)
         {
-          llg_pt->Boundary_solution_fpt = initial_condition_fpt;
+          llg_pt->Boundary_solution_pt = initial_condition_pt;
         }
 
       if(to_lower(ms_method) == "implicit")

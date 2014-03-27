@@ -137,7 +137,7 @@ namespace oomph
     {
       explicit_time_stepper_pt = 0;
       mesh_factory_pt = 0;
-      initial_condition_fpt = 0;
+      initial_condition_pt = 0;
     }
 
     /// Destructor: clean up everything we made in the factories.
@@ -147,7 +147,7 @@ namespace oomph
         delete solver_pt; solver_pt = 0;
         delete time_stepper_pt; time_stepper_pt = 0;
         delete explicit_time_stepper_pt; explicit_time_stepper_pt = 0;
-        delete initial_condition_fpt; initial_condition_fpt = 0;
+        delete initial_condition_pt; initial_condition_pt = 0;
       }
 
     virtual void set_flags()
@@ -359,11 +359,11 @@ namespace oomph
     bool adaptive_flag() {return tol != 0.0;}
 
     /// Use initial condition if we can, otherwise none so far.
-    InitialConditionFct* exact_solution_fpt() const
+    InitialConditionFct* exact_solution_pt() const
       {
         if(initial_is_exact)
           {
-            return initial_condition_fpt;
+            return initial_condition_pt;
           }
         else
           {
@@ -467,7 +467,7 @@ namespace oomph
     std::string outdir;
     std::string output_jacobian;
 
-    InitialConditionFct* initial_condition_fpt;
+    InitialConditionFct* initial_condition_pt;
     int initial_is_exact;
 
     TimeStepper* time_stepper_pt;

@@ -212,7 +212,7 @@ namespace oomph
     const MicromagEquations* m_ele_pt
       = dynamic_cast<const MicromagEquations*>(ele_pt);
 
-    Vector<double> exact = (*Exact_fpt)(intp_pt->time(), intp_pt->x());
+    Vector<double> exact = (*Exact_pt)(intp_pt->time(), intp_pt->x());
 
     // Assume that m indices are contiguous and extract m from entire
     // solution.

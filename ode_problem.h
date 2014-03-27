@@ -354,7 +354,7 @@ namespace oomph
     {
 
       exact_name = to_lower(exact_name);
-      initial_condition_fpt = ODEFactories::exact_solutions_factory(exact_name);
+      initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name);
       initial_is_exact = true;
       derivative_function_pt = ODEFactories::derivative_function_factory(exact_name);
 
@@ -366,7 +366,7 @@ namespace oomph
     {
       mesh_pts.push_back(new Mesh);
       mesh_pts[0]->
-        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_fpt(),
+        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_pt(),
                                       derivative_function_pt));
     }
 
@@ -419,7 +419,7 @@ namespace oomph
 
           // Get + set the (only) value
           Vector<double> dummy(nvalue(), 1.0);
-          Vector<double> values = ic_fpt(time, dummy);
+          Vector<double> values = ic(time, dummy);
 
           for(unsigned j=0, nj=nvalue(); j<nj; j++)
             {

@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
-  problem_pt->Exact_solution_fpt = args_pt->exact_solution_fpt();
+  problem_pt->Exact_solution_pt = args_pt->exact_solution_pt();
 
   if(args_pt->crash_newton_fail != -1)
     {
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     }
 
   // Give the initial condition functor any problem info it needs
-  args_pt->initial_condition_fpt->initialise_from_problem(problem_pt);
+  args_pt->initial_condition_pt->initialise_from_problem(problem_pt);
 
   // Get initial condition from either a function pt or a restart file
   if(args_pt->restart_file == "")
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
       problem_pt->initialise_dt(args_pt->dt);
 
       // Set values useing the initial condition function
-      problem_pt->set_initial_condition(*args_pt->initial_condition_fpt);
+      problem_pt->set_initial_condition(*args_pt->initial_condition_pt);
     }
   else
     {

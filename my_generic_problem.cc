@@ -527,7 +527,7 @@ namespace oomph
     actions_after_set_initial_condition();
   }
 
-  void MyProblem::set_initial_condition(InitialConditionFct& ic_fpt)
+  void MyProblem::set_initial_condition(const InitialConditionFct& ic)
   {
 #ifdef PARANOID
     if(nglobal_data() != 0)
@@ -559,7 +559,7 @@ namespace oomph
                 nd_pt->position(t, x);
 
                 // Get the values
-                Vector<double> values = ic_fpt(time, x);
+                Vector<double> values = ic(time, x);
 
 #ifdef PARANOID
                 if(values.size() != nd_pt->nvalue())

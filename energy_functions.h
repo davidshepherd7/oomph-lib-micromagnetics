@@ -97,7 +97,7 @@ namespace oomph
   class ExactFunctionDiffSquared : public ElementalFunction
   {
     public:
-    InitialMFct* Exact_fpt;
+    InitialMFct* Exact_pt;
     double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
   };
 

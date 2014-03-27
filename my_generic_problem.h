@@ -502,10 +502,10 @@ using namespace StringConversion;
     /// \short Error norm calculator
     virtual double get_error_norm() const
     {
-      if(Exact_solution_fpt != 0)
+      if(Exact_solution_pt != 0)
         {
           // ExactFunctionDiffSquared f;
-          // f.Exact_fpt = Exact_solution_fpt;
+          // f.Exact_pt = Exact_solution_pt;
           // return std::sqrt(integrate_over_problem(&f));
 
           // Nodal rms difference
@@ -712,20 +712,20 @@ using namespace StringConversion;
     bool Dump;
 
     /// Function pointer for exact solution
-    InitialConditionFct* Exact_solution_fpt;
+    InitialConditionFct* Exact_solution_pt;
 
     /// Get exact solution
     Vector<double> exact_solution(const double& t, Vector<double>& x) const
     {
 #ifdef PARANOID
-      if(Exact_solution_fpt == 0)
+      if(Exact_solution_pt == 0)
         {
-          std::string err = "Exact_solution_fpt is null!";
+          std::string err = "Exact_solution_pt is null!";
           throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                               OOMPH_CURRENT_FUNCTION);
         }
 #endif
-      return (*Exact_solution_fpt)(t, x);
+      return (*Exact_solution_pt)(t, x);
     }
 
   protected:
