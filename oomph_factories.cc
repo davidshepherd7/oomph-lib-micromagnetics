@@ -507,7 +507,7 @@ namespace oomph
     //   }
 
 
-    // LLGProblem* llg_problem_factory(MMArgs* args_pt)
+    // LLGProblem* llg_problem_factory(LLGArgs* args_pt)
     // {
     //   LLGProblem* problem_pt = new LLGProblem;
 

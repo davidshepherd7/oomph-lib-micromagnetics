@@ -101,7 +101,7 @@ namespace oomph
 
       if(cli_args_name == "llg" || cli_args_name == "ll")
         {
-          cli_args_pt = new MMArgs;
+          cli_args_pt = new LLGArgs;
         }
       else if(cli_args_name == "ode")
         {
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   problem_pt->build(args_pt->mesh_pts);
 
   //??ds temp hack for mm problems
-  MMArgs* mm_args_pt = dynamic_cast<MMArgs*>(args_pt);
+  LLGArgs* mm_args_pt = dynamic_cast<LLGArgs*>(args_pt);
   if(mm_args_pt !=0)
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);

@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
   // ============================================================
 
   // Need a dummy problem so that we can get equation numbers... :(
-  MMArgs args;
+  LLGArgs args;
   args.parse(argc, argv);
   LLGProblem problem;
   problem.Residual_calculator_pt

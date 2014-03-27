@@ -10,15 +10,14 @@
 namespace oomph
 {
 
-  /// Base command line args processing class for pure llg and semi
-  /// implicit (and any other magnetism problems).
-  class MMArgs : public MyCliArgs
+  /// Command line args processing class for llg problems.
+  class LLGArgs : public MyCliArgs
   {
   public:
     /// Constructor: Initialise pointers to null.
-    MMArgs() : h_app_fct_pt(0), mag_params_pt(0) {}
+    LLGArgs() : h_app_fct_pt(0), mag_params_pt(0) {}
 
-    virtual ~MMArgs()
+    virtual ~LLGArgs()
     {
       delete mag_params_pt; mag_params_pt = 0;
     }
