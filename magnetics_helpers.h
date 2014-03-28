@@ -557,6 +557,15 @@ namespace MManipulation
     void make_boundaries_periodic(Mesh* mesh_pt, const unsigned& b1,
                                   const unsigned& b2,
                                   const unsigned& direction);
+
+
+    /// Helper function to make two boundaries of a mesh periodic. This
+    /// version uses a brute force search to find the appropriate nodes to
+    /// link together so it should be robust but is O(N^2). In practice it
+    /// seems to be un-noticably fast for meshes that I've used so far.
+    void slow_make_boundaries_periodic(Mesh* mesh_pt, const unsigned& b1,
+                                       const unsigned& b2,
+                                       const unsigned& direction);
   }
 
 }

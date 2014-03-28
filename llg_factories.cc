@@ -436,8 +436,8 @@ namespace oomph
             (nx, nx, lx, lx, time_stepper_pt);
 
           // Link boundary 0 to boundary 2 and boundary 1 to boundary 3
-          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
-          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
         }
       else if(mesh_name == "sq_line" && nnode1d == 2)
         {
@@ -446,13 +446,29 @@ namespace oomph
             (nx, lx, time_stepper_pt);
           mesh_pt->setup_boundary_element_info();
         }
+      else if(mesh_name == "sq_cube" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3,2> >
+            (nx, nx, nx, lx, lx, lx, time_stepper_pt);
+        }
+      else if(mesh_name == "sq_cube_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleCubicMesh<QMicromagElement<3,2> >
+            (nx, nx, nx, lx, lx, lx, time_stepper_pt);
+
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 5, 2); // x
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 1, 3, 1); // y
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 2, 4, 0); // z
+        }
       else if(mesh_name == "sq_line_periodic" && nnode1d == 2)
         {
           double lx = 1.0;
           mesh_pt = new OneDMesh<QMicromagElement<1,2> >
             (nx, lx, time_stepper_pt);
 
-          MeshCreationHelpers::make_boundaries_periodic(mesh_pt, 0, 1, 0); // x
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 1, 0); // x
           mesh_pt->setup_boundary_element_info();
         }
       else if(mesh_name == "st_square" && nnode1d == 2)

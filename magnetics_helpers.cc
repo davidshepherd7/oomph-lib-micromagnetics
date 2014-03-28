@@ -486,7 +486,7 @@ namespace oomph
         {
           if(j != dir)
             {
-              if(nd1_pt->x(j) != nd2_pt->x(j))
+              if(std::abs(nd1_pt->x(j) - nd2_pt->x(j)) > 1e-10)
                 {
                   return false;
                 }
@@ -559,7 +559,106 @@ namespace oomph
           // Catch the case that they are already copies of each other or
           // both copies of the same node. This is ok, just leave
           // everything as it is.
-          if(copied_equivalents(nd1_pt, nd2_pt)) {}
+          if(copied_equivalents(nd1_pt, nd2_pt))
+            {
+              // do nothing
+            }
+
+          // If both nodes are already copies then we need to do
+          // something weird: link both the nodes to one of the copied
+          // nodes and record pointers to both copied nodes so that we
+          // can check this is consistent later.
+          else if(nd1_pt->is_a_copy() && nd2_pt->is_a_copy())
+            {
+              Node* old_copied_pt = nd1_pt->copied_node_pt();
+
+              nd1_pt->clear_copied_pointers();
+              nd1_pt->make_periodic(nd2_pt);
+
+              dodgy_node_pairs.push_back
+                (std::make_pair(nd1_pt->copied_node_pt(), old_copied_pt));
+            }
+
+          // Otherwise it's easy: just make a node which isn't already a
+          // copy into a copy.
+          else if(nd1_pt->is_a_copy())
+            {
+              nd2_pt->make_periodic(nd1_pt);
+            }
+          else
+            {
+              nd1_pt->make_periodic(nd2_pt);
+            }
+        }
+
+
+      // Finally check that the nodes we flagged as dodgy match up
+      const unsigned ni = dodgy_node_pairs.size();
+      for(unsigned i=0; i<ni; i++)
+        {
+          if(!copied_equivalents(dodgy_node_pairs[i].first,
+                                 dodgy_node_pairs[i].second))
+            {
+              std::string err = "Inconsistent!";
+              throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                  OOMPH_CURRENT_FUNCTION);
+            }
+        }
+    }
+
+    /// Helper function to make two boundaries of a mesh periodic. This
+    /// version uses a brute force search to find the appropriate nodes to
+    /// link together so it should be robust but is O(N^2). In practice it
+    /// seems to be un-noticably fast for meshes that I've used so far.
+    void slow_make_boundaries_periodic(Mesh* mesh_pt, const unsigned& b1,
+                                       const unsigned& b2,
+                                       const unsigned& direction)
+    {
+      const unsigned nbn = mesh_pt->nboundary_node(b1);
+
+#ifdef PARANOID
+      if(nbn != mesh_pt->nboundary_node(b2))
+        {
+          std::string err = "Boundaries must have same number of nodes";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+      Vector<std::pair<Node*, Node*> > dodgy_node_pairs;
+
+      // Loop over nodes setting up copys
+      for(unsigned nd=0; nd<nbn; nd++)
+        {
+          Node* nd1_pt = mesh_pt->boundary_node_pt(b1, nd);
+
+          // Search for matching node on opposite boundary
+          Node* nd2_pt = 0;
+          bool success = false;
+          for(unsigned nd2=0; nd2<nbn; nd2++)
+            {
+              nd2_pt = mesh_pt->boundary_node_pt(b2, nd2);
+              if(periodic_coords_match(nd1_pt, nd2_pt, direction))
+                 {
+                   success = true;
+                   break;
+                 }
+            }
+          if(!success)
+            {
+              std::string err = "Couldn't find matching node.";
+              throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+
+
+          // Catch the case that they are already copies of each other or
+          // both copies of the same node. This is ok, just leave
+          // everything as it is.
+          if(copied_equivalents(nd1_pt, nd2_pt))
+            {
+              // do nothing
+            }
 
           // If both nodes are already copies then we need to do
           // something weird: link both the nodes to one of the copied
