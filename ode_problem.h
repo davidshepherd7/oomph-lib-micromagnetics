@@ -411,7 +411,8 @@ namespace oomph
     void set_initial_condition(const InitialConditionFct& ic)
     {
       // Loop over current & previous timesteps
-      for (int t=time_stepper_pt()->nprev_values(); t>=0; t--)
+      const unsigned nprev_values = time_stepper_pt()->nprev_values();
+      for(int t=0; t<nprev_values+1; t++)
         {
           double time = time_pt()->time(t);
 
