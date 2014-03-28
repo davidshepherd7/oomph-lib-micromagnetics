@@ -539,14 +539,14 @@ namespace oomph
       }
 #endif
 
-    // Loop over current & previous timesteps
-    const int nprev_steps = this->time_stepper_pt()->nprev_values();
-    const unsigned nmsh = nsub_mesh();
-    for(int t=0; t<nprev_steps; t++)
+    // Loop over current & previous timesteps (so we need t<nprev_values+1).
+    const int nprev_values = this->time_stepper_pt()->nprev_values();
+    for(int tindex=0; tindex<nprev_values+1; tindex++)
       {
-        double time = time_pt()->time(t);
+        double time = time_pt()->time(tindex);
 
         // Loop over all nodes in all meshes in problem and set values.
+        const unsigned nmsh = nsub_mesh();
         for(unsigned msh=0; msh<nmsh; msh++)
           {
             Mesh* mesh_pt = this->mesh_pt(msh);
@@ -555,10 +555,17 @@ namespace oomph
               {
                 Node* nd_pt = mesh_pt->node_pt(nd);
 
-                // Get the position
+                // Get the position at present time
                 const unsigned dim = nd_pt->ndim();
                 Vector<double> x(dim);
-                nd_pt->position(t, x);
+                nd_pt->position(x);
+
+                // Set position at tindex time to be the same as at present
+                // (impulsive positions).
+                for(unsigned j=0; j<dim; j++)
+                  {
+                    nd_pt->x(tindex, j) = x[j];
+                  }
 
                 // Get the values
                 Vector<double> values = ic(time, x);
@@ -574,7 +581,7 @@ namespace oomph
                 // Copy into dofs
                 for(unsigned j=0, nj=values.size(); j<nj; j++)
                   {
-                    nd_pt->set_value(t, j, values[j]);
+                    nd_pt->set_value(tindex, j, values[j]);
                   }
               }
 
