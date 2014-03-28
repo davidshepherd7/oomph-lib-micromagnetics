@@ -156,7 +156,7 @@ def main():
     print("Running parameter sweep with parameter set", args.parameters)
     print("Output is going into", output_root)
     mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode),
-                 processes=args.ncores)
+                 processes=int(args.ncores))
 
     return 0
 
