@@ -416,17 +416,17 @@ namespace oomph
         }
 
       // ??ds new one, clean up old one later
-      else if(prec_name == "llgblock")
+      else if(prec_name == "blockms")
         {
-          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
+          MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
           llgp_pt->build(false, false, true);
           prec_pt = llgp_pt;
 
         }
-      else if(prec_name == "llgblock-inexact") // Same but with exact llg
+      else if(prec_name == "blockms-inexact") // Same but with exact llg
                                              // block solve
         {
-          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
+          MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
           llgp_pt->build(false, false, false);
           prec_pt = llgp_pt;
 

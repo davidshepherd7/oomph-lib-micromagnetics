@@ -13,10 +13,11 @@
 namespace oomph
 {
 
-  class LLGBlockPreconditioner : public BlockTriangularPreconditioner<CRDoubleMatrix>
+  class MagnetostaticsPreconditioner :
+    public BlockTriangularPreconditioner<CRDoubleMatrix>
   {
 public:
-    LLGBlockPreconditioner() {}
+    MagnetostaticsPreconditioner() {}
 
 
     void build(bool exact_phi1=false, bool exact_phi=false,
@@ -155,7 +156,7 @@ public:
 
     }
 
-    ~LLGBlockPreconditioner() {}
+    ~MagnetostaticsPreconditioner() {}
 
     void setup()
     {
