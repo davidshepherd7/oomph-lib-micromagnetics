@@ -17,12 +17,26 @@ namespace oomph
     public BlockTriangularPreconditioner<CRDoubleMatrix>
   {
 public:
-    MagnetostaticsPreconditioner() {}
-
-
-    void build(bool exact_phi1=false, bool exact_phi=false,
-               bool exact_llg=true, bool schur_complement_llg=false)
+    MagnetostaticsPreconditioner()
     {
+      Llg_preconditioner_pt = 0;
+    }
+
+    /// Virtual destructor. Everything is deleted (recursively) by the
+    /// destructors in general purpose block preconditioners.
+    virtual ~MagnetostaticsPreconditioner() {}
+
+    Preconditioner* Llg_preconditioner_pt;
+
+
+    void build(bool exact_phi1=false, bool exact_phi=false)
+    {
+      //??ds use exact by default for now, remove later?
+      if(Llg_preconditioner_pt == 0)
+        {
+          Llg_preconditioner_pt = new SuperLUPreconditioner;
+        }
+
       {
         // this->upper_triangular();
         this->lower_triangular(); //??ds why lower
@@ -126,21 +140,7 @@ public:
         (llg_phi_bulk_prec_pt, 0);
 
       // llg block
-      if(schur_complement_llg)
-        {
-          throw OomphLibError("Not yet implemented",
-                              OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-        }
-      if(exact_llg)
-        {
-          llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
-            (new SuperLUPreconditioner, 0);
-        }
-      else
-        {
-          llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt
-            (Factories::preconditioner_factory("ilu-2"), 0);
-        }
+      llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt(Llg_preconditioner_pt, 0);
 
       // phi bulk block
       if(exact_phi)
@@ -155,8 +155,6 @@ public:
         }
 
     }
-
-    ~MagnetostaticsPreconditioner() {}
 
     void setup()
     {

@@ -419,17 +419,15 @@ namespace oomph
       else if(prec_name == "blockms")
         {
           MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
-          llgp_pt->build(false, false, true);
+          llgp_pt->build(false, false);
           prec_pt = llgp_pt;
-
         }
-      else if(prec_name == "blockms-inexact") // Same but with exact llg
-                                             // block solve
+      else if(prec_name == "blockms-inexact")
         {
           MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
-          llgp_pt->build(false, false, false);
+          llgp_pt->Llg_preconditioner_pt = preconditioner_factory("ilu-2");
+          llgp_pt->build(false, false);
           prec_pt = llgp_pt;
-
         }
 
       else
