@@ -32,8 +32,8 @@ namespace oomph
       Vector<double> m(5, 0.0);
       if(damping == 0.0)
         {
-          m[2] = sin(a) * cos(k*sum_x + 2*k*k*cos(a)*t);
-          m[3] = sin(a) * sin(k*sum_x + 2*k*k*cos(a)*t);
+          m[2] = sin(a) * cos(k*sum_x + k*k*cos(a)*t);
+          m[3] = sin(a) * sin(k*sum_x + k*k*cos(a)*t);
           m[4] = cos(a);
         }
       else
