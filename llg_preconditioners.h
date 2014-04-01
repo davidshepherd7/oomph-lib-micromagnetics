@@ -7,11 +7,13 @@
 #include "../../src/generic/general_purpose_preconditioners.h"
 #include "../../src/generic/general_purpose_block_preconditioners.h"
 
+#include "vector_helpers.h"
 #include "oomph_factories.h"
 #include "llg_factories.h"
 
 namespace oomph
 {
+  using namespace VectorOps;
 
   class MagnetostaticsPreconditioner :
     public BlockTriangularPreconditioner<CRDoubleMatrix>
@@ -161,6 +163,116 @@ public:
       BlockTriangularPreconditioner<CRDoubleMatrix>::setup();
     }
   };
+
+
+
+  /// ??ds
+  class LLGBlockPreconditioner :
+    public BlockTriangularPreconditioner<CRDoubleMatrix>
+  {
+  public:
+    /// Constructor
+    LLGBlockPreconditioner()
+    {
+      Include_jcc = false;
+      Use_schur_complement = false;
+    }
+
+    /// Virtual destructor
+    virtual ~LLGBlockPreconditioner() {}
+
+    void build()
+    {
+      this->upper_triangular();
+
+      // Group first two directions of m into one block.
+      Vector<unsigned> dof_to_block(7);
+
+      // ??ds modify to accept only 3 blocks (the 3 m)
+      // dof_to_block[0] = 0;
+      // dof_to_block[1] = 0;
+      // dof_to_block[2] = 1;
+
+      // m
+      dof_to_block[2] = 0;
+      dof_to_block[3] = 0;
+      dof_to_block[4] = 1;
+
+      // phis
+      dof_to_block[0] = 2; // phi bulk
+      dof_to_block[5] = 2; // phi bound
+      dof_to_block[1] = 2; // phi1 bulk
+      dof_to_block[6] = 2; // phi1 bound
+
+      set_dof_to_block_map(dof_to_block);
+
+      // m_aabb block exact
+      set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 0);
+
+      // phi blocks: nothing here I hope!
+      set_subsidiary_preconditioner_pt(new IdentityPreconditioner, 2);
+
+      // m_cc block: Use an exact solve, but the block is replaced by its
+      // Schur complement during setup.
+      set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 1);
+    }
+
+    // This is inefficient all over the place, don't use it for real!
+    void setup()
+    {
+      if(Use_schur_complement)
+        {
+          // Construct Schur complement:
+          CRDoubleMatrix A = get_block(0, 0);
+          CRDoubleMatrix B = get_block(0, 1);
+          DenseDoubleMatrix AinvB; multiple_rhs_solve_hack(A, B, AinvB);
+          CRDoubleMatrix C = get_block(1, 0);
+
+          // Convert to a cr matrix because multiply needs it...
+          CRDoubleMatrix AinvB_cr;
+          std::list<RowColVal> rcv = get_as_indicies(AinvB);
+          rowcolvals_to_crmatrix(rcv,
+                                 block_distribution_pt(1),
+                                 block_distribution_pt(1)->nrow(),
+                                 AinvB_cr);
+
+          CRDoubleMatrix CAinvB;
+          C.multiply(AinvB_cr, CAinvB);
+
+          // multiply by -1
+          for(unsigned j=0; j<CAinvB.nnz(); j++) {CAinvB.value()[j] *= -1;}
+
+          // Add J_cc block if requested
+          if(Include_jcc)
+            {
+              CRDoubleMatrix D = get_block(1,1);
+              cr_matrix_add(D, CAinvB, CAinvB);
+            }
+
+          // Replace the block with the Schur complement
+          // this->set_replace_block(1,1, &CAinvB);
+          throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // Do the rest of the setup
+      BlockTriangularPreconditioner<CRDoubleMatrix>::setup();
+    }
+
+    bool Include_jcc;
+    bool Use_schur_complement;
+
+  private:
+    /// Broken copy constructor
+    LLGBlockPreconditioner(const LLGBlockPreconditioner& dummy)
+    {BrokenCopy::broken_copy("LLGBlockPreconditioner");}
+
+    /// Broken assignment operator
+    void operator=(const LLGBlockPreconditioner& dummy)
+    {BrokenCopy::broken_assign("LLGBlockPreconditioner");}
+
+  };
+
 
 
 } // End of oomph namespace

@@ -366,14 +366,7 @@ namespace oomph
             = new BlockTriangularPreconditioner<CRDoubleMatrix>;
           bp_pt->upper_triangular();
           prec_pt = bp_pt;
-        }
-
-
-      // if it starts with blockllg then call that factory
-      else if(split_string(prec_name, '-')[0] == "blockllg")
-        {
-          prec_pt = block_llg_factory(prec_name);
-        }
+       }
 
       else if(split_string(prec_name, '-')[0] == "ilu")
         {
@@ -415,7 +408,6 @@ namespace oomph
 #endif
         }
 
-      // ??ds new one, clean up old one later
       else if(prec_name == "blockms")
         {
           MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
@@ -427,6 +419,12 @@ namespace oomph
           MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
           llgp_pt->Llg_preconditioner_pt = preconditioner_factory("ilu-2");
           llgp_pt->build(false, false);
+          prec_pt = llgp_pt;
+        }
+      else if(prec_name == "blockllg")
+        {
+          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
+          llgp_pt->build();
           prec_pt = llgp_pt;
         }
 
