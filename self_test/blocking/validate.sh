@@ -93,33 +93,6 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "49")
 [[ -s $valdir/J_1_1_block_6_6 ]]
 
 
-# With m blocking (implicit, CR Jacobian)
-# ============================================================
-
-valdir=$TPWD/Validation/blockm_ms
-new_clean_dir $valdir
-
-cd $CONTROL_SCRIPTS/driver/
-./driver llg -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square -solver gmres -prec blockexact \
-    -ts midpoint-bdf -h-app minus_z -initial-m z -output-jac always \
-    -blocking group-m \
-    -outdir $valdir 2>&1 > $valdir/stdout
-
-# Check that gmres converges in one step (i.e. block-exact == exact
-# solution of J), two Newton steps expected here.
-cut -d\; -f6 < $valdir/trace | tail -n1 > $valdir/iters
-wrapped_fpdiff $valdir/iters <(echo "[1]")
-
-# Check that we got the expected number of blocks
-wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "25")
-
-# Check that phi blocks are non-empty
-[[ -s $valdir/J_1_1_block_0_0 ]]
-[[ -s $valdir/J_1_1_block_1_1 ]]
-[[ -s $valdir/J_1_1_block_3_3 ]]
-[[ -s $valdir/J_1_1_block_4_4 ]]
-
-
 # ??ds not working yet
 # # With magnetostatics (implicit, SOM Jacobian)
 # # ============================================================
