@@ -19,7 +19,8 @@ sources = micromagnetics_element.cc \
 	oomph_factories.cc \
 	my_generic_problem.cc \
 	magnetics_helpers.cc \
-	magnetostatics_calculator.cc
+	magnetostatics_calculator.cc \
+	vector_helpers.cc
 
 
 # Include files which shouldn't be compiled

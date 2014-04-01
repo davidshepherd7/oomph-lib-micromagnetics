@@ -897,6 +897,11 @@ namespace VectorOps
       out.build(dist_pt, ncol, val, col, row_start);
     }
 
+  /// Solve AX = B where X and B are matrices.
+  void multiple_rhs_solve_hack(CRDoubleMatrix& A,
+                               DoubleMatrixBase& B,
+                               DenseDoubleMatrix& X);
+
 
 }
 
