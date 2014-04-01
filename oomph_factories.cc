@@ -421,11 +421,16 @@ namespace oomph
           llgp_pt->build(false, false);
           prec_pt = llgp_pt;
         }
-      else if(prec_name == "blockllg")
+      else if(prec_name == "noms-blockllg")
         {
+          DummyPinnedMsPreconditioner* ms_pt = new DummyPinnedMsPreconditioner;
           LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
           llgp_pt->build();
-          prec_pt = llgp_pt;
+
+          ms_pt->Real_preconditioner = llgp_pt;
+          ms_pt->build();
+
+          prec_pt = ms_pt;
         }
 
       else

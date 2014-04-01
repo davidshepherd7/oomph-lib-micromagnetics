@@ -165,6 +165,66 @@ public:
   };
 
 
+  class DummyPinnedMsPreconditioner :
+    public BlockPreconditioner<CRDoubleMatrix>
+  {
+  public:
+    /// Constructor
+    DummyPinnedMsPreconditioner() {}
+
+    /// Virtual destructor
+    virtual ~DummyPinnedMsPreconditioner() {}
+
+    void build()
+    {
+      BlockPreconditioner<CRDoubleMatrix>* bp_pt
+        = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
+        (Real_preconditioner);
+      if(bp_pt != 0)
+        {
+          Vector<unsigned> master_to_subs_block_map(3);
+          master_to_subs_block_map[0] = 2; // mx
+          master_to_subs_block_map[1] = 3; // my
+          master_to_subs_block_map[2] = 4; // mz
+
+          bp_pt->turn_into_subsidiary_block_preconditioner
+            (this, master_to_subs_block_map);
+        }
+    }
+
+    void setup()
+    {
+#ifdef PARANOID
+      block_setup();
+      if(get_block(0, 0).nrow() != 0)
+        {
+          std::string err = "Non-empty phi block!";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      Real_preconditioner->setup(matrix_pt(), comm_pt());
+    }
+
+    void preconditioner_solve(const DoubleVector& r, DoubleVector& z)
+    {
+      Real_preconditioner->preconditioner_solve(r, z);
+    }
+
+    Preconditioner* Real_preconditioner;
+
+  private:
+    /// Broken copy constructor
+    DummyPinnedMsPreconditioner(const DummyPinnedMsPreconditioner& dummy)
+    {BrokenCopy::broken_copy("DummyPinnedMsPreconditioner");}
+
+    /// Broken assignment operator
+    void operator=(const DummyPinnedMsPreconditioner& dummy)
+    {BrokenCopy::broken_assign("DummyPinnedMsPreconditioner");}
+
+  };
+
+
 
   /// ??ds
   class LLGBlockPreconditioner :
@@ -186,31 +246,14 @@ public:
       this->upper_triangular();
 
       // Group first two directions of m into one block.
-      Vector<unsigned> dof_to_block(7);
-
-      // ??ds modify to accept only 3 blocks (the 3 m)
-      // dof_to_block[0] = 0;
-      // dof_to_block[1] = 0;
-      // dof_to_block[2] = 1;
-
-      // m
-      dof_to_block[2] = 0;
-      dof_to_block[3] = 0;
-      dof_to_block[4] = 1;
-
-      // phis
-      dof_to_block[0] = 2; // phi bulk
-      dof_to_block[5] = 2; // phi bound
-      dof_to_block[1] = 2; // phi1 bulk
-      dof_to_block[6] = 2; // phi1 bound
-
+      Vector<unsigned> dof_to_block(3);
+      dof_to_block[0] = 0;
+      dof_to_block[1] = 0;
+      dof_to_block[2] = 1;
       set_dof_to_block_map(dof_to_block);
 
-      // m_aabb block exact
+      // J_aabb block
       set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 0);
-
-      // phi blocks: nothing here I hope!
-      set_subsidiary_preconditioner_pt(new IdentityPreconditioner, 2);
 
       // m_cc block: Use an exact solve, but the block is replaced by its
       // Schur complement during setup.
