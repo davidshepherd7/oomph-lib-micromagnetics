@@ -502,6 +502,28 @@ def main():
 
         multi_plot(all_results, args.split, plot_mean_step_times_scatter)
 
+    if 'scatter-errs' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='-dt',
+              y_value='error_norms',
+              y_operation=max)
+
+        multi_plot(all_results, args.split, plot_err_scatter)
+
+    if 'scatter-first-err' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='-dt',
+              y_value='error_norms',
+              y_operation=lambda y:y[1])
+
+        multi_plot(all_results, args.split, plot_err_scatter)
+
 
     if 'scatter-newt' in args.plots:
         plot_mean_step_times_scatter = \
