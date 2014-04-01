@@ -495,6 +495,28 @@ namespace VectorOps
     cr_matrix.build(n, values, col_index, row_start);
   }
 
+
+  struct RowColVal
+  {
+    int row;
+    int col;
+    double val;
+  };
+
+  inline bool operator<(const RowColVal& first,
+                        const RowColVal& second)
+  {
+    if(first.row == second.row)
+      {
+        return first.col < second.col;
+      }
+    else
+      {
+        return first.row < second.row;
+      }
+  }
+
+
   inline void get_as_indicies(const DoubleMatrixBase &matrix,
                               Vector<double> &values,
                               Vector<int> &col_index,
@@ -512,6 +534,27 @@ namespace VectorOps
               }
           }
       }
+  }
+
+  inline std::list<RowColVal> get_as_indicies(const DoubleMatrixBase &matrix)
+  {
+    Vector<double> val;
+    Vector<int> col, row;
+    get_as_indicies(matrix, val, col, row);
+
+    const unsigned ni = val.size();
+    std::list<RowColVal> rcvs;
+    for(unsigned i=0; i<ni; i++)
+      {
+        RowColVal rcv;
+        rcv.row = row[i];
+        rcv.col = col[i];
+        rcv.val = val[i];
+
+        rcvs.push_back(rcv);
+      }
+
+    return rcvs;
   }
 
   /// Get three vectors of the values, column indicies and row indidices of
@@ -786,26 +829,6 @@ namespace VectorOps
 
   }
 
-
-  struct RowColVal
-  {
-    int row;
-    int col;
-    double val;
-  };
-
-  inline bool operator<(const RowColVal& first,
-                        const RowColVal& second)
-  {
-    if(first.row == second.row)
-      {
-        return first.col < second.col;
-      }
-    else
-      {
-        return first.row < second.row;
-      }
-  }
 
   /// Make cr matrix from row/col/value data. Sorts row/col/value data in
   /// place (so non-const).
