@@ -101,8 +101,8 @@ namespace oomph
       h_app_name = to_lower(h_app_name);
       mag_params_name = to_lower(mag_params_name);
 
-      initial_condition_pt = InitialM::initial_m_factory(initial_m_name);
-      h_app_fct_pt = HApp::h_app_factory(h_app_name);
+      initial_condition_pt = initial_m_factory(initial_m_name);
+      h_app_fct_pt = h_app_factory(h_app_name);
       mag_params_pt = magnetic_parameters_factory(mag_params_name);
 
       if(command_line_flag_has_been_set("-damping"))

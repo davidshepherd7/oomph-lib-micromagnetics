@@ -92,6 +92,12 @@ namespace oomph
     /// Construct preconditioner for the 2x2 upper left block of an llg
     /// problem.
     Preconditioner* llg_sub_preconditioner_factory(const std::string& llg_sub_prec);
+
+    /// Pick an applied field function pointer
+    HAppFctPt h_app_factory(const std::string& field_name);
+
+    /// Pick an initial magnetisation function pointer
+    InitialMFct* initial_m_factory(const std::string& m_name);
   }
 
 } // End of oomph namespace
