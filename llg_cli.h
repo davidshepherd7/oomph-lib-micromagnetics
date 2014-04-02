@@ -62,6 +62,14 @@ namespace oomph
       specify_command_line_flag("-check-angles", &check_angles);
       check_angles = -1;
 
+      specify_command_line_flag("-llg-prec", &llg_prec_name,
+                                "Set preconditioner for llg block, only used if overall preconditioner is a magnetostatics block preconditioner");
+      llg_prec_name = "";
+
+      specify_command_line_flag("-llg-sub-prec", &llg_sub_prec_name,
+                                "Set preconditioner for llg sub block (ony if llg block prec in use)");
+      llg_sub_prec_name = "";
+
       specify_command_line_flag("-disable-magnetostatic-solver-optimistations",
                                 &disable_magnetostatic_solver_optimistations);
       disable_magnetostatic_solver_optimistations = -1;
@@ -73,6 +81,12 @@ namespace oomph
         || to_lower(ms_method) == "decoupled-no-extrapolation";
     }
 
+    virtual Preconditioner* preconditioner_factory(const std::string& name) const
+    {
+      // Call the factory
+      return Factories::micromag_preconditioner_factory(name, llg_prec_name,
+                                                        llg_sub_prec_name);
+    }
 
     virtual void run_factories()
     {
@@ -199,6 +213,8 @@ namespace oomph
     std::string initial_m_name;
     std::string h_app_name;
     std::string mag_params_name;
+    std::string llg_prec_name;
+    std::string llg_sub_prec_name;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =

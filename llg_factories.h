@@ -42,10 +42,6 @@ namespace oomph
                              int numerical_int_bem=-1);
 
 
-    /// Create an llg block preconditioner based on a string. Possibly
-    /// obsolete ??ds
-    Preconditioner* block_llg_factory(const std::string& _prec_name);
-
     /// Create a dof to block mapping for llg block preconditioners based
     /// on _name.
     Vector<unsigned> dof_to_block_factory(const std::string& _name);
@@ -83,6 +79,19 @@ namespace oomph
 
     FluxMeshFactoryFctPt
     mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt);
+
+    /// Construct preconditioner for a complete micromagnetics problem.
+    Preconditioner* micromag_preconditioner_factory
+    (const std::string& ms_prec, const std::string& llg_prec,
+     const std::string& llg_sub_prec);
+
+    /// Construct preconditioner for an llg problem (no magnetostatics).
+    Preconditioner* llg_preconditioner_factory
+    (const std::string& llg_prec, const std::string& llg_sub_prec);
+
+    /// Construct preconditioner for the 2x2 upper left block of an llg
+    /// problem.
+    Preconditioner* llg_sub_preconditioner_factory(const std::string& llg_sub_prec);
   }
 
 } // End of oomph namespace

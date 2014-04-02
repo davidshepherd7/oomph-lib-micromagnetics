@@ -15,18 +15,18 @@ namespace oomph
 {
   using namespace VectorOps;
 
-  class MagnetostaticsPreconditioner :
+  class MagnetostaticsBlockPreconditioner :
     public BlockTriangularPreconditioner<CRDoubleMatrix>
   {
 public:
-    MagnetostaticsPreconditioner()
+    MagnetostaticsBlockPreconditioner()
     {
       Llg_preconditioner_pt = 0;
     }
 
     /// Virtual destructor. Everything is deleted (recursively) by the
     /// destructors in general purpose block preconditioners.
-    virtual ~MagnetostaticsPreconditioner() {}
+    virtual ~MagnetostaticsBlockPreconditioner() {}
 
     Preconditioner* Llg_preconditioner_pt;
 
@@ -165,6 +165,8 @@ public:
   };
 
 
+  /// Wrapper class to allow llg block preconditioners to ignore the
+  /// magnetostatics dofs without needing to modify the dof to block map.
   class DummyPinnedMsPreconditioner :
     public BlockPreconditioner<CRDoubleMatrix>
   {
@@ -174,23 +176,6 @@ public:
 
     /// Virtual destructor
     virtual ~DummyPinnedMsPreconditioner() {}
-
-    void build()
-    {
-      BlockPreconditioner<CRDoubleMatrix>* bp_pt
-        = dynamic_cast<BlockPreconditioner<CRDoubleMatrix>*>
-        (Real_preconditioner);
-      if(bp_pt != 0)
-        {
-          Vector<unsigned> master_to_subs_block_map(3);
-          master_to_subs_block_map[0] = 2; // mx
-          master_to_subs_block_map[1] = 3; // my
-          master_to_subs_block_map[2] = 4; // mz
-
-          bp_pt->turn_into_subsidiary_block_preconditioner
-            (this, master_to_subs_block_map);
-        }
-    }
 
     void setup()
     {
@@ -236,6 +221,7 @@ public:
     {
       Include_jcc = false;
       Use_schur_complement = false;
+      J_aabb_prec_pt = 0;
     }
 
     /// Virtual destructor
@@ -243,6 +229,15 @@ public:
 
     void build()
     {
+#ifdef PARANOID
+      if(J_aabb_prec_pt == 0)
+        {
+          std::string err = "No preconditioner set for aabb block.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
       this->upper_triangular();
 
       // Group first two directions of m into one block.
@@ -252,11 +247,17 @@ public:
       dof_to_block[2] = 1;
       set_dof_to_block_map(dof_to_block);
 
-      // J_aabb block
-      set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 0);
 
-      // m_cc block: Use an exact solve, but the block is replaced by its
-      // Schur complement during setup.
+      // J_aabb block
+      // ============================================================
+      set_subsidiary_preconditioner_pt(J_aabb_prec_pt, 0);
+
+
+      // m_cc block
+      // ============================================================
+
+      // Use an exact solve, but the block is replaced by its Schur
+      // complement during setup.
       set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 1);
     }
 
@@ -304,6 +305,8 @@ public:
 
     bool Include_jcc;
     bool Use_schur_complement;
+
+    Preconditioner* J_aabb_prec_pt;
 
   private:
     /// Broken copy constructor

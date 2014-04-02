@@ -1,6 +1,7 @@
 #include "llg_factories.h"
 
 #include "llg_problem.h"
+#include "llg_preconditioners.h"
 #include "boundary_element_handler.h"
 
 
@@ -168,167 +169,102 @@ namespace oomph
     }
 
 
-
-    Preconditioner* block_llg_factory(const std::string &_prec_name)
+    Preconditioner* llg_sub_preconditioner_factory(const std::string& llg_sub_prec)
     {
-      // Parse the parameter string
-      Vector<std::string> parameters = split_string(to_lower(_prec_name), '-');
+      Preconditioner* llg_sub_prec_pt = 0;
 
-#ifdef PARANOID
-      if(parameters[0] != "blockllg")
-        {
-          std::string error_msg = _prec_name + " is not a block llg preconditioner";
-          error_msg += "(should begin with blockllg-).";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-      if(parameters.size() != 5)
-        {
-          std::string error_msg = "Not enough parameters in llg block string.";
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
+      llg_sub_prec_pt = preconditioner_factory(llg_sub_prec);
 
-      std::cout << "block llg parameters = " << parameters << std::endl;
-
-      // Pick the basic block structure
-      GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* bp_pt = 0;
-      if(parameters[1] == "blockexact")
-        {
-          bp_pt = new ExactBlockPreconditioner<CRDoubleMatrix>;
-        }
-      else if(parameters[1] == "uppertriangular")
-        {
-          BlockTriangularPreconditioner<CRDoubleMatrix>* tri_prec_pt
-            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
-          tri_prec_pt->upper_triangular();
-          bp_pt = tri_prec_pt;
-        }
-      else if(parameters[1] == "lowertriangular")
-        {
-          BlockTriangularPreconditioner<CRDoubleMatrix>* tri_prec_pt
-            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
-          tri_prec_pt->lower_triangular();
-          bp_pt = tri_prec_pt;
-        }
-      else if(parameters[1] == "blockdiagonal")
-        {
-          bp_pt = new BlockDiagonalPreconditioner<CRDoubleMatrix>;
-        }
-      else
-        {
-          throw OomphLibError("Unrecognised block structure setting "
-                              + parameters[1], OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-
-      // Create + set reordering of blocks: the two dofs given (x = m_x
-      // etc.) are put into the first block, the other magnetisation dof is
-      // put into the second block. Poisson dofs are in their own blocks
-      // (empty for now).
-      Vector<unsigned> a(5);
-      if(parameters[3] == "xy")
-        {
-          a[0] = 2; a[1] = 3; // poisson blocks
-          a[2] = 0; a[3] = 0; // first m block
-          a[4] = 1; // second m block
-        }
-      else if(parameters[3] == "xz")
-        {
-          a[0] = 2; a[1] = 3; // poisson blocks
-          a[2] = 0; a[4] = 0; // first m block
-          a[3] = 1; // second m block
-        }
-      else if(parameters[3] == "yz")
-        {
-          a[0] = 2; a[1] = 3; // poisson blocks
-          a[4] = 0; a[4] = 0; // first m block
-          a[2] = 1; // second m block
-        }
-      else
-        {
-          throw OomphLibError("Unrecognised block swapping setting "
-                              + parameters[3], OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-      bp_pt->set_dof_to_block_map(a);
-
-
-      // Pick the solver to use on the individual blocks (or on the entire
-      // thing if we are using "blockexact").
-      if(parameters[4] == "exact")
-        {
-          // Do nothing--default GeneralPurposeBlockPreconditioner solver
-          // is SuperLU.
-        }
-      // else if(parameters[4] == "amg")
-      //   {
-      //     bp_pt->set_subsidiary_preconditioner_function();
-      //   }
-      else
-        {
-          throw OomphLibError("Unrecognised block structure setting "
-                              + parameters[4], OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-
-      // Now create the upper-left block sub preconditioner.
-      // ============================================================
-      GeneralPurposeBlockPreconditioner<CRDoubleMatrix>* sub_bp_pt = 0;
-      if(parameters[2] == "blockexact")
-        {
-          sub_bp_pt = new ExactBlockPreconditioner<CRDoubleMatrix>;
-        }
-      else if(parameters[2] == "uppertriangular")
-        {
-          BlockTriangularPreconditioner<CRDoubleMatrix>* tri_prec_pt
-            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
-          tri_prec_pt->upper_triangular();
-          sub_bp_pt = tri_prec_pt;
-        }
-      else if(parameters[2] == "lowertriangular")
-        {
-          BlockTriangularPreconditioner<CRDoubleMatrix>* tri_prec_pt
-            = new BlockTriangularPreconditioner<CRDoubleMatrix>;
-          tri_prec_pt->lower_triangular();
-          sub_bp_pt = tri_prec_pt;
-        }
-      else if(parameters[2] == "blockdiagonal")
-        {
-          sub_bp_pt = new BlockDiagonalPreconditioner<CRDoubleMatrix>;
-        }
-      else if(parameters[2] == "blockantidiagonal")
-        {
-          sub_bp_pt = new BlockAntiDiagonalPreconditioner<CRDoubleMatrix>;
-        }
-      else
-        {
-          std::string err = "Unrecognised sub-preconditioner block structure";
-          err += " setting " + parameters[2];
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      // The blocks we want to use it on are just the ones which are in the
-      // zeroth block of the master. Find out which ones these are.
-      Vector<unsigned> sub_bp_mapping;
-      for(unsigned j=0; j<a.size(); j++)
-        {if(a[j] == 0) sub_bp_mapping.push_back(j);}
-
-      // And set the master pointer along with this mapping
-      sub_bp_pt->turn_into_subsidiary_block_preconditioner(bp_pt,
-                                                           sub_bp_mapping);
-
-      // Provide our subsidiary preconditioner to the master for use on
-      // block 0, which is the first m block.
-      bp_pt->set_subsidiary_preconditioner_pt(sub_bp_pt, 0);
-
-      return bp_pt;
+      return llg_sub_prec_pt;
     }
 
+
+    Preconditioner* llg_preconditioner_factory(const std::string& llg_prec,
+                                               const std::string& llg_sub_prec)
+    {
+      Preconditioner* llg_prec_pt = 0;
+      if(llg_prec == "block")
+        {
+          LLGBlockPreconditioner* _llg_prec_pt = new LLGBlockPreconditioner;
+
+          Preconditioner* llg_sub_prec_pt = llg_sub_preconditioner_factory(llg_sub_prec);
+
+          Vector<unsigned> master_to_subs_map(2);
+          master_to_subs_map[0] = 0; // mx
+          master_to_subs_map[1] = 1; // my
+
+          llg_sub_prec_pt->turn_into_subsidiary_preconditioner(_llg_prec_pt, master_to_subs_map);
+          _llg_prec_pt->J_aabb_prec_pt = llg_sub_prec_pt;
+
+          _llg_prec_pt->build();
+
+          llg_prec_pt = _llg_prec_pt;
+        }
+      else
+        {
+          llg_prec_pt = preconditioner_factory(llg_prec);
+        }
+
+      return llg_prec_pt;
+    }
+
+
+    Preconditioner* micromag_preconditioner_factory(const std::string& ms_prec,
+                                                    const std::string& llg_prec,
+                                                    const std::string& llg_sub_prec)
+    {
+      // Magnetostatics prec
+      // ============================================================
+
+      Preconditioner* ms_prec_pt = 0;
+      if(ms_prec == "dummy")
+        {
+          // Make preconditioners
+          DummyPinnedMsPreconditioner* _ms_prec_pt = new DummyPinnedMsPreconditioner;
+          Preconditioner* llg_prec_pt = llg_preconditioner_factory(llg_prec,
+                                                                   llg_sub_prec);
+
+          // Set up master/subsidiary links
+          Vector<unsigned> micromag_to_llg_block_map(3);
+          micromag_to_llg_block_map[0] = 2; // mx
+          micromag_to_llg_block_map[1] = 3; // my
+          micromag_to_llg_block_map[2] = 4; // mz
+
+          llg_prec_pt->turn_into_subsidiary_preconditioner
+            (_ms_prec_pt, micromag_to_llg_block_map);
+          _ms_prec_pt->Real_preconditioner = llg_prec_pt;
+
+          ms_prec_pt = _ms_prec_pt;
+        }
+
+      else if(ms_prec == "block")
+        {
+          // Make preconditioners
+          MagnetostaticsBlockPreconditioner* _ms_prec_pt = new MagnetostaticsBlockPreconditioner;
+          Preconditioner* llg_prec_pt = llg_preconditioner_factory(llg_prec,
+                                                                   llg_sub_prec);
+
+          // Set up master/subsidiary links (note: different to above!)
+          Vector<unsigned> micromag_to_llg_block_map(3);
+          micromag_to_llg_block_map[0] = 2; // mx
+          micromag_to_llg_block_map[1] = 3; // my
+          micromag_to_llg_block_map[2] = 4; // mz
+
+          llg_prec_pt->turn_into_subsidiary_preconditioner
+            (_ms_prec_pt, micromag_to_llg_block_map);
+          _ms_prec_pt->Llg_preconditioner_pt = llg_prec_pt;
+
+          _ms_prec_pt->build();
+
+          ms_prec_pt = _ms_prec_pt;
+        }
+      else
+        {
+          ms_prec_pt = preconditioner_factory(ms_prec);
+        }
+
+      return ms_prec_pt;
+    }
 
 
     Vector<unsigned> dof_to_block_factory(const std::string& _name)
