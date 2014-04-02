@@ -321,6 +321,116 @@ public:
 
 
 
+  /// Class to handle ??ds
+  class LLGSubBlockPreconditioner
+    : public BlockPreconditioner<CRDoubleMatrix>
+  {
+  public:
+    /// Constructor
+    LLGSubBlockPreconditioner()
+    {
+      Jaa_pt = 0;
+    }
+
+    /// Virtual destructor
+    virtual ~LLGSubBlockPreconditioner()
+    {
+      clean_up_memory();
+      delete Prec1_pt; Prec1_pt = 0;
+      delete Prec2_pt; Prec2_pt = 0;
+    }
+
+    void clean_up_memory()
+    {
+      Prec1_pt->clean_up_memory();
+      Prec2_pt->clean_up_memory();
+      delete Jaa_pt; Jaa_pt = 0;
+    }
+
+    void build()
+    {
+      // J_aa block: exact solve
+      Prec1_pt = new SuperLUPreconditioner;
+
+      // J_bb block: Use an exact solve, but the block is replaced an
+      // approximation to the Schur complement during setup.
+      Prec2_pt = new SuperLUPreconditioner;
+    }
+
+    void setup()
+    {
+      // clean the memory
+      this->clean_up_memory();
+
+      // Initialise block stuff, identity map between blocks
+      block_setup();
+
+      // Get blocks
+      Jaa_pt = new CRDoubleMatrix;
+      get_block(0, 0, *Jaa_pt);
+      CRDoubleMatrix Jab = get_block(0, 1); // Jba == -Jab
+
+
+      // Setup first block's preconditioner
+      // ============================================================
+      Prec1_pt->setup(Jaa_pt, comm_pt());
+
+
+      // Setup second block's preconditioner
+      // ============================================================
+
+      // Add matrices, result goes into Jab
+      cr_matrix_add(*Jaa_pt, Jab, Jab);
+
+      // Construct preconditioner for application of inverse
+      Prec2_pt->setup(&Jab, comm_pt());
+    }
+
+
+    void preconditioner_solve(const DoubleVector &r, DoubleVector &z)
+    {
+      // Get the right hand side vector in block form.
+      Vector<DoubleVector> block_r;
+      this->get_block_vectors(r, block_r);
+
+      // Make sure output vector is built
+      if (!z.built()) { z.build(this->distribution_pt(),0.0); }
+
+      // Vector of vectors for storage of solution in block form.
+      Vector<DoubleVector> block_z(2);
+
+      // Apply first prec
+      Prec1_pt->preconditioner_solve(block_r[0], block_z[0]);
+
+      // Apply second prec
+      DoubleVector temp1, temp2;
+      Prec2_pt->preconditioner_solve(block_r[1], temp1);
+      Jaa_pt->multiply(temp1, temp2);
+      Prec2_pt->preconditioner_solve(temp2, block_z[1]);
+
+      // copy solution in block vectors block_z back to z
+      this->return_block_vectors(block_z,z);
+    }
+
+    Preconditioner* Prec1_pt;
+    Preconditioner* Prec2_pt;
+
+    CRDoubleMatrix* Jaa_pt;
+
+  private:
+    /// Broken copy constructor
+    LLGSubBlockPreconditioner(const LLGSubBlockPreconditioner& dummy)
+    {BrokenCopy::broken_copy("LLGSubBlockPreconditioner");}
+
+    /// Broken assignment operator
+    void operator=(const LLGSubBlockPreconditioner& dummy)
+    {BrokenCopy::broken_assign("LLGSubBlockPreconditioner");}
+
+  };
+
+
+
+
 } // End of oomph namespace
 
 #endif

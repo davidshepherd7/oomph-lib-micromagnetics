@@ -172,8 +172,14 @@ namespace oomph
     Preconditioner* llg_sub_preconditioner_factory(const std::string& llg_sub_prec)
     {
       Preconditioner* llg_sub_prec_pt = 0;
-
-      llg_sub_prec_pt = preconditioner_factory(llg_sub_prec);
+      if(llg_sub_prec == "block")
+        {
+          llg_sub_prec_pt = new LLGSubBlockPreconditioner;
+        }
+      else
+        {
+          llg_sub_prec_pt = preconditioner_factory(llg_sub_prec);
+        }
 
       return llg_sub_prec_pt;
     }
