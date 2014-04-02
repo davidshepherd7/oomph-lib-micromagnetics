@@ -151,22 +151,22 @@ namespace oomph
     double alt_dEnergydt(MyProblem* problem_pt,
                          std::deque<double>& previous_energies)
     {
-      // Make a BDF2 time stepper to look up weights from (because I'm
-      // lazy...)
-      BDF<2> bdf;
-      TimeStepper* node_ts_pt = problem_pt->mesh_pt()->
-        finite_element_pt(0)->node_pt(0)->time_stepper_pt();
-      bdf.time_pt() = node_ts_pt->time_pt();
-      bdf.set_weights();
+      // // Make a BDF2 time stepper to look up weights from (because I'm
+      // // lazy...)
+      // BDF<2> bdf;
+      // TimeStepper* node_ts_pt = problem_pt->mesh_pt()->
+      //   finite_element_pt(0)->node_pt(0)->time_stepper_pt();
+      // bdf.time_pt() = node_ts_pt->time_pt();
+      // bdf.set_weights();
 
-      // Calculate first derivative
-      double deriv = 0.0;
-      for(unsigned t=0;t<bdf.ntstorage();t++)
-        {
-          deriv += bdf.weight(1,t) * previous_energies[t];
-        }
-
-      return deriv;
+      // // Calculate first derivative
+      // double deriv = 0.0;
+      // for(unsigned t=0;t<bdf.ntstorage();t++)
+      //   {
+      //     deriv += bdf.weight(1,t) * previous_energies[t];
+      //   }
+#warning "Not working now"
+      return -1;
     }
   }
 

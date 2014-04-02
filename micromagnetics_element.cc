@@ -5,6 +5,9 @@
 // For output in
 #include <iomanip>
 
+// Needed for integrate_over_element(...) :(
+#include "tr.h"
+
 using namespace oomph;
 using namespace MathematicalConstants;
 using namespace VectorOps;
@@ -16,43 +19,52 @@ namespace oomph
   /// weird function objects.
   double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt) const
   {
-     // Always do time derivative interpolation using BDF2 timestepper
-     // to increase accuracy (midpoint is lower order for time
-     // derivatives and implementing optional timestepper function
-     // argument everywhere would be awful because C++ sucks).
+    // Assumed same time stepper at all nodes
+    TimeStepper* ts_pt = node_pt(0)->time_stepper_pt();
 
-     //??ds increase order of BDF? would require implementing it myself...
+    // Maybe use a bdf2 time stepper instead: imr and tr in our
+    // implementation doesn't give second order accurate derivative
+    // approximations.
+    BDF<2> bdf;
+    if((dynamic_cast<MidpointMethodBase*>(ts_pt) != 0)
+       ||(dynamic_cast<TR*>(ts_pt) != 0))
+      {
+        // Always do time derivative interpolation using BDF2 timestepper
+        // to increase accuracy (midpoint is lower order for time
+        // derivatives and implementing optional timestepper function
+        // argument everywhere would be awful because C++ sucks).
 
-     // Create bdf time stepper, check some things and set it up
-     BDF<2> bdf;
-     TimeStepper* node_ts_pt = node_pt(0)->time_stepper_pt();
- #ifdef PARANOID
-     // Check we have enough stored time steps
-     if(bdf.ndt() > node_ts_pt->time_pt()->ndt())
-       {
-         std::string error_msg = "Not enough time steps in node's time stepper to use BDF2 for time derivative calculations.";
-         throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                             OOMPH_EXCEPTION_LOCATION);
-       }
+        //??ds increase order of BDF? would require implementing it myself...
 
-     // Try to check if time steppers are compatible... ??ds
- #warning No check for compatability of time stepper with bdf2 used for integrals!
-     if(0)
-       {
-         std::string error_msg = "";
-         throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                             OOMPH_EXCEPTION_LOCATION);
-       }
- #endif
+        // Check some things and set it up
+#ifdef PARANOID
+        // Check we have enough stored time steps
+        if(bdf.ndt() > ts_pt->time_pt()->ndt())
+          {
+            std::string error_msg = "Not enough time steps in node's time stepper to use BDF2 for time derivative calculations.";
+            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
 
-     // Finish off time stepper construction
-     bdf.time_pt() = node_ts_pt->time_pt();
-     bdf.set_weights();
+        // Try to check if time steppers are compatible... ??ds
+#warning No check for compatability of time stepper with bdf2 used for integrals!
+        if(0)
+          {
+            std::string error_msg = "";
+            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+#endif
 
+        // Finish off time stepper construction
+        bdf.time_pt() = ts_pt->time_pt();
+        bdf.set_weights();
 
+        ts_pt = &bdf;
+      }
+
+    // Loop over knots and sum to calculate integral
     double result = 0;
-
-    // Loop over knots and sum
     for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
       {
         // Get position in element
@@ -60,7 +72,7 @@ namespace oomph
         for(unsigned j=0; j<this->dim(); j++)
           {s[j] = integral_pt()->knot(ipt,j);}
 
-        MMInterpolator intp(this, s, &bdf);
+        MMInterpolator intp(this, s, ts_pt);
         double J = intp.j();
         double w = integral_pt()->weight(ipt);
 
