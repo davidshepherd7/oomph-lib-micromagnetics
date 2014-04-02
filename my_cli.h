@@ -234,36 +234,7 @@ namespace oomph
         }
       else
         {
-          // Maybe make a preconditioner which only acts on the main matrix of
-          // a sum of matrices.
-          if(has_prefix("som-main-", prec_name))
-            {
-              std::string ul_prec_name = rest_of_name("som-main-", prec_name);
-              Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
-              MainMatrixOnlyPreconditioner* mm_prec_pt = new MainMatrixOnlyPreconditioner;
-              mm_prec_pt->set_underlying_prec_pt(ul_prec);
-              prec_pt = mm_prec_pt;
-              its_pt->preconditioner_pt() = prec_pt;
-            }
-          // Make a preconditioner which only acts on the main matrix and
-          // diagonals of added matrices of a sum of matrices.
-          else if(has_prefix("som-maindiag-", prec_name))
-            {
-              std::string ul_prec_name = rest_of_name("som-maindiag-", prec_name);
-              Preconditioner* ul_prec = Factories::preconditioner_factory(ul_prec_name);
-              MainMatrixAndDiagsPreconditioner* mm_prec_pt
-                = new MainMatrixAndDiagsPreconditioner;
-              mm_prec_pt->set_underlying_prec_pt(ul_prec);
-              prec_pt = mm_prec_pt;
-              its_pt->preconditioner_pt() = prec_pt;
-            }
-          // Otherwise just make a normal preconditioner
-          else if(prec_name != "none")
-            {
-              prec_pt = Factories::preconditioner_factory(prec_name);
-
-              its_pt->preconditioner_pt() = prec_pt;
-            }
+          its_pt->preconditioner_pt() = this->preconditioner_factory(prec_name);
         }
 
       doc_times = doc_times_factory(doc_times_interval, tmax);
@@ -276,6 +247,11 @@ namespace oomph
       // Build the meshes using whatever function the sub class defines
       build_meshes();
     }
+
+    virtual Preconditioner* preconditioner_factory(const std::string& name) const
+      {
+        return Factories::preconditioner_factory(name);
+      }
 
     // Adaptive if a tolerance has been set
     bool adaptive_flag() {return tol != 0.0;}

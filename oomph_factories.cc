@@ -302,9 +302,34 @@ namespace oomph
       const std::string prec_name = to_lower(_prec_name);
       Preconditioner* prec_pt = 0;
 
+      // First check if we want a sum of matrice preconditioner:
+      if(has_prefix("som-main-", prec_name))
+        {
+          Preconditioner* ul_prec = preconditioner_factory
+            (rest_of_name("som-main-", prec_name));
+
+          MainMatrixOnlyPreconditioner* mm_prec_pt = new MainMatrixOnlyPreconditioner;
+          mm_prec_pt->set_underlying_prec_pt(ul_prec);
+
+          prec_pt = mm_prec_pt;
+        }
+      // Make a preconditioner which only acts on the main matrix and
+      // diagonals of added matrices of a sum of matrices.
+      else if(has_prefix("som-maindiag-", prec_name))
+        {
+          Preconditioner* ul_prec = preconditioner_factory
+            (rest_of_name("som-maindiag-", prec_name));
+
+          MainMatrixAndDiagsPreconditioner* mm_prec_pt
+            = new MainMatrixAndDiagsPreconditioner;
+          mm_prec_pt->set_underlying_prec_pt(ul_prec);
+
+          prec_pt = mm_prec_pt;
+        }
+
       // AMG with optimal poisson paramters
       // ============================================================
-      if(prec_name == "poisson-amg")
+      else if(prec_name == "poisson-amg")
         {
 #ifdef OOMPH_HAS_HYPRE
           HyprePreconditioner* amg_pt = new HyprePreconditioner;
@@ -407,32 +432,6 @@ namespace oomph
             }
 #endif
         }
-
-      else if(prec_name == "blockms")
-        {
-          MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
-          llgp_pt->build(false, false);
-          prec_pt = llgp_pt;
-        }
-      else if(prec_name == "blockms-inexact")
-        {
-          MagnetostaticsPreconditioner* llgp_pt = new MagnetostaticsPreconditioner;
-          llgp_pt->Llg_preconditioner_pt = preconditioner_factory("ilu-2");
-          llgp_pt->build(false, false);
-          prec_pt = llgp_pt;
-        }
-      else if(prec_name == "noms-blockllg")
-        {
-          DummyPinnedMsPreconditioner* ms_pt = new DummyPinnedMsPreconditioner;
-          LLGBlockPreconditioner* llgp_pt = new LLGBlockPreconditioner;
-          llgp_pt->build();
-
-          ms_pt->Real_preconditioner = llgp_pt;
-          ms_pt->build();
-
-          prec_pt = ms_pt;
-        }
-
       else
         {
           std::string err("Unrecognised preconditioner name ");
