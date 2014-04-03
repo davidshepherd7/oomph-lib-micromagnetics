@@ -223,7 +223,31 @@ namespace oomph
       // ============================================================
 
       Preconditioner* ms_prec_pt = 0;
-      if(ms_prec == "dummy")
+      // First check if we want a sum of matrice preconditioner:
+      if(has_prefix("som-main-", ms_prec))
+        {
+          Preconditioner* ul_prec = micromag_preconditioner_factory
+            (rest_of_name("som-main-", ms_prec), llg_prec, llg_sub_prec);
+
+          MainMatrixOnlyPreconditioner* mm_prec_pt = new MainMatrixOnlyPreconditioner;
+          mm_prec_pt->set_underlying_prec_pt(ul_prec);
+
+          ms_prec_pt = mm_prec_pt;
+        }
+      // Make a preconditioner which only acts on the main matrix and
+      // diagonals of added matrices of a sum of matrices.
+      else if(has_prefix("som-maindiag-", ms_prec))
+        {
+          Preconditioner* ul_prec = micromag_preconditioner_factory
+            (rest_of_name("som-maindiag-", ms_prec), llg_prec, llg_sub_prec);
+
+          MainMatrixAndDiagsPreconditioner* mm_prec_pt
+            = new MainMatrixAndDiagsPreconditioner;
+          mm_prec_pt->set_underlying_prec_pt(ul_prec);
+
+          ms_prec_pt = mm_prec_pt;
+        }
+      else if(ms_prec == "dummy")
         {
           // Make preconditioners
           DummyPinnedMsPreconditioner* _ms_prec_pt = new DummyPinnedMsPreconditioner;
