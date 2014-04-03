@@ -123,7 +123,7 @@ namespace oomph
 
     /// Function determining how to block the Jacobian.
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
-                                      block_lookup_list)
+                                      block_lookup_list) const
     {
       // Temporarily use a map for storage because it's easier to overwrite
       // entries.
@@ -180,7 +180,7 @@ namespace oomph
 
     /// \short 7 dof types for preconditioning: the 5 values and 2 more for
     /// boundary phi values.
-    unsigned ndof_types()
+    unsigned ndof_types() const
     {return required_nvalue(0) + 2;}
 
 

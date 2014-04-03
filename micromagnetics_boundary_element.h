@@ -78,7 +78,7 @@ namespace oomph
     /// Function determining how to block the Jacobian. Just move boundary
     /// values of phi into their own blocks. ??ds
     void get_dof_numbers_for_unknowns(std::list<std::pair<unsigned long,unsigned> >&
-                                      block_lookup_list)
+                                      block_lookup_list) const
     {
       // unsigned phi_1_index = phi_1_index_micromag();
       // unsigned phi_index = phi_index_micromag();
@@ -114,7 +114,7 @@ namespace oomph
 
     /// Number of dof types added by this element. We add two: one each for the
     /// boundary values of phi and phi_1.
-    unsigned ndof_types() {return 0;} //??ds
+    unsigned ndof_types() const {return 0;} //??ds
 
     /// Output function - do nothing
     void output(std::ostream &outfile, const unsigned &n_plot=5) const {}

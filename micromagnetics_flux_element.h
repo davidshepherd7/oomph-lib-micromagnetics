@@ -74,11 +74,12 @@ namespace oomph
       return bulk_element_pt()->m_index_micromag(i);
     }
 
-    unsigned ndof_types() {return 0;}
+    unsigned ndof_types() const {return 0;}
 
     /// \short Element makes no changes to dof numbering - do nothing.
     void get_dof_numbers_for_unknowns
-    (std::list<std::pair<unsigned long,unsigned> >& block_lookup_list) {}
+    (std::list<std::pair<unsigned long,unsigned> >& block_lookup_list) const
+    {}
 
     /// Return  m . dm/dn at s.
     double interpolated_mdotdmdn_micromag(const Vector<double> &s) const
