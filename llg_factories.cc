@@ -174,7 +174,9 @@ namespace oomph
       Preconditioner* llg_sub_prec_pt = 0;
       if(llg_sub_prec == "block")
         {
-          llg_sub_prec_pt = new LLGSubBlockPreconditioner;
+          LLGSubBlockPreconditioner* _llg_sub_prec_pt = new LLGSubBlockPreconditioner;
+          _llg_sub_prec_pt->build();
+          llg_sub_prec_pt = _llg_sub_prec_pt;
         }
       else
         {
