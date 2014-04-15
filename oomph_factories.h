@@ -45,9 +45,18 @@ namespace oomph
     inline void unrecognised_name(const std::string& name,
                                   const std::string& function)
     {
-      std::string err = "Unrecognised name " + name;
-      err += " in factory function " + function + ".";
-      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION, function.c_str());
+      if(name == "")
+        {
+          std::string err = "Got the empty string as a name";
+          err += " in factory function " + function + ".";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION, function.c_str());
+        }
+      else
+        {
+          std::string err = "Unrecognised name " + name;
+          err += " in factory function " + function + ".";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION, function.c_str());
+        }
     }
 
     /// Check if prefix is a prefix of test_string.
