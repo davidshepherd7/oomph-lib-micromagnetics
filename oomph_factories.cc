@@ -393,7 +393,7 @@ namespace oomph
           prec_pt = bp_pt;
        }
 
-      else if(split_string(prec_name, '-')[0] == "ilu")
+      else if(has_prefix("ilu-", prec_name))
         {
 // ??ds make more robust and move to function!
 
@@ -434,10 +434,7 @@ namespace oomph
         }
       else
         {
-          std::string err("Unrecognised preconditioner name ");
-          err += prec_name;
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
+          unrecognised_name(prec_name, OOMPH_CURRENT_FUNCTION);
         }
 
       return prec_pt;
