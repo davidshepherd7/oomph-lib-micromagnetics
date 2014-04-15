@@ -330,6 +330,8 @@ public:
     LLGSubBlockPreconditioner()
     {
       Jaa_pt = 0;
+      Prec1_pt = 0;
+      Prec2_pt = 0;
     }
 
     /// Virtual destructor
@@ -342,8 +344,8 @@ public:
 
     void clean_up_memory()
     {
-      Prec1_pt->clean_up_memory();
-      Prec2_pt->clean_up_memory();
+      if(Prec1_pt != 0) {Prec1_pt->clean_up_memory();}
+      if(Prec2_pt != 0) {Prec2_pt->clean_up_memory();}
       delete Jaa_pt; Jaa_pt = 0;
     }
 
