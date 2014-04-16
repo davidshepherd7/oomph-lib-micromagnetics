@@ -179,8 +179,12 @@ public:
 
     void setup()
     {
-#ifdef PARANOID
+      /// Call block setup because this is a master block preconditioner of
+      /// "Real_preconditioner_pt".
       block_setup();
+
+      // Check that we don't have any phi dofs
+#ifdef PARANOID
       if(get_block(0, 0).nrow() != 0)
         {
           std::string err = "Non-empty phi block!";
@@ -188,7 +192,9 @@ public:
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
-      Real_preconditioner->setup(matrix_pt(), comm_pt());
+
+      // Call setup for the real preconditioner
+      Real_preconditioner_pt->setup(matrix_pt(), comm_pt());
     }
 
     void preconditioner_solve(const DoubleVector& r, DoubleVector& z)
