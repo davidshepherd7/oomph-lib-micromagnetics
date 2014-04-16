@@ -201,7 +201,7 @@ namespace oomph
           master_to_subs_map[0] = 0; // mx
           master_to_subs_map[1] = 1; // my
 
-          llg_sub_prec_pt->turn_into_subsidiary_preconditioner(_llg_prec_pt, master_to_subs_map);
+          llg_sub_prec_pt->turn_into_subsidiary_block_preconditioner(_llg_prec_pt, master_to_subs_map);
           _llg_prec_pt->J_aabb_prec_pt = llg_sub_prec_pt;
 
           _llg_prec_pt->build();
@@ -262,7 +262,7 @@ namespace oomph
           micromag_to_llg_block_map[1] = 3; // my
           micromag_to_llg_block_map[2] = 4; // mz
 
-          llg_prec_pt->turn_into_subsidiary_preconditioner
+          llg_prec_pt->turn_into_subsidiary_block_preconditioner
             (_ms_prec_pt, micromag_to_llg_block_map);
           _ms_prec_pt->Real_preconditioner = llg_prec_pt;
 
@@ -282,7 +282,7 @@ namespace oomph
           micromag_to_llg_block_map[1] = 3; // my
           micromag_to_llg_block_map[2] = 4; // mz
 
-          llg_prec_pt->turn_into_subsidiary_preconditioner
+          llg_prec_pt->turn_into_subsidiary_block_preconditioner
             (_ms_prec_pt, micromag_to_llg_block_map);
           _ms_prec_pt->Llg_preconditioner_pt = llg_prec_pt;
 
