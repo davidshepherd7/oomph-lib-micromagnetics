@@ -264,7 +264,7 @@ namespace oomph
 
           llg_prec_pt->turn_into_subsidiary_block_preconditioner
             (_ms_prec_pt, micromag_to_llg_block_map);
-          _ms_prec_pt->Real_preconditioner = llg_prec_pt;
+          _ms_prec_pt->Real_preconditioner_pt = llg_prec_pt;
 
           ms_prec_pt = _ms_prec_pt;
         }

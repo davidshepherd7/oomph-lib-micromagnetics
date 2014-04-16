@@ -172,10 +172,24 @@ public:
   {
   public:
     /// Constructor
-    DummyPinnedMsPreconditioner() {}
+    DummyPinnedMsPreconditioner()
+    {
+      Real_preconditioner_pt = 0;
+    }
 
     /// Virtual destructor
-    virtual ~DummyPinnedMsPreconditioner() {}
+    virtual ~DummyPinnedMsPreconditioner()
+    {
+      delete Real_preconditioner_pt; Real_preconditioner_pt = 0;
+    }
+
+    virtual void clean_up_memory()
+    {
+      if(Real_preconditioner_pt != 0)
+        {
+          Real_preconditioner_pt->clean_up_memory();
+        }
+    }
 
     void setup()
     {
@@ -199,10 +213,10 @@ public:
 
     void preconditioner_solve(const DoubleVector& r, DoubleVector& z)
     {
-      Real_preconditioner->preconditioner_solve(r, z);
+      Real_preconditioner_pt->preconditioner_solve(r, z);
     }
 
-    Preconditioner* Real_preconditioner;
+    Preconditioner* Real_preconditioner_pt;
 
   private:
     /// Broken copy constructor
