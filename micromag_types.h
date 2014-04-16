@@ -30,6 +30,11 @@ namespace oomph
   typedef Vector<double> (*TimeSpaceToDoubleVectFctPt) (const double& t,
                                                         const Vector<double>&x);
 
+  /// General function of time, space and a value vector which returns a
+  /// vector of doubles.
+  typedef Vector<double> (*TimeSpaceValueToDoubleVectFctPt)
+  (const double& t, const Vector<double>&x, const Vector<double>&u);
+
   /// General function of time and a value which returns a double.
   typedef double (*TimeValueToDoubleFctPt) (const double& t,
                                             const double& u);
@@ -46,12 +51,24 @@ namespace oomph
   /// on problem parameters with resorting to global variables.
   class SolutionFunctor
   {
-    public:
-    SolutionFunctor() {}
+  public:
+    SolutionFunctor()
+    {
+      Solution_fpt = 0;
+      Derivative_fpt = 0;
+    }
 
     SolutionFunctor(TimeSpaceToDoubleVectFctPt solution_fpt)
     {
       Solution_fpt = solution_fpt;
+      Derivative_fpt = 0;
+    }
+
+    SolutionFunctor(TimeSpaceToDoubleVectFctPt solution_fpt,
+                    TimeSpaceValueToDoubleVectFctPt derivative_fpt)
+    {
+      Solution_fpt = solution_fpt;
+      Derivative_fpt = derivative_fpt;
     }
 
     virtual ~SolutionFunctor() {}
@@ -59,11 +76,13 @@ namespace oomph
     SolutionFunctor(const SolutionFunctor& that)
     {
       Solution_fpt = that.Solution_fpt;
+      Derivative_fpt = that.Derivative_fpt;
     }
 
     void operator=(const SolutionFunctor& that)
     {
       this->Solution_fpt = that.Solution_fpt;
+      this->Derivative_fpt = that.Derivative_fpt;
     }
 
     /// Call the function.
@@ -80,12 +99,28 @@ namespace oomph
       return Solution_fpt(t, x);
     }
 
+    /// Call the derivative function.
+    virtual Vector<double> derivative(const double& t, const Vector<double>& x,
+                                      const Vector<double>& u) const
+    {
+#ifdef PARANOID
+      if(Derivative_fpt == 0)
+        {
+          std::string err = "Derivative_fpt is null!";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Derivative_fpt(t, x, u);
+    }
+
     /// Overload to grab data from the problem.
     virtual void initialise_from_problem(const Problem* problem_pt) {}
 
-    private:
     TimeSpaceToDoubleVectFctPt Solution_fpt;
+    TimeSpaceValueToDoubleVectFctPt Derivative_fpt;
   };
+
 
   /// Function type for initial magnetisation
   typedef SolutionFunctor InitialMFct;
