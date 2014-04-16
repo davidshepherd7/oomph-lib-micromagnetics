@@ -338,6 +338,9 @@ def main():
     parser.add_argument('--skip-failed', action='store_true',
                         help='Skip runs which failed (dir contains file named failed)')
 
+    parser.add_argument('--filter', '-f', action='append', default=[],
+                        help="""Filter runs based on parameters. Input should be a python pair like ('-tol', 1e-3) where the first entry is the dictionary key to check and the second entry is the value it should take. Note the quotes around the key.""")
+
     args = parser.parse_args()
 
     # Handle some defaults like this instead of inside argparse otherwise
@@ -371,6 +374,12 @@ def main():
     # Print if needed
     if args.print_all_data:
         pprint(all_results)
+
+    # Filter the results based on the arguments given
+    for f in args.filter:
+        print("filtering with", f)
+        key, value = ast.literal_eval(f)
+        all_results = [d for d in all_results if d[key] == value]
 
 
     # Do actual plots
