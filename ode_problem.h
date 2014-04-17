@@ -191,7 +191,7 @@ namespace oomph
         return deriv;
       }
 
-      unsigned Beta;
+      double Beta;
       double Omega;
     };
 
