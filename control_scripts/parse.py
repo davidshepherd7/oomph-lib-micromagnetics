@@ -230,10 +230,12 @@ def multi_plot(data, keys_to_split_on, plot_function):
     # Divide into separate data sets
     split_data = mm.split_up_stuff(data, keys_to_split_on)
 
+    # Storage for figures
+    figs = []
+
     for dataset in split_data:
         # Plot this one
         fig = plot_function(dataset)
-
 
         labels = []
         for k in keys_to_split_on:
@@ -250,7 +252,9 @@ def multi_plot(data, keys_to_split_on, plot_function):
         # keys_to_split_on so we just get it from the first one).
         fig.suptitle(' '.join(labels))
 
-    return
+        figs.append(fig)
+
+    return figs
 
 
 def multi_print(data, keys_to_split_on, print_function):
@@ -341,6 +345,9 @@ def main():
     parser.add_argument('--filter', '-f', action='append', default=[],
                         help="""Filter runs based on parameters. Input should be a python pair like ('-tol', 1e-3) where the first entry is the dictionary key to check and the second entry is the value it should take. Note the quotes around the key.""")
 
+    parser.add_argument('--save-to-dir',
+                        help='Save figures as pdfs into the specified folder.')
+
     args = parser.parse_args()
 
     # Handle some defaults like this instead of inside argparse otherwise
@@ -385,12 +392,16 @@ def main():
     # Do actual plots
     # ============================================================
 
+    # Storage for figures
+    figs = []
+
 
     # Plot error norm vs time
     if 'err' in args.plots:
         plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'],
                           labels=args.label)
-        multi_plot(all_results, args.split, plot_errors)
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
 
 
     # Plot m averages vs time
@@ -400,14 +411,16 @@ def main():
                                            'h_applied_first_element'],
                               labels=args.label,
                               y_axis_lims=[[-1,1], [-1,1], [-1,1], None, None])
-        multi_plot(all_results, args.split, plot_m_averages)
+        newfigs = multi_plot(all_results, args.split, plot_m_averages)
+        figs.extend(newfigs)
 
 
     if 'trace' in args.plots:
         plot_traces = par(plot_vs_time,
                           plot_values=['exact', 'trace_values', 'dts'],
                           labels=args.label)
-        multi_plot(all_results, args.split, plot_traces)
+        newfigs = multi_plot(all_results, args.split, plot_traces)
+        figs.extend(newfigs)
 
     if 'energy' in args.plots:
         plot_traces = par(plot_vs_time,
@@ -416,33 +429,38 @@ def main():
                                         'crystalline_anisotropy_energy',
                                         'magnetostatic_energy'],
                           labels=args.label)
-        multi_plot(all_results, args.split, plot_traces)
+        newfigs = multi_plot(all_results, args.split, plot_traces)
+        figs.extend(newfigs)
 
     if 'newt' in args.plots:
         plot_newton_iters = par(plot_vs_time,
                                 plot_values=['n_newton_iters','dts'],
                                 labels=args.label)
-        multi_plot(all_results, args.split, plot_newton_iters)
+        newfigs = multi_plot(all_results, args.split, plot_newton_iters)
+        figs.extend(newfigs)
 
     if 'soltimes' in args.plots:
         plot_sol_time_averages = par(plot_vs_time,
                                 plot_values=['solver_times','jacobian_setup_times'],
                                 operations_on_values=[sp.mean, sp.mean],
                                 labels=args.label)
-        multi_plot(all_results, args.split, plot_sol_time_averages)
+        newfigs = multi_plot(all_results, args.split, plot_sol_time_averages)
+        figs.extend(newfigs)
 
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['m_length_error_means', 'dts'],
                                     labels=args.label)
-        multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        figs.extend(newfigs)
 
     if 'lte' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['LTE_norms', 'dts'],
                                     labels=args.label)
-        multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        figs.extend(newfigs)
 
 
     # Plot solver iterations vs steps
@@ -450,7 +468,8 @@ def main():
         plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
                               operations_on_values=[identity, sp.mean],
                               labels=args.label)
-        multi_plot(all_results, args.split, plot_iters_step)
+        newfigs = multi_plot(all_results, args.split, plot_iters_step)
+        figs.extend(newfigs)
 
 
     # Plot error in effective damping vs step size
@@ -473,7 +492,8 @@ def main():
                                   dataset_split_keys=args.scatter_split,
                                   labels=args.label,
                                   y_operation=damping_error_mean)
-        multi_plot(all_results, args.split, plot_damping_errors)
+        newfigs = multi_plot(all_results, args.split, plot_damping_errors)
+        figs.extend(newfigs)
 
 
     if 'wc-time' in args.plots:
@@ -482,7 +502,8 @@ def main():
               plot_values=['unix_timestamp_diffs', 'dts'],
               labels=args.label)
 
-        multi_plot(all_results, args.split, plot_wall_time_vs_time)
+        newfigs = multi_plot(all_results, args.split, plot_wall_time_vs_time)
+        figs.extend(newfigs)
 
 
     if 'step-times' in args.plots:
@@ -497,7 +518,8 @@ def main():
               y_value='total_step_time',
               y_operation=sp.mean)
 
-        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
 
 
     if 'scatter-its' in args.plots:
@@ -509,7 +531,8 @@ def main():
               y_value='n_solver_iters',
               y_operation=lambda x:sp.mean(list(it.chain(*x))))
 
-        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
 
     if 'scatter-errs' in args.plots:
         plot_err_scatter = \
@@ -520,7 +543,8 @@ def main():
               y_value='error_norms',
               y_operation=max)
 
-        multi_plot(all_results, args.split, plot_err_scatter)
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
 
     if 'scatter-first-err' in args.plots:
         plot_err_scatter = \
@@ -531,7 +555,8 @@ def main():
               y_value='error_norms',
               y_operation=lambda y:y[1])
 
-        multi_plot(all_results, args.split, plot_err_scatter)
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
 
 
     if 'scatter-newt' in args.plots:
@@ -543,10 +568,12 @@ def main():
               y_value='n_newton_iters',
               y_operation=sp.mean)
 
-        multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
 
-    plt.show()
 
+    # Printing
+    # ============================================================
 
     if 'step-times' in args.print_data:
 
@@ -558,7 +585,53 @@ def main():
 
         multi_print(all_results, args.split, print_mean_step_times)
 
+
+    # End of prints/plots
+    # ============================================================
+
+
+    # if requested then save figures
+    # ============================================================
+
+    if args.save_to_dir is not None:
+
+        for fig in figs:
+
+            name = safefilename(name_fig(fig))
+
+            fig.savefig(pjoin(args.save_to_dir, name + ".pdf"),
+                        bbox_inches='tight',
+                        pad_inches=0.0,
+                        transparent=True)
+
+
+    # Show all plots
+    plt.show()
+
+
+
+
     return 0
+
+
+def name_fig(fig):
+    """Try to come up with a good name for a figure based on labels.
+    """
+
+    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""]
+
+    axes_labels = [ax.get_ylabel() + "vs" + ax.get_xlabel()
+                   for ax in fig.axes]
+
+    final_label = "-".join(it.chain(main_label, axes_labels))
+
+    return final_label
+
+
+def safefilename(filename):
+    """Strip bad filename characters from string."""
+    allowed_symbols = ['_', '-', '.']
+    return ''.join(c for c in filename if c.isalnum() or c in allowed_symbols)
 
 
 # If this script is run from a shell then run main() and return the result.
