@@ -50,7 +50,7 @@ def end_colour(): return '\033[0m'
 
 def exchange_length_ms(A, Ms):
     mu0 = 4 * sp.pi * 1e-7
-    return sqrt((2*A) / (mu0 * (Ms**2)))
+    return sp.sqrt((2*A) / (mu0 * (Ms**2)))
 
 # Helper functions
 # ============================================================
