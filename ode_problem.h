@@ -195,6 +195,72 @@ namespace oomph
       double Omega;
     };
 
+    /// Another stiff solution: Atkinson equation (8.1) pg 128
+    class SimpleStiffTest : public SolutionFunctor
+    {
+    public:
+      /// Constructor
+      SimpleStiffTest()
+      {
+        Lambda = 100;
+      }
+
+      /// Virtual destructor
+      virtual ~SimpleStiffTest() {}
+
+      /// Function call
+      Vector<double> operator()(const double& t, const Vector<double>& x) const
+      {
+        Vector<double> values(1);
+        values[0] = std::exp(-Lambda * t);
+        return values;
+      }
+
+      /// Derivative call
+      Vector<double> derivative(const double& t, const Vector<double>& x,
+                                const Vector<double>& u) const
+      {
+        Vector<double> deriv(1, 0.0);
+        deriv[0] = -Lambda * u[0];
+        return deriv;
+      }
+
+      double Lambda;
+    };
+
+    /// Another stiff solution: Atkinson pg. 158, also example 8.2 pg 129.
+    class OrderReductionTest : public SolutionFunctor
+    {
+    public:
+      /// Constructor
+      OrderReductionTest()
+      {
+        Lambda = -5;
+      }
+
+      /// Virtual destructor
+      virtual ~OrderReductionTest() {}
+
+      /// Function call
+      Vector<double> operator()(const double& t, const Vector<double>& x) const
+      {
+        Vector<double> values(1);
+        values[0] = std::sin(t) + std::cos(t);
+        return values;
+      }
+
+      /// Derivative call
+      Vector<double> derivative(const double& t, const Vector<double>& x,
+                                const Vector<double>& u) const
+      {
+        Vector<double> deriv(1, 0.0);
+        deriv[0] = Lambda*u[0] + (1-Lambda)*std::cos(t) - (1+Lambda)*std::sin(t);
+        return deriv;
+      }
+
+      double Lambda;
+    };
+
   }
 
   namespace ODEFactories
@@ -207,6 +273,14 @@ namespace oomph
       if(exact_name == "damped_oscillation")
         {
           return new deriv_functions::DampedOscillation;
+        }
+      else if(exact_name == "simple_stiff")
+        {
+          return new deriv_functions::SimpleStiffTest;
+        }
+      else if(exact_name == "order_reduction")
+        {
+          return new deriv_functions::OrderReductionTest;
         }
 
       TimeSpaceToDoubleVectFctPt fpt;
