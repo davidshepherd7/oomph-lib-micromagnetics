@@ -24,7 +24,7 @@ namespace oomph
     /// positions.
     inline bool fp_equal(const double& a, const double& b)
     {
-      return (std::abs(a - b) < 1e-15);
+      return (std::abs(a - b) < 1e-13);
     }
 
     /// Helper function to compare equality for two vectors (or vectors of
@@ -62,8 +62,8 @@ namespace oomph
 #ifdef PARANOID
         for(unsigned i=0; i<3; i++)
           {
-            if((neighbour_node_x[i] < (ele_x[i] - 5e-14))
-               || (neighbour_node_x[i] > (ele_x[i] + ele_length[i] + 5e-14)))
+            if((neighbour_node_x[i] < (ele_x[i] - 1e-13))
+               || (neighbour_node_x[i] > (ele_x[i] + ele_length[i] + 1e-13)))
               {
                 std::string err = "Node is outside the element:";
                 err += "\nnode at " + to_string(neighbour_node_x);
