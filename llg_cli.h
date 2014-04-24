@@ -76,7 +76,7 @@ namespace oomph
 
       specify_command_line_flag("-phi1-singularity-method",
                                 &phi1_singularity_method,
-                                "Set to either 'pin' or 'normalise', default 'pin'.");
+                                "Set to either 'pin', 'normalise' or 'nothing', default 'pin'.");
       phi1_singularity_method = "pin";
     }
 
@@ -219,6 +219,10 @@ namespace oomph
       else if(phi1_singularity_method == "normalise")
         {
           llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::normalise;
+        }
+      else if(phi1_singularity_method == "nothing")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::nothing;
         }
       else
         {

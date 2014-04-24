@@ -25,7 +25,7 @@ namespace oomph
   /// Enumeration for how to handle phi_1's singularity
   namespace phi_1_singularity_handling
   {
-    enum phi_1_singularity_handling {pin, normalise};
+    enum phi_1_singularity_handling {pin, normalise, nothing};
   }
 
   // ============================================================
