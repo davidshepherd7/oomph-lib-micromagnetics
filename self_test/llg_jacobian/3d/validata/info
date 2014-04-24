@@ -1,7 +1,7 @@
-real_time 2014-04-24-15-32-05
-unix_time 1398349925
+real_time 2014-04-24-17-01-48
+unix_time 1398355308
 driver_name LLG
-initial_nnode 4608
+initial_nnode 3751
 initial_nelement 3000
 initial_nsub_mesh 1
 -disable-mm-opt 0

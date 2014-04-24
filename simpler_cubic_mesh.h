@@ -170,7 +170,7 @@ namespace oomph
 
       // No next element in this direction
       if((neighbour_ijk[direction] >= int(nijk[direction])) ||
-         (neighbour_ijk[direction] <= 0))
+         (neighbour_ijk[direction] < 0))
         {
           return 0;
         }
@@ -525,6 +525,45 @@ namespace oomph
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
+      // //O(N^2) time debugging code
+      // const unsigned ni = Node_pt.size();
+      // for(unsigned i=0; i<ni; i++)
+      //   {
+      //     const unsigned nj = Node_pt.size();
+      //     for(unsigned j=0; j<nj; j++)
+      //       {
+      //         // Don't compare same two nodes twice
+      //         if(i < j)
+      //           {
+      //             // Check no duplicate pointers
+      //             if(Node_pt[j] == Node_pt[i])
+      //             {
+      //               std::string err = "Multiple copies of node pt ";
+      //               err += to_string(Node_pt[i]);
+      //               err += " " + to_string(Node_pt[j]);
+      //               throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+      //                                   OOMPH_EXCEPTION_LOCATION);
+      //             }
+
+      //             // Check no duplicate positions
+      //             Vector<double> xi(3), xj(3);
+      //             Node_pt[j]->position(xj);
+      //             Node_pt[i]->position(xi);
+      //             if(fp_equal(xi, xj))
+      //               {
+      //                 std::string err = "Two nodes in same place: ";
+      //                 err += to_string(Node_pt[i]);
+      //                 err += " " + to_string(Node_pt[j]);
+      //                 err += "\nat position " + to_string(xi);
+      //                 err += "\nand " + to_string(xj);
+      //                 throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+      //                                     OOMPH_EXCEPTION_LOCATION);
+      //               }
+      //           }
+      //       }
+      //   }
+
       if(Node_pt.size() != (1 + (nn1d-1)*Nx)*(1 + (nn1d-1)*Ny)*(1 + (nn1d-1)*Nz))
         {
           std::string err = "Wrong Node_pt size";
