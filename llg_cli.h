@@ -73,6 +73,11 @@ namespace oomph
       specify_command_line_flag("-disable-magnetostatic-solver-optimistations",
                                 &disable_magnetostatic_solver_optimistations);
       disable_magnetostatic_solver_optimistations = -1;
+
+      specify_command_line_flag("-phi1-singularity-method",
+                                &phi1_singularity_method,
+                                "Set to either 'pin' or 'normalise', default 'pin'.");
+      phi1_singularity_method = "pin";
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -204,6 +209,23 @@ namespace oomph
         }
 
       llg_pt->Bem_element_factory_pt = bem_element_factory_fct_pt;
+
+
+      // Assign phi1 singularity handler method
+      if(phi1_singularity_method == "pin")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin;
+        }
+      else if(phi1_singularity_method == "normalise")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::normalise;
+        }
+      else
+        {
+          std::string err = "Unrecognised phi1 singularity handling method.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
     }
 
     HApp::HAppFctPt h_app_fct_pt;
@@ -215,6 +237,7 @@ namespace oomph
     std::string mag_params_name;
     std::string llg_prec_name;
     std::string llg_sub_prec_name;
+    std::string phi1_singularity_method;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =

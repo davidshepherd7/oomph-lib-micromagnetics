@@ -22,6 +22,12 @@ namespace oomph
 
   class ResidualCalculator;
 
+  /// Enumeration for how to handle phi_1's singularity
+  namespace phi_1_singularity_handling
+  {
+    enum phi_1_singularity_handling {pin, normalise};
+  }
+
   // ============================================================
   ///
   // ============================================================
@@ -55,6 +61,7 @@ namespace oomph
       Bem_handler_pt = 0;
       Flux_mesh_pt = 0;
       Flux_mesh_factory_pt = 0;
+      Phi_1_singularity_method = phi_1_singularity_handling::pin;
 
       Decoupled_ms = false;
       Extrapolate_decoupled_ms = false;
@@ -501,6 +508,49 @@ namespace oomph
           {
             bem_handler_pt()->get_bem_values_and_copy_into_values();
           }
+
+        // Maybe subtract largest phi value from all phi values to get it
+        // O(1) (technically it has an arbitrary added constant).
+        if(normalise_phi_1())
+          {
+            const unsigned n_node = mesh_pt()->nnode();
+            const unsigned index = phi_1_index();
+
+            // Find the min phi1 value
+            double min_phi_1 = mesh_pt()->node_pt(0)->value(index);
+            for(unsigned nd=1; nd<n_node; nd++)
+              {
+                double this_phi_1 = mesh_pt()->node_pt(nd)
+                  ->value(index);
+                if(this_phi_1 < min_phi_1)
+                  {
+                    min_phi_1 = this_phi_1;
+                  }
+              }
+
+            std::cout << "first min phi " << min_phi_1 << std::endl;
+
+            // subtract it from each
+            for(unsigned nd=0; nd<n_node; nd++)
+              {
+                double this_phi_1 = mesh_pt()->node_pt(nd)->value(index);
+                mesh_pt()->node_pt(0)->set_value(index,
+                                                 this_phi_1 - min_phi_1);
+              }
+
+            // Find the max phi1 value
+            double new_max_phi_1 = mesh_pt()->node_pt(0)->value(index);
+            for(unsigned nd=1; nd<n_node; nd++)
+              {
+                double this_phi_1 = mesh_pt()->node_pt(nd)
+                  ->value(index);
+                if(this_phi_1 > new_max_phi_1)
+                  {
+                    new_max_phi_1 = this_phi_1;
+                  }
+              }
+            std::cout << new_max_phi_1 << std::endl;
+          }
       }
 
     /// Output solution
@@ -920,6 +970,22 @@ public:
     double Effective_damping_constant;
     double Alt_eff_damp;
     std::deque<double> Previous_energies;
+
+    /// Enumeration for how to handle phi_1's singularity
+    phi_1_singularity_handling::phi_1_singularity_handling Phi_1_singularity_method;
+
+    /// Should we pin a phi1 value
+    bool pin_a_phi_1() const
+      {
+        return Phi_1_singularity_method == phi_1_singularity_handling::pin;
+      }
+
+    /// Should we normalise phi1 values
+    bool normalise_phi_1() const
+    {
+      return Phi_1_singularity_method == phi_1_singularity_handling::normalise;
+    }
+
 
   private:
 
