@@ -16,6 +16,7 @@
 #include "../../src/meshes/triangle_mesh.h"
 #include "./multi_mesh.h"
 #include "./single_element_mesh.h"
+#include "./simpler_cubic_mesh.h"
 
 namespace oomph
 {
@@ -417,13 +418,13 @@ namespace oomph
       else if(mesh_name == "sq_cube" && nnode1d == 2)
         {
           double lx = 1.0;
-          mesh_pt = new SimpleCubicMesh<QMicromagElement<3,2> >
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3,2> >
             (nx, nx, nx, lx, lx, lx, time_stepper_pt);
         }
       else if(mesh_name == "sq_cube_periodic" && nnode1d == 2)
         {
           double lx = 1.0;
-          mesh_pt = new SimpleCubicMesh<QMicromagElement<3,2> >
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3,2> >
             (nx, nx, nx, lx, lx, lx, time_stepper_pt);
 
           MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 5, 2); // x
@@ -522,7 +523,7 @@ namespace oomph
         {
           unsigned this_nx = refinement_level;
 
-          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
             (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
@@ -546,7 +547,7 @@ namespace oomph
       else if(mesh_name == "sq_cubeoid" && nnode1d == 2)
         {
           double lx = 1, ly = lx, lz = 3*lx;
-          mesh_pt = new SimpleCubicMesh<QMicromagElement<3, 2> >
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
             (nx, nx, int(lz/lx)*nx, lx, ly, lz, time_stepper_pt);
         }
       else if(mesh_name == "ut_sphere" && nnode1d == 2)

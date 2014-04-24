@@ -1,7 +1,7 @@
-real_time 2014-04-01-15-10-25
-unix_time 1396361425
+real_time 2014-04-24-15-32-05
+unix_time 1398349925
 driver_name LLG
-initial_nnode 3751
+initial_nnode 4608
 initial_nelement 3000
 initial_nsub_mesh 1
 -disable-mm-opt 0
@@ -42,6 +42,8 @@ initial_nsub_mesh 1
 -blocking none
 -h-app minus_z
 -initial-m smoothly_varying_50
+-llg-prec ""
+-llg-sub-prec ""
 -mag-params simple-llg
 -mesh sq_cubeoid
 -mp-pred ebdf3

@@ -59,7 +59,8 @@ headers = array_interpolator.h \
 	micromag_types.h \
 	magnetostatics_calculator.h \
 	llg_preconditioners.h \
-	tr.h
+	tr.h \
+	simpler_cubic_mesh.h
 
 
 # If we have hlib then compile that header too
