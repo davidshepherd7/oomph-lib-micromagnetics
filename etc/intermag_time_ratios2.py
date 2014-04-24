@@ -116,8 +116,7 @@ def main():
 
     pprint(results)
 
-    final1 = sp.mean([d['rk2_ratio'] for d in results \
-                      if d['-ms-method'] == 'decoupled' and d['rk2_ratio'] != sp.NaN])
+    final1 = sp.mean([d['rk2_ratio'] for d in results if d['-ms-method'] == 'decoupled'])
     final2 = sp.mean([d['rk2_ratio'] for d in results if d['-ms-method'] == 'disabled'])
 
     dec_rk4 = sp.mean([d['rk4_ratio'] for d in results if d['-ms-method'] == 'decoupled'])
