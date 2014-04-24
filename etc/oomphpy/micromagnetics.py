@@ -197,7 +197,13 @@ def split_to_comparable_groups(dicts, key_to_compare_over, key_filter=None):
     for k in argument_dict_keys:
         for d in dicts:
             for d2 in dicts:
-                if d[k] != d2[k]:
+
+                # If value differs or if key is not in one of the dicts
+                # then it differs.
+                try:
+                    if d[k] != d2[k]:
+                        keys_which_differ.add(k)
+                except KeyError:
                     keys_which_differ.add(k)
 
     print(keys_which_differ)
