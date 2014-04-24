@@ -63,6 +63,8 @@ namespace oomph
       Flux_mesh_factory_pt = 0;
       Phi_1_singularity_method = phi_1_singularity_handling::pin;
 
+      Relax_magnetisation = false;
+
       Decoupled_ms = false;
       Extrapolate_decoupled_ms = false;
       Disable_ms = false;
@@ -241,6 +243,65 @@ namespace oomph
 
           // Write m vector
           for(unsigned j=0; j<3; j++) nd_pt->set_value(m_index(j),m_values[j]);
+        }
+    }
+
+    /// Relax magnetisation using strongly damped llg until torque is small
+    void relax()
+    {
+      double initial_damping = mag_parameters_pt()->Gilbert_damping;
+      double initial_dt = time_pt()->dt();
+      double initial_time = time_pt()->time();
+
+      // Set a high damping
+      Magnetic_parameters_pt->Gilbert_damping = 1.0;
+
+      // Initialise loop variables
+      double dt = std::max(initial_dt/100, 1e-4);
+      double relax_tol = 1e-4;
+
+      // ??ds big hack here: just relax for 250 time units, enough for
+      // mumag4... fix to use torque eventually
+      while(time() < 250)
+        {
+          // Output some basic info
+          oomph_info
+            << std::endl
+            << std::endl
+            << "Relaxation step " << N_steps_taken
+            << ", time = " << time()
+            << ", dt = " << dt << std::endl
+            << "=============================================" << std::endl
+            << std::endl;
+
+          // Do the newton solve (different ones depending flags set)
+          dt = smart_time_step(dt, relax_tol);
+
+          // Output
+          doc_solution(); //??ds extra label?
+        }
+
+
+      // Revert time info
+      N_steps_taken = 0;
+      time_pt()->time() = initial_time;
+      initialise_dt(initial_dt);
+
+      // Set initial condition to be the relaxed values all the way back in
+      // time.
+      set_up_impulsive_initial_condition();
+
+      // Revert the damping
+      Magnetic_parameters_pt->Gilbert_damping = initial_damping;
+    }
+
+    virtual void actions_before_time_integration()
+    {
+      MyProblem::actions_before_time_integration();
+
+      if(Relax_magnetisation)
+        {
+          relax();
         }
     }
 
@@ -922,6 +983,10 @@ namespace oomph
     bool Inside_segregated_magnetostatics;
 
     LLGResidualCalculator* Residual_calculator_pt;
+
+    /// Should the magnetisation be relaxed before we start time
+    /// integration
+    bool Relax_magnetisation;
 
   private:
 

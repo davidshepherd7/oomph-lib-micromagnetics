@@ -78,6 +78,10 @@ namespace oomph
                                 &phi1_singularity_method,
                                 "Set to either 'pin', 'normalise' or 'nothing', default 'pin'.");
       phi1_singularity_method = "pin";
+
+      specify_command_line_flag("-relax-m", &relax_m,
+                                "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");
+      relax_m = -1;
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -230,6 +234,17 @@ namespace oomph
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
+      if(relax_m == 0)
+        {
+          llg_pt->Relax_magnetisation = false;
+        }
+      else if(relax_m == 1)
+        {
+          llg_pt->Relax_magnetisation = true;
+        }
+      // else do nothing
+
     }
 
     HApp::HAppFctPt h_app_fct_pt;
@@ -256,6 +271,7 @@ namespace oomph
     int mallinson;
     int check_angles;
     int disable_magnetostatic_solver_optimistations;
+    int relax_m;
 
     std::string ms_method;
 

@@ -278,6 +278,9 @@ int main(int argc, char *argv[])
 
   problem_pt->initial_doc();
 
+  // Do any pre-time integration actions (like relaxing the magnetisation).
+  problem_pt->actions_before_time_integration();
+
   // Solve
   if(problem_pt->is_steady())
     {

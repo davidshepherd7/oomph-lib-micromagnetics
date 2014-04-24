@@ -283,6 +283,8 @@ using namespace StringConversion;
       // main solver.
     }
 
+    virtual void actions_before_time_integration() {}
+
     virtual void actions_before_explicit_timestep()
     {
       MyProblem::actions_before_newton_solve();
