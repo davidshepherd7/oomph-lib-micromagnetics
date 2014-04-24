@@ -524,7 +524,7 @@ namespace oomph
           unsigned this_nx = refinement_level;
 
           mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
-            (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
+            (5*this_nx, std::ceil(1.25*this_nx), 1, 500, 125, 3, time_stepper_pt);
 
           mesh_pt->setup_boundary_element_info();
         }
