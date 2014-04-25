@@ -81,8 +81,8 @@ namespace oomph
         const double phi_1_source = e_pt->get_phi_1_source(time,xvec);
 
         // Fields at integration point
-        Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
-        e_pt->get_applied_field(time, xvec, s, h_applied);
+        Vector<double> h_cryst_anis, h_magnetostatic;
+        Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
         e_pt->get_magnetostatic_field(&intp, h_magnetostatic);
 
@@ -349,8 +349,8 @@ namespace oomph
         const double phi_1_source = e_pt->get_phi_1_source(time,xvec);
 
         // Fields at integration point
-        Vector<double> h_applied, h_cryst_anis, h_magnetostatic;
-        e_pt->get_applied_field(time, xvec, s, h_applied);
+        Vector<double> h_cryst_anis, h_magnetostatic;
+        Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
         e_pt->get_magnetostatic_field(s, h_magnetostatic);
 

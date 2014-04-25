@@ -680,9 +680,8 @@ namespace oomph
     Vector<double> first_element_happ() const
     {
       double t = time_stepper_pt()->time();
-      Vector<double> H_app;
       Vector<double> dummy_x, dummy_s;
-      ele_pt()->get_applied_field(t, dummy_x, dummy_s, H_app);
+      Vector<double> H_app = ele_pt()->get_applied_field(t, dummy_x);
 
       return H_app;
     }

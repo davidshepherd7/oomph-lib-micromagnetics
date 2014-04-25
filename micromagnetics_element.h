@@ -230,11 +230,11 @@ namespace oomph
     TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
 
     /// Get the applied field at Eulerian position x.
-    virtual void get_applied_field(const double& t, const Vector<double> &x,
-                                   const Vector<double> &s,
-                                   Vector<double> &H_app) const
+    virtual Vector<double> get_applied_field(const double& t,
+                                             const Vector<double> &x) const
     {
-      H_app.assign(3,0.0);
+      Vector<double> H_app(3,0.0);
+
       if(Applied_field_pt != 0)
         {
           H_app = (*Applied_field_pt)(t, x);
@@ -244,6 +244,8 @@ namespace oomph
         {
           H_app[j] *= magnetic_parameters_pt()->happ_normalisation_factor();
         }
+
+      return H_app;
     }
 
     /// Get the crystalline anisotropy field at Eulerian position x.

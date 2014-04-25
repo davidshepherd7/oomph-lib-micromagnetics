@@ -49,9 +49,8 @@ namespace oomph
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get the field
-    Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp_pt->time(),
-                                intp_pt->x(), intp_pt->s(), h_applied);
+    Vector<double> h_applied =
+      m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x());
 
     return - VectorOps::dot(intp_pt->m(), h_applied);
   }
@@ -65,9 +64,8 @@ namespace oomph
       = checked_dynamic_cast<const MicromagEquations*>(ele_pt);
 
     // Get the field
-    Vector<double> h_applied;
-    m_ele_pt->get_applied_field(intp_pt->time(),
-                                intp_pt->x(), intp_pt->s(), h_applied);
+    Vector<double> h_applied = m_ele_pt->get_applied_field(intp_pt->time(),
+                                                           intp_pt->x());
 
     return - VectorOps::dot(intp_pt->dmdt(), h_applied);
   }
@@ -170,10 +168,10 @@ namespace oomph
     double val = 0.0;
 
     // Get fields, coeffs at this point
-    Vector<double> h_ms, h_app, h_ca;
+    Vector<double> h_ms, h_ca;
     m_ele_pt->get_magnetostatic_field(intp_pt->s(), h_ms);
-    m_ele_pt->get_applied_field(intp_pt->time(), intp_pt->x(),
-                                intp_pt->s(), h_app);
+    Vector<double> h_app = m_ele_pt->get_applied_field(intp_pt->time(),
+                                                       intp_pt->x());
     m_ele_pt->get_H_cryst_anis_field(intp_pt->time(), intp_pt->x(),
                                      intp_pt->m(), h_ca);
     double exch_c = m_ele_pt->exchange_coeff();
