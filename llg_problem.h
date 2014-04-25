@@ -246,14 +246,17 @@ namespace oomph
     }
 
     /// Relax magnetisation using strongly damped llg until torque is small
-    void relax()
+    void relax(HAppFctPt h_app_relax=HApp::zero)
     {
       double initial_damping = mag_parameters_pt()->Gilbert_damping;
       double initial_dt = time_pt()->dt();
       double initial_time = time_pt()->time();
+      HAppFctPt initial_happ = mag_parameters_pt()->Applied_field_fct_pt;
 
-      // Set a high damping
+      // Set a high damping and relaxation field
       Magnetic_parameters_pt->Gilbert_damping = 1.0;
+      Magnetic_parameters_pt->Applied_field_fct_pt = h_app_relax;
+
 
       // Initialise loop variables
       double dt = std::max(initial_dt/100, 1e-4);
@@ -290,8 +293,9 @@ namespace oomph
       // time.
       set_up_impulsive_initial_condition();
 
-      // Revert the damping
+      // Revert the damping and field
       Magnetic_parameters_pt->Gilbert_damping = initial_damping;
+      Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
     }
 
     virtual void actions_before_time_integration()
