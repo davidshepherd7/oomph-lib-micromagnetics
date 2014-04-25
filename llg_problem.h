@@ -25,7 +25,7 @@ namespace oomph
   /// Enumeration for how to handle phi_1's singularity
   namespace phi_1_singularity_handling
   {
-    enum phi_1_singularity_handling {pin, normalise, nothing};
+    enum phi_1_singularity_handling {pin, normalise, nothing, jacobian};
   }
 
   // ============================================================
@@ -103,6 +103,9 @@ namespace oomph
         new CRDoubleMatrix(residuals.distribution_pt());
       Problem::get_jacobian(residuals, *fem_jacobian_pt);
 
+      // maybe modify a phi_1 jacobian entry to remove singularity
+      maybe_twiddle_phi_1_jacobian_entry(*fem_jacobian_pt);
+
       // Assign the fem jacobian to be the "main" sumofmatrices matrix. Do
       // delete it when done.
       jacobian.main_matrix_pt() = fem_jacobian_pt;
@@ -148,6 +151,43 @@ namespace oomph
                                    *fem_jacobian_pt);
         }
 
+    }
+
+    void maybe_twiddle_phi_1_jacobian_entry(CRDoubleMatrix &jacobian) const
+    {
+      if(twiddle_phi_1_jacobian())
+        {
+          // Find a phi 1 equation
+          int phi_1_dof = mesh_pt()->node_pt(0)->eqn_number(phi_1_index());
+
+          // If not pinnned (phi1 is either all pinned or not pinned at all,
+          // which is why we have this problem in the first place).
+          if(phi_1_dof >= 0)
+            {
+              // Then add some small amount to the Jacobian to make it
+              // non-singular, writing to CR matrices is hard...
+
+              bool success = false;
+              for(long k=jacobian.row_start()[phi_1_dof];
+                  k<jacobian.row_start()[phi_1_dof+1];
+                  k++)
+                {
+                  if(jacobian.column_index()[k] == phi_1_dof)
+                    {
+                      jacobian.value()[k] += 1e-3;
+                      success = true;
+                      break;
+                    }
+                }
+
+              if(!success)
+                {
+                  std::string err = "Failed to modify phi1 jacobian entry.";
+                  throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                      OOMPH_EXCEPTION_LOCATION);
+                }
+            }
+        }
     }
 
     /// Get the Jacobian as a CRDoubleMatrix (the normal matrix format). If
@@ -196,6 +236,9 @@ namespace oomph
         {
           Problem::get_jacobian(residuals, jacobian);
         }
+
+      // maybe modify a phi_1 jacobian entry to remove singularity
+      maybe_twiddle_phi_1_jacobian_entry(jacobian);
     }
 
     /// Overload to set flag to avoid BEM interfering with get mass matrix
@@ -1043,6 +1086,11 @@ public:
     {
       return Phi_1_singularity_method == phi_1_singularity_handling::normalise;
     }
+
+    bool twiddle_phi_1_jacobian() const
+      {
+        return Phi_1_singularity_method == phi_1_singularity_handling::jacobian;
+      }
 
 
   private:

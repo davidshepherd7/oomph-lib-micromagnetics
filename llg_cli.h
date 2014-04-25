@@ -230,6 +230,10 @@ namespace oomph
         {
           llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::nothing;
         }
+      else if(phi1_singularity_method == "jacobian")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::jacobian;
+        }
       else
         {
           std::string err = "Unrecognised phi1 singularity handling method.";
