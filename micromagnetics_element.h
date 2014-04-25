@@ -52,8 +52,7 @@ namespace oomph
     MicromagEquations() : Use_fd_jacobian(false),
                           Residual_calculator_pt(0),
                           Phi_source_pt(0), Phi_1_source_pt(0),
-                          Magnetic_parameters_pt(0),
-                          Applied_field_pt(0)
+                          Magnetic_parameters_pt(0)
     {
       Ms_calc_pt = 0;
     }
@@ -222,30 +221,11 @@ namespace oomph
       else return (*Phi_1_source_pt)(t,x);
     }
 
-    // APPLIED FIELD
-    /// Access function: Pointer to applied field function
-    TimeSpaceToDoubleVectFctPt& applied_field_pt() {return Applied_field_pt;}
-
-    /// Access function: Pointer to applied field function. Const version
-    TimeSpaceToDoubleVectFctPt applied_field_pt() const {return Applied_field_pt;}
-
     /// Get the applied field at Eulerian position x.
     virtual Vector<double> get_applied_field(const double& t,
                                              const Vector<double> &x) const
     {
-      Vector<double> H_app(3,0.0);
-
-      if(Applied_field_pt != 0)
-        {
-          H_app = (*Applied_field_pt)(t, x);
-        }
-
-      for(unsigned j=0; j<3; j++)
-        {
-          H_app[j] *= magnetic_parameters_pt()->happ_normalisation_factor();
-        }
-
-      return H_app;
+      return magnetic_parameters_pt()->h_app(t, x);
     }
 
     /// Get the crystalline anisotropy field at Eulerian position x.

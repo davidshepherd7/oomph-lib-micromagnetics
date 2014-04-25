@@ -38,7 +38,6 @@ namespace oomph
     /// Default constructor - do nothing except nulling pointers.
     LLGProblem() :
       Compare_with_mallinson(false),
-      Applied_field_fct_pt(0),
       Previous_energies(5, 0.0)
     {
       Boundary_solution_pt = 0;
@@ -833,12 +832,6 @@ namespace oomph
       return this->ele_pt()->phi_1_index_micromag();
     }
 
-    /// \short Non-const access function for Applied_field_fct_pt.
-    HApp::HAppFctPt& applied_field_fct_pt() {return Applied_field_fct_pt;}
-
-    /// \short Const access function for Applied_field_fct_pt.
-    HApp::HAppFctPt applied_field_fct_pt() const {return Applied_field_fct_pt;}
-
     /// \short Set function for Magnetic_parameters_pt.
     void set_mag_parameters_pt(MagneticParameters* _magnetic_parameters_pt)
     {
@@ -993,9 +986,6 @@ namespace oomph
     /// to superlu for large dt.
     LinearSolver* My_linear_solver_pt;
     LinearSolver* Super_LU_solver_pt;
-
-    /// Pointer to the applied field.
-    HApp::HAppFctPt Applied_field_fct_pt;
 
     /// Magnetic parameters storage. ??ds should maybe go in meshes?
     MagneticParameters* Magnetic_parameters_pt;

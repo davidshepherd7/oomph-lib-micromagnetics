@@ -16,13 +16,11 @@ namespace oomph
   void LLGProblem::build(Vector<Mesh*>& bulk_mesh_pts)
   {
 #ifdef PARANOID
-    if((applied_field_fct_pt() == 0)
-       || (Residual_calculator_pt == 0))
+    if(Residual_calculator_pt == 0)
       {
         std::ostringstream error_msg;
         error_msg
           << "Must the following pointers to non-null values before calling build():\n"
-          << "applied_field_fct_pt() (= " << applied_field_fct_pt() << ")\n"
           << "Residual_calculator_pt (= " << Residual_calculator_pt << ")"
           << std::endl;
 
@@ -56,9 +54,6 @@ namespace oomph
 
             // Set values for magnetic parameters
             elem_pt->magnetic_parameters_pt() = mag_parameters_pt();
-
-            // Set pointer for an applied field
-            elem_pt->applied_field_pt() = applied_field_fct_pt();
 
             // Set the residual calculation function
             elem_pt->Residual_calculator_pt = Residual_calculator_pt;

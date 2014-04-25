@@ -131,7 +131,9 @@ namespace oomph
     virtual void assign_specific_parameters(MyProblem* problem_pt) const
     {
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
-      llg_pt->applied_field_fct_pt() = h_app_fct_pt;
+
+      // Set parameters
+      mag_params_pt->Applied_field_fct_pt = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(mag_params_pt);
 
 

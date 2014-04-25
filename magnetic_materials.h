@@ -4,6 +4,7 @@
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
 #include "./vector_helpers.h"
+#include "micromag_types.h"
 
 
 namespace oomph
@@ -107,6 +108,7 @@ namespace oomph
     Vector<double> Easy_axis;
     double Magnetostatic_debug_coeff;
     double Applied_field_debug_coeff;
+    HAppFctPt Applied_field_fct_pt;
 
     double normalised_hex() const {return Exchange_coeff;}
     double normalised_hk() const {return Anisotropy_coeff;}
@@ -114,6 +116,26 @@ namespace oomph
     double gilbert_damping() const {return Gilbert_damping;}
     Vector<double> easy_axis() const {return Easy_axis;}
     double happ_normalisation_factor() const {return Applied_field_debug_coeff;}
+
+    Vector<double> h_app(const double& time, const Vector<double>& x) const
+      {
+#ifdef PARANOID
+        if(Applied_field_fct_pt == 0)
+          {
+        std::string err = "Applied_field_fct_pt is null!";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+          OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+        Vector<double> h_app = Applied_field_fct_pt(time, x);
+
+        for(unsigned j=0; j<3; j++)
+          {
+            h_app[j] *= happ_normalisation_factor();
+          }
+
+        return h_app;
+      }
 
 
     // Get h_ca function and derivative
