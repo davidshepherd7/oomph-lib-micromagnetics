@@ -345,14 +345,7 @@ namespace oomph
     BoundaryElementHandler() :
       Bem_element_factory_fpt(0), Input_index(0), Output_index(0)
     {
-      // Boundary meshes do not "own" their nodes. However the Mesh
-      // destructor doesn't know that and so will try to delete the
-      // nodes. Hence we create the mesh using new so that the mesh
-      // destructor is never called.
-
-      // The proper way to do this would probably be to create a new
-      // MeshDontDeleteNodes class which changes the destructor. Or maybe
-      // add a flag to mesh?
+      // Make an empty mesh for the bem nodes and elements
       Bem_mesh_pt = new Mesh;
 
       // By default evaluate BEM integrals analytically.
@@ -377,12 +370,10 @@ namespace oomph
     /// Destructor
     ~BoundaryElementHandler()
     {
-      // Delete the elements of the Bem mesh (but not the nodes).
-      for(unsigned e=0, ne=Bem_mesh_pt->nelement(); e < ne; e++)
-        {
-          delete Bem_mesh_pt->element_pt(e);
-        }
-      Bem_mesh_pt = 0;
+      // Delete bem mesh, but first clear out the node pointers so that it
+      // doesn't delete them (the node pointers belong to the bulk mesh).
+      Bem_mesh_pt->flush_node_storage();
+      delete Bem_mesh_pt; Bem_mesh_pt = 0;
 
       // Delete the integrator
       delete Integration_scheme_pt;
