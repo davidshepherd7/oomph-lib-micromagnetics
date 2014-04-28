@@ -544,14 +544,16 @@ namespace oomph
           Mesh* qmesh_pt = llg_mesh_factory("sq_mumag4", refinement_level,
                                             time_stepper_pt,
                                             1, nnode1d);
-          //??ds memory leak, fix? Can't delete this mesh or nodes will
-          //go...
 
           // Convert to tet mesh
           TetMeshBase* tmesh_pt = new TetMeshBase;
           ElementFactoryFctPt factory_fpt =
             MeshCreationHelpers::new_element<TMicromagElement<3, 2> >;
           MeshCreationHelpers::brick2tet(*qmesh_pt, factory_fpt, *tmesh_pt);
+
+          // delete the Q mesh without deleting the nodes/elements
+          qmesh_pt->flush_element_and_node_storage();
+          delete qmesh_pt; qmesh_pt = 0;
 
           mesh_pt = tmesh_pt;
         }
