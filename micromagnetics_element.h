@@ -7,6 +7,10 @@
 #include "../../src/generic/nodes.h"
 #include "../../src/generic/Qelements.h"
 #include "../../src/generic/Telements.h"
+#include "../../src/generic/refineable_elements.h"
+#include "../../src/generic/refineable_brick_element.h"
+#include "../../src/generic/refineable_quad_element.h"
+#include "../../src/generic/refineable_line_element.h"
 #include "../../src/generic/oomph_utilities.h"
 #include "../../src/generic/oomph_definitions.h"
 #include "../../src/generic/interpolator.h"
@@ -486,12 +490,76 @@ namespace oomph
 
   }; // End of MicromagEquations class
 
+/// Class to handle ??ds
+  class RefineableMicromagEquations : public virtual RefineableElement,
+                                      public virtual MicromagEquations
+
+  {
+  public:
+    /// Constructor
+    RefineableMicromagEquations() {}
+
+    /// Virtual destructor
+    virtual ~RefineableMicromagEquations() {}
+
+    /// \short Number of continuously interpolated values. Note: We assume
+    /// that they are located at the beginning of the value_pt Vector!
+    /// (Used for interpolation to son elements, for integrity check
+    /// and post-processing -- we can only expect
+    /// the continously interpolated values to be continous across
+    /// element boundaries).
+    unsigned ncont_interpolated_values() const
+    {
+      const unsigned dummy = 0;
+      return required_nvalue(dummy);
+    }
+
+    /// \short Get all continously interpolated function values at previous
+    /// timestep in this element as a Vector. (t=0: present; t>0: prev. timestep)
+    /// Note: Vector sets is own size to ensure that
+    /// that this function can be used in black-box fashion
+    void get_interpolated_values(const unsigned& t,
+                                 const Vector<double>&s,
+                                 Vector<double>& values)
+    {
+      GeneralInterpolator intp(this, s);
+      values = intp.value();
+    }
+
+    ///  Further build: Copy some pointers from father element
+    void further_build()
+    {
+      RefineableMicromagEquations* fele_pt =
+        checked_dynamic_cast<RefineableMicromagEquations*>(father_element_pt());
+
+      this->Use_fd_jacobian = fele_pt->Use_fd_jacobian;
+      this->Residual_calculator_pt = fele_pt->Residual_calculator_pt;
+      this->Magnetic_parameters_pt = fele_pt->Magnetic_parameters_pt;
+      this->Phi_source_pt = fele_pt->phi_source_pt();
+      this->Phi_1_source_pt = fele_pt->phi_1_source_pt();
+    }
+
+
+  private:
+    /// Broken copy constructor
+    RefineableMicromagEquations(const RefineableMicromagEquations& dummy)
+    {BrokenCopy::broken_copy("RefineableMicromagEquations");}
+
+    /// Broken assignment operator
+    void operator=(const RefineableMicromagEquations& dummy)
+    {BrokenCopy::broken_assign("RefineableMicromagEquations");}
+
+  };
+
+
 
   //====================================================================
   /// A class combining the micromag equations with a QElement geometry
   //====================================================================
   template < unsigned DIM, unsigned NNODE_1D>
-  class QMicromagElement : public QElement<DIM,NNODE_1D>, public MicromagEquations
+  class QMicromagElement : public virtual RefineableQElement<DIM>,
+                           public virtual QElement<DIM,NNODE_1D>,
+                           public virtual RefineableMicromagEquations
   {
   public:
     /// Constructor
@@ -512,6 +580,20 @@ namespace oomph
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {MicromagEquations::output(outfile,n_plot);}
+
+    /// \short Perform additional hanging node procedures for variables
+    /// that are not interpolated by all nodes. We don't have any of these
+    /// in LLG so do nothing.
+    void further_setup_hanging_nodes() {}
+
+    /// \short Rebuild the element, e.g. set internal values in line with
+    /// those of the sons that have now merged.
+    void rebuild_from_sons(Mesh* &mesh_pt)
+    {
+      // ??ds don't think I need anything here... don't really know
+      throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+    }
 
   }; // end of QMicromagElement class declaration
 
@@ -542,6 +624,11 @@ namespace oomph
     /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
     void output(std::ostream &outfile, const unsigned &n_plot=5)
     {MicromagEquations::output(outfile,n_plot);}
+
+    /// \short Perform additional hanging node procedures for variables
+    /// that are not interpolated by all nodes. We don't have any of these
+    /// in LLG so do nothing.
+    void further_setup_hanging_nodes() {}
 
   }; // end of TMicromagElement class declaration
 

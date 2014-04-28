@@ -282,7 +282,7 @@ namespace oomph
   /// Simpler cubic 3D Brick mesh class.
   //=======================================================================
   template <class ELEMENT>
-  class SimplerCubicMesh : public virtual BrickMeshBase
+  class SimplerCubicMesh : public virtual RefineableBrickMesh<ELEMENT>
   {
 
   public:
@@ -302,6 +302,9 @@ namespace oomph
 
       //Call the generic build function
       build_mesh(time_stepper_pt);
+
+      // Setup octree forest (for refinement)
+      this->setup_octree_forest();
     }
 
     /// \short Constructor: Pass the number of elements in the x,y and z directions
@@ -319,6 +322,9 @@ namespace oomph
 
       //Call the generic mesh constructor
       build_mesh(time_stepper_pt);
+
+      // Setup octree forest (for refinement)
+      this->setup_octree_forest();
     }
 
 
@@ -388,14 +394,14 @@ namespace oomph
       // on the oomph-lib website.
 
       // Check vs boundaries
-      if(fp_equal(x[0], Xmin)) {add_boundary_node(4, node_pt);}
-      else if(fp_equal(x[0], Xmax)) {add_boundary_node(2, node_pt);}
+      if(fp_equal(x[0], Xmin)) {this->add_boundary_node(4, node_pt);}
+      else if(fp_equal(x[0], Xmax)) {this->add_boundary_node(2, node_pt);}
 
-      if(fp_equal(x[1], Ymin)) {add_boundary_node(1, node_pt);}
-      else if(fp_equal(x[1], Ymax)) {add_boundary_node(3, node_pt);}
+      if(fp_equal(x[1], Ymin)) {this->add_boundary_node(1, node_pt);}
+      else if(fp_equal(x[1], Ymax)) {this->add_boundary_node(3, node_pt);}
 
-      if(fp_equal(x[2], Zmin)) {add_boundary_node(0, node_pt);}
-      else if(fp_equal(x[2], Zmax)) {add_boundary_node(5, node_pt);}
+      if(fp_equal(x[2], Zmin)) {this->add_boundary_node(0, node_pt);}
+      else if(fp_equal(x[2], Zmax)) {this->add_boundary_node(5, node_pt);}
     }
 
   };
@@ -408,7 +414,7 @@ namespace oomph
       MeshChecker::assert_geometric_element<QElementGeometricBase,ELEMENT>(3);
 
       //Set the number of boundaries
-      set_nboundary(6);
+      this->set_nboundary(6);
 
       // Get nnode1d using a dummy element
       unsigned nn1d;
@@ -434,8 +440,8 @@ namespace oomph
 
       // Initialise sizes of class variable vectors so that we aren't
       // reallocating inside the loop.
-      Element_pt.reserve(Nx*Ny*Nz);
-      Node_pt.reserve((1 + (nn1d-1)*Nx)*(1 + (nn1d-1)*Ny)*(1 + (nn1d-1)*Nz));
+      this->Element_pt.reserve(Nx*Ny*Nz);
+      this->Node_pt.reserve((1 + (nn1d-1)*Nx)*(1 + (nn1d-1)*Ny)*(1 + (nn1d-1)*Nz));
 
 
       // Loop over x, y, z directions creating elements and nodes
@@ -500,26 +506,26 @@ namespace oomph
 
                   // Store the new element and node pointers in the class
                   // variables
-                  Element_pt.push_back(ele_pt);
-                  Node_pt.insert(Node_pt.end(), new_nodes.begin(),
+                  this->Element_pt.push_back(ele_pt);
+                  this->Node_pt.insert(this->Node_pt.end(), new_nodes.begin(),
                                  new_nodes.end());
                 }
             }
         }
 
       // Now loop over the nodes and set up boundary info based on location
-      for(unsigned i=0; i<Node_pt.size(); i++)
+      for(unsigned i=0; i<this->Node_pt.size(); i++)
         {
-          add_to_boundaries(Node_pt[i]);
+          this->add_to_boundaries(this->Node_pt[i]);
         }
 
       // Setup lookup scheme that establishes which elements are located
       // on the mesh boundaries
-      setup_boundary_element_info();
+      this->setup_boundary_element_info();
 
 
 #ifdef PARANOID
-      if(Element_pt.size() != Nx*Ny*Nz)
+      if(this->Element_pt.size() != Nx*Ny*Nz)
         {
           std::string err = "Wrong Element_pt size.";
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
@@ -564,7 +570,7 @@ namespace oomph
       //       }
       //   }
 
-      if(Node_pt.size() != (1 + (nn1d-1)*Nx)*(1 + (nn1d-1)*Ny)*(1 + (nn1d-1)*Nz))
+      if(this->Node_pt.size() != (1 + (nn1d-1)*Nx)*(1 + (nn1d-1)*Ny)*(1 + (nn1d-1)*Nz))
         {
           std::string err = "Wrong Node_pt size";
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
