@@ -523,10 +523,21 @@ namespace oomph
         {
           unsigned this_nx = refinement_level;
 
-          mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
+          RefineableMeshBase* ref_mesh_pt
+            = new SimplerCubicMesh<QMicromagElement<3, 2> >
             (5*this_nx, std::ceil(1.25*this_nx), 1, 500, 125, 3, time_stepper_pt);
 
-          mesh_pt->setup_boundary_element_info();
+          // Create an "error" vector such that only one element is refined
+          double max_error =  ref_mesh_pt->max_permitted_error();
+          Vector<double> fake_errors(ref_mesh_pt->nelement(), max_error/2);
+          fake_errors[0] = max_error*2;
+
+          // And adapt it
+          ref_mesh_pt->adapt(fake_errors);
+
+          ref_mesh_pt->setup_boundary_element_info();
+
+          mesh_pt = ref_mesh_pt;
         }
       else if(mesh_name == "sqt_mumag4" && nnode1d == 2)
         {
