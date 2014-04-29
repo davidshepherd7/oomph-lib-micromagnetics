@@ -538,7 +538,6 @@ namespace oomph
     BemLookup Lookup_pinned_output;
 
 
-
   private:
 
     /// Pointer to storage for the list of nodal angles/solid angles.

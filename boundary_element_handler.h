@@ -8,7 +8,7 @@
 
   * some way to check if the mesh has changed?
 
-  * Fix for non-rectangle boundaries!!
+  * Automate for non-rectangle, non-smooth boundaries!
 
   */
 
@@ -372,6 +372,9 @@ namespace oomph
       Hmatrix_dof2idx_mapping_pt = 0;
     }
 
+    // Pure virtual functions
+    // ============================================================
+
     virtual void get_bem_values(DoubleVector &bem_output_values) const=0;
     virtual void get_bem_values(const Vector<DoubleVector*> &bem_output_values) const=0;
     virtual void get_bem_values_and_copy_into_values() const=0;
@@ -381,9 +384,18 @@ namespace oomph
     /// oomph-lib code.
     virtual void build_bem_matrix()=0;
 
+    // Real functions
+    // ============================================================
+
     /// Construct BEM elements on boundaries listed in Bem_boundaries and add
     /// to the Bem_mesh.
     void build_bem_mesh();
+
+    void maybe_write_h_matrix_data(const std::string& outdir) const;
+
+
+    // Access functions
+    // ============================================================
 
     /// \short Get the (nodal) dimension of the boundary meshes
     unsigned dimension()
@@ -392,9 +404,6 @@ namespace oomph
       // must have the same nodal dimension.
       return Bem_boundaries[0].second->node_pt(0)->ndim();
     }
-
-    void maybe_write_h_matrix_data(const std::string& outdir) const;
-
 
     const Mesh* bem_mesh_pt() const {return Bem_mesh_pt;}
 
@@ -416,7 +425,6 @@ namespace oomph
 
     /// \short Const access function for Output_index.
     unsigned output_index() const {return Output_index;}
-
 
     /// \short Pointer to a lookup between output value global equation
     /// numbers and node numbers within mesh.
@@ -462,6 +470,9 @@ namespace oomph
       return Bem_element_factory_fpt(fe_pt, face);
     }
 
+    // Variables
+    // ============================================================
+
     BEMElementFactoryFctPt Bem_element_factory_fpt;
 
     /// \short Integrate BEM integrals by adaptive numerical integration or
@@ -486,8 +497,6 @@ namespace oomph
     /// Debugging flag: don't add sharp corner solid angles to bem matrix.
     bool Debug_disable_corner_contributions;
 
-
-
     /// \short Lookup between output value's global equation numbers and
     /// node numbers within mesh.
     AddedMainNumberingLookup Output_lookup;
@@ -495,7 +504,6 @@ namespace oomph
     /// \short Lookup between input value's global equation numbers and
     /// node numbers within mesh.
     AddedMainNumberingLookup Input_lookup;
-
 
   protected:
 

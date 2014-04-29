@@ -6,9 +6,65 @@
 namespace oomph
 {
 
-//==========================================================================
+  // Base class functions
+  // ============================================================
+
+  /// Build the mesh of bem elements.
+  void BoundaryElementHandlerBase::build_bem_mesh()
+  {
+    build_bem_mesh_helper(Bem_boundaries, Bem_element_factory_fpt,
+                          integration_scheme_pt(), *Bem_mesh_pt);
+  }
+
+  /// If the boundary matrix is distributed then get its
+  /// distribution. Otherwise return a "non-distributed distribution" with
+  /// the correct number of rows.
+  void BoundaryElementHandlerBase::
+  get_bm_distribution(LinearAlgebraDistribution& dist) const
+  {
+    // Try to cast to a distributed object.
+    const DistributableLinearAlgebraObject* dist_bm_pt =
+      dynamic_cast<const DistributableLinearAlgebraObject* >
+      (bem_matrix_pt());
+
+    // If it's not distributable (i.e. if the cast failed) then make a dummy
+    // one, otherwise copy the distribution.
+    if(dist_bm_pt == 0)
+      {
+        dist.build(MPI_Helpers::communicator_pt(),
+                   bem_matrix_pt()->nrow(), false);
+      }
+    else
+      {
+        dist.build(dist_bm_pt->distribution_pt());
+      }
+  }
+
+
+  /// If we are using H-matrix for bem then write out some data on it.
+  void BoundaryElementHandlerBase::maybe_write_h_matrix_data(const std::string& outdir) const
+  {
+#ifdef OOMPH_HAS_HLIB
+    if(Hierarchical_bem)
+      {
+        // Fun with types...
+        SumOfMatrices* sum_pt = checked_dynamic_cast<SumOfMatrices*>(Bem_matrix_pt);
+        HMatrix* hm_pt = checked_dynamic_cast<HMatrix*>(sum_pt->main_matrix_pt());
+
+        // Dump the data
+        std::string rank_filename = outdir + "/h_matrix_rank.ps";
+        outputrank_supermatrix(hm_pt->supermatrix_pt(), rank_filename.c_str());
+      }
+    // Else do nothing
+#endif
+    // Do nothing if we don't have hlib
+  }
+
+
+  // Non-pinned bem handler functions
+  // ============================================================
+
 /// Get the fully assembled boundary matrix in dense storage.
-//==========================================================================
 void BoundaryElementHandler::build_bem_matrix()
 {
 
@@ -160,46 +216,9 @@ void BoundaryElementHandler::build_hierarchical_bem_matrix()
 #endif
 }
 
-//======================================================================
-/// Build the mesh of bem elements.
-//======================================================================
-void BoundaryElementHandlerBase::build_bem_mesh()
-{
-  build_bem_mesh_helper(Bem_boundaries, Bem_element_factory_fpt,
-                        integration_scheme_pt(), *Bem_mesh_pt);
-}
 
-// =================================================================
-/// If the boundary matrix is distributed then get its
-/// distribution. Otherwise return a "non-distributed distribution" with
-/// the correct number of rows.
-// =================================================================
-void BoundaryElementHandlerBase::
-get_bm_distribution(LinearAlgebraDistribution& dist) const
-{
-  // Try to cast to a distributed object.
-  const DistributableLinearAlgebraObject* dist_bm_pt =
-    dynamic_cast<const DistributableLinearAlgebraObject* >
-    (bem_matrix_pt());
-
-  // If it's not distributable (i.e. if the cast failed) then make a dummy
-  // one, otherwise copy the distribution.
-  if(dist_bm_pt == 0)
-    {
-      dist.build(MPI_Helpers::communicator_pt(),
-                 bem_matrix_pt()->nrow(), false);
-    }
-  else
-    {
-      dist.build(dist_bm_pt->distribution_pt());
-    }
-}
-
-
-// =================================================================
 /// Put the output values from the boundary element method into a
 /// DoubleVector.
-// =================================================================
 void BoundaryElementHandler::
 get_bem_values(DoubleVector &bem_output_values) const
 {
@@ -223,10 +242,8 @@ get_bem_values(DoubleVector &bem_output_values) const
 
 }
 
-// =================================================================
 /// Put the output values from the boundary element method into vectors
 /// (one per boundary). Not exceptionally efficient....
-// =================================================================
 void BoundaryElementHandler::
 get_bem_values(const Vector<DoubleVector*> &bem_output_values) const
 {
@@ -299,23 +316,5 @@ void BoundaryElementHandler::get_bem_values_and_copy_into_values() const
       }
   }
 
-/// If we are using H-matrix for bem then write out some data on it.
-void BoundaryElementHandlerBase::maybe_write_h_matrix_data(const std::string& outdir) const
-{
-#ifdef OOMPH_HAS_HLIB
-  if(Hierarchical_bem)
-    {
-      // Fun with types...
-      SumOfMatrices* sum_pt = checked_dynamic_cast<SumOfMatrices*>(Bem_matrix_pt);
-      HMatrix* hm_pt = checked_dynamic_cast<HMatrix*>(sum_pt->main_matrix_pt());
-
-      // Dump the data
-      std::string rank_filename = outdir + "/h_matrix_rank.ps";
-      outputrank_supermatrix(hm_pt->supermatrix_pt(), rank_filename.c_str());
-    }
-  // Else do nothing
-#endif
-  // Do nothing if we don't have hlib
-}
 
 } // End of oomph namespace
