@@ -906,7 +906,7 @@ namespace oomph
       return checked_dynamic_cast<MicromagEquations*>(mesh_pt(0)->element_pt(0));
     }
 
-    BoundaryElementHandler* bem_handler_pt() const
+    BoundaryElementHandlerBase* bem_handler_pt() const
     {
 #ifdef PARANOID
       if(Bem_handler_pt == 0)
@@ -1057,7 +1057,7 @@ namespace oomph
 public:
 
     /// \short Pointer to class for handling BEM
-    BoundaryElementHandler* Bem_handler_pt;
+    BoundaryElementHandlerBase* Bem_handler_pt;
 
     /// \short Pointer to function for creating the flux mesh (can't be
     /// hard coded becuase it depends on the element type, which depends on

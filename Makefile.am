@@ -14,6 +14,7 @@ sources = micromagnetics_element.cc \
 	variable_order_quadrature.cc \
 	generic_poisson_problem.cc \
 	boundary_element_handler.cc \
+	pinned_boundary_element_handler.cc \
 	template_free_poisson_flux.cc \
 	residual_calculator.cc \
 	oomph_factories.cc \
@@ -48,6 +49,7 @@ headers = array_interpolator.h \
 	variable_order_quadrature.h \
 	vector_helpers.h \
 	boundary_element_handler.h \
+	pinned_boundary_element_handler.h \
 	prettyprint98.hpp \
 	residual_calculator.h \
 	poisson_test_problem.h \

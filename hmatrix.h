@@ -183,8 +183,22 @@ public:
 
   /// Build the hmatrix for a given mesh and bem handler (needed for
   /// equation lookup at the moment...).
-  void build(const Mesh& mesh, const BoundaryElementHandler* bem_handler_pt)
+  void build(const Mesh& mesh,
+             const BoundaryElementHandlerBase* _bem_handler_pt)
   {
+    // Only works with normal bem handler (for now?)
+    const BoundaryElementHandler* bem_handler_pt =
+      dynamic_cast<const BoundaryElementHandler*>(_bem_handler_pt);
+
+#ifdef PARANOID
+    if(bem_handler_pt == 0)
+      {
+        std::string err = "Not implemented for bem handlers other than BoundaryElementHandler";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
 #ifdef PARANOID
     {
       FiniteElement* fe_pt = mesh.finite_element_pt(0);

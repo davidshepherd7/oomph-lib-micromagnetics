@@ -76,8 +76,8 @@ namespace oomph
 
       specify_command_line_flag("-phi1-singularity-method",
                                 &phi1_singularity_method,
-                                "Set to either 'pin', 'normalise' or 'nothing', default 'pin'.");
-      phi1_singularity_method = "pin";
+                                "Set to either 'pin_bulk', 'pin', 'normalise' or 'nothing', default 'pin_bulk'.");
+      phi1_singularity_method = "pin_bulk";
 
       specify_command_line_flag("-relax-m", &relax_m,
                                 "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");

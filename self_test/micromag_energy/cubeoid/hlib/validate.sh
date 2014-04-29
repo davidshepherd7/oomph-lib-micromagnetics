@@ -17,7 +17,7 @@ new_clean_dir $CUBEOID_DIR
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -ms-method decoupled-no-extrapolation -dt 0.001 -tmax 0.001 -mesh ut_cubeoid  -ref 4 \
     -solver superlu -h-app zero -initial-m xz -mag-params 'simple-llg' \
-    -hlib-bem 1 \
+    -hlib-bem 1 -phi1-singularity-method pin_bulk \
      -outdir $CUBEOID_DIR 2>&1 > $CUBEOID_DIR/stdout
 
 # Extract + check energies

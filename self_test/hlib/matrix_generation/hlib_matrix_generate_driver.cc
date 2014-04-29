@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
 
   // Build the handler. Disable corner angles in bem matrix, to make
   // matrices easier to compare.
-  BoundaryElementHandler Bem_handler;
-  Factories::bem_handler_factory(Bem_handler, args.mesh_pts,
-                                 0, false, true);
+  BoundaryElementHandlerBase* Bem_handler_pt =
+    Factories::bem_handler_factory(args.mesh_pts,
+                                   0, false, true, true);
 
 
   // Some useful pointers
-  DoubleMatrixBase* old_bem_matrix_pt = Bem_handler.bem_matrix_pt();
-  const Mesh* surface_mesh_pt = Bem_handler.bem_mesh_pt();
+  DoubleMatrixBase* old_bem_matrix_pt = Bem_handler_pt->bem_matrix_pt();
+  const Mesh* surface_mesh_pt = Bem_handler_pt->bem_mesh_pt();
 
 
   // Test the differences in the matrices by multiplying them each with a
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
   // Use the bem mesh to make a h-matrix
   HMatrix hmat;
-  hmat.build(*surface_mesh_pt, &Bem_handler);
+  hmat.build(*surface_mesh_pt, Bem_handler_pt);
 
   // Dump rank info
   outputrank_supermatrix(hmat.supermatrix_pt(), "rank.ps");
@@ -115,6 +115,12 @@ int main(int argc, char *argv[])
       return 2;
     }
 
+
+  // Clean up
+  // ============================================================
+
+  // Created bem handler with new so need to delete it
+  delete Bem_handler_pt; Bem_handler_pt = 0;
 
   return 0;
 }

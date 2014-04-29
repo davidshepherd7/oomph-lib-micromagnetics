@@ -243,7 +243,9 @@ int main(int argc, char *argv[])
             (args_pt->mesh_pts, 0,
              mm_args_pt->hlib_bem,
              false,
-             mm_args_pt->numerical_int_bem);
+             mm_args_pt->numerical_int_bem,
+             llg_pt->pin_any_phi_1()
+             );
         }
       else
         {

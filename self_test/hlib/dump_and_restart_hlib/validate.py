@@ -64,6 +64,7 @@ def main():
         '-hlib-bem' : [1],
         '-solver' : ['som-gmres'],
         '-prec' : ['som-main-ilu-0'],
+        '-phi1-singularity-method' : 'pin_bulk',
         }
 
     # Where it's going to end up
