@@ -484,37 +484,6 @@ namespace oomph
 
     }
 
-    /// \short Get the (nodal) dimension of the boundary meshes
-    unsigned dimension()
-    {
-      // Use mesh pointer of the first boundary presumably all boundaries
-      // must have the same nodal dimension.
-      return Bem_boundaries[0].second->node_pt(0)->ndim();
-    }
-
-    /// If we are using H-matrix for bem then write out some data on
-    /// it. Otherwise do nothing. (Wrapped up in a function so that
-    /// llg_problem.h doesn't need to know anything about hlib, HMatrix
-    /// etc.)
-    void maybe_write_h_matrix_data(const std::string& outdir) const;
-
-
-    // /// Get the (internal, bem only) output lookup's equation number of a
-    // /// node.
-    // unsigned output_equation_number(const Node* node_pt) const
-    // {
-    //   unsigned g_eqn = node_pt->eqn_number(output_index());
-    //   return output_lookup_pt()->main_to_added(g_eqn);
-    // }
-
-    // /// Get the (internal, bem only) input lookup's equation number of a
-    // /// node.
-    // unsigned input_equation_number(const Node* node_pt) const
-    // {
-    //   unsigned g_eqn = node_pt->eqn_number(input_index());
-    //   return input_lookup_pt()->main_to_added(g_eqn);
-    // }
-
 
     // Access functions:
     // ============================================================
@@ -552,10 +521,6 @@ namespace oomph
 
     /// Construct a hierarchical boundary matrix in Bem_matrix using hlib.
     void build_hierarchical_bem_matrix();
-
-    /// \short Get the mapping between the global equation numbering and
-    /// the boundary equation numbering.
-    void create_global_boundary_equation_number_maps(); //??ds does this even exist?
 
     /// Inaccessible copy constructor
     PinnedBoundaryElementHandler(const PinnedBoundaryElementHandler& dummy)

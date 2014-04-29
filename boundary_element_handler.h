@@ -692,10 +692,6 @@ namespace oomph
     /// Construct a hierarchical boundary matrix in Bem_matrix using hlib.
     void build_hierarchical_bem_matrix();
 
-    /// \short Get the mapping between the global equation numbering and
-    /// the boundary equation numbering.
-    void create_global_boundary_equation_number_maps();
-
     /// Inaccessible copy constructor
     BoundaryElementHandler(const BoundaryElementHandler& dummy)
     {BrokenCopy::broken_copy("BoundaryElementHandler");}
