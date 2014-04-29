@@ -110,27 +110,45 @@ namespace oomph
             // Add to global mesh
             this->add_sub_mesh(Flux_mesh_pt);
 
-
-            if(pin_a_phi_1())
+            // Pin a phi_1 value which isn't involved in the boundary element
+            // method (we have to pin something to avoid a singular Jacobian,
+            // pinning boundary nodes makes BEM much more complex)
+            if(pin_a_bulk_phi_1())
               {
-                // Pin a phi_1 value which isn't involved in the boundary element
-                // method (we have to pin something to avoid a singular Jacobian,
-                // can't be a boundary node or things will go wrong with BEM).
 #ifdef OOMPH_HAS_MPI
                 // In parallel we need to make sure that only one node is
                 // pinned in total
                 std::string err = "Not implemented!";
                 throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                                     OOMPH_CURRENT_FUNCTION);
+                // Check that processor id is 0, if so then pin as for
+                // serial, otherwise do nothing? ??ds Could be problems
+                // when nodes duplicated? Not sure how all that works
 
-                // Check that processor id is 0, if so then pin as for serial,
-                // otherwise do nothing.
-
-                //??ds Could be problems when nodes duplicated? Not sure how
-                //all that works yet?
 #else
                 Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]
-                  ->get_some_non_boundary_node();
+                 ->get_some_non_boundary_node();
+                pinned_phi_1_node_pt->pin(phi_1_index());
+                pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
+#endif
+              }
+
+            // Sometimes we don't have any non-boundary nodes (this doesn't
+            // work with Hlib yet).
+            if(pin_any_phi_1())
+              {
+#ifdef OOMPH_HAS_MPI
+                // In parallel we need to make sure that only one node is
+                // pinned in total
+                std::string err = "Not implemented!";
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+                // Check that processor id is 0, if so then pin as for
+                // serial, otherwise do nothing? ??ds Could be problems
+                // when nodes duplicated? Not sure how all that works
+#else
+                // Just grab the first node and pin it
+                Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->node_pt(0);
                 pinned_phi_1_node_pt->pin(phi_1_index());
                 pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
 #endif

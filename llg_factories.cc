@@ -523,6 +523,15 @@ namespace oomph
         {
           unsigned this_nx = refinement_level;
 
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 1, 500, 125, 3, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
+      else if(mesh_name == "sq_mumag4+" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
           RefineableMeshBase* ref_mesh_pt
             = new SimplerCubicMesh<QMicromagElement<3, 2> >
             (5*this_nx, std::ceil(1.25*this_nx), 1, 500, 125, 3, time_stepper_pt);

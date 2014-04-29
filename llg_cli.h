@@ -220,7 +220,11 @@ namespace oomph
       // Assign phi1 singularity handler method
       if(phi1_singularity_method == "pin")
         {
-          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin;
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin_any;
+        }
+      else if(phi1_singularity_method == "pin_bulk")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin_bulk;
         }
       else if(phi1_singularity_method == "normalise")
         {

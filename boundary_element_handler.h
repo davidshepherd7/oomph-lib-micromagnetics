@@ -108,6 +108,77 @@ namespace oomph
 
   }
 
+
+  class BemLookup
+  {
+  public:
+    /// Constructor
+    BemLookup() {}
+
+    /// Virtual destructor
+    virtual ~BemLookup() {}
+
+    void build(const Mesh* mesh_pt,
+               bool use_pinned, bool use_unpinned, const unsigned& dof_index)
+    {
+      Dof_index = dof_index;
+
+      lookup.clear();
+
+      const unsigned n_node = mesh_pt->nnode();
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+          bool is_pinned = nd_pt->is_pinned(dof_index);
+          if((use_pinned && is_pinned) || (use_unpinned && !is_pinned))
+            {
+              lookup.push_back(nd_pt);
+            }
+        }
+    }
+
+    unsigned node_to_bemeq(const Node* node_pt) const
+    {
+      std::vector<const Node*>::const_iterator it
+        = std::find(lookup.begin(), lookup.end(), node_pt);
+#ifdef PARANOID
+      if(it == lookup.end())
+        {
+          std::string err = "Node not found";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return (it - lookup.begin());
+    }
+
+    const Node* bemeq_to_node(const unsigned& bemeq) const
+    {
+      return lookup[bemeq];
+    }
+
+    unsigned bemeq_to_global(const unsigned& bemeq) const
+    {
+      return bemeq_to_node(bemeq)->eqn_number(Dof_index);
+    }
+
+    unsigned size() const {return lookup.size();}
+
+    Vector<const Node*> lookup;
+
+    unsigned Dof_index;
+
+  private:
+    /// Broken copy constructor
+    BemLookup(const BemLookup& dummy)
+    {BrokenCopy::broken_copy("BemLookup");}
+
+    /// Broken assignment operator
+    void operator=(const BemLookup& dummy)
+    {BrokenCopy::broken_assign("BemLookup");}
+
+  };
+
   // =================================================================
   /// Simple class to store a list of angles associated with nodes of the
   /// boundary element mesh for assembly of the matrix.
@@ -128,7 +199,6 @@ namespace oomph
     void set_up_rectangular_corners(const Mesh* const mesh_pt)
     {
       unsigned nnode = mesh_pt->nnode();
-      Corners.assign(nnode,0.0);
 
 #ifdef PARANOID
       if(nnode == 0)
@@ -174,7 +244,7 @@ namespace oomph
           // assume it is a smooth point and so the angle is 0.5
           if(boundaries_pt->size() == dim)
             {
-              Corners[nd] = corner_angle;
+              Corners.insert(std::make_pair(nd_pt, corner_angle));
 
               std::cout << "Think I've found a corner at [";
               for(unsigned j=0; j<nd_pt->ndim(); j++)
@@ -186,19 +256,19 @@ namespace oomph
           else if((dim == 3) && (boundaries_pt->size() == (dim - 1)))
             {
               // in 3d we also have edges with solid angle pi/4pi
-              Corners[nd] = 0.25;
+              Corners.insert(std::make_pair(nd_pt, 0.25));
 
               std::cout << "Think I've found an edge at [";
               for(unsigned j=0; j<nd_pt->ndim(); j++)
                 {
                   std::cout << nd_pt->x(j) << ", ";
                 }
-              std::cout << "] I gave it the angle " << Corners[nd] << std::endl;
+              std::cout << "] I gave it the angle " << 0.25 << std::endl;
             }
           else
             {
               // Angle = pi/2pi or 2pi/4pi in 2 or 3 dimensions respectively.
-              Corners[nd] = 0.5;
+              Corners.insert(std::make_pair(nd_pt, 0.5));
             }
         }
 
@@ -207,12 +277,22 @@ namespace oomph
     /// Set up corners for a smooth mesh (i.e. no sharp corners).
     void set_up_smooth_mesh(const Mesh* const mesh_pt)
     {
-      Corners.assign(mesh_pt->nnode(),0.5);
+      const unsigned n_node = mesh_pt->nnode();
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+          Corners.insert(std::make_pair(nd_pt, 0.5));
+        }
     }
 
     /// Add the contribution due to corners to the diagonal of the boundary
     /// matrix.
-    void add_corner_contributions(DoubleMatrixBase& bem_matrix) const
+    void add_corner_contributions(DoubleMatrixBase& bem_matrix,
+                                  DoubleMatrixBase& pinned_bem_matrix,
+                                  const BemLookup& lookup_unpinned_input,
+                                  const BemLookup& lookup_pinned_input,
+                                  const BemLookup& lookup_unpinned_output,
+                                  const unsigned& dof_index) const
     {
       // Assume that the bem matrix is a densedoublematrix so that we can write
       // to it with operator().
@@ -221,6 +301,8 @@ namespace oomph
       DenseDoubleMatrix* bem_matrix_pt =
         checked_dynamic_cast<DenseDoubleMatrix*>(&bem_matrix);
 
+      DenseDoubleMatrix* pinned_bem_matrix_pt =
+        checked_dynamic_cast<DenseDoubleMatrix*>(&pinned_bem_matrix);
 
 #ifdef PARANOID
       // Check that the list has been set up
@@ -234,27 +316,61 @@ namespace oomph
         }
 
       // Check that it is the correct size
-      if(bem_matrix_pt->nrow() != Corners.size())
+      if((bem_matrix_pt->nrow() != Corners.size())
+         || (pinned_bem_matrix_pt->nrow() != Corners.size()))
         {
           std::ostringstream error_msg;
-          error_msg << "Corners list is the wrong size for the matrix.";
+          error_msg << "Corners list is the wrong size for the matrix rows";
+          error_msg << "\n bem matrix nrow: " << bem_matrix_pt->nrow();
+          error_msg << "\n pinned bem matrix nrow: " << pinned_bem_matrix_pt->nrow();
+          error_msg << "\ncorners list size " << Corners.size();
+          error_msg << "\n should all be the same";
           throw OomphLibError(error_msg.str(),
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+      if(bem_matrix_pt->ncol() + pinned_bem_matrix_pt->ncol()
+         != Corners.size())
+        {
+          std::string err = "Corners list is the wrong size for the matrix cols";
+          err += "ncols are " + to_string(bem_matrix_pt->ncol())
+            + " and " + to_string(pinned_bem_matrix_pt->ncol());
+          err += "corner list size is " + to_string(Corners.size());
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
 #endif
 
-      // Add the fractional angles
-      for(unsigned nd=0, s=Corners.size(); nd<s; nd++)
+      // Add the fractional angles to the appropriate places
+      std::map<const Node*, double>::const_iterator it;
+      for(it = Corners.begin(); it != Corners.end(); ++it)
         {
-          bem_matrix_pt->operator()(nd,nd) += Corners[nd];
+          if(it->first->is_pinned(dof_index))
+            {
+              const unsigned n = lookup_pinned_input.node_to_bemeq(it->first);
+              const unsigned m = lookup_unpinned_output.node_to_bemeq(it->first);
+              bem_matrix_pt->operator()(m, n) += it->second;
+              //??ds wrong?
+            }
+          else
+            {
+              const unsigned n = lookup_unpinned_input.node_to_bemeq(it->first);
+              const unsigned m = lookup_unpinned_output.node_to_bemeq(it->first);
+              bem_matrix_pt->operator()(m, n) += it->second;
+              //??ds wrong?
+            }
         }
     }
 
     /// Create diagonal matrix just containing the corner contributions.
     void make_diagonal_corner_matrix(CRDoubleMatrix& corner_matrix) const
     {
-      VectorOps::diag_cr_matrix(corner_matrix, Corners);
+      Vector<double> vcorners(Corners.size());
+
+      throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+
+      VectorOps::diag_cr_matrix(corner_matrix, vcorners);
     }
 
 
@@ -263,29 +379,34 @@ namespace oomph
      const Vector<std::pair<Vector<double>, double> >* const input_data_pt)
     {
       // Initialise to default values
-      Corners.assign(mesh_pt->nnode(),0.5);
+      const unsigned n_node = mesh_pt->nnode();
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+          Corners.insert(std::make_pair(nd_pt, 0.5));
+        }
 
       // Look through input list of corner locations + angles, find the
       // corners and add to our list.
       for(unsigned i=0; i<input_data_pt->size(); i++)
         {
-          unsigned bem_node_number =
+          Node* nd_pt =
             find_node_by_position_in_mesh(mesh_pt, (*input_data_pt)[i].first);
-          Corners[bem_node_number] = (*input_data_pt)[i].second;
+          Corners[nd_pt] = (*input_data_pt)[i].second;
         }
     }
 
     /// Check if the list has been set up.
     bool is_set_up() const
     {
-      // If there is a non-zero length vector something has been set up.
+      // If there is a non-zero length map something has been set up.
       return (Corners.size() != 0);
     }
 
   private:
 
-    unsigned find_node_by_position_in_mesh(const Mesh* mesh_pt,
-                                           const Vector<double> &x) const
+    Node* find_node_by_position_in_mesh(const Mesh* mesh_pt,
+                                        const Vector<double> &x) const
     {
       for(unsigned nd=0, nnode=mesh_pt->nnode(); nd<nnode; nd++)
         {
@@ -296,7 +417,7 @@ namespace oomph
 
           if( VectorOps::numerically_close(x, node_x) )
             {
-              return nd;
+              return nd_pt;
             }
         }
 
@@ -310,7 +431,8 @@ namespace oomph
 
 
     /// Storage for the location and angle of the corners.
-    Vector<double> Corners;
+    // Vector<double> Corners;
+    std::map<const Node*, double> Corners;
 
     /// Inaccessible copy constructor
     CornerAngleList(const CornerAngleList& dummy)
@@ -363,6 +485,7 @@ namespace oomph
 
       // Null pointers
       Bem_matrix_pt = 0;
+      Pinned_bem_matrix_pt = 0;
       Integration_scheme_pt = 0;
       Hmatrix_dof2idx_mapping_pt = 0;
     }
@@ -379,9 +502,9 @@ namespace oomph
       delete Integration_scheme_pt;
       Integration_scheme_pt = 0;
 
-      // Delete the matrix
-      delete Bem_matrix_pt;
-      Bem_matrix_pt = 0;
+      // Delete the matrices
+      delete Bem_matrix_pt; Bem_matrix_pt = 0;
+      delete Pinned_bem_matrix_pt; Pinned_bem_matrix_pt = 0;
 
       delete Hmatrix_dof2idx_mapping_pt;
       Hmatrix_dof2idx_mapping_pt = 0;
@@ -438,8 +561,15 @@ namespace oomph
 #endif
 
       // Construct the lookup schemes
-      Input_lookup.build(bem_mesh_pt(), input_index());
-      Output_lookup.build(bem_mesh_pt(), output_index());
+      Lookup_all_nodes.build(bem_mesh_pt(), true, true, 0);
+      Lookup_unpinned_input.build(bem_mesh_pt(), false, true, input_index());
+      Lookup_unpinned_output.build(bem_mesh_pt(), false, true, output_index());
+
+      Lookup_pinned_input.build(bem_mesh_pt(), true, false, input_index());
+      Lookup_pinned_output.build(bem_mesh_pt(), true, false, output_index());
+
+      Input_lookup.build(Lookup_unpinned_input.lookup, Lookup_unpinned_input.Dof_index);
+      Output_lookup.build(Lookup_unpinned_output.lookup, Lookup_unpinned_output.Dof_index);
 
       // Set up the corner angle data
       if(input_corner_data.size() > 0)
@@ -493,21 +623,21 @@ namespace oomph
     void maybe_write_h_matrix_data(const std::string& outdir) const;
 
 
-    /// Get the (internal, bem only) output lookup's equation number of a
-    /// node.
-    unsigned output_equation_number(const Node* node_pt) const
-    {
-      unsigned g_eqn = node_pt->eqn_number(output_index());
-      return output_lookup_pt()->main_to_added(g_eqn);
-    }
+    // /// Get the (internal, bem only) output lookup's equation number of a
+    // /// node.
+    // unsigned output_equation_number(const Node* node_pt) const
+    // {
+    //   unsigned g_eqn = node_pt->eqn_number(output_index());
+    //   return output_lookup_pt()->main_to_added(g_eqn);
+    // }
 
-    /// Get the (internal, bem only) input lookup's equation number of a
-    /// node.
-    unsigned input_equation_number(const Node* node_pt) const
-    {
-      unsigned g_eqn = node_pt->eqn_number(input_index());
-      return input_lookup_pt()->main_to_added(g_eqn);
-    }
+    // /// Get the (internal, bem only) input lookup's equation number of a
+    // /// node.
+    // unsigned input_equation_number(const Node* node_pt) const
+    // {
+    //   unsigned g_eqn = node_pt->eqn_number(input_index());
+    //   return input_lookup_pt()->main_to_added(g_eqn);
+    // }
 
 
     // Access functions:
@@ -612,7 +742,14 @@ namespace oomph
     /// Debugging flag: don't add sharp corner solid angles to bem matrix.
     bool Debug_disable_corner_contributions;
 
-  private:
+
+// Lookup schemes
+    // ============================================================
+    BemLookup Lookup_all_nodes;
+    BemLookup Lookup_unpinned_input;
+    BemLookup Lookup_unpinned_output;
+    BemLookup Lookup_pinned_input;
+    BemLookup Lookup_pinned_output;
 
     /// \short Lookup between output value's global equation numbers and
     /// node numbers within mesh.
@@ -621,6 +758,9 @@ namespace oomph
     /// \short Lookup between input value's global equation numbers and
     /// node numbers within mesh.
     AddedMainNumberingLookup Input_lookup;
+
+
+  private:
 
     /// \short Storage for the adaptive integration scheme to be used.
     Integral* Integration_scheme_pt;
@@ -641,6 +781,9 @@ namespace oomph
 
     /// Matrix to store the relationship between phi_1 and phi on the boundary
     DoubleMatrixBase* Bem_matrix_pt;
+
+    /// Same but for pinned values
+    DoubleMatrixBase* Pinned_bem_matrix_pt;
 
     /// Construct BEM elements on boundaries listed in Bem_boundaries and add
     /// to the Bem_mesh.

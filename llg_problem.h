@@ -25,7 +25,8 @@ namespace oomph
   /// Enumeration for how to handle phi_1's singularity
   namespace phi_1_singularity_handling
   {
-    enum phi_1_singularity_handling {pin, normalise, nothing, jacobian};
+    enum phi_1_singularity_handling {pin_any, pin_bulk, normalise,
+                                     nothing, jacobian};
   }
 
   // ============================================================
@@ -60,7 +61,7 @@ namespace oomph
       Bem_handler_pt = 0;
       Flux_mesh_pt = 0;
       Flux_mesh_factory_pt = 0;
-      Phi_1_singularity_method = phi_1_singularity_handling::pin;
+      Phi_1_singularity_method = phi_1_singularity_handling::pin_any;
 
       Relax_magnetisation = false;
 
@@ -1076,10 +1077,16 @@ public:
     phi_1_singularity_handling::phi_1_singularity_handling Phi_1_singularity_method;
 
     /// Should we pin a phi1 value
-    bool pin_a_phi_1() const
+    bool pin_a_bulk_phi_1() const
       {
-        return Phi_1_singularity_method == phi_1_singularity_handling::pin;
+        return Phi_1_singularity_method == phi_1_singularity_handling::pin_bulk;
       }
+
+    /// Should we pin a phi1 value (with boundary values allowed)
+    bool pin_any_phi_1() const
+    {
+      return Phi_1_singularity_method == phi_1_singularity_handling::pin_any;
+    }
 
     /// Should we normalise phi1 values
     bool normalise_phi_1() const
