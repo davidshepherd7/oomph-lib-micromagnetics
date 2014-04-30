@@ -532,6 +532,11 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
         script = generate_run_script(mpi_command, binary, arglist, outdir)
         script_file.write(script)
 
+    # Make executable (for easier re-running) (octal notation 7 =
+    # read/write/execute, first digit is owner, second is group, third is
+    # others, 5 = read/execute)
+    os.chmod(pjoin(outdir, "run_script"), 0o775)
+
     # Run with specified args, and in the driver folder. Put output (stdout
     # and stderr) into a file.
     with open(pjoin(outdir, "stdout"), 'w') as stdout_file:
