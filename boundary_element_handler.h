@@ -673,15 +673,6 @@ namespace oomph
 
   private:
 
-    /// \short Lookup between output value's global equation numbers and
-    /// node numbers within mesh.
-    AddedMainNumberingLookup Output_lookup;
-
-    /// \short Lookup between input value's global equation numbers and
-    /// node numbers within mesh.
-    AddedMainNumberingLookup Input_lookup;
-
-
     /// Pointer to storage for the list of nodal angles/solid angles.
     CornerAngleList Corner_list;
 
