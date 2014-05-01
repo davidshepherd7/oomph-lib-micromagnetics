@@ -67,6 +67,13 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> nanowire(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[2] = -0.3;
+    return h;
+  }
+
   inline Vector<double> minus_x(const double& t, const Vector<double> &x)
   {
     Vector<double> h(3, 0.0);

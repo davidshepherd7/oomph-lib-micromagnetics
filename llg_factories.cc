@@ -753,6 +753,10 @@ namespace oomph
         {
           return &HApp::minus_z;
         }
+      else if(field_name == "nanowire")
+        {
+          return &HApp::nanowire;
+        }
       else if(field_name == "minus_x")
         {
           return &HApp::minus_x;
