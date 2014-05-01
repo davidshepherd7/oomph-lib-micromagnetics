@@ -576,6 +576,14 @@ namespace oomph
              "./meshes/sphere." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+      else if(mesh_name == "ut_cylinder" && nnode1d == 2)
+        {
+          mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
+            ("./meshes/cylinder3_10." + to_string(refinement_level) + ".node",
+             "./meshes/cylinder3_10." + to_string(refinement_level) + ".ele",
+             "./meshes/cylinder3_10." + to_string(refinement_level) + ".face",
+             time_stepper_pt);
+        }
       else
         {
           throw OomphLibError("Unrecognised mesh name " + mesh_name,
