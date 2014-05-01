@@ -46,8 +46,7 @@ def pvd_missing_closing_lines(pvd_filename):
         lines = pvdfile.readlines()
 
     # Check the final lines
-    return (lines[-2].strip(' \t\n\r') != "</Collection>"
-            or lines[-1].strip(' \t\n\r') != "</VTKFile>")
+    return not any(["</VTKFile>" in l for l in lines])
 
 
 def main():
