@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
              mm_args_pt->hlib_bem,
              false,
              mm_args_pt->numerical_int_bem,
-             llg_pt->pin_any_phi_1()
+             llg_pt->pin_any_phi_1() || llg_pt->pin_a_boundary_phi_1()
              );
         }
       else

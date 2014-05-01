@@ -135,7 +135,7 @@ namespace oomph
 
             // Sometimes we don't have any non-boundary nodes (this doesn't
             // work with Hlib yet).
-            if(pin_any_phi_1())
+            else if(pin_any_phi_1())
               {
 #ifdef OOMPH_HAS_MPI
                 // In parallel we need to make sure that only one node is
@@ -149,6 +149,24 @@ namespace oomph
 #else
                 // Just grab the first node and pin it
                 Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->node_pt(0);
+                pinned_phi_1_node_pt->pin(phi_1_index());
+                pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
+#endif
+              }
+            else if(pin_a_boundary_phi_1())
+              {
+#ifdef OOMPH_HAS_MPI
+                // In parallel we need to make sure that only one node is
+                // pinned in total
+                std::string err = "Not implemented!";
+                throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                                    OOMPH_CURRENT_FUNCTION);
+                // Check that processor id is 0, if so then pin as for
+                // serial, otherwise do nothing? ??ds Could be problems
+                // when nodes duplicated? Not sure how all that works
+#else
+                // Just grab the first node and pin it
+                Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->boundary_node_pt(0,0);
                 pinned_phi_1_node_pt->pin(phi_1_index());
                 pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);
 #endif

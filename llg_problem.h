@@ -25,8 +25,10 @@ namespace oomph
   /// Enumeration for how to handle phi_1's singularity
   namespace phi_1_singularity_handling
   {
-    enum phi_1_singularity_handling {pin_any, pin_bulk, normalise,
-                                     nothing, jacobian};
+    enum phi_1_singularity_handling {pin_any, pin_bulk, pin_boundary,
+                                     normalise,
+                                     nothing,
+                                     jacobian};
   }
 
   // ============================================================
@@ -1081,6 +1083,12 @@ public:
       {
         return Phi_1_singularity_method == phi_1_singularity_handling::pin_bulk;
       }
+
+    /// Should we pin a boundary phi1 value (e.g. for testing that this works)
+    bool pin_a_boundary_phi_1() const
+    {
+      return Phi_1_singularity_method == phi_1_singularity_handling::pin_boundary;
+    }
 
     /// Should we pin a phi1 value (with boundary values allowed)
     bool pin_any_phi_1() const

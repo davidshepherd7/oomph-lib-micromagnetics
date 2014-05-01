@@ -165,3 +165,42 @@ def check_solns_match_key(datasets, key_to_compare_over, **kwargs):
         ok.append(check_mean_m_matches(p[0], p[1], **kwargs))
 
     return all(ok)
+
+
+def check_dicts_match(data, exact, keys, **kwargs):
+    """Given two dicts and a list of keys check that those values match.
+
+    ??ds actually temp hack: use the second value of the array given by
+    data['k']...
+    """
+
+    def fpcheck(v1, v2, rtol=1e-8, zero=1e-14):
+        """Check two floats are the same: if both small then true, otherwise check
+        relative difference.
+        """
+        if v1 < zero and v2 < zero:
+            return True
+        else:
+            return (abs((v1 - v2)/v1) < rtol)
+
+
+    dataid = _default_label(data)
+
+    ok = []
+    for k in keys:
+        try:
+            a = fpcheck(exact[k], data[k][1], **kwargs)
+            ok.append(a)
+
+            # Print messages
+            if a:
+                mm.okprint(k, "comparison ok in", dataid)
+            else:
+                mm.badprint("Failed", k, "comparison with values of",
+                            data[k][1], exact[k], "in", dataid)
+
+        except KeyError:
+            mm.badprint("Failed: missing key", k, "in", dataid)
+            ok.append(False)
+
+    return all(ok)

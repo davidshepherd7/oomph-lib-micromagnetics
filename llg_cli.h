@@ -76,7 +76,7 @@ namespace oomph
 
       specify_command_line_flag("-phi1-singularity-method",
                                 &phi1_singularity_method,
-                                "Set to either 'pin_bulk', 'pin', 'normalise' or 'nothing', default 'pin_bulk'.");
+                                "Set to either 'pin_bulk', 'pin', 'pin_boundary', 'normalise' or 'nothing', default 'pin_bulk'.");
       phi1_singularity_method = "pin_bulk";
 
       specify_command_line_flag("-relax-m", &relax_m,
@@ -225,6 +225,10 @@ namespace oomph
       else if(phi1_singularity_method == "pin_bulk")
         {
           llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin_bulk;
+        }
+      else if(phi1_singularity_method == "pin_boundary")
+        {
+          llg_pt->Phi_1_singularity_method = phi_1_singularity_handling::pin_boundary;
         }
       else if(phi1_singularity_method == "normalise")
         {
