@@ -16,6 +16,7 @@ import argparse
 import os
 import os.path
 import glob
+import fileinput
 
 import itertools as it
 import functools as ft
@@ -36,18 +37,18 @@ def convert_to_vtu(data):
     return
 
 
-def pvd_missing_closing_lines(pvd_filename):
-    """Check that the final two lines of a pvd file are </Collection> and
-    </VTKFile>, as required for reading by paraview (but often not written
-    if simulation crashes).
+def pvd_strip_closing_lines(pvd_filename):
+    """Remove  </Collection> and </VTKFile> from pvd file.
     """
-    # Read the .pvd
-    with open(pvd_filename, 'r') as pvdfile:
-        lines = pvdfile.readlines()
 
-    # Check the final lines
-    return not any(["</VTKFile>" in l for l in lines])
+    # Get lines
+    for line in fileinput.input(pvd_filename, inplace=True):
 
+        # Replace with blank,  fileinput redirects stdout to a file, so
+        # just need to print the line.
+        print(line.replace("</Collection>", "").replace("</VTKFile>", ""))
+
+    return
 
 def main():
     """Convert files from .dat (tecplot) to .vtu (paraview
@@ -123,11 +124,14 @@ def main():
         # while paraview runs), using shell=True is evil but I can't be
         # bothered figuring out python pipes...
 
-    # Check that soln.pvd has the final two lines, if not then add them.
-    if pvd_missing_closing_lines(pjoin(args.dir, 'soln.pvd')):
-        with open(pjoin(args.dir, 'soln.pvd'), 'a') as pvdfile:
-            pvdfile.write('</Collection>')
-            pvdfile.write('</VTKFile>')
+    # Strip any instances of the closing lines from pvd file then add them
+    # at the end. We need to strip them first so that we can run this
+    # script while the driver is running then again later on (when more
+    # stuff has been written to the pvd file by the driver).
+    pvd_strip_closing_lines(pjoin(args.dir, 'soln.pvd'))
+    with open(pjoin(args.dir, 'soln.pvd'), 'a') as pvdfile:
+        pvdfile.write('</Collection>')
+        pvdfile.write('</VTKFile>')
 
     # Run paraview
     print("Done, launching paraview.")
