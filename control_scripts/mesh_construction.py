@@ -184,7 +184,7 @@ def main():
     # ============================================================
 
     triangle_poly_files = ['square.poly', 'circle.poly']
-    tetgen_poly_files = ['cubeoid.poly', 'cylinder3_10.poly']
+    tetgen_poly_files = ['cubeoid.poly', 'cylinder25_40.poly']
 
     for poly_file in triangle_poly_files:
         generate_triangle_meshes(os.path.join(args.mesh_dir, poly_file))

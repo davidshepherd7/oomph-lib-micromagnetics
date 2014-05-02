@@ -579,9 +579,9 @@ namespace oomph
       else if(mesh_name == "ut_cylinder" && nnode1d == 2)
         {
           mesh_pt = new TetgenMesh<TMicromagElement<3, 2> >
-            ("./meshes/cylinder3_10." + to_string(refinement_level) + ".node",
-             "./meshes/cylinder3_10." + to_string(refinement_level) + ".ele",
-             "./meshes/cylinder3_10." + to_string(refinement_level) + ".face",
+            ("./meshes/cylinder25_40." + to_string(refinement_level) + ".node",
+             "./meshes/cylinder25_40." + to_string(refinement_level) + ".ele",
+             "./meshes/cylinder25_40." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
       else
