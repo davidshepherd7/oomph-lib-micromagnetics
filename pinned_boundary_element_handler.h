@@ -205,9 +205,7 @@ namespace oomph
     /// Add the contribution due to corners to the diagonal of the boundary
     /// matrix.
     void add_corner_contributions(DoubleMatrixBase& bem_matrix,
-                                  DoubleMatrixBase& pinned_bem_matrix,
                                   const BemLookup& lookup_unpinned_input,
-                                  const BemLookup& lookup_pinned_input,
                                   const BemLookup& lookup_unpinned_output,
                                   const unsigned& dof_index) const
     {
@@ -217,9 +215,6 @@ namespace oomph
       //??ds fix for h matrix
       DenseDoubleMatrix* bem_matrix_pt =
         checked_dynamic_cast<DenseDoubleMatrix*>(&bem_matrix);
-
-      DenseDoubleMatrix* pinned_bem_matrix_pt =
-        checked_dynamic_cast<DenseDoubleMatrix*>(&pinned_bem_matrix);
 
 #ifdef PARANOID
       // Check that the list has been set up
@@ -233,25 +228,22 @@ namespace oomph
         }
 
       // Check that it is the correct size
-      if((bem_matrix_pt->nrow() != Corners.size())
-         || (pinned_bem_matrix_pt->nrow() != Corners.size()))
+      if(bem_matrix_pt->nrow() != Corners.size())
         {
           std::ostringstream error_msg;
           error_msg << "Corners list is the wrong size for the matrix rows";
           error_msg << "\n bem matrix nrow: " << bem_matrix_pt->nrow();
-          error_msg << "\n pinned bem matrix nrow: " << pinned_bem_matrix_pt->nrow();
           error_msg << "\ncorners list size " << Corners.size();
           error_msg << "\n should all be the same";
           throw OomphLibError(error_msg.str(),
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
-      if(bem_matrix_pt->ncol() + pinned_bem_matrix_pt->ncol()
-         != Corners.size())
+      if((bem_matrix_pt->ncol() != Corners.size())
+         && (bem_matrix_pt->ncol() != Corners.size() -1))
         {
           std::string err = "Corners list is the wrong size for the matrix cols";
-          err += "ncols are " + to_string(bem_matrix_pt->ncol())
-            + " and " + to_string(pinned_bem_matrix_pt->ncol());
+          err += "ncols are " + to_string(bem_matrix_pt->ncol());
           err += "corner list size is " + to_string(Corners.size());
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
@@ -260,21 +252,26 @@ namespace oomph
 
       // Add the fractional angles to the appropriate places
       std::map<const Node*, double>::const_iterator it;
+      unsigned pinned_correction = 0;
       for(it = Corners.begin(); it != Corners.end(); ++it)
         {
-          if(it->first->is_pinned(dof_index))
-            {
-              const unsigned n = lookup_pinned_input.node_to_bemeq(it->first);
-              const unsigned m = lookup_unpinned_output.node_to_bemeq(it->first);
-              bem_matrix_pt->operator()(m, n) += it->second;
-              //??ds wrong?
-            }
-          else
+          if(!it->first->is_pinned(dof_index))
             {
               const unsigned n = lookup_unpinned_input.node_to_bemeq(it->first);
               const unsigned m = lookup_unpinned_output.node_to_bemeq(it->first);
               bem_matrix_pt->operator()(m, n) += it->second;
-              //??ds wrong?
+            }
+          else
+            {
+              pinned_correction++;
+#ifdef PARANOID
+              if(pinned_correction > 1)
+                {
+                  std::string err = "Too many pinned phi1 values!";
+                  throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                      OOMPH_EXCEPTION_LOCATION);
+                }
+#endif
             }
         }
     }
@@ -374,17 +371,10 @@ namespace oomph
   public:
 
     /// Default constructor
-    PinnedBoundaryElementHandler()
-    {
-      Pinned_bem_matrix_pt = 0;
-    }
+    PinnedBoundaryElementHandler() {}
 
     /// Destructor
-    ~PinnedBoundaryElementHandler()
-    {
-      // Delete the extra matrix
-      delete Pinned_bem_matrix_pt; Pinned_bem_matrix_pt = 0;
-    }
+    ~PinnedBoundaryElementHandler() {}
 
     /// Put the (output) values of the bem into a vector.
     void get_bem_values(DoubleVector &bem_output_values) const;
@@ -511,9 +501,6 @@ namespace oomph
 
     /// Pointer to storage for the list of nodal angles/solid angles.
     PinnedBoundaryCornerAngleList Corner_list;
-
-    /// Same but for pinned values
-    DoubleMatrixBase* Pinned_bem_matrix_pt;
 
     /// Construct a dense boundary matrix in Bem_matrix using pure
     /// oomph-lib code.

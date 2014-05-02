@@ -45,34 +45,46 @@ void PinnedBoundaryElementHandler::build_bem_matrix()
                           OOMPH_CURRENT_FUNCTION);
     }
 
-
-  if(Pinned_bem_matrix_pt != 0)
+  // Check that max one node in the mesh has pinned phi1 and that its value
+  // is zero. Implementing pinned phi1 in general is much more complex
+  // because we would need to calculate the contributions to phi from these
+  // pinned values separately from the unpinned ones -> two bem matrices.
+  const unsigned n_node = bem_mesh_pt()->nnode();
+  unsigned npinned = 0;
+  for(unsigned nd=0; nd<n_node; nd++)
     {
-      std::string err = "Already have a pinned bem matrix, delete before rebuilding.";
-      throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
-                          OOMPH_CURRENT_FUNCTION);
+      Node* nd_pt = bem_mesh_pt()->node_pt(nd);
+      if(nd_pt->is_pinned(input_index()))
+        {
+          npinned++;
+          if(npinned > 1)
+            {
+              std::string err = "Can only handle a single pinned value.";
+              throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+          if(nd_pt->value(input_index() != 0.0))
+            {
+              std::string err = "Can only have phi1 values pinned to zero";
+              throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+        }
     }
 #endif
 
   // Create the matrices, store pointers to dense matrices (class variables
   // are DoubleMatrixBase*).
   DenseDoubleMatrix* d_bem_matrix_pt = new DenseDoubleMatrix;
-  DenseDoubleMatrix* d_pinned_bem_matrix_pt = new DenseDoubleMatrix;
   Bem_matrix_pt = d_bem_matrix_pt;
-  Pinned_bem_matrix_pt = d_pinned_bem_matrix_pt;
-
-
 
   // Get the number of nodes in the boundary problem
   unsigned long nunpinned = Lookup_unpinned_input.size();
-  unsigned long npinned = Lookup_pinned_input.size();
   unsigned long nunpinned_output = Lookup_unpinned_output.size();
 
   // Initialise and resize the boundary matrices
   d_bem_matrix_pt->resize(nunpinned_output, nunpinned);
   d_bem_matrix_pt->initialise(0.0);
-  d_pinned_bem_matrix_pt->resize(nunpinned_output, npinned);
-  d_pinned_bem_matrix_pt->initialise(0.0);
 
   // Loop over all elements in the BEM mesh
   unsigned long n_bem_element = bem_mesh_pt()->nelement();
@@ -99,16 +111,11 @@ void PinnedBoundaryElementHandler::build_bem_matrix()
       // Loop over the nodes in this element with unpinned input dof (to copy results into final matrix)
       for(unsigned l=0;l<n_element_node;l++)
         {
+          if(elem_pt->node_pt(l)->is_pinned(input_index())) continue;
+
           // Get the bem equation number from the node pt.
           unsigned l_bemeq = 0;
-          if(elem_pt->node_pt(l)->is_pinned(input_index()))
-            {
-              l_bemeq = Lookup_pinned_input.node_to_bemeq(elem_pt->node_pt(l));
-            }
-          else
-            {
-              l_bemeq = Lookup_unpinned_input.node_to_bemeq(elem_pt->node_pt(l));
-            }
+          l_bemeq = Lookup_unpinned_input.node_to_bemeq(elem_pt->node_pt(l));
 
           // Loop over all nodes in the mesh with unpinned output dof and
           // add contributions from this element.
@@ -126,32 +133,20 @@ void PinnedBoundaryElementHandler::build_bem_matrix()
               //??ds I think elemental bem matrices are currently actually
               //the transpose, so we needed to switch them back here. Fix this?
 
-              // If input is pinned then it goes in the pinned matrix
-              if(elem_pt->node_pt(l)->is_pinned(input_index()))
-                {
-                  d_pinned_bem_matrix_pt->operator()(s_bemeq, l_bemeq)
-                    += element_boundary_matrix(l,s_nd);
-                }
-              else
-                {
-                  d_bem_matrix_pt->operator()(s_bemeq, l_bemeq)
-                    += element_boundary_matrix(l,s_nd);
-                }
+              d_bem_matrix_pt->operator()(s_bemeq, l_bemeq)
+                += element_boundary_matrix(l,s_nd);
 
             }
         }
     }
 
-//??ds now create pinned matrix: loop over pinned inputs then unpinned outputs
 
   if(!Debug_disable_corner_contributions)
     {
       // Lindholm formula/adaptive integral does not contain the solid angle
       // contribution so add it now.
       corner_list_pt()->add_corner_contributions(*d_bem_matrix_pt,
-                                                 *d_pinned_bem_matrix_pt,
                                                  Lookup_unpinned_input,
-                                                 Lookup_pinned_input,
                                                  Lookup_unpinned_output,
                                                  input_index());
     }
@@ -184,7 +179,6 @@ get_bem_values(DoubleVector &bem_output_values) const
   // Build output vector
   bem_output_values.build(dist);
 
-
   // Extract unpinned phis (inputs)
   unsigned nunpinned = Lookup_unpinned_input.size();
   DoubleVector input_values(LinearAlgebraDistribution(dist.communicator_pt(),
@@ -197,25 +191,6 @@ get_bem_values(DoubleVector &bem_output_values) const
 
   // Matrix multiply to get output values
   bem_matrix_pt()->multiply(input_values, bem_output_values);
-
-
-  // Extract pinned phis
-  const unsigned npinned = Lookup_pinned_input.size();
-  DoubleVector pinned_input(LinearAlgebraDistribution(dist.communicator_pt(),
-                                                      npinned, false));
-  for(unsigned i=0; i<npinned; i++)
-    {
-      pinned_input[i] = Lookup_pinned_input.bemeq_to_node(i)
-        ->value(input_index());
-    }
-
-  //multiply to get contribution from pinned input values
-  DoubleVector bem_output_values_from_pinned_input(dist);
-  Pinned_bem_matrix_pt->multiply(pinned_input,
-                                 bem_output_values_from_pinned_input);
-
-  // add the two to get the final result
-  bem_output_values += bem_output_values_from_pinned_input;
 }
 
 // =================================================================

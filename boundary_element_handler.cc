@@ -110,8 +110,7 @@ void BoundaryElementHandler::build_bem_matrix()
   // Get the number of nodes in the boundary problem
   unsigned long n_node = bem_mesh_pt()->nnode();
 
-  // Initialise and resize the boundary matrix ??ds this wastes some time
-  // copying over old values. Write a new resize function?
+  // Initialise and resize the boundary matrix
   dense_matrix_pt->resize(n_node, n_node);
   dense_matrix_pt->initialise(0.0);
 
