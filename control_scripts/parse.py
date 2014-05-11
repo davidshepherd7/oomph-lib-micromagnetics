@@ -31,7 +31,6 @@ import oomphpy.micromagnetics as mm
 import itertools as it
 import functools as ft
 import scipy as sp
-import matplotlib.pyplot as plt
 
 
 # Various helper functions
@@ -85,6 +84,8 @@ def plot_vs_thing(xthing, data, plot_values,
         operations_on_values = [None]*len(plot_values)
 
     # Construct axes
+    import matplotlib.pyplot as plt # local import needed so we can vary
+                                    # the backend dynamically
     fig, axesmatrix = plt.subplots(len(plot_values), 1, sharex = True,
                                    squeeze=False)
     axesarray = list(axesmatrix.flat)
@@ -349,8 +350,8 @@ def main():
     parser.add_argument('--save-to-dir',
                         help='Save figures as pdfs into the specified folder.')
 
-    parser.add_argument('--dont-show', action='store_true',
-                        help="Don't show the plots (useful over ssh).")
+    parser.add_argument('--ssh-mode', action='store_true',
+                        help="Vastly speed up operation over ssh: don't show plots and use Agg backend.")
 
     parser.add_argument('--save-data-to-dir', action='store_true',
                         help='Also copy trace and info files to the directory.')
@@ -369,6 +370,15 @@ def main():
 
     if args.split is None:
         args.split = ['mesh', 'h-app', 'initial-m', 'mag-params', 'scale']
+
+    # If we are in ssh mode then don't use a plotting type which requires
+    # X11. This has to happen before we import pyplot.
+    if args.ssh_mode:
+        import matplotlib
+        matplotlib.use('Agg')
+
+    import matplotlib.pyplot as plt
+
 
 
     # Main function
@@ -618,10 +628,8 @@ def main():
                 cp(pjoin(full_d, "trace"), pjoin(d, "trace"))
                 cp(pjoin(full_d, "info"), pjoin(d, "info"))
 
-                # ??ds remove common elements of path?
-
     # Show all plots if requested
-    if not args.dont_show:
+    if not args.ssh_mode:
         plt.show()
 
 

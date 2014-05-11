@@ -15,7 +15,6 @@ import ast
 import itertools as it
 import functools as ft
 import scipy as sp
-import matplotlib.pyplot as plt
 
 # Imports for specific functions
 from functools import partial as par
