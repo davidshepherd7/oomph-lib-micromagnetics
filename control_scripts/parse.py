@@ -614,6 +614,9 @@ def main():
 
         for fig in figs:
 
+            # Make sure folder exists
+            os.makedirs(args.save_to_dir, exist_ok=True)
+
             name = safefilename(name_fig(fig))
 
             fig.savefig(pjoin(args.save_to_dir, name + ".pdf"),
@@ -623,8 +626,11 @@ def main():
 
         if args.save_data_to_dir:
             for data in all_results:
-                full_d = os.path.dirname(data["-outdir"])
+                full_d = data["-outdir"]
+
                 d = pjoin(args.save_to_dir, os.path.split(full_d)[-1])
+                os.makedirs(d, exist_ok=True)
+
                 cp(pjoin(full_d, "trace"), pjoin(d, "trace"))
                 cp(pjoin(full_d, "info"), pjoin(d, "info"))
 
