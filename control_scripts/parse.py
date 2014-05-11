@@ -348,6 +348,9 @@ def main():
     parser.add_argument('--save-to-dir',
                         help='Save figures as pdfs into the specified folder.')
 
+    parser.add_argument('--dont-show', action='store_true',
+                        help="Don't show the plots (useful over ssh).")
+
     args = parser.parse_args()
 
     # Handle some defaults like this instead of inside argparse otherwise
@@ -605,10 +608,9 @@ def main():
                         transparent=True)
 
 
-    # Show all plots
-    plt.show()
-
-
+    # Show all plots if requested
+    if not args.dont_show:
+        plt.show()
 
 
     return 0
