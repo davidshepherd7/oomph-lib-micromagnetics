@@ -20,6 +20,7 @@ import ast
 from functools import partial as par
 from os.path import join as pjoin
 from pprint import pprint
+from shutil import copy as cp
 
 # Make sure *this* versions oomphpy is in the path (before any other
 # versions in other places)
@@ -351,6 +352,9 @@ def main():
     parser.add_argument('--dont-show', action='store_true',
                         help="Don't show the plots (useful over ssh).")
 
+    parser.add_argument('--save-data-to-dir', action='store_true',
+                        help='Also copy trace and info files to the directory.')
+
     args = parser.parse_args()
 
     # Handle some defaults like this instead of inside argparse otherwise
@@ -607,6 +611,14 @@ def main():
                         pad_inches=0.0,
                         transparent=True)
 
+        if args.save_data_to_dir:
+            for data in all_results:
+                full_d = os.path.dirname(data["-outdir"])
+                d = pjoin(args.save_to_dir, os.path.split(full_d)[-1])
+                cp(pjoin(full_d, "trace"), pjoin(d, "trace"))
+                cp(pjoin(full_d, "info"), pjoin(d, "info"))
+
+                # ??ds remove common elements of path?
 
     # Show all plots if requested
     if not args.dont_show:
