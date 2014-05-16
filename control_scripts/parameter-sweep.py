@@ -54,7 +54,7 @@ def main():
     parser.add_argument('--debug-mode', action='store_true',
                         help = 'Enable debugging mode (run in serial).')
 
-    parser.add_argument('--parameters', '-p', dest='parameters',
+    parser.add_argument('--parameters', '-p', action='append',
                         help = 'Do a standard parameter sweep with the specified parameter set.')
 
     parser.add_argument('--clean', action='store_true',
@@ -73,90 +73,92 @@ def main():
         args.ncores = mp.cpu_count()
 
 
-    # Find the parameter set
-    # ============================================================
+    for parameter_set in args.parameters:
 
-    search_root = pjoin(mm.rootdir(), "etc", "parameter_sets")
+        # Find the parameter set
+        # ============================================================
 
-    # Recurively find files named args.parameters in search_root
-    parameter_files = []
-    for root, dirs, files in os.walk(search_root, followlinks=True):
-        for f in files:
-            if f == args.parameters:
-                parameter_files.append(pjoin(root, f))
-    parameter_file = parameter_files[0]
+        search_root = pjoin(mm.rootdir(), "etc", "parameter_sets")
 
-
-    # Error check number of files
-    if len(parameter_files) > 1:
-        sys.stderr.write("Found multiple files named "+ args.parameters + ": "
-                         + " ".join(parameter_files) + " .\n")
-        return 5
-    elif len(parameter_files) == 0:
-        sys.stderr.write("Couldn't find a file named "+ args.parameters
-                          + " in " + search_root + " .\n")
-        return 6
+        # Recurively find files named parameter_set in search_root
+        parameter_files = []
+        for root, dirs, files in os.walk(search_root, followlinks=True):
+            for f in files:
+                if f == parameter_set:
+                    parameter_files.append(pjoin(root, f))
+        parameter_file = parameter_files[0]
 
 
-    # Parse parameters file
-    # ============================================================
-
-    output_root = pjoin(mm.rootdir(), "experiments", "parameter_sweeps",
-                        '_'.join(args.parameters.split()))
-
-    with open(parameter_file, 'r') as pfile:
-        args_dict = ast.literal_eval(pfile.read())
-
-
-    # Make sure we're ready to go
-    # ============================================================
-
-    # Maybe build things
-    if not args.no_build:
-
-        # Make sure micromag library is up to date
-        driver_folder = os.path.dirname(mm.driver_path())
-        library_folder = pjoin(driver_folder, "../../")
-
-        print("Building and installing libraries from", library_folder)
-        subp.check_call(['make', '--silent', '--keep-going',
-                         'LIBTOOLFLAGS=--silent'], cwd=library_folder)
-        subp.check_call(['make', 'install', '--silent', '--keep-going',
-                         'LIBTOOLFLAGS=--silent'], cwd=library_folder)
-
-        print("Building driver in", driver_folder)
-        subp.check_call(['make', '--silent', '--keep-going',
-                         'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
-
-        # Make sure the binaries are up to date (if they aren't just the
-        # default one).
-        binaries = args_dict.get('-binary')
-        if binaries is not None:
-            driver_folders = [os.path.abspath(os.path.dirname(d)) for d in binaries]
-            for f in driver_folders:
-                build_driver(f)
+        # Error check number of files
+        if len(parameter_files) > 1:
+            sys.stderr.write("Found multiple files named "+ parameter_set + ": "
+                             + " ".join(parameter_files) + " .\n")
+            return 5
+        elif len(parameter_files) == 0:
+            sys.stderr.write("Couldn't find a file named "+ parameter_set
+                              + " in " + search_root + " .\n")
+            return 6
 
 
-    # Remove old stuff if requested
-    if args.clean and os.path.isdir(output_root):
-        print("Cleaning out", output_root)
-        # recursive_check_filenames_rm_safe(output_root)
-        shutil.rmtree(output_root)
-        os.mkdir(output_root)
+        # Parse parameters file
+        # ============================================================
 
-    # Copy parameters file to output dir
-    os.makedirs(output_root, exist_ok=True)
-    shutil.copyfile(parameter_file, pjoin(output_root, "parameter_file"))
+        output_root = pjoin(mm.rootdir(), "experiments", "parameter_sweeps",
+                            '_'.join(parameter_set.split()))
+
+        with open(parameter_file, 'r') as pfile:
+            args_dict = ast.literal_eval(pfile.read())
 
 
+        # Make sure we're ready to go
+        # ============================================================
 
-    # Run it
-    # ============================================================
+        # Maybe build things
+        if not args.no_build:
 
-    print("Running parameter sweep with parameter set", args.parameters)
-    print("Output is going into", output_root)
-    mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode),
-                 processes=int(args.ncores))
+            # Make sure micromag library is up to date
+            driver_folder = os.path.dirname(mm.driver_path())
+            library_folder = pjoin(driver_folder, "../../")
+
+            print("Building and installing libraries from", library_folder)
+            subp.check_call(['make', '--silent', '--keep-going',
+                             'LIBTOOLFLAGS=--silent'], cwd=library_folder)
+            subp.check_call(['make', 'install', '--silent', '--keep-going',
+                             'LIBTOOLFLAGS=--silent'], cwd=library_folder)
+
+            print("Building driver in", driver_folder)
+            subp.check_call(['make', '--silent', '--keep-going',
+                             'LIBTOOLFLAGS=--silent'], cwd=driver_folder)
+
+            # Make sure the binaries are up to date (if they aren't just the
+            # default one).
+            binaries = args_dict.get('-binary')
+            if binaries is not None:
+                driver_folders = [os.path.abspath(os.path.dirname(d)) for d in binaries]
+                for f in driver_folders:
+                    build_driver(f)
+
+
+        # Remove old stuff if requested
+        if args.clean and os.path.isdir(output_root):
+            print("Cleaning out", output_root)
+            # recursive_check_filenames_rm_safe(output_root)
+            shutil.rmtree(output_root)
+            os.mkdir(output_root)
+
+        # Copy parameters file to output dir
+        os.makedirs(output_root, exist_ok=True)
+        shutil.copyfile(parameter_file, pjoin(output_root, "parameter_file"))
+
+
+
+        # Run it
+        # ============================================================
+
+        print("Running parameter sweep with parameter set", parameter_set)
+        print("Output is going into", output_root)
+        mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode),
+                     processes=int(args.ncores))
 
     return 0
 
