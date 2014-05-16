@@ -282,6 +282,13 @@ namespace oomph
         {
           return new deriv_functions::OrderReductionTest;
         }
+      else if(exact_name == "strong_order_reduction")
+        {
+          deriv_functions::OrderReductionTest* or_pt =
+            new deriv_functions::OrderReductionTest;
+          or_pt->Lambda = -100;
+          return or_pt;
+        }
 
       TimeSpaceToDoubleVectFctPt fpt;
       TimeSpaceValueToDoubleVectFctPt dfpt;
