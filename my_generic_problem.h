@@ -127,6 +127,7 @@ using namespace StringConversion;
       Always_write_trace = true;
 
       Dump = false;
+      Output_ltes = false;
 
       N_steps_taken = 0;
       Total_step_time= 0;
@@ -497,8 +498,9 @@ using namespace StringConversion;
 
     /// \short General output function: output to trace file. Maybe output
     /// Jacobian depending on Doc_info.output_jacobian. Maybe output full
-    /// solution depending on should_doc_this_step(..) function. Extend by
-    /// overloading doc_solution_additional(...).
+    /// solution depending on should_doc_this_step(..) function. Maybe
+    /// output ltes depending on value of Output_ltes. Extend by overloading
+    /// doc_solution_additional(...).
     void doc_solution();
 
     /// \short Error norm calculator
@@ -691,6 +693,58 @@ using namespace StringConversion;
       // Doc_info.number()--;
     }
 
+
+    /// Output lte values of each nodal value along with spatial position
+    /// for plotting with paraview. To plot load the csv file, use "Table
+    /// To Points", add a 3D view, set the ltes to visible and color by the
+    /// lte of interest. Useful to set "Representation" to "Points" and
+    /// increase point size so that things are easily visible. Not
+    /// implemented for nodes with varying numbers of values (you might
+    /// need something fancier than a csv file for this).
+    void output_ltes(std::ostream& output) const
+      {
+        // Output position labels
+        for(unsigned j=0; j<Dim; j++)
+          {
+            output << "x" << j << ", ";
+          }
+
+        // Output labels for ltes, assuming that all nodes have the same
+        // number of values...
+        for(unsigned j=0; j<mesh_pt()->node_pt(0)->nvalue(); j++)
+          {
+            output << "error" << j << ", ";
+          }
+
+        output << std::endl;
+
+        // Output actual positions and ltes
+        for(unsigned i=0, ni=mesh_pt()->nnode(); i<ni; i++)
+          {
+            Node* nd_pt = mesh_pt()->node_pt(i);
+
+            // Output position of node
+            for(unsigned j=0; j<Dim; j++)
+              {
+                output << nd_pt->x(j) << ", ";
+              }
+
+            // Output ltes of node
+            for(unsigned j=0; j<nd_pt->nvalue(); j++)
+              {
+                // Get timestepper's error estimate for this direction of m
+                // at this point.
+                double error = nd_pt->time_stepper_pt()->
+                  temporal_error_in_value(nd_pt, j);
+
+                output << error << ", ";
+              }
+
+            output << std::endl;
+          }
+      }
+
+
     MyDocInfo Doc_info;
     unsigned Output_precision;
 
@@ -712,6 +766,9 @@ using namespace StringConversion;
 
     /// Should we dump ready for a restart?
     bool Dump;
+
+    /// Should we output the local truncation error at each node as well?
+    bool Output_ltes;
 
     /// Function pointer for exact solution
     InitialConditionFct* Exact_solution_pt;

@@ -192,13 +192,7 @@ namespace oomph
   }
 
 
-  //======================================================================
-  /// Output function:
-  ///
-  /// format is x, (y, z), phi, Mx, My, Mz, exact phi, exact Mx, exact My, exact Mz
-  ///
-  ///
-  //======================================================================
+  /// Output interpolated data at the output points of the element
   void MicromagEquations::output(std::ostream &outfile,
                                  const unsigned &n_plot)
   {

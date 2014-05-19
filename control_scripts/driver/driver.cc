@@ -206,6 +206,11 @@ int main(int argc, char *argv[])
       problem_pt->Dump = bool(args_pt->dump);
     }
 
+  if(args_pt->output_ltes != -1)
+    {
+      problem_pt->Output_ltes = bool(args_pt->output_ltes);
+    }
+
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string();
   problem_pt->Doc_info.set_directory(args_pt->outdir);

@@ -174,6 +174,10 @@ namespace oomph
 
         specify_command_line_flag("-always-write-trace", &always_write_trace);
         always_write_trace = -1;
+
+        specify_command_line_flag("-output-ltes", &output_ltes,
+                                  "Output local truncation errors at each node to ltes*.csv files");
+        output_ltes = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -364,6 +368,7 @@ namespace oomph
 
     std::string outdir;
     std::string output_jacobian;
+    int output_ltes;
 
     InitialConditionFct* initial_condition_pt;
     int initial_is_exact;

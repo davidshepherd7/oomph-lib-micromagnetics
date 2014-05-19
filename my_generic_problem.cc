@@ -380,6 +380,15 @@ namespace oomph
             this->dump(dump_file);
           }
 
+        // Maybe dump ltes
+        if(Output_ltes)
+          {
+            std::ofstream ltefile((dir + "/ltes" + num + ".csv").c_str(),
+                                  std::ios::out);
+            output_ltes(ltefile);
+            ltefile.close();
+          }
+
 
         Doc_info.number()++;
       }
