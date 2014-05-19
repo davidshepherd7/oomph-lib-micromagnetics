@@ -378,6 +378,7 @@ namespace oomph
             std::ofstream dump_file((dir + "/" + "dump" + num + ".dat").c_str(),
                                     std::ios::out);
             this->dump(dump_file);
+            dump_file.close();
           }
 
         // Maybe dump ltes
