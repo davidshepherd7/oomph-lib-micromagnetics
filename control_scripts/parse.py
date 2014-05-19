@@ -163,6 +163,9 @@ def my_scatter(data, x_value, y_value,
     mean).
     """
 
+     # local import needed so we can vary the backend dynamically
+    import matplotlib.pyplot as plt
+
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
     if all([d['-tol'] == 0 for d in data]):
@@ -212,6 +215,9 @@ def my_scatter(data, x_value, y_value,
     # Label
     ax.set_xlabel(make_axis_label(x_value, x_operation))
     ax.set_ylabel(make_axis_label(y_value, y_operation))
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
 
 
     # Pick the right axis scales
@@ -434,7 +440,7 @@ def main():
 
     if 'trace' in args.plots:
         plot_traces = par(plot_vs_time,
-                          plot_values=['exact', 'trace_values', 'dts'],
+                          plot_values=['trace_values', 'dts'],
                           labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_traces)
         figs.extend(newfigs)
@@ -551,12 +557,25 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
 
-    if 'scatter-errs' in args.plots:
+    if 'scatter-err-dts' in args.plots:
         plot_err_scatter = \
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
-              x_value='-dt',
+              x_value='dts',
+              y_value='error_norms',
+              y_operation=max,
+              x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
+
+    if 'scatter-err-tols' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='-tol',
               y_value='error_norms',
               y_operation=max)
 
