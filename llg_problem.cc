@@ -206,8 +206,9 @@ namespace oomph
     // Select solver parameters to use for phi solves.
     // ============================================================
 
-    // Start with current ones as defaults.
+    // Start with current ones as defaults, store in class variables.
     get_solver_parameters(Phi_seg_solve_parameters);
+    get_solver_parameters(Phi_1_seg_solve_parameters);
 
     if(!Disable_magnetostatic_solver_optimistations)
       {
@@ -220,18 +221,9 @@ namespace oomph
           = Factories::linear_solver_factory("cg");
         checked_dynamic_cast<IterativeLinearSolver*>(Phi_seg_solve_parameters.linear_solver_pt)
           ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
-      }
-    else
-      {
-        Phi_seg_solve_parameters.linear_solver_pt
-          = Factories::linear_solver_factory("superlu");
-      }
 
-    // Similarly for phi1 (keep them separate because stored Jacobians
-    // differ).
-    get_solver_parameters(Phi_1_seg_solve_parameters);
-    if(!Disable_magnetostatic_solver_optimistations)
-      {
+        // Similarly for phi1 (keep them separate because stored Jacobians
+        // differ).
         Phi_1_seg_solve_parameters.jacobian_reuse_is_enabled = true;
         Phi_1_seg_solve_parameters.problem_is_nonlinear = false;
         Phi_1_seg_solve_parameters.linear_solver_pt
@@ -243,8 +235,10 @@ namespace oomph
       {
         Phi_seg_solve_parameters.linear_solver_pt
           = Factories::linear_solver_factory("superlu");
-      }
 
+        Phi_1_seg_solve_parameters.linear_solver_pt
+          = Factories::linear_solver_factory("superlu");
+      }
 
 
     // Finish building
