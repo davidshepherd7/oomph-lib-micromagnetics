@@ -36,23 +36,6 @@ MM_LIB_DIR="../../"
 new_clean_dir Validation
 
 
-# llg residual
-# ============================================================
-
-# Run simulation with llg residual. Midpoint is ESSENTIAL to get low enough
-# errors without tiny step size
-llg_dir="$TPWD/Validation/llg"
-new_clean_dir $llg_dir
-cd $CONTROL_SCRIPTS/driver/
-./driver llg -ms-method disabled -tmax 0.3 -dt 1e-2 -solver superlu -h-app minus_z \
-    -ts midpoint -newton-tol 1e-12 -initial-m z -mag-params 'simple-llg' \
-     -outdir $llg_dir> $llg_dir/stdout
-
-# Check the errors are small by comparing with a file full of zeros
-cd $TPWD
-cut -d\; -f 4 < $llg_dir/trace > $llg_dir/time_error_norms
-wrapped_fpdiff $llg_dir/time_error_norms validata/zeros 0 1e-5
-
 
 # bdf implementation of midpoint
 # ============================================================
@@ -79,7 +62,7 @@ ll_dir="$TPWD/Validation/ll"
 new_clean_dir $ll_dir
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -ms-method disabled -dt 1e-2 -tmax 0.3 -solver superlu -h-app minus_z \
-    -ts midpoint -initial-m z -mag-params 'simple-llg' -fd-jac \
+    -ts imr -initial-m z -mag-params 'simple-llg' -fd-jac \
     -outdir $ll_dir > $ll_dir/stdout
 
 # Check the errors are small
@@ -98,7 +81,7 @@ mul_mesh_dir="$TPWD/Validation/mul_mesh_llg"
 new_clean_dir $mul_mesh_dir
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -ms-method disabled -tmax 0.3 -dt 1e-2 -solver superlu -h-app minus_z \
-    -ts midpoint -newton-tol 1e-12 -mesh multi_ut_square \
+    -ts imr -newton-tol 1e-12 -mesh multi_ut_square \
     -initial-m z -mag-params 'simple-llg' \
     -outdir $mul_mesh_dir > $mul_mesh_dir/stdout
 

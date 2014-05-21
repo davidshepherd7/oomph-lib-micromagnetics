@@ -49,10 +49,6 @@ namespace oomph
       // Cache some loop end conditions
       Nnode(this_element->nnode()),
       Dim(this_element->dim()),
-      Nprev_value_zeroth_derivative(this_element->node_pt(0)->
-                                    time_stepper_pt()->nprev_values_for_value_at_evaluation_time()),
-      Nprev_value_zeroth_pos_derivative
-      (this_element->node_pt(0)->position_time_stepper_pt()->nprev_values_for_value_at_evaluation_time()),
 
       //??ds weird!
       // Nprev_value_derivative(this_element->node_pt(0)->
@@ -81,6 +77,17 @@ namespace oomph
       Intp_time(NotYetCalculatedValue)
     {
       Ts_pt = this_element->node_pt(0)->time_stepper_pt();
+
+      // Check for old implementation of IMR: can't handle it in this
+      // interpolator.
+#ifdef PARANOID
+      if(Ts_pt->nprev_values_for_value_at_evaluation_time() != 1)
+        {
+          std::string err = "Can't handle cases which require history values in value interpolation.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
 
       // Initialise storage
       for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
@@ -203,13 +210,10 @@ namespace oomph
     /// Interpolate evaluation time
     double interpolate_time()
     {
+      //??ds get rid of?
       double time = 0.0;
       Time* time_pt = This_element->node_pt(0)->time_stepper_pt()->time_pt();
-      for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
-        {
-          // the number of pointers chained together here seems a bit silly... ds
-          time += time_pt->time(i_tm) * (*Ts_weights_pt)(0,i_tm);
-        }
+      time += time_pt->time();
       return time;
     }
 
@@ -239,8 +243,6 @@ namespace oomph
     // Loop end conditions etc.
     const unsigned Nnode;
     const unsigned Dim;
-    const unsigned Nprev_value_zeroth_derivative;
-    const unsigned Nprev_value_zeroth_pos_derivative;
     const unsigned Nprev_value_derivative;
     const unsigned Nprev_value_pos_derivative;
 
@@ -266,6 +268,7 @@ namespace oomph
     // "Time" because that is used for the time class).
     double Intp_time;
 
+
     double X[3];
     double Dxdt[3];
 
@@ -284,11 +287,7 @@ namespace oomph
           X[j] = 0.0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_pos_derivative; i_tm++)
-                {
-                  X[j] += This_element->nodal_position(i_tm, i_nd, j)
-                    * Psi(i_nd) * (*Position_ts_weights_pt)(0, i_tm);
-                }
+              X[j] += This_element->nodal_position(0, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -301,11 +300,8 @@ namespace oomph
           X[j] = 0.0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_pos_derivative; i_tm++)
-                {
-                  X[j] += This_element->raw_nodal_position(i_tm, i_nd, j)
-                    * Psi(i_nd) * (*Position_ts_weights_pt)(0, i_tm);
-                }
+              X[j] +=
+                This_element->raw_nodal_position(0, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -364,11 +360,8 @@ namespace oomph
           Values[j] = 0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
-                {
-                  Values[j] += This_element->raw_nodal_value(i_tm, i_nd, j)
-                    * Psi(i_nd) * (*Ts_weights_pt)(0, i_tm);
-                }
+              Values[j] +=
+                This_element->raw_nodal_value(0, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -381,11 +374,8 @@ namespace oomph
           Values[j] = 0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
-                {
-                  Values[j] += This_element->nodal_value(i_tm, i_nd, j)
-                    * Psi(i_nd) * (*Ts_weights_pt)(0, i_tm);
-                }
+              Values[j] +=
+                This_element->nodal_value(0, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -440,11 +430,9 @@ namespace oomph
           Dvaluesdx[i_value][i_direc] = 0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
-                {
-                  Dvaluesdx[i_value][i_direc] += This_element->raw_nodal_value(i_tm, i_nd, i_value)
-                    * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
-                }
+              Dvaluesdx[i_value][i_direc] +=
+                This_element->raw_nodal_value(0, i_nd, i_value)
+                * Dpsidx(i_nd, i_direc);
             }
         }
     }
@@ -457,11 +445,9 @@ namespace oomph
           Dvaluesdx[i_value][i_direc] = 0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              for(unsigned i_tm=0; i_tm<Nprev_value_zeroth_derivative; i_tm++)
-                {
-                  Dvaluesdx[i_value][i_direc] += This_element->nodal_value(i_tm, i_nd, i_value)
-                    * Dpsidx(i_nd, i_direc) * (*Ts_weights_pt)(0, i_tm);
-                }
+              Dvaluesdx[i_value][i_direc] +=
+                This_element->nodal_value(0, i_nd, i_value)
+                * Dpsidx(i_nd, i_direc);
             }
         }
     }
