@@ -413,7 +413,7 @@ namespace oomph
             std::ofstream pred_file((dir + "/" + "predsoln" + num + ".dat").c_str(),
                                     std::ios::out);
             pred_file.precision(Output_precision);
-            output_solution(predictor_time, pred_file);
+            output_solution(predictor_time, pred_file, 2);
             pred_file.close();
           }
 

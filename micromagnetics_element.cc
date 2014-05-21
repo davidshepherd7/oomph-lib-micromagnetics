@@ -196,16 +196,6 @@ namespace oomph
   void MicromagEquations::output(const unsigned& t, std::ostream &outfile,
                                  const unsigned &n_plot) const
   {
-#ifdef PARANOID
-    if(t!=0)
-      {
-        std::string err = "Not implemented for t != 0";
-        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                            OOMPH_EXCEPTION_LOCATION);
-      }
-#endif
-
-
     //Vector of local coordinates
     Vector<double> s(nodal_dimension());
 
@@ -218,7 +208,7 @@ namespace oomph
       {
         get_s_plot(iplot, n_plot, s);
 
-        MMInterpolator intp(this, s);
+        MMArrayInterpolator<5> intp(this, s, t);
 
         // output eulerian coordinates of plot point
         for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x(i) << " ";

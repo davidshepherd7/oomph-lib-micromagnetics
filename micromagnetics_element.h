@@ -1024,8 +1024,9 @@ namespace oomph
 
     /// Default constructor
     MMArrayInterpolator(const FiniteElement* const this_element,
-                        const Vector<double> &s)
-      : GeneralArrayInterpolator<VAL>(this_element, s),
+                        const Vector<double> &s,
+                        const unsigned& time_index=0)
+      : GeneralArrayInterpolator<VAL>(this_element, s, true, time_index),
         Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue)
     {}
 

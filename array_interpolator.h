@@ -44,15 +44,12 @@ namespace oomph
     /// Default constructor
     GeneralArrayInterpolator(const FiniteElement* const this_element,
                              const Vector<double> &s,
-                             bool call_build=true)
+                             bool call_build=true,
+                             const unsigned& time_index=0)
       :
       // Cache some loop end conditions
       Nnode(this_element->nnode()),
       Dim(this_element->dim()),
-
-      //??ds weird!
-      // Nprev_value_derivative(this_element->node_pt(0)->
-    // time_stepper_pt()->nprev_values()),
       Nprev_value_derivative(this_element->node_pt(0)->
                              time_stepper_pt()->ntstorage()),
       Nprev_value_pos_derivative(this_element->node_pt(0)->
@@ -74,7 +71,10 @@ namespace oomph
       S(s),
 
     // Negative time to signify that it has not been calculated yet
-      Intp_time(NotYetCalculatedValue)
+      Intp_time(NotYetCalculatedValue),
+
+    // Time index to interpolate values at (0 = present)
+      Time_index(time_index)
     {
       Ts_pt = this_element->node_pt(0)->time_stepper_pt();
 
@@ -89,7 +89,13 @@ namespace oomph
         }
 #endif
 
-      // Initialise storage
+      // Initialise storage. ??ds we could avoid this initialisation and
+      // the use of a NotYetCalculatedValue by storing pointers to the
+      // values and pointers to the storage separately, then when the value
+      // is calculated the pointer to the value is set to point to the
+      // storage. In this way storage is statically allocated but not
+      // initialised (for speed), and we still get the benefits of
+      // memoisation.
       for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
       for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
       for(unsigned i=0; i<VAL; i++) Values[i] = NotYetCalculatedValue;
@@ -268,12 +274,23 @@ namespace oomph
     // "Time" because that is used for the time class).
     double Intp_time;
 
+    /// Time index to interpolate values at, 0=current. If doing history
+    /// interpolation then we cannot calculate time derivatives.
+    const unsigned Time_index;
 
+    /// Storage for positions
     double X[3];
+
+    /// Storage for position derivatives
     double Dxdt[3];
 
+    /// Storage for values
     double Values[VAL];
+
+    /// Storage for value time derivatives
     double Dvaluesdt[VAL];
+
+    /// Storage for value space derivatives
     double Dvaluesdx[VAL][3];
 
 
@@ -287,7 +304,7 @@ namespace oomph
           X[j] = 0.0;
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
-              X[j] += This_element->nodal_position(0, i_nd, j) * Psi(i_nd);
+              X[j] += This_element->nodal_position(Time_index, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -301,7 +318,7 @@ namespace oomph
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
               X[j] +=
-                This_element->raw_nodal_position(0, i_nd, j) * Psi(i_nd);
+                This_element->raw_nodal_position(Time_index, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -311,6 +328,8 @@ namespace oomph
 
     void interpolate_dxdt_raw()
     {
+      check_can_calculate_time_derivatives();
+
       for(unsigned j=0;j<Dim;j++)
         {
           Dxdt[j] = 0;
@@ -327,6 +346,8 @@ namespace oomph
 
     void interpolate_dxdt_with_hanging_nodes()
     {
+      check_can_calculate_time_derivatives();
+
       for(unsigned j=0;j<Dim;j++)
         {
           Dxdt[j] = 0;
@@ -361,7 +382,7 @@ namespace oomph
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
               Values[j] +=
-                This_element->raw_nodal_value(0, i_nd, j) * Psi(i_nd);
+                This_element->raw_nodal_value(Time_index, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -375,7 +396,7 @@ namespace oomph
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
               Values[j] +=
-                This_element->nodal_value(0, i_nd, j) * Psi(i_nd);
+                This_element->nodal_value(Time_index, i_nd, j) * Psi(i_nd);
             }
         }
     }
@@ -387,6 +408,8 @@ namespace oomph
     void interpolate_dvaluesdt_raw(const unsigned &start,
                                    const unsigned &end)
     {
+      check_can_calculate_time_derivatives();
+
       for(unsigned j=start; j<end; j++)
         {
           Dvaluesdt[j] = 0;
@@ -404,6 +427,8 @@ namespace oomph
     void interpolate_dvaluesdt_with_hanging_nodes(const unsigned &start,
                                                   const unsigned &end)
     {
+      check_can_calculate_time_derivatives();
+
       for(unsigned j=start; j<end; j++)
         {
           Dvaluesdt[j] = 0;
@@ -431,7 +456,7 @@ namespace oomph
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
               Dvaluesdx[i_value][i_direc] +=
-                This_element->raw_nodal_value(0, i_nd, i_value)
+                This_element->raw_nodal_value(Time_index, i_nd, i_value)
                 * Dpsidx(i_nd, i_direc);
             }
         }
@@ -446,13 +471,24 @@ namespace oomph
           for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
             {
               Dvaluesdx[i_value][i_direc] +=
-                This_element->nodal_value(0, i_nd, i_value)
+                This_element->nodal_value(Time_index, i_nd, i_value)
                 * Dpsidx(i_nd, i_direc);
             }
         }
     }
 
 
+    void check_can_calculate_time_derivatives()
+    {
+#ifdef PARANOID
+      if(Time_index != 0)
+        {
+          std::string err = "Can only calculate time derivatives at present time (because we can't assume that the older history values are what is needed for time derivative calculations).";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+    }
 
 
   };
