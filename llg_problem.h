@@ -274,6 +274,8 @@ namespace oomph
     /// Renormalise magnetisation to 1 (needed with BDF2)
     void renormalise_magnetisation()
     {
+      oomph_info << "Renormalising nodal magnetisations." << std::endl;
+
       // Loop over meshes and renormalise m at each node
       for(unsigned nd=0; nd<mesh_pt()->nnode(); nd++)
         {
@@ -524,8 +526,10 @@ namespace oomph
       MyProblem::actions_after_explicit_timestep();
 
       // We need to keep M normalised...
-      oomph_info << "Renormalising nodal magnetisations." << std::endl;
-      renormalise_magnetisation();
+      if(renormalise_each_time_step())
+        {
+          renormalise_magnetisation();
+        }
 
       // check neighbouring magnetisation angles if requested
       maybe_check_angles();
@@ -572,7 +576,6 @@ namespace oomph
           // If we're using BDF we need to keep M normalised.
           if(renormalise_each_time_step())
             {
-              oomph_info << "Renormalising nodal magnetisations." << std::endl;
               renormalise_magnetisation();
             }
         }
