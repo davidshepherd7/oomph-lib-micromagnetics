@@ -211,6 +211,12 @@ int main(int argc, char *argv[])
       problem_pt->Output_ltes = bool(args_pt->output_ltes);
     }
 
+  if(args_pt->output_predictor_values != -1)
+    {
+      problem_pt->Output_predictor_values =
+        bool(args_pt->output_predictor_values);
+    }
+
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string();
   problem_pt->Doc_info.set_directory(args_pt->outdir);

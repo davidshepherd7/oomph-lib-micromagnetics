@@ -128,6 +128,7 @@ using namespace StringConversion;
 
       Dump = false;
       Output_ltes = false;
+      Output_predictor_values = false;
 
       N_steps_taken = 0;
       Total_step_time= 0;
@@ -798,6 +799,9 @@ using namespace StringConversion;
 
     /// Should we output the local truncation error at each node as well?
     bool Output_ltes;
+
+    /// Should we output the predicted values too?
+    bool Output_predictor_values;
 
     /// Function pointer for exact solution
     InitialConditionFct* Exact_solution_pt;

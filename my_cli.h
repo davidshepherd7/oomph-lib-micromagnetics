@@ -178,6 +178,11 @@ namespace oomph
         specify_command_line_flag("-output-ltes", &output_ltes,
                                   "Output local truncation errors at each node to ltes*.csv files");
         output_ltes = -1;
+
+        specify_command_line_flag("-output-predictor-values",
+                                  &output_predictor_values,
+                                  "After each step also output the values calculated by the predictor (to a separate file).");
+        output_predictor_values = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -369,6 +374,7 @@ namespace oomph
     std::string outdir;
     std::string output_jacobian;
     int output_ltes;
+    int output_predictor_values;
 
     InitialConditionFct* initial_condition_pt;
     int initial_is_exact;

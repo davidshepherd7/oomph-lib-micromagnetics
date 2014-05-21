@@ -353,7 +353,7 @@ namespace oomph
         std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
                                 std::ios::out);
         soln_file.precision(Output_precision);
-        output_solution(soln_file);
+        output_solution(0, soln_file);
         soln_file.close();
 
         if(!is_steady())
@@ -388,6 +388,33 @@ namespace oomph
                                   std::ios::out);
             output_ltes(ltefile);
             ltefile.close();
+          }
+
+        // Maybe write out predicted values, check we only have one time
+        // stepper first though.
+#ifdef PARANOID
+        if(Output_predictor_values && ntime_stepper() != 1)
+          {
+            std::string err = "Can only output predictor values for a single time stepper";
+            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+
+            // Otherwise we would have multiple "predictor_time" values
+            // below.
+          }
+#endif
+
+        if(Output_predictor_values
+           && time_stepper_pt()->adaptive_flag())
+          {
+            const unsigned predictor_time =
+              time_stepper_pt()->predictor_storage_index();
+
+            std::ofstream pred_file((dir + "/" + "predsoln" + num + ".dat").c_str(),
+                                    std::ios::out);
+            pred_file.precision(Output_precision);
+            output_solution(predictor_time, pred_file);
+            pred_file.close();
           }
 
 
