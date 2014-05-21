@@ -666,15 +666,6 @@ namespace oomph
           }
       }
 
-    /// Output solution
-    void doc_solution_additional(std::ofstream &some_file) const
-    {
-      // Number of plot points
-      unsigned npts = 2;
-
-      // Output solution with specified number of plot points per element
-      mesh_pt()->output(some_file, npts);
-    }
 
     void write_additional_trace_headers(std::ofstream& trace_file) const
     {

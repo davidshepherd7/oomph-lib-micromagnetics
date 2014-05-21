@@ -193,9 +193,19 @@ namespace oomph
 
 
   /// Output interpolated data at the output points of the element
-  void MicromagEquations::output(std::ostream &outfile,
-                                 const unsigned &n_plot)
+  void MicromagEquations::output(const unsigned& t, std::ostream &outfile,
+                                 const unsigned &n_plot) const
   {
+#ifdef PARANOID
+    if(t!=0)
+      {
+        std::string err = "Not implemented for t != 0";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+
     //Vector of local coordinates
     Vector<double> s(nodal_dimension());
 
@@ -203,10 +213,10 @@ namespace oomph
     outfile << tecplot_zone_string(n_plot);
 
     // Loop over plot points
-    unsigned num_plot_points=nplot_points(n_plot);
-    for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+    unsigned num_plot_points = nplot_points(n_plot);
+    for(unsigned iplot=0; iplot<num_plot_points; iplot++)
       {
-        get_s_plot(iplot,n_plot,s);
+        get_s_plot(iplot, n_plot, s);
 
         MMInterpolator intp(this, s);
 

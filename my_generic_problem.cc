@@ -353,7 +353,7 @@ namespace oomph
         std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
                                 std::ios::out);
         soln_file.precision(Output_precision);
-        doc_solution_additional(soln_file);
+        output_solution(soln_file);
         soln_file.close();
 
         if(!is_steady())

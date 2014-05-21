@@ -464,7 +464,7 @@ using namespace StringConversion;
       const {}
 
     /// Overload to write any problem specific data
-    virtual void doc_solution_additional(std::ofstream& soln_file) const {}
+    virtual void output_solution(std::ofstream& soln_file) const {}
     virtual void final_doc_additional() const {}
     virtual void initial_doc_additional() const {}
 
@@ -500,8 +500,37 @@ using namespace StringConversion;
     /// Jacobian depending on Doc_info.output_jacobian. Maybe output full
     /// solution depending on should_doc_this_step(..) function. Maybe
     /// output ltes depending on value of Output_ltes. Extend by overloading
-    /// doc_solution_additional(...).
+    /// output_solution(...).
     void doc_solution();
+
+
+    /// Standard output function: loop over all elements in all meshes and
+    /// output.
+    virtual void output_solution(const unsigned& t, std::ostream& outstream,
+      const unsigned& npoints=2) const
+      {
+        const unsigned n_msh = nsub_mesh();
+        for(unsigned msh=0; msh<n_msh; msh++)
+          {
+            Mesh* msh_pt = mesh_pt(msh);
+
+            const unsigned n_ele = msh_pt->nelement();
+            for(unsigned ele=0; ele<n_ele; ele++)
+              {
+                FiniteElement* ele_pt = msh_pt->finite_element_pt(ele);
+                ele_pt->output(t, outstream, npoints);
+              }
+          }
+      }
+
+
+    /// output_solution(...) with default output time step = 0 = current
+    /// time.
+    void output_solution(std::ostream& outstream,
+                         const unsigned& npoints=2) const
+    {
+      output_solution(0, outstream, npoints);
+    }
 
     /// \short Error norm calculator
     virtual double get_error_norm() const

@@ -612,10 +612,13 @@ namespace oomph
     }
 
     // Output solution
-    void doc_solution_additional(std::ofstream& soln_file) const
+    void output_solution(const unsigned& t, std::ostream& outstream,
+                         const unsigned& npoints=2) const
     {
-      std::cout << solution() << std::endl;
-      soln_file << solution() << std::endl;
+      std::cout << solution(t) << std::endl;
+      outstream << solution(t) << std::endl;
+
+      // npoints is ignored
     }
 
     Vector<double> solution(const unsigned& timestep=0) const

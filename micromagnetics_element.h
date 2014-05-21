@@ -300,7 +300,8 @@ namespace oomph
     // ============================================================
 
     /// Output FE representation of soln: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5);
+    void output(const unsigned& t, std::ostream &outfile,
+                const unsigned &n_plot) const;
 
     /// Output exact solution at n_plot points
     void output_fct(std::ostream &outfile, const unsigned &n_plot,
@@ -577,9 +578,9 @@ namespace oomph
       BrokenCopy::broken_assign("QMicromagElement");
     }
 
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {MicromagEquations::output(outfile,n_plot);}
+    // /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+    // void output(std::ostream &outfile, const unsigned &n_plot=5)
+    // {MicromagEquations::output(outfile,n_plot);}
 
     /// \short Perform additional hanging node procedures for variables
     /// that are not interpolated by all nodes. We don't have any of these
@@ -621,9 +622,9 @@ namespace oomph
       BrokenCopy::broken_assign("TMicromagElement");
     }
 
-    /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
-    void output(std::ostream &outfile, const unsigned &n_plot=5)
-    {MicromagEquations::output(outfile,n_plot);}
+    // /// Output function: x,y,u or x,y,z,u at n_plot^DIM plot points
+    // void output(std::ostream &outfile, const unsigned &n_plot=5)
+    // {MicromagEquations::output(outfile,n_plot);}
 
     /// \short Perform additional hanging node procedures for variables
     /// that are not interpolated by all nodes. We don't have any of these
