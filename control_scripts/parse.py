@@ -92,7 +92,7 @@ def plot_vs_thing(xthing, data, plot_values,
 
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
-    if all([d['-tol'] == 0 for d in data]):
+    if all([d['-tol'] == 0 or d['-dummy-adaptivity'] == 1 for d in data]):
         dt_label = '-dt'
     else:
         dt_label = '-tol'
@@ -447,7 +447,8 @@ def main():
 
     if 'energy' in args.plots:
         plot_traces = par(plot_vs_time,
-                          plot_values=[ 'exchange_energy',
+                          plot_values=['total_energy',
+                                        'exchange_energy',
                                         'zeeman_energy',
                                         'crystalline_anisotropy_energy',
                                         'magnetostatic_energy'],
@@ -618,6 +619,16 @@ def main():
               to_print=[('initial_nnode', None),
                         ('-ts', None),
                         ('total_step_time', sp.mean)])
+
+        multi_print(all_results, args.split, print_mean_step_times)
+
+
+    if 'ml' in args.print_data:
+
+        print_mean_step_times = \
+          par(data_print,
+              to_print=[('-ts', None),
+                        ('m_length_error_means', max)])
 
         multi_print(all_results, args.split, print_mean_step_times)
 
