@@ -228,7 +228,18 @@ namespace oomph
         // anytime soon this is safe).
         this->enable_mass_matrix_reuse();
       }
+
+
+    // If we requested exact solution output then check we have a solution
+    if(Want_doc_exact && Exact_solution_pt == 0)
+      {
+        std::string warning = "Requested doc'ing exact solution, but we don't have an exact solution function pointer.";
+        OomphLibWarning(warning, OOMPH_CURRENT_FUNCTION,
+                        OOMPH_EXCEPTION_LOCATION);
+
+      }
   }
+
 
   /// Hook to be overloaded with any calculations needed after setting of
   /// initial conditions.
@@ -356,9 +367,21 @@ namespace oomph
         output_solution(0, soln_file);
         soln_file.close();
 
+        // Exact solution if available and requested
+        if(doc_exact())
+          {
+            std::ofstream exact_file((dir + "/" + "exact" + num + ".dat").c_str(),
+                                     std::ios::out);
+            exact_file.precision(Output_precision);
+            output_exact_solution(exact_file);
+            exact_file.close();
+          }
+
+        // If not a steady state problem then write time information
         if(!is_steady())
           {
-            // Write the simulation time and filename to the pvd file
+            // Write the simulation time and filename to the solution pvd
+            // file
             std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
                                    std::ios::app);
             pvd_file.precision(Output_precision);
@@ -369,6 +392,23 @@ namespace oomph
                      << "\"/>" << std::endl;
 
             pvd_file.close();
+
+
+            // Write the simulation time and filename to the exact solution
+            // pvd file
+            if(doc_exact())
+              {
+                std::ofstream exact_pvd_file((dir + "/" + "exact.pvd").c_str(),
+                                             std::ios::app);
+                exact_pvd_file.precision(Output_precision);
+
+                exact_pvd_file << "<DataSet timestep=\"" << time()
+                         << "\" group=\"\" part=\"0\" file=\"" << "exact"
+                         << num << ".vtu"
+                         << "\"/>" << std::endl;
+
+                exact_pvd_file.close();
+              }
           }
 
 

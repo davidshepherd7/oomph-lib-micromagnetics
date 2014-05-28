@@ -223,6 +223,11 @@ int main(int argc, char *argv[])
   problem_pt->Doc_info.output_jacobian = args_pt->output_jacobian;
   problem_pt->set_doc_times(args_pt->doc_times);
 
+  if(args_pt->doc_exact != -1)
+    {
+      problem_pt->Want_doc_exact = bool(args_pt->doc_exact);
+    }
+
   if(args_pt->always_write_trace != -1)
     {
       problem_pt->Always_write_trace = args_pt->always_write_trace;

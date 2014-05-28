@@ -188,6 +188,11 @@ namespace oomph
                                   &convergence_test,
                                   "Automatically select dt depending on given refinement to obtain convergence plots (as in Jeong2014).");
         convergence_test = -1;
+
+        specify_command_line_flag("-doc-exact",
+                                  &doc_exact,
+                                  "Output exact solution if available.");
+        doc_exact = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -381,6 +386,7 @@ namespace oomph
     std::string output_jacobian;
     int output_ltes;
     int output_predictor_values;
+    int doc_exact;
 
     InitialConditionFct* initial_condition_pt;
     int initial_is_exact;

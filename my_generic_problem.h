@@ -129,6 +129,7 @@ using namespace StringConversion;
       Dump = false;
       Output_ltes = false;
       Output_predictor_values = false;
+      Want_doc_exact = false;
 
       N_steps_taken = 0;
       Total_step_time= 0;
@@ -533,6 +534,28 @@ using namespace StringConversion;
       output_solution(0, outstream, npoints);
     }
 
+    /// Standard output function: loop over all elements in all meshes and
+    /// output exact solution.
+    virtual void output_exact_solution(std::ostream& outstream,
+                                       const unsigned& npoints=2) const
+    {
+      const double time = time_pt()->time();
+
+      const unsigned n_msh = nsub_mesh();
+      for(unsigned msh=0; msh<n_msh; msh++)
+        {
+          Mesh* msh_pt = mesh_pt(msh);
+
+          const unsigned n_ele = msh_pt->nelement();
+          for(unsigned ele=0; ele<n_ele; ele++)
+            {
+              FiniteElement* ele_pt = msh_pt->finite_element_pt(ele);
+              ele_pt->output_fct(outstream, npoints, time,
+                                 *Exact_solution_pt);
+            }
+        }
+    }
+
     /// \short Error norm calculator
     virtual double get_error_norm() const
     {
@@ -625,6 +648,11 @@ using namespace StringConversion;
         {
           return Dummy_doc_data;
         }
+    }
+
+    bool doc_exact() const
+    {
+      return Want_doc_exact && (Exact_solution_pt != 0);
     }
 
     virtual Vector<double> trace_values() const
@@ -791,8 +819,11 @@ using namespace StringConversion;
     /// explicit timestepping (for debugging purposes).
     bool Disable_mass_matrix_solver_optimisations;
 
-    // Should we output to trace file every step?
+    /// Should we output to trace file every step?
     bool Always_write_trace;
+
+    /// Should we try to output exact solution?
+    bool Want_doc_exact;
 
     /// Should we dump ready for a restart?
     bool Dump;
