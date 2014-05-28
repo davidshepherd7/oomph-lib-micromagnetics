@@ -183,6 +183,11 @@ namespace oomph
                                   &output_predictor_values,
                                   "After each step also output the values calculated by the predictor (to a separate file).");
         output_predictor_values = -1;
+
+        specify_command_line_flag("-convergence-test",
+                                  &convergence_test,
+                                  "Automatically select dt depending on given refinement to obtain convergence plots (as in Jeong2014).");
+        convergence_test = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -355,6 +360,7 @@ namespace oomph
     double tmax;
     double tol;
     int dummy_adaptivity;
+    int convergence_test;
 
     int refinement;
     bool use_fd_jacobian;

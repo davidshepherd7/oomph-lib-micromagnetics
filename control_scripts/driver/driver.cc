@@ -264,6 +264,23 @@ int main(int argc, char *argv[])
         }
     }
 
+  double dt;
+  if(args_pt->convergence_test != -1
+     && bool(args_pt->convergence_test))
+    {
+      // Assuming that mesh is reasonably uniform...
+      double Nx = std::pow(problem_pt->mesh_pt()->nnode(),
+                           double(1/problem_pt->dim()));
+
+      // Then choose dt as in Jeong2014
+      dt = 0.32*(1/Nx);
+    }
+  else
+    {
+      dt = args_pt->dt;
+    }
+
+
   // Give the initial condition functor any problem info it needs
   args_pt->initial_condition_pt->initialise_from_problem(problem_pt);
 
@@ -271,7 +288,7 @@ int main(int argc, char *argv[])
   if(args_pt->restart_file == "")
     {
       // Set all dts to the value given in args
-      problem_pt->initialise_dt(args_pt->dt);
+      problem_pt->initialise_dt(dt);
 
       // Set values useing the initial condition function
       problem_pt->set_initial_condition(*args_pt->initial_condition_pt);
@@ -284,7 +301,7 @@ int main(int argc, char *argv[])
       if(args_pt->impulsive_restart == 1)
         {
           problem_pt->time_pt()->time() = 0.0;
-          problem_pt->initialise_dt(args_pt->dt);
+          problem_pt->initialise_dt(dt);
           problem_pt->set_up_impulsive_initial_condition();
         }
     }
@@ -302,7 +319,7 @@ int main(int argc, char *argv[])
   else
     {
       // Initialise loop variables
-      double dt = problem_pt->time_pt()->dt(), tmax = args_pt->tmax;
+      double tmax = args_pt->tmax;
       double tol = args_pt->tol;
       unsigned max_steps = args_pt->max_steps;
 
