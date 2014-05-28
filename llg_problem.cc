@@ -446,7 +446,7 @@ namespace oomph
 
   /// \short Abs of mean difference of actual m and m given by a function
   /// at the middle of each element.
-  double LLGProblem::compare_m_with_function(const SolutionFunctor& fct) const
+  double LLGProblem::compare_m_with_function(const SolutionFunctorBase& fct) const
   {
     double diff = 0.0;
 

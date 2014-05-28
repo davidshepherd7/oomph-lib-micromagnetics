@@ -160,7 +160,7 @@ namespace oomph
     }
 
     /// A damped oscillation solution
-    class DampedOscillation : public SolutionFunctor
+    class DampedOscillation : public SolutionFunctorBase
     {
     public:
       /// Constructor
@@ -196,7 +196,7 @@ namespace oomph
     };
 
     /// Another stiff solution: Atkinson equation (8.1) pg 128
-    class SimpleStiffTest : public SolutionFunctor
+    class SimpleStiffTest : public SolutionFunctorBase
     {
     public:
       /// Constructor
@@ -229,7 +229,7 @@ namespace oomph
     };
 
     /// Another stiff solution: Atkinson pg. 158, also example 8.2 pg 129.
-    class OrderReductionTest : public SolutionFunctor
+    class OrderReductionTest : public SolutionFunctorBase
     {
     public:
       /// Constructor
@@ -267,7 +267,7 @@ namespace oomph
   {
 
     // Pick an exact solution using a name
-    inline SolutionFunctor* exact_solutions_factory
+    inline SolutionFunctorBase* exact_solutions_factory
     (const std::string& exact_name)
     {
       if(exact_name == "damped_oscillation")
@@ -358,7 +358,7 @@ namespace oomph
 
     /// Constructor: Pass timestepper
     ODEElement(TimeStepper* timestepper_pt,
-               SolutionFunctor* exact_solution_pt)
+               SolutionFunctorBase* exact_solution_pt)
     {
       Exact_solution_pt = exact_solution_pt;
 
@@ -461,7 +461,7 @@ namespace oomph
       return Exact_solution_pt->derivative(t, dummy_x, u);
     }
 
-    SolutionFunctor* Exact_solution_pt;
+    SolutionFunctorBase* Exact_solution_pt;
   };
 
 

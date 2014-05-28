@@ -804,7 +804,7 @@ namespace oomph
 
     /// \short Abs of mean difference of actual m and m given by a function
     /// at the middle of each element.
-    double compare_m_with_function(const SolutionFunctor& fct) const;
+    double compare_m_with_function(const SolutionFunctorBase& fct) const;
 
     /// \short ??ds
     double mean_norm_m_error() const;

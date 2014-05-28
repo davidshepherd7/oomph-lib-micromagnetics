@@ -308,7 +308,7 @@ namespace InitialM
   inline Vector<double> smoothly_varying_5000(const double& t, const Vector<double> &x)
   {return smoothly_varying_m_helper(5000.0, t, x);}
 
-  class LLGWaveSolution : public SolutionFunctor
+  class LLGWaveSolution : public SolutionFunctorBase
   {
   public:
     /// Constructor
@@ -318,6 +318,13 @@ namespace InitialM
     virtual ~LLGWaveSolution() {}
     void initialise_from_problem(const Problem* problem_pt);
     Vector<double> operator()(const double& t, const Vector<double>& x) const;
+
+    virtual Vector<double> derivative(const double& t, const Vector<double>& x,
+                                      const Vector<double>& u) const
+    {
+      throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+    }
 
   private:
 

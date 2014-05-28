@@ -202,7 +202,7 @@ namespace oomph
     return val;
   }
 
-  InitialMFct Exact_fpt;
+  SolutionFunctor Exact_fpt;
 
   double ExactFunctionDiffSquared::call(const GeneralisedElement* ele_pt,
                                         MMInterpolator* intp_pt) const

@@ -46,87 +46,11 @@ namespace oomph
   /// Function type for applied fields
   typedef TimeSpaceToDoubleVectFctPt HAppFctPt;
 
-  /// Function class for exact solutions/initial conditions/boundary
-  /// conditions. This is needed so that we can have solutions that depend
-  /// on problem parameters with resorting to global variables.
-  class SolutionFunctor
-  {
-  public:
-    SolutionFunctor()
-    {
-      Solution_fpt = 0;
-      Derivative_fpt = 0;
-    }
-
-    SolutionFunctor(TimeSpaceToDoubleVectFctPt solution_fpt)
-    {
-      Solution_fpt = solution_fpt;
-      Derivative_fpt = 0;
-    }
-
-    SolutionFunctor(TimeSpaceToDoubleVectFctPt solution_fpt,
-                    TimeSpaceValueToDoubleVectFctPt derivative_fpt)
-    {
-      Solution_fpt = solution_fpt;
-      Derivative_fpt = derivative_fpt;
-    }
-
-    virtual ~SolutionFunctor() {}
-
-    SolutionFunctor(const SolutionFunctor& that)
-    {
-      Solution_fpt = that.Solution_fpt;
-      Derivative_fpt = that.Derivative_fpt;
-    }
-
-    void operator=(const SolutionFunctor& that)
-    {
-      this->Solution_fpt = that.Solution_fpt;
-      this->Derivative_fpt = that.Derivative_fpt;
-    }
-
-    /// Call the function.
-    virtual Vector<double> operator()(const double& t, const Vector<double>&x) const
-    {
-#ifdef PARANOID
-      if(Solution_fpt == 0)
-        {
-          std::string err = "Solution_fpt is null!";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Solution_fpt(t, x);
-    }
-
-    /// Call the derivative function.
-    virtual Vector<double> derivative(const double& t, const Vector<double>& x,
-                                      const Vector<double>& u) const
-    {
-#ifdef PARANOID
-      if(Derivative_fpt == 0)
-        {
-          std::string err = "Derivative_fpt is null!";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-#endif
-      return Derivative_fpt(t, x, u);
-    }
-
-    /// Overload to grab data from the problem.
-    virtual void initialise_from_problem(const Problem* problem_pt) {}
-
-    TimeSpaceToDoubleVectFctPt Solution_fpt;
-    TimeSpaceValueToDoubleVectFctPt Derivative_fpt;
-  };
-
-
   /// Function type for initial magnetisation
-  typedef SolutionFunctor InitialMFct;
+  typedef SolutionFunctorBase InitialMFct;
 
   /// Function type for use as general initial condition
-  typedef SolutionFunctor InitialConditionFct;
+  typedef SolutionFunctorBase InitialConditionFct;
 
 
 
