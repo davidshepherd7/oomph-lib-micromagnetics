@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     {
       // Assuming that mesh is reasonably uniform...
       double Nx = std::pow(problem_pt->mesh_pt()->nnode(),
-                           double(1/problem_pt->dim()));
+                           1.0/double(problem_pt->dim()));
 
       // Then choose dt as in Jeong2014
       dt = 0.32*(1/Nx);
