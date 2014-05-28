@@ -308,6 +308,10 @@ namespace oomph
                     const double& time,
                     FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt);
 
+    void output_fct(std::ostream &outfile, const unsigned &n_plot,
+                    const double& time,
+                    const SolutionFunctorBase& exact_soln) const;
+
     /// Get error by comparing with exact solution and get norm of exact solution.
     void compute_error(std::ostream &outfile,
                        FiniteElement::UnsteadyExactSolutionFctPt exact_soln_pt,

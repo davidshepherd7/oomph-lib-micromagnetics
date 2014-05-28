@@ -286,6 +286,52 @@ namespace oomph
     write_tecplot_zone_footer(outfile,n_plot);
   }
 
+  /// Output a time-dependent exact solution over the element.
+  void MicromagEquations::
+  output_fct(std::ostream &outfile, const unsigned &n_plot,
+             const double& time,
+             const SolutionFunctorBase& exact_soln) const
+  {
+
+    //Vector of local coordinates
+    Vector<double> s(nodal_dimension());
+
+    // Get number of values in solution at node 0
+    const unsigned nvalue = required_nvalue(0);
+
+    // Tecplot header info
+    outfile << tecplot_zone_string(n_plot);
+
+    // Loop over plot points
+    unsigned num_plot_points=nplot_points(n_plot);
+    for (unsigned iplot=0;iplot<num_plot_points;iplot++)
+      {
+
+        // Get local coordinates of plot point
+        get_s_plot(iplot,n_plot,s);
+
+        // Get and output eulerian coordinates of plot point and output
+        Vector<double> x(nodal_dimension(),0.0);
+        for(unsigned i=0; i<nodal_dimension(); i++)
+          {
+            x[i] = interpolated_x(s,i);
+            outfile << x[i] << " ";
+          }
+
+        // Calculate and output exact solution at point x and time t
+        Vector<double> exact_solution = exact_soln(time, x);
+        for(unsigned i=0; i<nvalue; i++)
+          {
+            outfile << exact_solution[i] << " ";
+          }
+
+        // End the line ready for next point
+        outfile << std::endl;
+      }
+
+    // Write tecplot footer (e.g. FE connectivity lists)
+    write_tecplot_zone_footer(outfile,n_plot);
+}
 
   //======================================================================
   /// Validate computed M against exact solution.
