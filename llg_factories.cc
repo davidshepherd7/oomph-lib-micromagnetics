@@ -404,6 +404,16 @@ namespace oomph
           MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
           MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
         }
+      else if(mesh_name == "st_square_periodic" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularTriMesh<TMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          // Link boundary 0 to boundary 2 and boundary 1 to boundary 3
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
+          MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
+        }
       else if(mesh_name == "sq_line" && nnode1d == 2)
         {
           double lx = 1.0;
