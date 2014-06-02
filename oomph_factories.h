@@ -32,6 +32,7 @@ namespace oomph
   class ExplicitTimeStepper;
   class LinearSolver;
   class Preconditioner;
+  class Integral;
 
 
 
@@ -215,6 +216,11 @@ namespace oomph
       return flux_mesh_pt;
     }
 
+
+    /// Construct a Gaussian quadrature object
+    Integral* gauss_integration_factory(const unsigned& dim,
+                                        const unsigned& nnode_1d,
+                                        const bool& is_q_element);
 
   }
 }

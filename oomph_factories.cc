@@ -512,5 +512,40 @@ namespace oomph
 
     // }
 
+
+    Integral* gauss_integration_factory(const unsigned& dim,
+                                        const unsigned& nnode_1d,
+                                        const bool& is_q_element)
+    {
+      if(nnode_1d == 2)
+        {
+          if(dim ==1 && is_q_element) // Q line
+            {
+              return new Gauss<1, 2>;
+            }
+          else if((dim == 2) && !is_q_element) //triangle
+            {
+              return new TGauss<2, 2>;
+            }
+          else if((dim == 2) && is_q_element) // square
+            {
+              return new Gauss<2, 2>;
+            }
+          else if((dim == 3) && !is_q_element) // tet
+            {
+              return new TGauss<3, 2>;
+            }
+          else if((dim == 3) && is_q_element) // brick
+            {
+              return new Gauss<3, 2>;
+            }
+        }
+      std::string err("Cannot determine element type.\n");
+      err += "Not implemented (yet?) for nnode1d != 2, is that the problem?";
+      throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+    }
+
+
   }
 }
