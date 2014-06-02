@@ -64,8 +64,17 @@ namespace oomph
                 ams_pt->Magnetostatic_field_fct_pt = Analytic_ms_fct_pt;
                 elem_pt->Ms_calc_pt = ams_pt;
               }
+
+            // If we want to use reduced integration then set it as the
+            // integration scheme.
+            if(Use_reduced_integration)
+              {
+                elem_pt->set_integration_scheme(new ReducedIntegration(elem_pt));
+                // automatically built within the constructorn
+              }
           }
       }
+
 
     // For debugging we might want to pin m values on the boundary
     if(Pin_boundary_m)

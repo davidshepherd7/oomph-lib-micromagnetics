@@ -79,6 +79,7 @@ namespace oomph
       Check_angles = false;
 #endif
       Disable_magnetostatic_solver_optimistations = false;
+      Use_reduced_integration = false;
 
       // Debugging switches
       Pin_boundary_m = false;
@@ -1143,6 +1144,10 @@ public:
     /// Bool to disable optimisations on phi/phi1 segregated solves (linear,
     /// constant Jacobian, CG w/ AMG solver) for debugging.
     bool Disable_magnetostatic_solver_optimistations;
+
+    /// Use reduced integration for evaluation of elemental integrals (as
+    /// in e.g. Cimrak2008).
+    bool Use_reduced_integration;
 
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();

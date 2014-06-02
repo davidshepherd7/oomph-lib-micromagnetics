@@ -62,7 +62,8 @@ headers = array_interpolator.h \
 	magnetostatics_calculator.h \
 	llg_preconditioners.h \
 	tr.h \
-	simpler_cubic_mesh.h
+	simpler_cubic_mesh.h \
+	reduced_integration.h
 
 
 # If we have hlib then compile that header too

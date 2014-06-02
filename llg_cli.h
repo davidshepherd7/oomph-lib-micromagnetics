@@ -82,6 +82,10 @@ namespace oomph
       specify_command_line_flag("-relax-m", &relax_m,
                                 "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");
       relax_m = -1;
+
+      specify_command_line_flag("-reduced-integration", &use_reduced_integration,
+                                "Use reduced integration for evaluation of elemental integrals (as in e.g. Cimrak2008), required to get geometric properties of IMR.");
+      use_reduced_integration = -1;
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -146,6 +150,12 @@ namespace oomph
         {
           llg_pt->Renormalise_each_time_step = renormalise;
         }
+
+      if(use_reduced_integration != -1)
+        {
+          llg_pt->Use_reduced_integration = bool(use_reduced_integration);
+        }
+
 
       // Dirichlet boundries, just use same function for b.c. as initial
       // cond.
@@ -286,6 +296,7 @@ namespace oomph
     int check_angles;
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
+    int use_reduced_integration;
 
     std::string ms_method;
 
