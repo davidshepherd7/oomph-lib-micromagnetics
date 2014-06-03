@@ -53,14 +53,14 @@ def check_m_length(data, tol=1e-8, identifier=None):
         identifier = _default_label(data)
 
     max_length_err = max(map(abs, data['m_length_error_means']))
-    length_test = max_length_err < 1e-14
+    length_test = max_length_err < tol
 
     if not length_test:
-        mm.badprint("FAILED in ", identifier)
-        mm.badprint("|m| error of", max_length_err)
+        mm.badprint("FAILED in ", identifier,
+                    "with |m| error of", max_length_err)
 
     else:
-        mm.okprint("|m| ok in", identifier)
+        mm.okprint("|m| max of", max_length_err, "ok in", identifier)
 
     return length_test
 
