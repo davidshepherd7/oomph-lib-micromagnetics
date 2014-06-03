@@ -116,6 +116,21 @@ namespace oomph
             // Set up neumann condition on phi_1 boundary values (using flux mesh)
             Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pts[msh], boundaries);
 
+            // If we are using reduced integration then set the flux
+            // elements to use it as well.
+            if(Use_reduced_integration)
+              {
+                const unsigned n_ele = Flux_mesh_pt->nelement();
+                for(unsigned ele=0; ele<n_ele; ele++)
+                  {
+                    // Set integration scheme, automatically built within
+                    // the constructor
+                    FiniteElement* el_pt = Flux_mesh_pt->finite_element_pt(ele);
+                    el_pt->set_integration_scheme(new ReducedIntegration(el_pt));
+                  }
+              }
+
+
             // Add to global mesh
             this->add_sub_mesh(Flux_mesh_pt);
 
