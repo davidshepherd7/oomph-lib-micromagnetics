@@ -7,6 +7,8 @@ import sys
 import argparse
 import os
 import os.path
+import scipy as sp
+import scipy.optimize
 
 from os.path import join as pjoin
 
@@ -204,3 +206,38 @@ def check_dicts_match(data, exact, keys, **kwargs):
             ok.append(False)
 
     return all(ok)
+
+
+def check_convergence(datasets, expected_rate, tol=0.2):
+    """For a set of convergence test check that the rate of convergence as dt
+    and h -> 0 is as expected. dt and h are linked so it is enough to
+    test only for dt.
+    """
+
+    # Check that we have a set of convergence tests
+    assert all([d['-convergence-test'] == "1" for d in datasets])
+
+    # Extract data to be fitted
+    dts, errs = mm.unzip([(sp.mean(d['dts']), max(d['error_norms'])) for d in datasets])
+
+    # fit the data to a 2nd order polynomial
+    def f(x, a, b, c):
+        return a*(x**b) + c
+    parameters, covar = scipy.optimize.curve_fit(f, dts, errs)
+    rate = parameters[1]     # rate of convergence
+
+    # Check if near to expected value
+    ok = abs(rate - expected_rate) < tol
+
+    # Print messages, identify by first dataset for simplicity.
+    dataid = _default_label(datasets[0])
+    if ok:
+        mm.okprint("convergence rate", rate, "ok in", dataid)
+    else:
+        mm.badprint("convergence rate", rate,
+                    "but expected", expected_rate, "+/-", tol,
+                    "in", dataid)
+
+    # ??ds check goodness of fit?
+
+    return ok
