@@ -18,13 +18,22 @@ namespace oomph
       using namespace MathematicalConstants;
       using namespace std;
 
+#ifdef PARANOID
+      if(x.size() != dim)
+        {
+          std::string err = "x vector is the wrong length.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
       // solution parameters
       double a = Pi/12;
-      double l = 2;
-      double k = l * Pi;
+      double k = 2 * Pi;
 
       // Rescale time because this is a solution to the LL equation
-      double t_scaled = t / (1 + damping*damping); //??ds
+      double t_scaled = t / (1 + damping*damping);
+
 
       double sum_x = 0.0;
       for(unsigned j=0; j<dim; j++) {sum_x += x[j];}
@@ -32,19 +41,20 @@ namespace oomph
       Vector<double> m(5, 0.0);
       if(damping == 0.0)
         {
-          m[2] = sin(a) * cos(k*sum_x + k*k*cos(a)*t_scaled);
-          m[3] = sin(a) * sin(k*sum_x + k*k*cos(a)*t_scaled);
+          m[2] = sin(a) * cos(k*sum_x + dim*k*k*cos(a)*t_scaled);
+          m[3] = sin(a) * sin(k*sum_x + dim*k*k*cos(a)*t_scaled);
           m[4] = cos(a);
         }
       else
         {
-          double b = Pi*Pi*l*l*damping*t_scaled;
-          double d = sqrt(sin(a)*sin(a) + exp(2*dim*b) * cos(a) * cos(a));
-          double g = (1/damping) * log((d + exp(dim*b) * cos(a))/(1 + cos(a)));
+          double b = dim*k*k*damping*t_scaled;
+          double d = sqrt(sin(a)*sin(a)  +  exp(2*b)*cos(a)*cos(a));
+          double g = (1/damping) * log((d  +  exp(b)*cos(a))
+                                       /(1  +  cos(a)));
 
-          m[2] = (1/d) * sin(a) * cos(Pi*l*sum_x + g);
-          m[3] = (1/d) * sin(a) * sin(Pi*l*sum_x + g);
-          m[4] = (1/d) * cos(a) * exp(dim*b);
+          m[2] = (1/d) * sin(a) * cos(k*sum_x + g);
+          m[3] = (1/d) * sin(a) * sin(k*sum_x + g);
+          m[4] = (1/d) * cos(a) * exp(b);
         }
 
       return m;
