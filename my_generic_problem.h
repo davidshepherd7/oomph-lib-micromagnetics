@@ -494,6 +494,16 @@ using namespace StringConversion;
                  << "</VTKFile>" << std::endl;
         pvd_file.close();
 
+        // Write end of exact.pvd XML file
+        if(doc_exact())
+          {
+            std::ofstream pvd_file((Doc_info.directory() + "/" + "exact.pvd").c_str(),
+                                   std::ios::app);
+            pvd_file << "</Collection>" << std::endl
+                     << "</VTKFile>" << std::endl;
+            pvd_file.close();
+          }
+
         // Write out anything requested from an inheriting class.
         final_doc_additional();
       }

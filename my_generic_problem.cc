@@ -263,7 +263,7 @@ namespace oomph
         dump_current_mm_or_jacobian_residuals("at_start");
       }
 
-    // pvd file
+    // pvd files
     // ============================================================
     // Write start of .pvd XML file
     std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
@@ -274,6 +274,17 @@ namespace oomph
              << "<Collection>" << std::endl;
     pvd_file.close();
 
+    // Write start of exact.pvd XML file
+    if(doc_exact())
+      {
+        std::ofstream pvd_file((Doc_info.directory() + "/" + "exact.pvd").c_str(),
+                               std::ios::out);
+        pvd_file << "<?xml version=\"1.0\"?>" << std::endl
+                 << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">"
+                 << std::endl
+                 << "<Collection>" << std::endl;
+        pvd_file.close();
+      }
 
     // Trace file
     // ============================================================
