@@ -36,10 +36,17 @@ namespace oomph
     double d_valuederivative_evaltime_by_dvalue_np1 =
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
-    // Create interpolator
+    // Create interpolator: if we are using reduced integration then we
+    // want a different one (optimised for RI).
     MMArrayInterpolator intp;
-    intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
-
+    if(dynamic_cast<ReducedIntegration*>(e_pt->integral_pt()) != 0)
+      {
+        intp.underlying_intp_pt = new ReducedIntegrationInterpolator<5>(e_pt);
+      }
+    else
+      {
+        intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
+      }
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -308,9 +315,17 @@ namespace oomph
     double d_valuederivative_evaltime_by_dvalue_np1 =
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
-    // Create interpolator
+    // Create interpolator: if we are using reduced integration then we
+    // want a different one (optimised for RI).
     MMArrayInterpolator intp;
-    intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
+    if(dynamic_cast<ReducedIntegration*>(e_pt->integral_pt()) != 0)
+      {
+        intp.underlying_intp_pt = new ReducedIntegrationInterpolator<5>(e_pt);
+      }
+    else
+      {
+        intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
+      }
 
     //======================================================================
     /// Begin loop over the knots (integration points)

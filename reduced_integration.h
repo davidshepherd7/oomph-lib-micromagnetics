@@ -8,7 +8,7 @@
 #include "../../src/generic/elements.h"
 
 #include "oomph_factories.h"
-
+#include "array_interpolator.h"
 
 namespace oomph
 {
@@ -142,6 +142,112 @@ public:
   double weight(const unsigned &i) const {return Weight[i];}
 
 };
+
+  /// Reduced integration means we don't actually need to interpolate, so
+  /// this class has the interface of an interpolator without the actual
+  /// calculations.
+  template<unsigned VAL>
+  class ReducedIntegrationInterpolator : public GeneralArrayInterpolator<VAL>
+  {
+  public:
+    /// Constructor
+    ReducedIntegrationInterpolator(const FiniteElement* const this_element,
+                                   const unsigned& time_index=0)
+      : GeneralArrayInterpolator<VAL>(this_element, time_index)
+    {
+      Node_pt = 0;
+      Node_number = 0;
+
+#ifdef PARANOID
+      if(this->This_element->has_hanging_nodes())
+        {
+          std::string err = "Not designed for use with hanging nodes, you would need to use non raw nodal values functions, write a new but similar class if you really need hanging nodes.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+    }
+
+    /// Virtual destructor
+    virtual ~ReducedIntegrationInterpolator() {}
+
+    void build(const Vector<double>& s_in)
+      {
+        Node_pt = this->This_element->get_node_at_local_coordinate(s_in);
+        Node_number = this->This_element->get_node_number(Node_pt);
+
+        GeneralArrayInterpolator<VAL>::build(s_in);
+      }
+
+    /// Interpolate evaluation position
+    void interpolate_x()
+    {
+      for(unsigned j=0; j<this->Dim; j++)
+        {
+          this->X[j] = Node_pt->x(j);
+        }
+    }
+
+    void interpolate_dxdt()
+      {
+        for(unsigned j=0; j<this->Dim; j++)
+          {
+            this->Dxdt[j] = Node_pt->dx_dt(j);
+          }
+      }
+
+    void interpolate_values(const unsigned &start,
+                            const unsigned &end)
+    {
+      for(unsigned j=start; j<end; j++)
+        {
+          this->Values[j] = Node_pt->value(j);
+        }
+    }
+
+    void interpolate_dvaluesdt(const unsigned &start,
+                               const unsigned &end)
+    {
+      for(unsigned j=start; j<end; j++)
+        {
+          // still need to interpolate in time
+          this->Dvaluesdt[j] = 0;
+          for(unsigned i_tm=0; i_tm<this->Nprev_value_derivative; i_tm++)
+            {
+              this->Dvaluesdt[j] += Node_pt->value(i_tm, j)
+                * (*this->Ts_weights_pt)(1, i_tm);
+            }
+        }
+    }
+
+    void interpolate_dvaluesdx(const unsigned &i_val)
+    {
+      for(unsigned i_direc=0; i_direc<this->Dim; i_direc++)
+        {
+          this->Dvaluesdx[i_val][i_direc] =
+            Node_pt->value(this->Time_index, i_val)
+            * this->Dpsidx(Node_number, i_direc);
+        }
+    }
+
+  private:
+
+    /// The node which we are faking interpolation at
+    Node* Node_pt;
+
+    /// and it's number
+    unsigned Node_number;
+
+    /// Broken copy constructor
+    ReducedIntegrationInterpolator(const ReducedIntegrationInterpolator& dummy)
+    {BrokenCopy::broken_copy("ReducedIntegrationInterpolator");}
+
+    /// Broken assignment operator
+    void operator=(const ReducedIntegrationInterpolator& dummy)
+    {BrokenCopy::broken_assign("ReducedIntegrationInterpolator");}
+
+  };
+
 
 } // End of oomph namespace
 
