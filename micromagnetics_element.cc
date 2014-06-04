@@ -89,7 +89,7 @@ namespace oomph
   (const Vector<double> &s, Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    MMArrayInterpolator<5> intp(this);
+    MMArrayInterpolator intp(this);
     intp.build(s);
     get_magnetostatic_field(&intp, h_magnetostatic);
   }
@@ -124,7 +124,7 @@ namespace oomph
   /// calculations when we aleady have an interpolator (e.g. during
   /// residual calculations).
   void MicromagEquations::get_magnetostatic_field
-  (MMArrayInterpolator<5>* intp_pt, Vector<double> &h_magnetostatic) const
+  (MMArrayInterpolator* intp_pt, Vector<double> &h_magnetostatic) const
   {
 #ifdef PARANOID
     if(intp_pt == 0)
@@ -209,7 +209,7 @@ namespace oomph
       {
         get_s_plot(iplot, n_plot, s);
 
-        MMArrayInterpolator<5> intp(this, t);
+        MMArrayInterpolator intp(this, t);
         intp.build(s);
 
         // output eulerian coordinates of plot point

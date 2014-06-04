@@ -8,7 +8,7 @@
 namespace oomph
 {
   void ImplicitMagnetostaticsCalculator::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                           Vector<double> &hms) const
   {
     // Make sure the field has 3 dimensions (even if there are only two
@@ -46,7 +46,7 @@ namespace oomph
   }
 
   void SemiImplicitMagnetostaticsCalculator::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                           Vector<double> &h_ms) const
   {
     // Get magnetostatic field from field element. Safe to assume that all
@@ -67,7 +67,7 @@ namespace oomph
   }
 
   void AnalyticalMagnetostatics::
-  get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                           Vector<double> &h_ms) const
   {
 #ifdef PARANOID

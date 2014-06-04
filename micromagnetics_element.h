@@ -43,7 +43,7 @@ namespace oomph
   template <class ELEMENT> class MicromagFluxElement;
 
   class MMInterpolator;
-  template<unsigned VAL> class MMArrayInterpolator;
+  class MMArrayInterpolator;
 
   //==============================================================================
   /// A class for the maths used in solving the Landau-Lifshitz-Gilbert equations.
@@ -289,7 +289,7 @@ namespace oomph
     /// \short Calculation of magnetostatic field. Optimised version for
     /// calculations when we aleady have an interpolator (e.g. during
     /// residual calculations).
-    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    virtual void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                                          Vector<double> &h_magnetostatic) const;
 
     /// Get the time derivative of the magnetostatic field at a point.
@@ -1010,8 +1010,7 @@ namespace oomph
     }
   };
 
-  template<unsigned VAL>
-  class MMArrayInterpolator : public GeneralArrayInterpolator<VAL>
+  class MMArrayInterpolator : public GeneralArrayInterpolator<5>
   {
     // Assumption: m_index_micromag(0 - 3) are consecutive.
 
@@ -1030,7 +1029,7 @@ namespace oomph
     /// Default constructor
     MMArrayInterpolator(const FiniteElement* const this_element,
                         const unsigned& time_index=0)
-      : GeneralArrayInterpolator<VAL>(this_element, time_index),
+      : GeneralArrayInterpolator<5>(this_element, time_index),
         Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue),
         This_element(checked_dynamic_cast<const MicromagEquations*>(this_element))
     {}
@@ -1045,7 +1044,7 @@ namespace oomph
       Div_m = InterpolatorHelpers::NotYetCalculatedValue;
 
       // Call the base version to initialise the rest
-      GeneralArrayInterpolator<VAL>::build(s);
+      GeneralArrayInterpolator<5>::build(s);
     }
 
     double phi() {return this->value()[This_element->phi_index_micromag()];}

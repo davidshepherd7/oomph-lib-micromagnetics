@@ -10,7 +10,7 @@ namespace oomph
 {
 
   class MMInterpolator;
-  template<unsigned VAL> class MMArrayInterpolator;
+  class MMArrayInterpolator;
   class MagnetostaticFieldEquations;
 
   /// Class to calculate magnetostatic field
@@ -19,7 +19,7 @@ namespace oomph
   public:
     virtual ~MagnetostaticsCalculator() {}
 
-    virtual void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    virtual void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                                          Vector<double> &H_ms) const=0;
     virtual void get_magnetostatic_field_time_derivative
     (MMInterpolator* intp_pt, Vector<double> &H_ms) const=0;
@@ -36,7 +36,7 @@ namespace oomph
 
     virtual ~ImplicitMagnetostaticsCalculator() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
@@ -58,7 +58,7 @@ namespace oomph
 
     virtual ~SemiImplicitMagnetostaticsCalculator() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
@@ -102,7 +102,7 @@ namespace oomph
 
     virtual ~AnalyticalMagnetostatics() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator<5>* intp_pt,
+    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
