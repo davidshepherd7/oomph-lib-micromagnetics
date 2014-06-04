@@ -37,7 +37,9 @@ namespace oomph
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
     // Create interpolator
-    MMArrayInterpolator intp(e_pt);
+    MMArrayInterpolator intp;
+    intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
+
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -307,7 +309,8 @@ namespace oomph
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
     // Create interpolator
-    MMArrayInterpolator intp(e_pt);
+    MMArrayInterpolator intp;
+    intp.underlying_intp_pt = new GeneralArrayInterpolator<5>(e_pt);
 
     //======================================================================
     /// Begin loop over the knots (integration points)
