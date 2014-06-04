@@ -237,6 +237,9 @@ namespace oomph
         m_index[j] = bulk_element_pt()->m_index_micromag(j);
       }
 
+    // Create interpolator (deals with midpoint weirdness, so still
+    // very useful even for such a simple residual).
+    FaceElementArrayInterpolator<5> intp(this);
 
     //Loop over the integration points
     //--------------------------------
@@ -247,9 +250,8 @@ namespace oomph
         Vector<double> s(dim-1);
         for(unsigned i=0; i<(dim-1); i++) {s[i] = integral_pt()->knot(ipt, i);}
 
-        // Create interpolator (deals with midpoint weirdness, so still
-        // very useful even for such a simple residual).
-        FaceElementArrayInterpolator<5> intp(this, s);
+        // Set up interpolator at this point
+        intp.build(s);
 
         const double W = integral_pt()->weight(ipt) * intp.j();
 

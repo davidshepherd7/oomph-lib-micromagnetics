@@ -21,11 +21,16 @@ namespace oomph
 
    * No need to template by DIM or Nnode: it has no effect on speed (tested).
 
+   * Ideally the interfaces should inherited from some base class for both
+     array and vector based interpolators, but that would require returning
+     a pair of iterators instead of vectors/arrays. This would make
+     everything else much more complex...
+
 
    TODO:
 
    * We really have two classes here: a memoiser and an interpolator.  Split
-   them. Memoising interface over an interpolator is probably best, then we
+   them? Memoising interface over an interpolator is probably best, then we
    can swap the interpolator out without breaking any memoising.
 
    * Pass in parameter for time deriv order to interpolation (instead of
@@ -43,8 +48,6 @@ namespace oomph
   public:
     /// Default constructor
     GeneralArrayInterpolator(const FiniteElement* const this_element,
-                             const Vector<double> &s,
-                             bool call_build=true,
                              const unsigned& time_index=0)
       :
       // Cache some loop end conditions
@@ -67,9 +70,6 @@ namespace oomph
       Dpsidx(Nnode, Dim),
       Dtestdx(Nnode, Dim),
 
-    // Copy local position
-      S(s),
-
     // Negative time to signify that it has not been calculated yet
       Intp_time(NotYetCalculatedValue),
 
@@ -88,41 +88,46 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
-
-      // Initialise storage. ??ds we could avoid this initialisation and
-      // the use of a NotYetCalculatedValue by storing pointers to the
-      // values and pointers to the storage separately, then when the value
-      // is calculated the pointer to the value is set to point to the
-      // storage. In this way storage is statically allocated but not
-      // initialised (for speed), and we still get the benefits of
-      // memoisation.
-      for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
-      for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
-      for(unsigned i=0; i<VAL; i++) Values[i] = NotYetCalculatedValue;
-      for(unsigned i=0; i<VAL; i++) Dvaluesdt[i] = NotYetCalculatedValue;
-      for(unsigned i=0; i<VAL; i++)
-        {
-          for(unsigned j=0; j<3; j++) Dvaluesdx[i][j] = NotYetCalculatedValue;
-        }
-
-      if(call_build)
-        {
-          build();
-        }
     }
 
-    virtual void build()
+    virtual void build(const Vector<double>& s_in)
       {
-        // Set up shape + test functions
+        // copy local position
+        S = s_in;
+
+        // Set up shape + test functions for this position
         J = This_element->dshape_eulerian(s(), Psi, Dpsidx);
         Test = Psi;
         Dtestdx = Dpsidx;
+
+        // Clear memoised values
+        initialise_storage();
 
         // Find out if any nodes in this element are hanging
         Has_hanging_nodes = This_element->has_hanging_nodes();
 
         // If paranoid check that all nodes have the same nvalues.
         InterpolatorHelpers::check_nvalues_in_element_same(This_element);
+      }
+
+    // Initialise storage.
+    void initialise_storage()
+      {
+        // ??ds we could avoid this initialisation and the use of a
+        // NotYetCalculatedValue by storing pointers to the values and
+        // pointers to the storage separately, then when the value is
+        // calculated the pointer to the value is set to point to the
+        // storage. In this way storage is statically allocated but not
+        // initialised (for speed), and we still get the benefits of
+        // memoisation.
+        for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
+        for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
+        for(unsigned i=0; i<VAL; i++) Values[i] = NotYetCalculatedValue;
+        for(unsigned i=0; i<VAL; i++) Dvaluesdt[i] = NotYetCalculatedValue;
+        for(unsigned i=0; i<VAL; i++)
+          {
+            for(unsigned j=0; j<3; j++) Dvaluesdx[i][j] = NotYetCalculatedValue;
+          }
       }
 
     /// Destructor
@@ -505,21 +510,22 @@ namespace oomph
 
   public:
 
-    /// Constructor, jsut use underlying interpolator
-    FaceElementArrayInterpolator(const FaceElement* this_element,
-                                   const Vector<double> &s)
-      : GeneralArrayInterpolator<VAL>(this_element, s, false)
-    {
-      build();
-    }
+    /// Constructor, just use underlying interpolator
+    FaceElementArrayInterpolator(const FaceElement* this_element)
+      : GeneralArrayInterpolator<VAL>(this_element) {}
 
-
-    virtual void build()
+    /// build: construct the shape/test functions (but not derivatives).
+    virtual void build(const Vector<double>& s_in)
     {
+      this->S = s_in;
+
       // Set up shape + test functions
       this->J = this->This_element->J_eulerian(this->s());
       this->This_element->shape(this->s(), this->Psi);
       this->Test = this->Psi;
+
+      // Clear memoised values from base class
+      this->initialise_storage();
 
       // Find out if any nodes in this element are hanging
       this->Has_hanging_nodes = this->This_element->has_hanging_nodes();

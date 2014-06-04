@@ -36,6 +36,8 @@ namespace oomph
     double d_valuederivative_evaltime_by_dvalue_np1 =
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
+    // Create interpolator
+    MMArrayInterpolator<5> intp(e_pt);
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -48,9 +50,8 @@ namespace oomph
         Vector<double> s(eldim);
         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
-        // Create interpolator //??ds maybe should move this out of loop,
-        // add .new_point() function or something?
-        MMArrayInterpolator<5> intp(e_pt, s);
+        // Set up interpolator for this point
+        intp.build(s);
 
         double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
@@ -305,6 +306,9 @@ namespace oomph
     double d_valuederivative_evaltime_by_dvalue_np1 =
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
+    // Create interpolator
+    MMArrayInterpolator<5> intp(e_pt);
+
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
@@ -316,9 +320,8 @@ namespace oomph
         Vector<double> s(eldim);
         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
-        // Create interpolator //??ds maybe should move this out of loop,
-        // add .new_point() function or something?
-        MMArrayInterpolator<5> intp(e_pt, s);
+        // Set up interpolator for this point
+        intp.build(s);
 
         double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 

@@ -1029,11 +1029,24 @@ namespace oomph
 
     /// Default constructor
     MMArrayInterpolator(const FiniteElement* const this_element,
-                        const Vector<double> &s,
                         const unsigned& time_index=0)
-      : GeneralArrayInterpolator<VAL>(this_element, s, true, time_index),
-        Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue)
+      : GeneralArrayInterpolator<VAL>(this_element, time_index),
+        Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue),
+        This_element(checked_dynamic_cast<const MicromagEquations*>(this_element))
     {}
+
+
+    /// Overload build to also initialise our new variables
+    void build(const Vector<double>& s)
+    {
+      // Initialise this class' storage
+      Dmdt = 0;
+      M = 0;
+      Div_m = InterpolatorHelpers::NotYetCalculatedValue;
+
+      // Call the base version to initialise the rest
+      GeneralArrayInterpolator<VAL>::build(s);
+    }
 
     double phi() {return this->value(This_element->phi_index_micromag());}
     const double* dphidx()
