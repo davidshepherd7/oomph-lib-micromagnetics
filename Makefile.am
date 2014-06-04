@@ -21,8 +21,8 @@ sources = micromagnetics_element.cc \
 	my_generic_problem.cc \
 	magnetics_helpers.cc \
 	magnetostatics_calculator.cc \
-	vector_helpers.cc
-
+	vector_helpers.cc \
+	cayley_integrators.cc
 
 # Include files which shouldn't be compiled
 incl_cc_files =
@@ -63,7 +63,9 @@ headers = array_interpolator.h \
 	llg_preconditioners.h \
 	tr.h \
 	simpler_cubic_mesh.h \
-	reduced_integration.h
+	reduced_integration.h \
+	cayley_integrators.h
+
 
 
 # If we have hlib then compile that header too

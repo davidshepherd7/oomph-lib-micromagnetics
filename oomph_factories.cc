@@ -24,6 +24,7 @@
 #include "../../src/generic/midpoint_method.h"
 #include "../../src/generic/explicit_timesteppers.h"
 #include "tr.h"
+#include "cayley_integrators.h"
 
 
 // Preconditioner factories
@@ -62,6 +63,14 @@ namespace oomph
       else if (ts_name == "euler")
         {
           return new Euler;
+        }
+      else if(ts_name == "cay-euler")
+        {
+          return new CayleyEuler;
+        }
+      else if(ts_name == "cay-rk2")
+        {
+          return new CayleyRK2;
         }
       else
         {
