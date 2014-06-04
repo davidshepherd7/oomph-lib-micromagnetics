@@ -1010,7 +1010,7 @@ namespace oomph
     }
   };
 
- class MMArrayInterpolator
+  class MMArrayInterpolator : public GeneralArrayInterpolator<5>
   {
     // Assumption: m_index_micromag(0 - 3) are consecutive.
 
@@ -1018,27 +1018,21 @@ namespace oomph
 
     // Extra storage for magnetisation values, so we can have nicer access
     // to them.
-    const double* Dmdt;
-    const double* M;
+    double* Dmdt;
+    double* M;
     double Div_m;
 
     const MicromagEquations* This_element;
 
   public:
 
-    GeneralArrayInterpolator<5>* underlying_intp_pt;
-
     /// Default constructor
-    MMArrayInterpolator() : Dmdt(0), M(0),
-                            Div_m(InterpolatorHelpers::NotYetCalculatedValue)
+    MMArrayInterpolator(const FiniteElement* const this_element,
+                        const unsigned& time_index=0)
+      : GeneralArrayInterpolator<5>(this_element, time_index),
+        Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue),
+        This_element(checked_dynamic_cast<const MicromagEquations*>(this_element))
     {}
-
-
-    /// Destructor: clean up real interpolator
-    virtual ~MMArrayInterpolator()
-    {
-      delete underlying_intp_pt; underlying_intp_pt = 0;
-    }
 
 
     /// Overload build to also initialise our new variables
@@ -1050,36 +1044,24 @@ namespace oomph
       Div_m = InterpolatorHelpers::NotYetCalculatedValue;
 
       // Call the base version to initialise the rest
-      underlying_intp_pt->build(s);
+      GeneralArrayInterpolator<5>::build(s);
     }
 
-    double phi()
-    {
-      return underlying_intp_pt->value()[This_element->phi_index_micromag()];
-    }
-
+    double phi() {return this->value()[This_element->phi_index_micromag()];}
     const double* dphidx()
-    {
-      return underlying_intp_pt->dvaluedx(This_element->phi_index_micromag());
-    }
+    {return this->dvaluedx(This_element->phi_index_micromag());}
 
-    double phi1()
-    {
-      return underlying_intp_pt->value()[This_element->phi_1_index_micromag()];
-    }
-
+    double phi1() {return this->value()[This_element->phi_1_index_micromag()];}
     const double* dphi1dx()
-    {
-      return underlying_intp_pt->dvaluedx(This_element->phi_1_index_micromag());
-    }
+    {return this->dvaluedx(This_element->phi_1_index_micromag());}
 
     const double* m()
     {
       if(InterpolatorHelpers::uninitialised(M))
         {
-          underlying_intp_pt->interpolate_values
-            (This_element->m_index_micromag(0), This_element->m_index_micromag(2) + 1);
-          M = underlying_intp_pt->value() + This_element->m_index_micromag(0);
+          this->interpolate_values(This_element->m_index_micromag(0),
+                                   This_element->m_index_micromag(2) + 1);
+          M = this->Values + This_element->m_index_micromag(0);
         }
       return M;
     }
@@ -1088,17 +1070,17 @@ namespace oomph
     {
       if(InterpolatorHelpers::uninitialised(Dmdt))
         {
-          underlying_intp_pt->interpolate_dvaluesdt
-            (This_element->m_index_micromag(0), This_element->m_index_micromag(2) + 1);
+          this->interpolate_dvaluesdt(This_element->m_index_micromag(0),
+                                      This_element->m_index_micromag(2) + 1);
 
-          Dmdt = underlying_intp_pt->dvaluedt() + This_element->m_index_micromag(0);
+          Dmdt = this->Dvaluesdt + This_element->m_index_micromag(0);
         }
       return Dmdt;
     }
 
     const double* dmdx(const unsigned &i_val)
     {
-      return underlying_intp_pt->dvaluedx(This_element->m_index_micromag(i_val));
+      return this->dvaluedx(This_element->m_index_micromag(i_val));
     }
 
     double div_m()
@@ -1106,78 +1088,11 @@ namespace oomph
       if(InterpolatorHelpers::uninitialised(Div_m))
         {
           Div_m = 0;
-          for(unsigned j=0; j<underlying_intp_pt->dim(); j++)
-            {
-              Div_m += dmdx(j)[j];
-            }
+          for(unsigned j=0; j<this->Dim; j++) Div_m += dmdx(j)[j];
         }
       return Div_m;
     }
-
-    // Interface functions which just go to underlying interpolator
-    double time()
-    {
-      return underlying_intp_pt->time();
-    }
-
-    const double* x()
-    {
-      return underlying_intp_pt->x();
-    }
-
-    const double* dxdt()
-    {
-      return underlying_intp_pt->dxdt();
-    }
-
-    double j() const
-    {
-      return underlying_intp_pt->j();
-    }
-
-    const Vector<double>& s() const
-    {
-      return underlying_intp_pt->s();
-    }
-
-    double psi(const unsigned &i) const {return underlying_intp_pt->psi(i);}
-    double test(const unsigned &i) const {return underlying_intp_pt->test(i);}
-    double dpsidx(const unsigned &i, const unsigned &i_direc) const
-    {return underlying_intp_pt->dpsidx(i, i_direc);}
-    double dtestdx(const unsigned &i, const unsigned &i_direc) const
-    {return underlying_intp_pt->dtestdx(i, i_direc);}
-    TimeStepper* ts_pt() const {return underlying_intp_pt->ts_pt();}
-    unsigned dim() const {return underlying_intp_pt->dim();}
   };
-
-
-  class SimpleMMArrayInterpolator : public MMArrayInterpolator
-  {
-  public:
-    /// Constructor
-    SimpleMMArrayInterpolator(const FiniteElement* const this_element,
-                              const unsigned& time_index=0)
-
-    {
-      this->underlying_intp_pt =
-        new GeneralArrayInterpolator<5>(this_element, time_index);
-    }
-
-    /// Virtual destructor
-    virtual ~SimpleMMArrayInterpolator() {}
-
-  private:
-    /// Broken copy constructor
-    SimpleMMArrayInterpolator(const SimpleMMArrayInterpolator& dummy)
-    {BrokenCopy::broken_copy("SimpleMMArrayInterpolator");}
-
-    /// Broken assignment operator
-    void operator=(const SimpleMMArrayInterpolator& dummy)
-    {BrokenCopy::broken_assign("SimpleMMArrayInterpolator");}
-
-  };
-
-
 
 
   // =================================================================

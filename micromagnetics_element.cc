@@ -89,7 +89,7 @@ namespace oomph
   (const Vector<double> &s, Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    SimpleMMArrayInterpolator intp(this);
+    MMArrayInterpolator intp(this);
     intp.build(s);
     get_magnetostatic_field(&intp, h_magnetostatic);
   }
@@ -209,7 +209,7 @@ namespace oomph
       {
         get_s_plot(iplot, n_plot, s);
 
-        SimpleMMArrayInterpolator intp(this, t);
+        MMArrayInterpolator intp(this, t);
         intp.build(s);
 
         // output eulerian coordinates of plot point
