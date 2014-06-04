@@ -213,7 +213,7 @@ namespace oomph
         intp.build(s);
 
         // output eulerian coordinates of plot point
-        for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x(i) << " ";
+        for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x()[i] << " ";
 
         // Output the magnetostatic at this point (for both decoupled and
         // fully coupled methods).

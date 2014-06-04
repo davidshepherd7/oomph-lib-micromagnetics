@@ -265,7 +265,7 @@ namespace oomph
         double mdotn = 0.0;
         for(unsigned j=0; j<dim; j++)
           {
-            mdotn += intp.value(m_index[j]) * normal[j];
+            mdotn += intp.value()[m_index[j]] * normal[j];
           }
 
         // Loop over the test functions doing residual and Jacobian

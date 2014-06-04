@@ -18,7 +18,7 @@ namespace oomph
     const double* hms_temp;
     // Copy the derivative elements into the field vector (it only has
     // [nodal dimension] entries).
-    hms_temp = intp_pt->dvaluedx(phi_index_micromag());
+    hms_temp = intp_pt->dphidx();
 
     // Multiply by -1
     for(unsigned j=0; j<3; j++)

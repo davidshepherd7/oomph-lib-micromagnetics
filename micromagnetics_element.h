@@ -1048,11 +1048,11 @@ namespace oomph
       GeneralArrayInterpolator<VAL>::build(s);
     }
 
-    double phi() {return this->value(This_element->phi_index_micromag());}
+    double phi() {return this->value()[This_element->phi_index_micromag()];}
     const double* dphidx()
     {return this->dvaluedx(This_element->phi_index_micromag());}
 
-    double phi1() {return this->value(This_element->phi_1_index_micromag());}
+    double phi1() {return this->value()[This_element->phi_1_index_micromag()];}
     const double* dphi1dx()
     {return this->dvaluedx(This_element->phi_1_index_micromag());}
 

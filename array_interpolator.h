@@ -25,6 +25,7 @@ namespace oomph
      array and vector based interpolators, but that would require returning
      a pair of iterators instead of vectors/arrays. This would make
      everything else much more complex...
+     - maybe we can try templating by the return type?
 
 
    TODO:
@@ -144,17 +145,11 @@ namespace oomph
 
     unsigned dim() const {return Dim;}
 
-    double x(const unsigned &i)
-    {return x()[i];}
-
     const double* x()
     {
       if(uninitialised(X)) interpolate_x();
       return X;
     }
-
-    double dxdt(const unsigned &i)
-    {return dxdt()[i];}
 
     const double* dxdt()
     {
@@ -162,27 +157,17 @@ namespace oomph
       return Dxdt;
     }
 
-    double value(const unsigned &i_val)
-    {return value()[i_val];}
-
     const double* value()
     {
       if(uninitialised(Values)) interpolate_values(0, VAL);
       return Values;
     }
 
-    double dvaluedt(const unsigned &i_val)
-    {return dvaluedt()[i_val];}
-
     const double* dvaluedt()
     {
       if(uninitialised(Dvaluesdt)) interpolate_dvaluesdt(0, VAL);
       return Dvaluesdt;
     }
-
-    double dvaluedx(const unsigned &i_val, const unsigned &direction)
-    {return dvaluedx(i_val)[direction];}
-
 
     const double* dvaluedx(const unsigned &i_val)
     {
