@@ -1031,9 +1031,7 @@ namespace oomph
     /// Default constructor
     MMArrayInterpolator() : Dmdt(0), M(0),
                             Div_m(InterpolatorHelpers::NotYetCalculatedValue)
-    {
-      underlying_intp_pt = 0;
-    }
+    {}
 
 
     /// Destructor: clean up real interpolator
