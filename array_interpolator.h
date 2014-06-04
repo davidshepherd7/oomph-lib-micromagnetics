@@ -90,6 +90,7 @@ namespace oomph
 #endif
     }
 
+
     virtual void build(const Vector<double>& s_in)
       {
         // copy local position
@@ -131,7 +132,7 @@ namespace oomph
       }
 
     /// Destructor
-    ~GeneralArrayInterpolator() {}
+    virtual ~GeneralArrayInterpolator() {}
 
     double time()
     {
@@ -204,14 +205,14 @@ namespace oomph
 
 
     /// Interpolate evaluation position
-    void interpolate_x()
+    virtual void interpolate_x()
     {
       if(!Has_hanging_nodes) {interpolate_x_raw();}
       else {interpolate_x_with_hanging_nodes();}
     }
 
     /// Interpolate derivative of position
-    void interpolate_dxdt()
+    virtual void interpolate_dxdt()
     {
       if(!Has_hanging_nodes) {interpolate_dxdt_raw();}
       else {interpolate_dxdt_with_hanging_nodes();}
@@ -219,7 +220,7 @@ namespace oomph
     }
 
     /// Interpolate evaluation time
-    double interpolate_time()
+    virtual double interpolate_time()
     {
       //??ds get rid of?
       double time = 0.0;
@@ -229,21 +230,21 @@ namespace oomph
     }
 
     // Interpolate values (by default get all, optionally just get some range.
-    void interpolate_values(const unsigned &start,
+    virtual void interpolate_values(const unsigned &start,
                             const unsigned &end)
     {
       if(!Has_hanging_nodes) {interpolate_values_raw(start, end);}
       else {interpolate_values_with_hanging_nodes(start, end);}
     }
 
-    void interpolate_dvaluesdt(const unsigned &start,
+    virtual void interpolate_dvaluesdt(const unsigned &start,
                                const unsigned &end)
     {
       if(!Has_hanging_nodes) {interpolate_dvaluesdt_raw(start, end);}
       else {interpolate_dvaluesdt_with_hanging_nodes(start, end);}
     }
 
-    void interpolate_dvaluesdx(const unsigned &i_val)
+    virtual void interpolate_dvaluesdx(const unsigned &i_val)
     {
       if(!Has_hanging_nodes) {interpolate_dvaluesdx_raw(i_val);}
       else {interpolate_dvaluesdx_with_hanging_nodes(i_val);}
