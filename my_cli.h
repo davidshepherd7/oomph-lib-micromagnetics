@@ -80,9 +80,6 @@ namespace oomph
         specify_command_line_flag("-newton-tol", &newton_tol, "Newton solver tolerance");
         newton_tol = 1e-8;
 
-        specify_command_line_flag("-newton-rtol", &newton_tol, "Newton solver relative tolerance");
-        newton_relative_tol = 1e-8;
-
         specify_command_line_flag("-newton-max-residual", &newton_max_residual,
                                   "Maximum Newton residual before we give up");
         newton_max_residual = 10.0;
@@ -380,7 +377,6 @@ namespace oomph
     int mp_update_pinned;
 
     double newton_tol;
-    double newton_relative_tol;
     double newton_max_residual;
     unsigned newton_max_iterations;
     int crash_newton_fail;

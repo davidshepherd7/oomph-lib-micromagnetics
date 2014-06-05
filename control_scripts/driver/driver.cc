@@ -179,7 +179,6 @@ int main(int argc, char *argv[])
   // Assign general purpose parameters
   problem_pt->linear_solver_pt() = args_pt->solver_pt;
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
-  problem_pt->newton_solver_relative_tolerance() = args_pt->newton_relative_tol;
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
   problem_pt->Exact_solution_pt = args_pt->exact_solution_pt();
