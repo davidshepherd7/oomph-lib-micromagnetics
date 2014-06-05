@@ -332,7 +332,7 @@ def main():
     parser.add_argument('--print-all-data', action='store_true',
                         help='Pretty print all data to stdout')
 
-    parser.add_argument('--plots', '-p', action='append',
+    parser.add_argument('--plots', '-p', action='append', default=[],
                         help='choose what to plot (default "m")')
 
     parser.add_argument('--print-data', '-v', action='append', default=[],
@@ -366,8 +366,8 @@ def main():
 
     # Handle some defaults like this instead of inside argparse otherwise
     # arguments are appended to defaults rather than replacing them.
-    if args.plots is None:
-        print("No plots requested, so plotting magnetisations")
+    if args.plots + args.print_data == []:
+        print("No plots or prints requested, so plotting magnetisations")
         args.plots = ['m']
 
     if (args.dir is None) or (args.dir == []):
