@@ -603,6 +603,49 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_err_scatter)
         figs.extend(newfigs)
 
+    if 'scatter-ml-newtres' in args.plots:
+
+        def mean_min(dataset):
+            mins = []
+            for residuals in dataset:
+                if len(residuals) > 0:
+                    mins.append(min(residuals))
+
+            return sp.mean(mins)
+
+        fplot = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='m_length_error_means',
+              y_operation=max,
+              x_value='newton_residuals',
+              x_operation=mean_min)
+
+        newfigs = multi_plot(all_results, args.split, fplot)
+        figs.extend(newfigs)
+
+    if 'scatter-ml-initialnewtres' in args.plots:
+
+        def mean_initial(dataset):
+            initial = []
+            for residuals in dataset:
+                if len(residuals) > 0:
+                    initial.append(residuals[0])
+
+            return sp.mean(initial)
+
+        fplot = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='m_length_error_means',
+              y_operation=max,
+              x_value='newton_residuals',
+              x_operation=mean_initial)
+
+        newfigs = multi_plot(all_results, args.split, fplot)
+        figs.extend(newfigs)
 
     if 'scatter-newt' in args.plots:
         plot_mean_step_times_scatter = \
