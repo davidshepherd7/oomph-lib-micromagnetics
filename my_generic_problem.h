@@ -267,6 +267,8 @@ using namespace StringConversion;
       Solver_times.push_back
         (this->mass_matrix_solver_pt()->linear_solver_solution_time());
 
+      // No non-linear residuals to store
+
       const IterativeLinearSolver* its_pt
         = dynamic_cast<const IterativeLinearSolver*>(this->mass_matrix_solver_pt());
       if(its_pt != 0)
