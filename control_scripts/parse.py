@@ -279,13 +279,13 @@ def multi_print(data, keys_to_split_on, print_function):
         for k in keys_to_split_on:
             try:
                 this_str = str(dataset[0][k])
-                labels.append(this_str)
+                labels.append(str(k) + " = " + this_str + "; ")
 
             # Ignore keys that don't exist
             except KeyError:
                 pass
 
-        print(' '.join(labels))
+        print(''.join(labels))
 
         # Print data
         print_function(dataset)
@@ -294,13 +294,21 @@ def multi_print(data, keys_to_split_on, print_function):
     return
 
 
-def data_print(datasets, to_print, delim="; "):
+def data_print(datasets, to_print, delim="; ", labels=None):
 
+    if labels is None:
+        labels = []
+
+    # Also print labels
+    to_print = to_print + [(l, None) for l in labels]
+
+    # Print headers for each column
     for a, op in to_print:
         print(make_label(a, op), end=delim)
 
     print()
 
+    # Print the values for each dataset
     for d in datasets:
         for a, op in to_print:
             if op is None:
@@ -618,7 +626,8 @@ def main():
           par(data_print,
               to_print=[('initial_nnode', None),
                         ('-ts', None),
-                        ('total_step_time', sp.mean)])
+                        ('total_step_time', sp.mean)],
+              labels=args.label)
 
         multi_print(all_results, args.split, print_mean_step_times)
 
@@ -628,7 +637,8 @@ def main():
         print_mean_step_times = \
           par(data_print,
               to_print=[('-ts', None),
-                        ('m_length_error_means', max)])
+                        ('m_length_error_means', max)],
+              labels=args.label)
 
         multi_print(all_results, args.split, print_mean_step_times)
 
