@@ -361,6 +361,9 @@ def main():
     parser.add_argument('--filter', '-f', action='append', default=[],
                         help="""Filter runs based on parameters. Input should be a python pair like ('-tol', 1e-3) where the first entry is the dictionary key to check and the second entry is the value it should take. Note the quotes around the key.""")
 
+    parser.add_argument('--not-filter', action='append', default=[],
+                        help="""Oposite of -filter: only use runs with other values of this parameter. Input should be a python pair like ('-tol', 1e-3) where the first entry is the dictionary key to check and the second entry is the value it should not take. Note the quotes around the key.""")
+
     parser.add_argument('--save-to-dir',
                         help='Save figures as pdfs into the specified folder.')
 
@@ -418,6 +421,12 @@ def main():
         print("filtering with", f)
         key, value = ast.literal_eval(f)
         all_results = [d for d in all_results if d[key] == value]
+
+    for f in args.not_filter:
+        print("filtering with !", f)
+        key, value = ast.literal_eval(f)
+        all_results = [d for d in all_results if d[key] != value]
+
 
 
     # Do actual plots
