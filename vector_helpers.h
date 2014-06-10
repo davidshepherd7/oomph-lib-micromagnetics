@@ -8,6 +8,7 @@
 #include <functional>
 #include <set>
 #include <algorithm>
+#include <list>
 
 #include "../../src/generic/Vector.h"
 #include "../../src/generic/oomph_utilities.h"
