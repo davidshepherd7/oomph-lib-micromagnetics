@@ -171,7 +171,7 @@ namespace oomph
       const unsigned ni = Weight.size();
       for(unsigned i=0; i<ni; i++)
         {
-          Weight[i] *= Mean_element_volume;
+          Weight[i] /= Mean_element_volume;
         }
     }
 
