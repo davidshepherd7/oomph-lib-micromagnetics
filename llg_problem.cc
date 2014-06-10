@@ -39,6 +39,31 @@ namespace oomph
     // Call the underlying build to deal with adding meshes and time stepper
     MyProblem::build(bulk_mesh_pts);
 
+    // If we are using RRI we need to get element volumes for scaling
+    double mean_elemental_volume = 0;
+    if(Rescale_reduced_integration)
+      {
+        Vector<double> volumes;
+
+        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+          {
+            for(unsigned i=0; i<mesh_pt(msh)->nelement(); i++)
+              {
+                FiniteElement* elem_pt = mesh_pt(msh)->finite_element_pt(i);
+
+                // if non-surface element
+                if(elem_pt->dim() == dim())
+                  {
+                    // then insert volume to list
+                    volumes.push_back(elem_pt->size());
+                  }
+              }
+          }
+
+
+        mean_elemental_volume = mean(volumes);
+      }
+
     // Finish off element build, at this point we should have only micromag
     // elements in the meshes (so we can loop over all meshes) but we don't
     // have a global mesh yet.
@@ -69,8 +94,19 @@ namespace oomph
             // integration scheme.
             if(Use_reduced_integration)
               {
-                elem_pt->set_integration_scheme(new ReducedIntegration(elem_pt));
-                // automatically built within the constructorn
+                if(Rescale_reduced_integration)
+                  {
+                    elem_pt->set_integration_scheme
+                      (new RescaledReducedIntegration
+                       (elem_pt, mean_elemental_volume));
+                    // automatically built within the constructorn
+                  }
+                else
+                  {
+                    elem_pt->set_integration_scheme
+                      (new ReducedIntegration(elem_pt));
+                    // automatically built within the constructorn
+                  }
               }
           }
       }

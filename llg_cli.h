@@ -86,6 +86,11 @@ namespace oomph
       specify_command_line_flag("-reduced-integration", &use_reduced_integration,
                                 "Use reduced integration for evaluation of elemental integrals (as in e.g. Cimrak2008), required to get geometric properties of IMR.");
       use_reduced_integration = -1;
+
+      specify_command_line_flag("-rri", &use_rri,
+                                "Use rescaled reduced integration for evaluation of elemental integrals.");
+      use_rri = -1;
+
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -155,6 +160,20 @@ namespace oomph
         {
           llg_pt->Use_reduced_integration = bool(use_reduced_integration);
         }
+      else if(use_rri != -1)
+        {
+          llg_pt->Use_reduced_integration = bool(use_rri);
+          llg_pt->Rescale_reduced_integration = bool(use_rri);
+        }
+
+#ifdef PARANOID
+      if(use_rri && use_reduced_integration)
+        {
+          std::string err = "You can only set one integration scheme.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
 
 
       // Dirichlet boundries, just use same function for b.c. as initial
@@ -296,7 +315,9 @@ namespace oomph
     int check_angles;
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
+
     int use_reduced_integration;
+    int use_rri;
 
     std::string ms_method;
 

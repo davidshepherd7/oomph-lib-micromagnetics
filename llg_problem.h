@@ -1149,6 +1149,9 @@ public:
     /// in e.g. Cimrak2008).
     bool Use_reduced_integration;
 
+    /// Rescale the reduced integration weights?
+    bool Rescale_reduced_integration;
+
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();
 
