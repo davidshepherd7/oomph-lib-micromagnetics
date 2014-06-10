@@ -83,14 +83,9 @@ namespace oomph
                                 "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");
       relax_m = -1;
 
-      specify_command_line_flag("-reduced-integration", &use_reduced_integration,
-                                "Use reduced integration for evaluation of elemental integrals (as in e.g. Cimrak2008), required to get geometric properties of IMR.");
-      use_reduced_integration = -1;
-
-      specify_command_line_flag("-rri", &use_rri,
-                                "Use rescaled reduced integration for evaluation of elemental integrals.");
-      use_rri = -1;
-
+      specify_command_line_flag("-integration", &integration_type,
+                                "gauss, ri or rri ([rescaled] reduced integration), default is Gaussian.");
+      integration_type = "gauss";
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -156,24 +151,27 @@ namespace oomph
           llg_pt->Renormalise_each_time_step = renormalise;
         }
 
-      if(use_reduced_integration != -1)
+      if(integration_type == "gauss")
         {
-          llg_pt->Use_reduced_integration = bool(use_reduced_integration);
+          llg_pt->Use_reduced_integration = false;
+          llg_pt->Rescale_reduced_integration = false;
         }
-      else if(use_rri != -1)
+      else if(integration_type == "ri")
         {
-          llg_pt->Use_reduced_integration = bool(use_rri);
-          llg_pt->Rescale_reduced_integration = bool(use_rri);
+          llg_pt->Use_reduced_integration = true;
+          llg_pt->Rescale_reduced_integration = false;
         }
-
-#ifdef PARANOID
-      if(use_rri && use_reduced_integration)
+      else if(integration_type == "rri")
         {
-          std::string err = "You can only set one integration scheme.";
+          llg_pt->Use_reduced_integration = true;
+          llg_pt->Rescale_reduced_integration = true;
+        }
+      else
+        {
+          std::string err = "Unrecognisied integration scheme type" + integration_type;
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
-#endif
 
 
       // Dirichlet boundries, just use same function for b.c. as initial
@@ -316,8 +314,7 @@ namespace oomph
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
 
-    int use_reduced_integration;
-    int use_rri;
+    std::string integration_type;
 
     std::string ms_method;
 
