@@ -42,18 +42,18 @@ namespace oomph
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
-    for(unsigned ipt=0, nipt = e_pt->Residual_integral_pt->nweight(); ipt<nipt; ipt++)
+    for(unsigned ipt=0, nipt = e_pt->integral_pt()->nweight(); ipt<nipt; ipt++)
       {
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
         Vector<double> s(eldim);
-        for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->Residual_integral_pt->knot(ipt,j);}
+        for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
         // Set up interpolator for this point
         intp.build(s);
 
-        double W = e_pt->Residual_integral_pt->weight(ipt) * intp.j();
+        double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
         // Calculate other things:
 
@@ -312,18 +312,18 @@ namespace oomph
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
-    for(unsigned ipt=0, nipt = e_pt->Residual_integral_pt->nweight(); ipt<nipt; ipt++)
+    for(unsigned ipt=0, nipt = e_pt->integral_pt()->nweight(); ipt<nipt; ipt++)
       {
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
         Vector<double> s(eldim);
-        for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->Residual_integral_pt->knot(ipt,j);}
+        for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
         // Set up interpolator for this point
         intp.build(s);
 
-        double W = e_pt->Residual_integral_pt->weight(ipt) * intp.j();
+        double W = e_pt->integral_pt()->weight(ipt) * intp.j();
 
         // cache pointers from interpolator for speed of access
         const double* intp_m = intp.m();

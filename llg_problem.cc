@@ -96,16 +96,16 @@ namespace oomph
               {
                 if(Rescale_reduced_integration)
                   {
-                    elem_pt->Residual_integral_pt =
-                      new RescaledReducedIntegration
-                       (elem_pt, mean_elemental_volume);
-                    // automatically built within the constructor
+                    elem_pt->set_integration_scheme
+                      (new RescaledReducedIntegration
+                       (elem_pt, mean_elemental_volume));
+                    // automatically built within the constructorn
                   }
                 else
                   {
-                    elem_pt->Residual_integral_pt =
-                      new ReducedIntegration(elem_pt);
-                    // automatically built within the constructor
+                    elem_pt->set_integration_scheme
+                      (new ReducedIntegration(elem_pt));
+                    // automatically built within the constructorn
                   }
               }
           }
