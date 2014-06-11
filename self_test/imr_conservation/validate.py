@@ -51,7 +51,7 @@ def main():
 
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
-        '-reduced-integration' : [1],
+        '-integration' : ['rri'],
         }
 
     argdicts_2d = {
@@ -71,7 +71,7 @@ def main():
         '-dt' : [0.1, 0.01],
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
-        '-reduced-integration' : [1],
+        '-integration' : ['rri'],
         }
 
     # Where it's going to end up

@@ -54,7 +54,7 @@ def main():
         '-ref' : [1, 2, 3, 4, 5, 6, 7, 8],
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
-        '-reduced-integration' : [0, 1],
+        '-integration' : ['rri', 'gauss'],
         }
 
     # Where it's going to end up
