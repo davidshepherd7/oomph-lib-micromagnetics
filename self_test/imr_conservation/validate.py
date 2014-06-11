@@ -67,8 +67,9 @@ def main():
 
         # Integration/calculation details
         '-ts' : ["imr"],
-        '-ref' : [2],
-        '-dt' : [0.1, 0.01],
+        '-ref' : [2, 5], # need to test high refinement to check that
+                         # rescaling is working
+        '-dt' : [0.1],
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
         '-integration' : ['rri'],
