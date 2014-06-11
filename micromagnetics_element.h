@@ -60,6 +60,9 @@ namespace oomph
                           Magnetic_parameters_pt(0)
     {
       Ms_calc_pt = 0;
+
+      // Use same integration scheme for everything by default
+      Residual_integral_pt = integral_pt();
     }
 
     /// Virtual destructor
@@ -67,6 +70,9 @@ namespace oomph
     {
       // easiest to just always have own calculator for now...
       delete Ms_calc_pt; Ms_calc_pt = 0;
+
+      //??ds might need to delete Residual_integral_pt, not sure how we can
+      //do this... smart pointers? C++11 or boost needed!
     }
 
     /// Broken copy constructor
@@ -472,6 +478,12 @@ namespace oomph
     /// that we can easily switch between LL and LLG formulations, e.g. for
     /// use in predictor step of adaptive midpoint.
     LLGResidualCalculator* Residual_calculator_pt;
+
+    /// Integration scheme to use in evaluation of residuals/Jacobian
+    /// (needs to be separate from the main one so that using reduced
+    /// integration for Newton solve doesn't break other integrals such as
+    /// energy calculations).
+    Integral* Residual_integral_pt;
 
   protected:
 
