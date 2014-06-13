@@ -62,6 +62,10 @@ namespace oomph
 
 
         mean_elemental_volume = mean(volumes);
+
+
+        // Use Gaussian quadrature for energy
+        Force_gaussian_quadrature_in_energy = true;
       }
 
     // Finish off element build, at this point we should have only micromag
@@ -107,9 +111,6 @@ namespace oomph
                       (new ReducedIntegration(elem_pt));
                     // automatically built within the constructorn
                   }
-
-                // Use Gaussian quadrature for energy
-                elem_pt->Force_gaussian_quadrature_in_energy = true;
               }
           }
       }
@@ -623,6 +624,19 @@ namespace oomph
     // this is the place to do it. Replace values with
     // MyProblem::Dummy_doc_data.
 
+    // If using fancy quadratures then set them here
+    Integral* quadrature_pt = 0;
+    if(Force_gaussian_quadrature_in_energy)
+      {
+        bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(ele_pt()) != 0);
+        quadrature_pt = gauss_integration_factory(ele_pt()->dim(),
+                                                  ele_pt()->nnode_1d(),
+                                                  is_q_element);
+
+        // ??ds assumed that all elements integrated over have the same
+        // geometry and nnodes!
+      }
+
     // Calculate and store new values
     Exchange_energy = MManipulation::exchange_energy(*this);
     Zeeman_energy = MManipulation::zeeman_energy(*this);
@@ -656,6 +670,12 @@ namespace oomph
           {
             Damping_error = std::abs(MManipulation::effective_damping_used_3(*this));
           }
+      }
+
+    // Delete the quadrature object if we made it
+    if(Force_gaussian_quadrature_in_energy)
+      {
+        delete quadrature_pt; quadrature_pt = 0;
       }
   }
 

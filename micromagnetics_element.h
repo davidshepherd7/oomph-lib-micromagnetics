@@ -60,7 +60,6 @@ namespace oomph
                           Magnetic_parameters_pt(0)
     {
       Ms_calc_pt = 0;
-      Force_gaussian_quadrature_in_energy = false;
     }
 
     /// Virtual destructor
@@ -418,8 +417,9 @@ namespace oomph
 
     /// \short Integrate a function given by func_pt over the element using
     /// the given integral_pt(). Because C++ sucks we have to do this with
-    /// weird function objects.
-    double integrate_over_element(const ElementalFunction* func_pt) const;
+    /// weird function objects. Optionally provide the quadrature to use.
+    double integrate_over_element(const ElementalFunction* func_pt,
+                                  const Integral* quadrature_pt=0) const;
 
 
     /// \short Return a vector containing the magnetisation at a node.
@@ -474,9 +474,6 @@ namespace oomph
     /// use in predictor step of adaptive midpoint.
     LLGResidualCalculator* Residual_calculator_pt;
 
-    /// Force energy calculations to ignore the integral_pt() and use
-    /// Gaussian quadrature.
-    bool Force_gaussian_quadrature_in_energy;
 
   protected:
 

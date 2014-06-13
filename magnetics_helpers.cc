@@ -110,8 +110,10 @@ namespace oomph
 
     double effective_damping_used_3(const LLGProblem& problem)
     {
-      // Integral over all space of (dm/dt)^2 used in last step
-      double dmdt_squared = integral_of_dmdt_squared(problem);
+      // Integral over all space of (dm/dt)^2 used in last step, use the
+      // default integration scheme (reduced if we are using it, otherwise
+      // Gaussian).
+      double dmdt_squared = integral_of_dmdt_squared(problem, 0);
 
       // If no change then damping is undefined
       if(dmdt_squared  == 0) return nan("");
@@ -125,36 +127,41 @@ namespace oomph
     }
 
 
-    double exchange_energy(const LLGProblem& problem)
+    double exchange_energy(const LLGProblem& problem,
+                           const Integral* quadrature_pt)
     {
       ExchangeEnergyFunction f;
-      return problem.integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f, quadrature_pt);
     }
 
 
-    double zeeman_energy(const LLGProblem& problem)
+    double zeeman_energy(const LLGProblem& problem,
+                         const Integral* quadrature_pt)
     {
       ZeemanEnergyFunction f;
-      return problem.integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f, quadrature_pt);
     }
 
-    double crystalline_anisotropy_energy(const LLGProblem& problem)
+    double crystalline_anisotropy_energy(const LLGProblem& problem,
+                                         const Integral* quadrature_pt)
     {
       CrystallineAnisotropyEnergyFunction f;
-      return problem.integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f, quadrature_pt);
     }
 
 
-    double magnetostatic_energy(const LLGProblem& problem)
+    double magnetostatic_energy(const LLGProblem& problem,
+                                const Integral* quadrature_pt)
     {
       MagnetostaticEnergyFunction f;
-      return problem.integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f, quadrature_pt);
     }
 
-    double integral_of_dmdt_squared(const LLGProblem& problem)
+    double integral_of_dmdt_squared(const LLGProblem& problem,
+                                    const Integral* quadrature_pt)
     {
       DmdtSquaredFunction f;
-      return problem.integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f, quadrature_pt);
     }
 
     double dEnergydt(const LLGProblem& problem)

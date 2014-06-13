@@ -16,7 +16,8 @@ namespace oomph
   /// and return the total. This should probably be in the mesh class but
   /// that's core oomph-lib so I'll leave it here.
   double MyProblem::integrate_over_mesh(const ElementalFunction* func_pt,
-                                        const Mesh* const mesh_pt) const
+                                        const Mesh* const mesh_pt,
+                                        const Integral* quadrature_pt) const
   {
     double result = 0;
     for(unsigned e=0, ne=mesh_pt->nelement(); e < ne; e++)
@@ -24,21 +25,22 @@ namespace oomph
         MicromagEquations* ele_pt
           = checked_dynamic_cast<MicromagEquations*>
           (mesh_pt->element_pt(e));
-        result += ele_pt->integrate_over_element(func_pt);
+        result += ele_pt->integrate_over_element(func_pt, quadrature_pt);
       }
     return result;
   }
 
   /// \short Integrate a function given by func_pt over every element
   /// in every bulk mesh in this problem.
-  double MyProblem::integrate_over_problem(const ElementalFunction* func_pt) const
+  double MyProblem::integrate_over_problem(const ElementalFunction* func_pt,
+                                           const Integral* quadrature_pt) const
   {
     double result = 0;
     for(unsigned j=0; j<this->nsub_mesh(); j++)
       {
         if(mesh_pt(j)->finite_element_pt(0)->dim() == this->dim())
           {
-            result += integrate_over_mesh(func_pt, mesh_pt(j));
+            result += integrate_over_mesh(func_pt, mesh_pt(j), quadrature_pt);
           }
       }
     return result;

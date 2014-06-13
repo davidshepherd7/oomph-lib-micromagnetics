@@ -722,11 +722,13 @@ using namespace StringConversion;
     /// and return the total. This should probably be in the mesh class but
     /// that's core oomph-lib so I'll leave it here.
     virtual double integrate_over_mesh(const ElementalFunction* func_pt,
-                                       const Mesh* const mesh_pt) const;
+                                       const Mesh* const mesh_pt,
+                                       const Integral* quadrature_pt=0) const;
 
     /// \short Integrate a function given by func_pt over every element
     /// in every bulk mesh in this problem.
-    virtual double integrate_over_problem(const ElementalFunction* func_pt) const;
+    virtual double integrate_over_problem(const ElementalFunction* func_pt,
+                                          const Integral* quadrature_pt=0) const;
 
 
     virtual void dump(std::ofstream& dump_file) const

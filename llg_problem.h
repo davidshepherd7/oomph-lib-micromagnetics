@@ -80,7 +80,10 @@ namespace oomph
       Check_angles = false;
 #endif
       Disable_magnetostatic_solver_optimistations = false;
+
       Use_reduced_integration = false;
+      Force_gaussian_quadrature_in_energy = false;
+
 
       // Debugging switches
       Pin_boundary_m = false;
@@ -1126,6 +1129,11 @@ public:
 
     /// Rescale the reduced integration weights?
     bool Rescale_reduced_integration;
+
+    /// Force energy calculations to ignore the integral_pt() and use
+    /// Gaussian quadrature.
+    bool Force_gaussian_quadrature_in_energy;
+
 
     /// \short Solve for the magnetostatic field.
     void magnetostatics_solve();

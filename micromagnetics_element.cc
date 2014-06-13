@@ -17,22 +17,14 @@ namespace oomph
   /// \short Integrate a function given by func_pt over the element using
   /// the given integral_pt(). Because C++ sucks we have to do this with
   /// weird function objects.
-  double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt) const
+  double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt,
+                                                   const Integral* quadrature_pt) const
   {
     // Assumed same time stepper at all nodes
     TimeStepper* ts_pt = node_pt(0)->time_stepper_pt();
 
-    Integral* quadrature_pt = 0;
-
-    if(Force_gaussian_quadrature_in_energy)
-      {
-        // make a new gaussian quadrature of the correct type
-        bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(this) != 0);
-        quadrature_pt = gauss_integration_factory(dim(),
-                                                  nnode_1d(),
-                                                  is_q_element);
-      }
-    else
+    // If no pointer was set then use the element's pointer.
+    if(quadrature_pt == 0)
       {
         quadrature_pt = integral_pt();
       }
@@ -93,12 +85,6 @@ namespace oomph
 
         // Add contribution
         result += func_pt->call(this, &intp) * w * J;
-      }
-
-    // Delete quadrature pt if we created it
-    if(Force_gaussian_quadrature_in_energy)
-      {
-        delete quadrature_pt; quadrature_pt = 0;
       }
 
     return result;
