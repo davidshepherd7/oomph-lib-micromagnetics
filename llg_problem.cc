@@ -640,7 +640,7 @@ namespace oomph
         const double expected_damping = ele_pt()->magnetic_parameters_pt()->damping();
 
 
-        if(abs(expected_damping) > 1e-10)
+        if(std::abs(expected_damping) > 1e-10)
           {
         Effective_damping_constant =
           MManipulation::effective_damping_used(*this);
