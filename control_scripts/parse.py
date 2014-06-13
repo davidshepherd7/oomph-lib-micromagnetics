@@ -569,6 +569,19 @@ def main():
         figs.extend(newfigs)
 
 
+    # Plot error in effective damping vs step size
+    if 'damping' in args.plots:
+
+        plot_damping_errors = par(plot_vs_time,
+                                  plot_values=['alt_effective_damping_3', 'alt_effective_damping', 'effective_damping'],
+                                  operations_on_values=[abs, abs, abs],
+                                  skip_first_n=5, # first data points are wrong
+                                  labels=args.label)
+
+        newfigs = multi_plot(all_results, args.split, plot_damping_errors)
+        figs.extend(newfigs)
+
+
     if 'wc-time' in args.plots:
         plot_wall_time_vs_time = \
           par(plot_vs_time,
