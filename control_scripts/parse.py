@@ -96,7 +96,8 @@ def make_axis_label(*args, **kwargs):
 def plot_vs_thing(xthing, data, plot_values,
                   operations_on_values=None,
                   labels=None,
-                  y_axis_lims=None):
+                  y_axis_lims=None,
+                  skip_first_n=0):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
@@ -119,11 +120,12 @@ def plot_vs_thing(xthing, data, plot_values,
     else:
         dt_label = '-tol'
 
-
+    # Choose labels
     if labels is None:
         labels = ['-ref', '-ts', dt_label]
     else:
         labels = ['-ref', '-ts', dt_label] + labels
+
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
@@ -139,8 +141,11 @@ def plot_vs_thing(xthing, data, plot_values,
                 else:
                     vals = d[p]
 
+                # Skip first few steps if requested
+                xs = d[xthing][skip_first_n:-1]
+                vals = vals[skip_first_n:-1]
 
-                axes.plot(d[xthing], vals, label=name)
+                axes.plot(xs, vals, label=name)
             else:
                 sys.stderr.write("Not plotting " + p
                                  + " because I couldn't find the data needed.\n")
