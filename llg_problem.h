@@ -962,36 +962,7 @@ namespace oomph
 
     /// \short Calculate energies and store them for easy reference
     /// (e.g. for output).
-    void calculate_energies(bool calculate_effective_damping=true)
-    {
-      // If you want to turn off energy calculations (e.g. for speed)
-      // this is the place to do it. Replace values with
-      // MyProblem::Dummy_doc_data.
-
-      // Calculate and store new values
-      Exchange_energy = MManipulation::exchange_energy(this);
-      Zeeman_energy = MManipulation::zeeman_energy(this);
-      Crystalline_anisotropy_energy =
-        MManipulation::crystalline_anisotropy_energy(this);
-      Magnetostatic_energy = MManipulation::magnetostatic_energy(this);
-
-      // Store energy for damping calculations
-      Previous_energies.push_front(micromagnetic_energy());
-
-      // Keep the list of previous energies reasonably small (we only
-      // need N for any bdf<N> calculation).
-      if(Previous_energies.size() > 5) Previous_energies.pop_back();
-
-      // Calculate and store effective damping if not disabled.
-      if(calculate_effective_damping)
-        {
-          Effective_damping_constant =
-            MManipulation::effective_damping_used(this);
-          Alt_eff_damp = MManipulation::
-            alt_effective_damping_used(this, Previous_energies);
-        }
-    }
-
+    void calculate_energies(bool calculate_effective_damping=true);
 
     /// \short Calculate the total (micromagnetic) energy for all meshes in
     /// the problem.

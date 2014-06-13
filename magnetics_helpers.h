@@ -18,6 +18,8 @@ description of file goes here
 namespace oomph
 {
 
+  class LLGProblem;
+
   /// Generic zero initial condition function
   template<unsigned NVAL>
   inline Vector<double> zero_initial_condition(const double& t,
@@ -376,31 +378,33 @@ namespace MManipulation
 
   /// \short Compute the effective damping constant (alpha) for the
   /// previous time step (see Albuquerque2001).
-  double alt_effective_damping_used(MyProblem* problem_pt,
+  double alt_effective_damping_used(const LLGProblem&  problem,
                                     std::deque<double>& previous_energies);
 
 
   /// \short Compute the effective damping constant (alpha) for the
   /// previous time step (see Albuquerque2001).
-  double effective_damping_used(MyProblem* problem_pt);
+  double effective_damping_used(const LLGProblem&  problem);
+
+  double effective_damping_used_3(const LLGProblem&  problem);
 
 
-  double exchange_energy(MyProblem* problem_pt);
+  double exchange_energy(const LLGProblem&  problem);
 
 
-  double zeeman_energy(MyProblem* problem_pt);
+  double zeeman_energy(const LLGProblem&  problem);
 
-  double crystalline_anisotropy_energy(MyProblem* problem_pt);
+  double crystalline_anisotropy_energy(const LLGProblem&  problem);
 
 
-  double magnetostatic_energy(MyProblem* problem_pt);
+  double magnetostatic_energy(const LLGProblem&  problem);
 
-  double integral_of_dmdt_squared(MyProblem* problem_pt);
+  double integral_of_dmdt_squared(const LLGProblem&  problem);
 
-  double dEnergydt(MyProblem* problem_pt);
+  double dEnergydt(const LLGProblem&  problem);
 
-  double alt_dEnergydt(MyProblem* problem_pt,
-                       std::deque<double>& previous_energies);
+  double alt_dEnergydt(const LLGProblem&  problem,
+                       const std::deque<double>& previous_energies);
 }
 
   class TetMeshBase;

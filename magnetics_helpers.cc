@@ -74,17 +74,17 @@ namespace oomph
 
     /// \short Compute the effective damping constant (alpha) for the
     /// previous time step (see Albuquerque2001).
-    double alt_effective_damping_used(MyProblem* problem_pt,
+    double alt_effective_damping_used(const LLGProblem& problem,
                                       std::deque<double>& previous_energies)
     {
       // Integral over all space of (dm/dt)^2 used in last step
-      double dmdt_squared = integral_of_dmdt_squared(problem_pt); //??ds
+      double dmdt_squared = integral_of_dmdt_squared(problem); //??ds
 
       // If no change then damping is undefined
       if(dmdt_squared  == 0) return nan("");
 
       // Forumla from Albuquerque2001 & dAquino2005
-      double dEdt = alt_dEnergydt(problem_pt, previous_energies);
+      double dEdt = alt_dEnergydt(problem, previous_energies);
       double effective_alpha = - dEdt / dmdt_squared;
 
       return effective_alpha;
@@ -93,78 +93,94 @@ namespace oomph
 
     /// \short Compute the effective damping constant (alpha) for the
     /// previous time step (see Albuquerque2001).
-    double effective_damping_used(MyProblem* problem_pt)
+    double effective_damping_used(const LLGProblem& problem)
     {
       // Integral over all space of (dm/dt)^2 used in last step
-      double dmdt_squared = integral_of_dmdt_squared(problem_pt);
+      double dmdt_squared = integral_of_dmdt_squared(problem);
 
       // If no change then damping is undefined
       if(dmdt_squared  == 0) return nan("");
 
       // Forumla from Albuquerque2001 & dAquino2005
-      double dEdt = dEnergydt(problem_pt);
+      double dEdt = dEnergydt(problem);
+      double effective_alpha = - dEdt / dmdt_squared;
+
+      return effective_alpha;
+    }
+
+    double effective_damping_used_3(const LLGProblem& problem)
+    {
+      // Integral over all space of (dm/dt)^2 used in last step
+      double dmdt_squared = integral_of_dmdt_squared(problem);
+
+      // If no change then damping is undefined
+      if(dmdt_squared  == 0) return nan("");
+
+      const double dt=  problem.time_pt()->dt();
+      double dEdt = (problem.Previous_energies[0]
+                     - problem.Previous_energies[1])/dt;
       double effective_alpha = - dEdt / dmdt_squared;
 
       return effective_alpha;
     }
 
 
-    double exchange_energy(MyProblem* problem_pt)
+    double exchange_energy(const LLGProblem& problem)
     {
       ExchangeEnergyFunction f;
-      return problem_pt->integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f);
     }
 
 
-    double zeeman_energy(MyProblem* problem_pt)
+    double zeeman_energy(const LLGProblem& problem)
     {
       ZeemanEnergyFunction f;
-      return problem_pt->integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f);
     }
 
-    double crystalline_anisotropy_energy(MyProblem* problem_pt)
+    double crystalline_anisotropy_energy(const LLGProblem& problem)
     {
       CrystallineAnisotropyEnergyFunction f;
-      return problem_pt->integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f);
     }
 
 
-    double magnetostatic_energy(MyProblem* problem_pt)
+    double magnetostatic_energy(const LLGProblem& problem)
     {
       MagnetostaticEnergyFunction f;
-      return problem_pt->integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f);
     }
 
-    double integral_of_dmdt_squared(MyProblem* problem_pt)
+    double integral_of_dmdt_squared(const LLGProblem& problem)
     {
       DmdtSquaredFunction f;
-      return problem_pt->integrate_over_problem(&f);
+      return problem.integrate_over_problem(&f);
     }
 
-    double dEnergydt(MyProblem* problem_pt)
+    double dEnergydt(const LLGProblem& problem)
     {
       dExchangeEnergydtFunction de_exdt;
-      double I_de_exdt = problem_pt->integrate_over_problem(&de_exdt);
+      double I_de_exdt = problem.integrate_over_problem(&de_exdt);
 
       dZeemanEnergydtFunction de_zeedt;
-      double I_de_zeedt = problem_pt->integrate_over_problem(&de_zeedt);
+      double I_de_zeedt = problem.integrate_over_problem(&de_zeedt);
 
       dCrystallineAnisotropydtEnergyFunction de_cadt;
-      double I_de_cadt = problem_pt->integrate_over_problem(&de_cadt);
+      double I_de_cadt = problem.integrate_over_problem(&de_cadt);
 
       dMagnetostaticEnergydtFunction de_ms;
-      double I_de_ms = problem_pt->integrate_over_problem(&de_ms);
+      double I_de_ms = problem.integrate_over_problem(&de_ms);
 
       return I_de_exdt + I_de_zeedt + I_de_cadt + I_de_ms;
     }
 
-    double alt_dEnergydt(MyProblem* problem_pt,
-                         std::deque<double>& previous_energies)
+    double alt_dEnergydt(const LLGProblem& problem,
+                         const std::deque<double>& previous_energies)
     {
       // // Make a BDF2 time stepper to look up weights from (because I'm
       // // lazy...)
       // BDF<2> bdf;
-      // TimeStepper* node_ts_pt = problem_pt->mesh_pt()->
+      // TimeStepper* node_ts_pt = problem.mesh_pt()->
       //   finite_element_pt(0)->node_pt(0)->time_stepper_pt();
       // bdf.time_pt() = node_ts_pt->time_pt();
       // bdf.set_weights();
