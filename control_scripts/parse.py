@@ -482,9 +482,14 @@ def main():
         figs.extend(newfigs)
 
 
+    # kind of assumes 3 trace values
     if 'trace' in args.plots:
         plot_traces = par(plot_vs_time,
-                          plot_values=['trace_values', 'dts'],
+                          plot_values=['trace_values','trace_values','trace_values', 'dts'],
+                          operations_on_values=[lambda x:x[0],
+                                                lambda x:x[1],
+                                                lambda x:x[2],
+                                                None],
                           labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_traces)
         figs.extend(newfigs)
