@@ -86,18 +86,19 @@ def main():
             for f in files:
                 if f == parameter_set:
                     parameter_files.append(pjoin(root, f))
-        parameter_file = parameter_files[0]
-
 
         # Error check number of files
         if len(parameter_files) > 1:
             sys.stderr.write("Found multiple files named "+ parameter_set + ": "
-                             + " ".join(parameter_files) + " .\n")
+                             + " ".join(parameter_files) + "\n")
             return 5
         elif len(parameter_files) == 0:
             sys.stderr.write("Couldn't find a file named "+ parameter_set
-                              + " in " + search_root + " .\n")
+                              + " in " + search_root + "\n")
             return 6
+        else:
+            parameter_file = parameter_files[0]
+
 
 
         # Parse parameters file
