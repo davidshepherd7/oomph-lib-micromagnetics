@@ -47,6 +47,28 @@ def next_square_number(start):
     return k
 
 
+
+def name_fig(fig):
+    """Try to come up with a good name for a figure based on labels.
+    """
+
+    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""]
+
+    axes_labels = [ax.get_ylabel() + "vs" + ax.get_xlabel()
+                   for ax in fig.axes]
+
+    final_label = "-".join(it.chain(main_label, axes_labels))
+
+    return final_label
+
+
+def safefilename(filename):
+    """Strip bad filename characters from string."""
+    allowed_symbols = ['_', '-', '.']
+    return ''.join(c for c in filename if c.isalnum() or c in allowed_symbols)
+
+
+
 # Plotting functions
 # ============================================================
 
@@ -732,26 +754,6 @@ def main():
 
 
     return 0
-
-
-def name_fig(fig):
-    """Try to come up with a good name for a figure based on labels.
-    """
-
-    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""]
-
-    axes_labels = [ax.get_ylabel() + "vs" + ax.get_xlabel()
-                   for ax in fig.axes]
-
-    final_label = "-".join(it.chain(main_label, axes_labels))
-
-    return final_label
-
-
-def safefilename(filename):
-    """Strip bad filename characters from string."""
-    allowed_symbols = ['_', '-', '.']
-    return ''.join(c for c in filename if c.isalnum() or c in allowed_symbols)
 
 
 # If this script is run from a shell then run main() and return the result.
