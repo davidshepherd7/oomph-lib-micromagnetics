@@ -58,6 +58,7 @@ namespace oomph
       Magnetostatic_energy = MyProblem::Dummy_doc_data;
       Effective_damping_constant = MyProblem::Dummy_doc_data;
       Alt_eff_damp = MyProblem::Dummy_doc_data;
+      Alt_eff_damp_3 = MyProblem::Dummy_doc_data;
 
       // Bem stuff
       Bem_handler_pt = 0;
@@ -684,6 +685,7 @@ namespace oomph
         << Trace_seperator << "total_energy"
         << Trace_seperator << "effective_damping"
         << Trace_seperator << "alt_effective_damping"
+        << Trace_seperator << "alt_effective_damping_3"
         << Trace_seperator << "h_applied_first_element"
         ;
 
@@ -716,6 +718,7 @@ namespace oomph
         << Trace_seperator << micromagnetic_energy()
         << Trace_seperator << Effective_damping_constant
         << Trace_seperator << Alt_eff_damp
+        << Trace_seperator << Alt_eff_damp_3
         << Trace_seperator << h_app
         ;
     }
@@ -1039,6 +1042,7 @@ public:
     /// (based on actual change in energy).
     double Effective_damping_constant;
     double Alt_eff_damp;
+    double Alt_eff_damp_3;
     std::deque<double> Previous_energies;
 
     /// Enumeration for how to handle phi_1's singularity
