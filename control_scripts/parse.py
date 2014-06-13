@@ -573,7 +573,9 @@ def main():
     if 'damping' in args.plots:
 
         plot_damping_errors = par(plot_vs_time,
-                                  plot_values=['alt_effective_damping_3', 'alt_effective_damping', 'effective_damping'],
+                                  plot_values=['damping_error',
+                                               'alt_effective_damping',
+                                               'effective_damping'],
                                   operations_on_values=[abs, abs, abs],
                                   skip_first_n=5, # first data points are wrong
                                   labels=args.label)

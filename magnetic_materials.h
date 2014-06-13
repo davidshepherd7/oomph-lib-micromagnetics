@@ -114,6 +114,7 @@ namespace oomph
     double normalised_hk() const {return Anisotropy_coeff;}
     double normalised_hms() const {return Magnetostatic_debug_coeff;}
     double gilbert_damping() const {return Gilbert_damping;}
+    double damping() const {return Gilbert_damping;}
     Vector<double> easy_axis() const {return Easy_axis;}
     double happ_normalisation_factor() const {return Applied_field_debug_coeff;}
 

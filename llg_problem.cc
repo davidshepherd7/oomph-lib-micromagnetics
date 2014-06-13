@@ -637,12 +637,22 @@ namespace oomph
     // Calculate and store effective damping if not disabled.
     if(calculate_effective_damping)
       {
+        const double expected_damping = ele_pt()->magnetic_parameters_pt()->damping();
+
+
+        if(abs(expected_damping) > 1e-10)
+          {
         Effective_damping_constant =
           MManipulation::effective_damping_used(*this);
         Alt_eff_damp = MManipulation::
           alt_effective_damping_used(*this, Previous_energies);
-        Alt_eff_damp_3 = MManipulation::
-          effective_damping_used_3(*this);
+        Damping_error = std::abs(MManipulation::effective_damping_used_3(*this)
+                          - expected_damping)/expected_damping;
+          }
+        else
+          {
+            Damping_error = std::abs(MManipulation::effective_damping_used_3(*this));
+          }
       }
   }
 
