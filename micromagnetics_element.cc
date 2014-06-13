@@ -22,6 +22,21 @@ namespace oomph
     // Assumed same time stepper at all nodes
     TimeStepper* ts_pt = node_pt(0)->time_stepper_pt();
 
+    Integral* quadrature_pt = 0;
+
+    if(Force_gaussian_quadrature_in_energy)
+      {
+        // make a new gaussian quadrature of the correct type
+        bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(this) != 0);
+        quadrature_pt = gauss_integration_factory(dim(),
+                                                  nnode_1d(),
+                                                  is_q_element);
+      }
+    else
+      {
+        quadrature_pt = integral_pt();
+      }
+
     // Maybe use a bdf2 time stepper instead: imr and tr in our
     // implementation doesn't give second order accurate derivative
     // approximations.
@@ -65,19 +80,25 @@ namespace oomph
 
     // Loop over knots and sum to calculate integral
     double result = 0;
-    for(unsigned ipt=0, nipt = integral_pt()->nweight(); ipt<nipt; ipt++)
+    for(unsigned ipt=0, nipt = quadrature_pt->nweight(); ipt<nipt; ipt++)
       {
         // Get position in element
         Vector<double> s(this->dim());
         for(unsigned j=0; j<this->dim(); j++)
-          {s[j] = integral_pt()->knot(ipt,j);}
+          {s[j] = quadrature_pt->knot(ipt,j);}
 
         MMInterpolator intp(this, s, ts_pt);
         double J = intp.j();
-        double w = integral_pt()->weight(ipt);
+        double w = quadrature_pt->weight(ipt);
 
         // Add contribution
         result += func_pt->call(this, &intp) * w * J;
+      }
+
+    // Delete quadrature pt if we created it
+    if(Force_gaussian_quadrature_in_energy)
+      {
+        delete quadrature_pt; quadrature_pt = 0;
       }
 
     return result;

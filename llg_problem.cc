@@ -107,6 +107,9 @@ namespace oomph
                       (new ReducedIntegration(elem_pt));
                     // automatically built within the constructorn
                   }
+
+                // Use Gaussian quadrature for energy
+                elem_pt->Force_gaussian_quadrature_in_energy = true;
               }
           }
       }

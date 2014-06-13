@@ -60,6 +60,7 @@ namespace oomph
                           Magnetic_parameters_pt(0)
     {
       Ms_calc_pt = 0;
+      Force_gaussian_quadrature_in_energy = false;
     }
 
     /// Virtual destructor
@@ -472,6 +473,10 @@ namespace oomph
     /// that we can easily switch between LL and LLG formulations, e.g. for
     /// use in predictor step of adaptive midpoint.
     LLGResidualCalculator* Residual_calculator_pt;
+
+    /// Force energy calculations to ignore the integral_pt() and use
+    /// Gaussian quadrature.
+    bool Force_gaussian_quadrature_in_energy;
 
   protected:
 
