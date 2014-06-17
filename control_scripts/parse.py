@@ -573,11 +573,10 @@ def main():
     if 'damping' in args.plots:
 
         plot_damping_errors = par(plot_vs_time,
-                                  plot_values=['damping_error',
-                                               'alt_effective_damping',
-                                               'effective_damping'],
-                                  operations_on_values=[abs, abs, abs],
-                                  skip_first_n=5, # first data points are wrong
+                                  plot_values=['rel_damping_error',
+                                               'abs_damping_error',
+                                               ],
+                                  skip_first_n=1, # first data points are wrong
                                   labels=args.label)
 
         newfigs = multi_plot(all_results, args.split, plot_damping_errors)

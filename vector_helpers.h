@@ -904,6 +904,17 @@ namespace VectorOps
                                DenseDoubleMatrix& X);
 
 
+  inline double abs_error(const double& value, const double& exact)
+  {
+    return value - exact;
+  }
+
+  inline double rel_error(const double& value, const double& exact)
+  {
+    // if exact == 0 should give NaN
+    return std::abs(value - exact)/exact;
+  }
+
 }
 
 #endif

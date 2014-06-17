@@ -655,21 +655,11 @@ namespace oomph
     if(calculate_effective_damping)
       {
         const double expected_damping = ele_pt()->magnetic_parameters_pt()->damping();
+        double effective_damping = MManipulation::effective_damping_used_3(*this);
 
-
-        if(std::abs(expected_damping) > 1e-10)
-          {
-        Effective_damping_constant =
-          MManipulation::effective_damping_used(*this);
-        Alt_eff_damp = MManipulation::
-          alt_effective_damping_used(*this, Previous_energies);
-        Damping_error = std::abs(MManipulation::effective_damping_used_3(*this)
-                          - expected_damping)/expected_damping;
-          }
-        else
-          {
-            Damping_error = std::abs(MManipulation::effective_damping_used_3(*this));
-          }
+        using namespace VectorOps;
+        Abs_damping_error = abs_error(effective_damping, expected_damping);
+        Rel_damping_error = rel_error(effective_damping, expected_damping);
       }
 
     // Delete the quadrature object if we made it
