@@ -75,6 +75,12 @@ namespace oomph
                                     double scaling_factor,
                                     unsigned nnode1d);
 
+  /// Function pointer type to create a reduced integration scheme. Mean
+  /// element size needed for some schemes so always needs to be passed in
+  /// unfortunately.
+  typedef Integral* (*ReducedIntegrationFactoryFctPt)
+    (const FiniteElement* ele_pt, const double& mean_size);
+
 
 
   // Some stl-based data structures

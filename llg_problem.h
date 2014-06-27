@@ -82,7 +82,6 @@ namespace oomph
 #endif
       Disable_magnetostatic_solver_optimistations = false;
 
-      Use_reduced_integration = false;
       Force_gaussian_quadrature_in_energy = false;
 
 
@@ -1121,12 +1120,8 @@ public:
     /// constant Jacobian, CG w/ AMG solver) for debugging.
     bool Disable_magnetostatic_solver_optimistations;
 
-    /// Use reduced integration for evaluation of elemental integrals (as
-    /// in e.g. Cimrak2008).
-    bool Use_reduced_integration;
-
-    /// Rescale the reduced integration weights?
-    bool Rescale_reduced_integration;
+    /// Function to use to create integration schemes for elements.
+    ReducedIntegrationFactoryFctPt Reduced_integration_factory_fpt;
 
     /// Force energy calculations to ignore the integral_pt() and use
     /// Gaussian quadrature.

@@ -5,6 +5,7 @@
 #include "boundary_element_handler.h"
 #include "pinned_boundary_element_handler.h"
 
+#include "reduced_integration.h"
 
 
 // Meshes for mesh factory
@@ -835,7 +836,6 @@ namespace oomph
         }
     }
 
-
     InitialMFct* initial_m_factory(const std::string& m_name)
     {
       if(m_name == "periodic_exact")
@@ -897,5 +897,47 @@ namespace oomph
         }
       return new SolutionFunctor(fpt);
     }
-  }
+
+
+    Integral* rescaled_reduced_integration_factory(const FiniteElement* ele_pt,
+                                                   const double& mean_size)
+    {
+      return new RescaledReducedIntegration(ele_pt, mean_size);
+    }
+
+
+    template<class T>
+    Integral* reduced_integration_factory(const FiniteElement* ele_pt,
+                                          const double& mean_size)
+    {
+      return new T(ele_pt);
+    }
+
+
+    ReducedIntegrationFactoryFctPt
+    reduced_integration_factory_factory(const std::string& label)
+    {
+      ReducedIntegrationFactoryFctPt rif_pt = 0;
+      if(label == "gauss")
+        {
+          rif_pt = &Factories::no_reduced_integration_scheme_factory;
+        }
+      else if(label == "ri")
+        {
+          rif_pt = &Factories::reduced_integration_factory<ReducedIntegration>;
+        }
+      else if(label == "rri")
+        {
+          rif_pt = &Factories::rescaled_reduced_integration_factory;
+        }
+      else
+        {
+          std::string err = "Unrecognisied integration scheme type" + label;
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+      return rif_pt;
+    }
+
+  } // end of Factories
 }

@@ -39,35 +39,6 @@ namespace oomph
     // Call the underlying build to deal with adding meshes and time stepper
     MyProblem::build(bulk_mesh_pts);
 
-    // If we are using RRI we need to get element volumes for scaling
-    double mean_elemental_volume = 0;
-    if(Rescale_reduced_integration)
-      {
-        Vector<double> volumes;
-
-        for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
-          {
-            for(unsigned i=0; i<mesh_pt(msh)->nelement(); i++)
-              {
-                FiniteElement* elem_pt = mesh_pt(msh)->finite_element_pt(i);
-
-                // if non-surface element
-                if(elem_pt->dim() == dim())
-                  {
-                    // then insert volume to list
-                    volumes.push_back(elem_pt->size());
-                  }
-              }
-          }
-
-
-        mean_elemental_volume = mean(volumes);
-
-
-        // Use Gaussian quadrature for energy
-        Force_gaussian_quadrature_in_energy = true;
-      }
-
     // Finish off element build, at this point we should have only micromag
     // elements in the meshes (so we can loop over all meshes) but we don't
     // have a global mesh yet.
@@ -92,25 +63,6 @@ namespace oomph
                 AnalyticalMagnetostatics* ams_pt = new AnalyticalMagnetostatics;
                 ams_pt->Magnetostatic_field_fct_pt = Analytic_ms_fct_pt;
                 elem_pt->Ms_calc_pt = ams_pt;
-              }
-
-            // If we want to use reduced integration then set it as the
-            // integration scheme.
-            if(Use_reduced_integration)
-              {
-                if(Rescale_reduced_integration)
-                  {
-                    elem_pt->set_integration_scheme
-                      (new RescaledReducedIntegration
-                       (elem_pt, mean_elemental_volume));
-                    // automatically built within the constructorn
-                  }
-                else
-                  {
-                    elem_pt->set_integration_scheme
-                      (new ReducedIntegration(elem_pt));
-                    // automatically built within the constructorn
-                  }
               }
           }
       }
@@ -155,21 +107,6 @@ namespace oomph
 
             // Set up neumann condition on phi_1 boundary values (using flux mesh)
             Flux_mesh_pt = flux_mesh_factory(bulk_mesh_pts[msh], boundaries);
-
-            // If we are using reduced integration then set the flux
-            // elements to use it as well.
-            if(Use_reduced_integration)
-              {
-                const unsigned n_ele = Flux_mesh_pt->nelement();
-                for(unsigned ele=0; ele<n_ele; ele++)
-                  {
-                    // Set integration scheme, automatically built within
-                    // the constructor
-                    FiniteElement* el_pt = Flux_mesh_pt->finite_element_pt(ele);
-                    el_pt->set_integration_scheme(new ReducedIntegration(el_pt));
-                  }
-              }
-
 
             // Add to global mesh
             this->add_sub_mesh(Flux_mesh_pt);
@@ -264,6 +201,59 @@ namespace oomph
         throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
                             OOMPH_CURRENT_FUNCTION);
       }
+
+
+    // Set up integration schemes to be used in elements
+    // ============================================================
+
+    // If we are using RRI we need to get element volumes for scaling. For
+    // simplicity (and because it's quite cheap) just calculate it always.
+    double mean_elemental_volume = 0;
+    {
+      Vector<double> volumes;
+
+      // Note that this includes both volume and surface meshes...
+      for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
+        {
+          for(unsigned i=0; i<mesh_pt(msh)->nelement(); i++)
+            {
+              FiniteElement* elem_pt = mesh_pt(msh)->finite_element_pt(i);
+
+              // if non-surface element
+              if(elem_pt->dim() == dim())
+                {
+                  // then insert volume to list
+                  volumes.push_back(elem_pt->size());
+                }
+            }
+        }
+      mean_elemental_volume = mean(volumes);
+    }
+
+
+    // Loop over ALL meshes in the problem (including flux meshes) and set
+    // up the integration scheme.
+    const unsigned n_msh = nsub_mesh();
+    for(unsigned msh=0; msh<n_msh; msh++)
+      {
+        Mesh* msh_pt = mesh_pt(msh);
+        const unsigned n_ele = msh_pt->nelement();
+        for(unsigned ele=0; ele<n_ele; ele++)
+          {
+            FiniteElement* ele_pt = msh_pt->finite_element_pt(ele);
+
+            // Create an integration scheme as specified by the factory
+            // function. If the scheme is null then just use the default.
+            Integral* reduced_integration_scheme_pt
+              = Reduced_integration_factory_fpt(ele_pt, mean_elemental_volume);
+            if(reduced_integration_scheme_pt != 0)
+              {
+                ele_pt->set_integration_scheme(reduced_integration_scheme_pt);
+              }
+          }
+      }
+
+
 
 
 

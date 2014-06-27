@@ -151,27 +151,10 @@ namespace oomph
           llg_pt->Renormalise_each_time_step = renormalise;
         }
 
-      if(integration_type == "gauss")
-        {
-          llg_pt->Use_reduced_integration = false;
-          llg_pt->Rescale_reduced_integration = false;
-        }
-      else if(integration_type == "ri")
-        {
-          llg_pt->Use_reduced_integration = true;
-          llg_pt->Rescale_reduced_integration = false;
-        }
-      else if(integration_type == "rri")
-        {
-          llg_pt->Use_reduced_integration = true;
-          llg_pt->Rescale_reduced_integration = true;
-        }
-      else
-        {
-          std::string err = "Unrecognisied integration scheme type" + integration_type;
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+      /// Pick the function which will be used by each element to create an
+      /// integration scheme.
+      llg_pt->Reduced_integration_factory_fpt =
+        Factories::reduced_integration_factory_factory(integration_type);
 
 
       // Dirichlet boundries, just use same function for b.c. as initial
