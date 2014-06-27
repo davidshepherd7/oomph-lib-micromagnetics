@@ -1121,7 +1121,7 @@ public:
     bool Disable_magnetostatic_solver_optimistations;
 
     /// Function to use to create integration schemes for elements.
-    ReducedIntegrationFactoryFctPt Reduced_integration_factory_fpt;
+    NodalQuadratureFactoryFctPt Nodal_quadrature_factory_fpt;
 
     /// Force energy calculations to ignore the integral_pt() and use
     /// Gaussian quadrature.

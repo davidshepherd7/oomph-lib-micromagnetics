@@ -244,11 +244,11 @@ namespace oomph
 
             // Create an integration scheme as specified by the factory
             // function. If the scheme is null then just use the default.
-            Integral* reduced_integration_scheme_pt
-              = Reduced_integration_factory_fpt(ele_pt, mean_elemental_volume);
-            if(reduced_integration_scheme_pt != 0)
+            Integral* nodal_quadrature_scheme_pt
+              = Nodal_quadrature_factory_fpt(ele_pt, mean_elemental_volume);
+            if(nodal_quadrature_scheme_pt != 0)
               {
-                ele_pt->set_integration_scheme(reduced_integration_scheme_pt);
+                ele_pt->set_integration_scheme(nodal_quadrature_scheme_pt);
               }
           }
       }

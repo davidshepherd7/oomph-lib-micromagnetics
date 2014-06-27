@@ -5,7 +5,7 @@
 #include "boundary_element_handler.h"
 #include "pinned_boundary_element_handler.h"
 
-#include "reduced_integration.h"
+#include "nodal_quadrature.h"
 
 
 // Meshes for mesh factory
@@ -899,36 +899,40 @@ namespace oomph
     }
 
 
-    Integral* rescaled_reduced_integration_factory(const FiniteElement* ele_pt,
-                                                   const double& mean_size)
+    Integral* rescaled_nodal_quadrature_factory(const FiniteElement* ele_pt,
+                                                const double& mean_size)
     {
-      return new RescaledReducedIntegration(ele_pt, mean_size);
+      return new RescaledNodalQuadrature(ele_pt, mean_size);
     }
 
 
     template<class T>
-    Integral* reduced_integration_factory(const FiniteElement* ele_pt,
-                                          const double& mean_size)
+    Integral* nodal_quadrature_factory(const FiniteElement* ele_pt,
+                                       const double& mean_size)
     {
       return new T(ele_pt);
     }
 
 
-    ReducedIntegrationFactoryFctPt
-    reduced_integration_factory_factory(const std::string& label)
+    NodalQuadratureFactoryFctPt
+    nodal_quadrature_factory_factory(const std::string& label)
     {
-      ReducedIntegrationFactoryFctPt rif_pt = 0;
+      NodalQuadratureFactoryFctPt nqf_pt = 0;
       if(label == "gauss")
         {
-          rif_pt = &Factories::no_reduced_integration_scheme_factory;
+          nqf_pt = &Factories::no_nodal_quadrature_scheme_factory;
         }
-      else if(label == "ri")
+      else if(label == "nodal")
         {
-          rif_pt = &Factories::reduced_integration_factory<ReducedIntegration>;
+          nqf_pt = &Factories::nodal_quadrature_factory<NodalQuadrature>;
         }
-      else if(label == "rri")
+      else if(label == "lnodal")
         {
-          rif_pt = &Factories::rescaled_reduced_integration_factory;
+          nqf_pt = &Factories::nodal_quadrature_factory<LocalNodalQuadrature>;
+        }
+      else if(label == "rnodal")
+        {
+          nqf_pt = &Factories::rescaled_nodal_quadrature_factory;
         }
       else
         {
@@ -936,7 +940,7 @@ namespace oomph
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
-      return rif_pt;
+      return nqf_pt;
     }
 
   } // end of Factories

@@ -84,7 +84,7 @@ namespace oomph
       relax_m = -1;
 
       specify_command_line_flag("-integration", &integration_type,
-                                "gauss, ri or rri ([rescaled] reduced integration), default is Gaussian.");
+                                "gauss, nodal, rnodal; default is gauss.");
       integration_type = "gauss";
     }
 
@@ -153,8 +153,8 @@ namespace oomph
 
       /// Pick the function which will be used by each element to create an
       /// integration scheme.
-      llg_pt->Reduced_integration_factory_fpt =
-        Factories::reduced_integration_factory_factory(integration_type);
+      llg_pt->Nodal_quadrature_factory_fpt =
+        Factories::nodal_quadrature_factory_factory(integration_type);
 
 
       // Dirichlet boundries, just use same function for b.c. as initial

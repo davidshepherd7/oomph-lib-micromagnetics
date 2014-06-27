@@ -94,15 +94,15 @@ namespace oomph
     InitialMFct* initial_m_factory(const std::string& m_name);
 
     /// Create a rescaled reduced integration scheme for this element.
-    Integral* rescaled_reduced_integration_factory(const FiniteElement* ele_pt,
+    Integral* rescaled_nodal_quadrature_factory(const FiniteElement* ele_pt,
                                                    const double& mean_size);
 
     /// Create any other reduced intergration scheme for this element.
-    Integral* reduced_integration_factory(const FiniteElement* ele_pt,
+    Integral* nodal_quadrature_factory(const FiniteElement* ele_pt,
                                           const double& mean_size);
 
     /// Factory function to return a null integration scheme.
-    inline Integral* no_reduced_integration_scheme_factory
+    inline Integral* no_nodal_quadrature_scheme_factory
     (const FiniteElement* ele_pt, const double& mean_size)
     {
       return 0;
@@ -110,8 +110,8 @@ namespace oomph
 
     /// Pick the function which will be used by each element to create an
     /// integration scheme. ugh... factories for factories...
-    ReducedIntegrationFactoryFctPt
-    reduced_integration_factory_factory(const std::string& label);
+    NodalQuadratureFactoryFctPt
+    nodal_quadrature_factory_factory(const std::string& label);
 
   } // end of Factories
 

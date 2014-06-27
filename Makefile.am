@@ -63,7 +63,7 @@ headers = array_interpolator.h \
 	llg_preconditioners.h \
 	tr.h \
 	simpler_cubic_mesh.h \
-	reduced_integration.h \
+	nodal_quadrature.h \
 	cayley_integrators.h
 
 

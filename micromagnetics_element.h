@@ -34,7 +34,6 @@
 #include "micromag_types.h"
 #include "./residual_calculator.h"
 #include "magnetostatics_calculator.h"
-#include "reduced_integration.h"
 
 namespace oomph
 {

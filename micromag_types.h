@@ -75,10 +75,10 @@ namespace oomph
                                     double scaling_factor,
                                     unsigned nnode1d);
 
-  /// Function pointer type to create a reduced integration scheme. Mean
+  /// Function pointer type to create a nodal quadrature scheme. Mean
   /// element size needed for some schemes so always needs to be passed in
   /// unfortunately.
-  typedef Integral* (*ReducedIntegrationFactoryFctPt)
+  typedef Integral* (*NodalQuadratureFactoryFctPt)
     (const FiniteElement* ele_pt, const double& mean_size);
 
 

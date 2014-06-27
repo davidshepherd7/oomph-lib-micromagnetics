@@ -1,5 +1,5 @@
-#ifndef OOMPH_REDUCED_INTEGRATION_H
-#define OOMPH_REDUCED_INTEGRATION_H
+#ifndef OOMPH_NODAL_QUADRATURE_H
+#define OOMPH_NODAL_QUADRATURE_H
 
 #include <memory>
 
@@ -13,10 +13,10 @@
 namespace oomph
 {
 
-  /// Class for reduced integration in micromagnetics, as defined in
+  /// Class for nodal quadrature in micromagnetics, as defined in
   /// e.g. Cimrak2008. Essentially we just use nodes as knots and \int
   /// shape(x) dx as weights. This allows some nice conservation properties.
-  class ReducedIntegration : public Integral
+  class NodalQuadrature : public Integral
   {
   protected:
 
@@ -29,14 +29,14 @@ namespace oomph
   public:
 
     /// Dummy constructor
-    ReducedIntegration()
+    NodalQuadrature()
     {
       Ele_pt = 0;
     }
 
 
     /// Real constructor
-    ReducedIntegration(const FiniteElement* ele_pt)
+    NodalQuadrature(const FiniteElement* ele_pt)
     {
       Ele_pt = ele_pt;
       build();
@@ -79,7 +79,7 @@ namespace oomph
           const double w = int_pt->weight(i);
 
           // Jacobian of transformation at integration point
-          const double J = ele_pt()->J_eulerian(s);
+          const double J = J_eulerian(s);
 
           // Shape function values at integration point
           Shape shape(nnode);
@@ -91,6 +91,12 @@ namespace oomph
               Weight[j] += w * J * shape(j);
             }
         }
+    }
+
+    /// Get Jacobian of transformation at point s (overloaded by other implementations).
+    virtual double J_eulerian(const Vector<double>& s) const
+    {
+      return ele_pt()->J_eulerian(s);
     }
 
 
@@ -144,17 +150,17 @@ namespace oomph
   };
 
   /// Class to handle ??ds
-  class RescaledReducedIntegration : public ReducedIntegration
+  class RescaledNodalQuadrature : public NodalQuadrature
   {
   public:
     /// Constructor
-    RescaledReducedIntegration() {}
+    RescaledNodalQuadrature() {}
 
     /// Virtual destructor
-    virtual ~RescaledReducedIntegration() {}
+    virtual ~RescaledNodalQuadrature() {}
 
     /// Real constructor
-    RescaledReducedIntegration(const FiniteElement* ele_pt,
+    RescaledNodalQuadrature(const FiniteElement* ele_pt,
                                const double& mean_element_volume)
     {
       Ele_pt = ele_pt;
@@ -165,7 +171,7 @@ namespace oomph
     void build()
     {
       // Build as normal
-      ReducedIntegration::build();
+      NodalQuadrature::build();
 
       // Rescale by mean element volume
       const unsigned ni = Weight.size();
@@ -181,15 +187,45 @@ namespace oomph
 
   private:
     /// Broken copy constructor
-    RescaledReducedIntegration(const RescaledReducedIntegration& dummy)
-    {BrokenCopy::broken_copy("RescaledReducedIntegration");}
+    RescaledNodalQuadrature(const RescaledNodalQuadrature& dummy)
+    {BrokenCopy::broken_copy("RescaledNodalQuadrature");}
 
     /// Broken assignment operator
-    void operator=(const RescaledReducedIntegration& dummy)
-    {BrokenCopy::broken_assign("RescaledReducedIntegration");}
+    void operator=(const RescaledNodalQuadrature& dummy)
+    {BrokenCopy::broken_assign("RescaledNodalQuadrature");}
 
   };
 
+
+  /// ??ds
+  class LocalNodalQuadrature : public NodalQuadrature
+  {
+  public:
+    /// Constructor
+    LocalNodalQuadrature() {}
+
+    /// Virtual destructor
+    virtual ~LocalNodalQuadrature() {}
+
+    /// Real constructor
+    LocalNodalQuadrature(const FiniteElement* ele_pt)
+      : NodalQuadrature(ele_pt) {}
+
+    virtual double J_eulerian(const Vector<double>& s) const
+    {
+      return 1;
+    }
+
+  private:
+    /// Broken copy constructor
+    LocalNodalQuadrature(const LocalNodalQuadrature& dummy)
+    {BrokenCopy::broken_copy("LocalNodalQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const LocalNodalQuadrature& dummy)
+    {BrokenCopy::broken_assign("LocalNodalQuadrature");}
+
+  };
 
 } // End of oomph namespace
 
