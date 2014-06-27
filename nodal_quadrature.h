@@ -227,6 +227,39 @@ namespace oomph
 
   };
 
+
+  /// Nodal quadrature with all weights set to 1, should work better with
+  /// integration on standard elements.
+  class UnitWeightNodalQuadrature : public NodalQuadrature
+  {
+  public:
+    /// Constructor
+    UnitWeightNodalQuadrature() {}
+
+    /// Virtual destructor
+    virtual ~UnitWeightNodalQuadrature() {}
+
+    /// Real constructor
+    UnitWeightNodalQuadrature(const FiniteElement* ele_pt)
+      : NodalQuadrature(ele_pt) {}
+
+    virtual void build()
+    {
+      // Set all weights to 1
+      Weight.assign(ele_pt()->nnode(), 1);
+    }
+
+  private:
+    /// Broken copy constructor
+    UnitWeightNodalQuadrature(const UnitWeightNodalQuadrature& dummy)
+    {BrokenCopy::broken_copy("UnitWeightNodalQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const UnitWeightNodalQuadrature& dummy)
+    {BrokenCopy::broken_assign("UnitWeightNodalQuadrature");}
+
+  };
+
 } // End of oomph namespace
 
 #endif
