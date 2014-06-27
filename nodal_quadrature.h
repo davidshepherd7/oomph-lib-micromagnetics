@@ -50,10 +50,10 @@ namespace oomph
       // for this to FiniteElement.
       bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(ele_pt()) != 0);
 
-      // Construct integration scheme for integration of shape function. Use
-      // factory so that we don't have to hard code (or template by) the
-      // dimension/shape of the elements. Have to store in pointer to use
-      // factory unfortunately so use auto ptr so that it is deleted
+      // Construct integration scheme for integration of shape
+      // function. Use factory so that we don't have to hard code (or
+      // template by) the dimension/shape of the elements. Have to store in
+      // pointer to use factory, use auto ptr so that it is deleted
       // automatically. In c++11 this should be replaced by unique_ptr.
       std::auto_ptr<Integral> int_pt
         (Factories::gauss_integration_factory(ele_pt()->dim(),
@@ -93,7 +93,8 @@ namespace oomph
         }
     }
 
-    /// Get Jacobian of transformation at point s (overloaded by other implementations).
+    /// Get Jacobian of transformation at point s (separate function so
+    /// that it can be overloaded by other nodal quadrature schemes).
     virtual double J_eulerian(const Vector<double>& s) const
     {
       return ele_pt()->J_eulerian(s);
@@ -149,6 +150,7 @@ namespace oomph
 
   };
 
+
   /// Class to handle ??ds
   class RescaledNodalQuadrature : public NodalQuadrature
   {
@@ -197,7 +199,9 @@ namespace oomph
   };
 
 
-  /// ??ds
+  /// As nodal quadrature but do the weight calculation on a standard
+  /// element (local coordinates) without mapping back to global. This is
+  /// done by setting the Jacobian of the transformation to 1.
   class LocalNodalQuadrature : public NodalQuadrature
   {
   public:
