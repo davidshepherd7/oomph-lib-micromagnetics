@@ -209,7 +209,10 @@ namespace oomph
 
     /// Real constructor
     LocalNodalQuadrature(const FiniteElement* ele_pt)
-      : NodalQuadrature(ele_pt) {}
+      {
+        Ele_pt = ele_pt;
+        build();
+      }
 
     virtual double J_eulerian(const Vector<double>& s) const
     {
