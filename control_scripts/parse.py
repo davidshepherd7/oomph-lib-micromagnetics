@@ -76,7 +76,7 @@ def axis_label_thesisify(label):
                      'lnodal' : 'nodal quadrature',
                      'gauss' : 'Gaussian quadrature',
                      'dts' : r'$\Delta_n$',
-                     'm length error means' : r'mean$(|\mathbf{m}| - 1)$',
+                     'm length error maxes' : r'max$(|\mathbf{m}| - 1)$',
                      }
 
     # If it matches then change it
@@ -548,7 +548,7 @@ def main():
     # Plot |m| error vs time
     if 'ml' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
-                                    plot_values=['m_length_error_means', 'dts'],
+                                    plot_values=['m_length_error_maxes', 'dts'],
                                     labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
@@ -556,7 +556,7 @@ def main():
         # Plot |m| error vs time
     if 'ml-only' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
-                                    plot_values=['m_length_error_means'],
+                                    plot_values=['m_length_error_maxes'],
                                     labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
@@ -705,7 +705,7 @@ def main():
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
-              y_value='m_length_error_means',
+              y_value='m_length_error_maxes',
               y_operation=max,
               x_value='newton_residuals',
               x_operation=mean_min)
@@ -727,7 +727,7 @@ def main():
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
-              y_value='m_length_error_means',
+              y_value='m_length_error_maxes',
               y_operation=max,
               x_value='newton_residuals',
               x_operation=mean_initial)
@@ -768,7 +768,7 @@ def main():
         print_mean_step_times = \
           par(data_print,
               to_print=[('-ts', None),
-                        ('m_length_error_means', max)],
+                        ('m_length_error_maxes', max)],
               labels=args.label)
 
         multi_print(all_results, args.split, print_mean_step_times)
