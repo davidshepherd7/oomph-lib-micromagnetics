@@ -695,18 +695,15 @@ namespace oomph
 
     void write_additional_trace_data(std::ofstream& trace_file) const
     {
-
-      // Get average (and standard deviation) of |m| - 1
-      double m_error_avg(0), m_error_stddev(0);
-      norm_m_error(m_error_avg, m_error_stddev);
-
+      Vector<Vector<double> > ms = MManipulation::nodal_magnetisations(*this);
+      Vector<double> ml_errors = MManipulation::nodal_m_length_errors(ms);
       Vector<double> angle_variations = elemental_max_m_angle_variations();
-      Vector<double> mean_m = mean_magnetisation();
+      Vector<double> mean_m = MManipulation::mean_nodal_magnetisation(ms);
       Vector<double> h_app = first_element_happ();
 
       trace_file
-        << Trace_seperator << m_error_avg
-        << Trace_seperator << m_error_stddev
+        << Trace_seperator << VectorOps::mean(ml_errors)
+        << Trace_seperator << VectorOps::stddev(ml_errors)
         << Trace_seperator
         << *std::max_element(angle_variations.begin(), angle_variations.end())
         << Trace_seperator << mean_m[0]
@@ -804,40 +801,15 @@ namespace oomph
     // Lots of magnetisation manipulation functions
     // ============================================================
 
-    /// \short Loop over all nodes in bulk mesh and get magnetisations
-    Vector<Vector<double> > get_nodal_magnetisations(unsigned i_time=0) const;
-
     /// \short Abs of mean difference of actual m and m given by a function
     /// at the middle of each element.
     double compare_m_with_function(const SolutionFunctorBase& fct) const;
 
-    /// \short ??ds
-    double mean_norm_m_error() const;
-
-    /// \short ??ds
-    Vector<double> mean_magnetisation() const;
-
     /// Best trace value to use is probably mean of m.
-    Vector<double> trace_values() const {return mean_magnetisation();}
-
-    /// \short ??ds
-    void get_nodal_two_norms(Vector<double> &output) const
+    Vector<double> trace_values() const
     {
-      Vector< Vector<double> > m = get_nodal_magnetisations();
-      output.assign(m.size(), 0.0);
-      transform(m.begin(), m.end(), output.begin(), VectorOps::two_norm);
+      return MManipulation::mean_nodal_magnetisation(*this);
     }
-
-    /// \short ??ds
-    double mean_nodal_magnetisation_length() const
-    {
-      Vector<double> ms; get_nodal_two_norms(ms);
-      return VectorOps::mean(ms);
-    }
-
-    /// \short ??ds
-    void norm_m_error(double &m_error_avg, double &m_error_stddev) const;
-
 
     double get_error_norm() const
     {
@@ -846,7 +818,7 @@ namespace oomph
           using namespace CompareSolutions;
 
           double time = ele_pt()->node_pt(0)->time_stepper_pt()->time();
-          Vector<double> m_now = mean_magnetisation();
+          Vector<double> m_now = MManipulation::mean_nodal_magnetisation(*this);
           double exact_time = switching_time_wrapper(mag_parameters_pt(), m_now);
 
           return std::abs(exact_time - time);

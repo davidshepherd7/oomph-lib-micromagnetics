@@ -340,25 +340,6 @@ namespace oomph
   }
 
 
-  /// \short Loop over all nodes in bulk mesh and get magnetisations
-  Vector<Vector<double> > LLGProblem::get_nodal_magnetisations(unsigned i_time) const
-  {
-    // Get the space needed
-    unsigned nnode = mesh_pt()->nnode();
-    Vector< Vector<double> > m_list(nnode, Vector<double>(3, 0.0));
-
-    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
-      {
-        for(unsigned j=0; j<3; j++)
-          {
-            m_list[nd][j] =
-              mesh_pt()->node_pt(nd)->value(i_time, m_index(j));
-          }
-      }
-
-    return m_list;
-  }
-
   /// \short Solve for the magnetostatic field.
   void LLGProblem::magnetostatics_solve()
   {
@@ -540,69 +521,6 @@ namespace oomph
     diff /= (3.0 * double(bulk_ele_count));
 
     return diff;
-  }
-
-
-  double LLGProblem::mean_norm_m_error() const
-  {
-    double temp_error = 0;
-
-    // Loop over all nodes in problem
-    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
-      {
-        Node* nd_pt = mesh_pt()->node_pt(nd);
-        Vector<double> m_values(3, 0.0);
-        for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
-
-        double m_2norm = VectorOps::two_norm(m_values);
-        temp_error += std::abs(m_2norm - 1);
-      }
-
-    return temp_error/double(mesh_pt()->nnode());
-  }
-
-  /// \short Get a vector of the mean of the nodal magnetisations
-  Vector<double> LLGProblem::mean_magnetisation() const
-  {
-    Vector<Vector<double> > ms = get_nodal_magnetisations();
-    Vector<double> mean_m(3, 0.0);
-
-    unsigned n_ms = ms.size();
-    for(unsigned i=0; i<n_ms; i++)
-      {
-        mean_m[0] += ms[i][0];
-        mean_m[1] += ms[i][1];
-        mean_m[2] += ms[i][2];
-      }
-
-    mean_m[0] /= n_ms;
-    mean_m[1] /= n_ms;
-    mean_m[2] /= n_ms;
-
-    return mean_m;
-  }
-
-
-  void LLGProblem::norm_m_error(double &m_error_avg, double &m_error_stddev) const
-  {
-    // Get mean from other function
-    m_error_avg = mean_norm_m_error();
-
-    // Calculate std deviation
-    // ============================================================
-    double temp_stddev = 0.0;
-    for(unsigned nd=0, nnd=mesh_pt()->nnode(); nd<nnd; nd++)
-      {
-        Node* nd_pt = mesh_pt()->node_pt(nd);
-        Vector<double> m_values(3,0.0);
-        for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
-
-        double m_2norm = VectorOps::two_norm(m_values);
-        temp_stddev += std::pow( m_2norm - 1 - m_error_avg, 2);
-      }
-
-    temp_stddev /= double(mesh_pt()->nnode());
-    m_error_stddev = std::sqrt(temp_stddev);
   }
 
 

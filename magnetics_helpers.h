@@ -410,6 +410,17 @@ namespace MManipulation
 
   double alt_dEnergydt(const LLGProblem& problem,
                        const std::deque<double>& previous_energies);
+
+  /// Get a vector of the nodal values of the magnetisation
+  Vector<Vector<double> > nodal_magnetisations(const LLGProblem& problem);
+
+  /// Get the average of each magnetisation direction, specify either m
+  /// values or problem.
+  Vector<double> mean_nodal_magnetisation(const Vector<Vector<double> >& ms);
+  Vector<double> mean_nodal_magnetisation(const LLGProblem& problem);
+
+  /// Get list of |m| errors
+  Vector<double> nodal_m_length_errors(const Vector<Vector<double> >& ms);
 }
 
   class TetMeshBase;

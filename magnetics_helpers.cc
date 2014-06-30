@@ -201,6 +201,62 @@ namespace oomph
 #warning "Not working now"
       return -1;
     }
+
+    Vector<Vector<double> > nodal_magnetisations(const LLGProblem& problem)
+    {
+      // create vector
+      const unsigned nnode = problem.mesh_pt()->nnode();
+      Vector<Vector<double> > ms(nnode, Vector<double>(3, 0.0));
+
+      // copy to vector
+      for(unsigned nd=0; nd<nnode; nd++)
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              ms[nd][j] = problem.mesh_pt()->node_pt(nd)->value(problem.m_index(j));
+            }
+        }
+
+      return ms;
+    }
+
+
+    Vector<double> mean_nodal_magnetisation(const LLGProblem& problem)
+    {
+      return mean_nodal_magnetisation(nodal_magnetisations(problem));
+    }
+
+    Vector<double> mean_nodal_magnetisation(const Vector<Vector<double> >& ms)
+    {
+      const double n = ms.size();
+      Vector<double> mx(n), my(n), mz(n);
+      for(unsigned i=0; i<n; i++)
+        {
+          mx[i] = ms[i][0];
+          my[i] = ms[i][1];
+          mz[i] = ms[i][2];
+        }
+
+      Vector<double> mean_m(3);
+      mean_m[0] = mean(mx);
+      mean_m[1] = mean(my);
+      mean_m[2] = mean(mz);
+
+      return mean_m;
+    }
+
+    Vector<double> nodal_m_length_errors(const Vector<Vector<double> >& ms)
+      {
+        const unsigned ni = ms.size();
+        Vector<double> ml_errors(ni);
+        for(unsigned i=0; i<ni; i++)
+          {
+            ml_errors[i] = std::abs(1 - VectorOps::two_norm(ms[i]));
+          }
+
+        return ml_errors;
+      }
+
   }
 
   namespace MeshCreationHelpers
