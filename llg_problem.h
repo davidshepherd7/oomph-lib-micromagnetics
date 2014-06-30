@@ -689,6 +689,7 @@ namespace oomph
         << Trace_seperator << "abs_damping_error"
         << Trace_seperator << "rel_damping_error"
         << Trace_seperator << "h_applied_first_element"
+        << Trace_seperator << "m_length_error_maxes"
         ;
 
     }
@@ -718,6 +719,7 @@ namespace oomph
         << Trace_seperator << Abs_damping_error
         << Trace_seperator << Rel_damping_error
         << Trace_seperator << h_app
+        << Trace_seperator << VectorOps::max(ml_errors)
         ;
     }
 
