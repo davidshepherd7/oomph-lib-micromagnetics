@@ -121,12 +121,9 @@ def plot_vs_thing(xthing, data, plot_values,
     else:
         dt_label = '-tol'
 
-    # Choose labels
+    # Default labels
     if labels is None:
         labels = ['-ref', '-ts', dt_label]
-    else:
-        labels = ['-ref', '-ts', dt_label] + labels
-
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
