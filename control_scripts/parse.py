@@ -773,6 +773,18 @@ def main():
 
         multi_print(all_results, args.split, print_mean_step_times)
 
+    # print max(max(m_length_error_maxes)) (over all time, over all
+    # parameter sets)
+    if 'max-max-ml' in args.print_data:
+
+        def print_max_max(dataset):
+            max_max = max([max(d['m_length_error_maxes']) for d in dataset])
+            print(max_max)
+            return
+
+        multi_print(all_results, args.split, print_max_max)
+
+
 
     # End of prints/plots
     # ============================================================
