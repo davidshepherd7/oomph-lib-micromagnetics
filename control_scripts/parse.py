@@ -446,14 +446,16 @@ def main():
 
     # Filter the results based on the arguments given
     for f in args.filter:
-        print("filtering with", f)
         key, value = ast.literal_eval(f)
         all_results = [d for d in all_results if d[key] == value]
+        print("filtering with", f, ".", len(all_results), "results left")
+
 
     for f in args.not_filter:
-        print("filtering with !", f)
         key, value = ast.literal_eval(f)
         all_results = [d for d in all_results if d[key] != value]
+        print("filtering with not", f, ".", len(all_results), "results left")
+
 
 
 
