@@ -365,13 +365,8 @@ def parse_parameter_sweep(root_dirs, skip_failed=False):
     false.
     """
     results = []
-
-    dirs = []
     for root_dir in root_dirs:
         for dirname, _, _ in os.walk(root_dir):
-            dirs.append(dirname)
-
-
             has_info = os.path.isfile(pjoin(dirname, "info"))
             fail_skip = skip_failed and run_failed(dirname)
 
