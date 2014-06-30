@@ -14,7 +14,8 @@ import argparse
 import os
 import os.path
 import ast
-
+import glob
+import shutil
 
 # Imports for specific functions
 from functools import partial as par
@@ -750,18 +751,50 @@ def main():
 
     if args.save_to_dir is not None:
 
+        # Write plot command used to output dir
+        plot_command_filename = pjoin(args.save_to_dir, "plot_command")
+        with open(plot_command_filename, 'w') as plot_command_file:
+            plot_command_file.write(' '.join(sys.argv))
+            plot_command_file.write('\n')
+
+
+        # Copy any parameter sets in data dirs to output dir:
+
+        # First delete existing parameter sets in folder
+        for f in glob.glob(pjoin(args.save_to_dir, "parameter_set*")):
+            os.remove(f)
+
+        # Find all "parameter_file" files (non-recursively, recusive would
+        # have to search *all* data files, slow..)
+        param_files = list(filter(os.path.exists, [pjoin(d, "parameter_file") for d in args.dir]))
+        print([pjoin(d, "parameter_file") for d in args.dir])
+        print(param_files)
+
+        # Copy to output dir (with number appended to prevent overwrites)
+        for i, d in enumerate(param_files):
+            shutil.copyfile(d, pjoin(args.save_to_dir, "parameter_file") + "_" + str(i))
+
+
+        # Copy the figures
         for fig in figs:
 
             # Make sure folder exists
             os.makedirs(args.save_to_dir, exist_ok=True)
 
+            # construct path
             name = safefilename(name_fig(fig))
+            path = pjoin(args.save_to_dir, name + ".pdf")
 
-            fig.savefig(pjoin(args.save_to_dir, name + ".pdf"),
+            # Do it
+            fig.savefig(path,
                         bbox_inches='tight',
                         pad_inches=0.0,
                         transparent=True)
 
+            print("saved plot as", path)
+
+
+        # Copy the data if requested
         if args.save_data_to_dir:
             for data in all_results:
                 full_d = data["-outdir"]
@@ -771,6 +804,7 @@ def main():
 
                 cp(pjoin(full_d, "trace"), pjoin(d, "trace"))
                 cp(pjoin(full_d, "info"), pjoin(d, "info"))
+
 
     # Show all plots if requested
     if not args.ssh_mode:
