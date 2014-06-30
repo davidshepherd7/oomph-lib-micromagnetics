@@ -53,7 +53,7 @@ def name_fig(fig):
     """Try to come up with a good name for a figure based on labels.
     """
 
-    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""]
+    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""] + [fig._ds_name]
 
     axes_labels = [ax.get_ylabel() + "vs" + ax.get_xlabel()
                    for ax in fig.axes]
@@ -69,9 +69,24 @@ def safefilename(filename):
     return ''.join(c for c in filename if c.isalnum() or c in allowed_symbols)
 
 
+def axis_label_thesisify(label):
+    """Replace labels with TeX versions for thesis.
+    """
+    thesis_labels = {'times': r'$t$',
+                     'lnodal' : 'nodal quadrature',
+                     'gauss' : 'Gaussian quadrature',
+                     'dts' : r'$\Delta_n$',
+                     'm length error means' : r'mean$(|\mathbf{m}| - 1)$',
+                     }
 
-# Plotting functions
-# ============================================================
+    # If it matches then change it
+    for k, v in thesis_labels.items():
+        if k == label:
+            return v
+
+    # Otherwise no match: don't change
+    return label
+
 
 def latex_safe(string):
     """Strip out characters that will interfere with latex.
@@ -92,6 +107,10 @@ def make_label(p, op=None):
 
 def make_axis_label(*args, **kwargs):
     return latex_safe(make_label(*args, **kwargs))
+
+
+# Plotting functions
+# ============================================================
 
 
 def plot_vs_thing(xthing, data, plot_values,
@@ -285,6 +304,9 @@ def multi_plot(data, keys_to_split_on, plot_function):
         # keys_to_split_on so we just get it from the first one).
         fig.suptitle(' '.join(labels))
 
+        # Add a new member to figure: the name of the figure
+        fig._ds_name = '_'.join(labels)
+
         figs.append(fig)
 
     return figs
@@ -397,6 +419,9 @@ def main():
 
     parser.add_argument('--save-data-to-dir', action='store_true',
                         help='Also copy trace and info files to the directory.')
+
+    parser.add_argument('--thesis', action='store_true',
+                        help='Do some modifications to make plots prettier.')
 
     args = parser.parse_args()
 
@@ -745,6 +770,19 @@ def main():
     # ============================================================
 
 
+    # Prettyfy for thesis
+    if args.thesis:
+        for f in figs:
+
+            # No titles on plots
+            f.suptitle('')
+
+            # Replace strings in axis labels
+            for ax in f.axes:
+                ax.set_xlabel(axis_label_thesisify(ax.get_xlabel()))
+                ax.set_ylabel(axis_label_thesisify(ax.get_ylabel()))
+
+
     # if requested then save figures
     # ============================================================
 
@@ -766,8 +804,6 @@ def main():
         # Find all "parameter_file" files (non-recursively, recusive would
         # have to search *all* data files, slow..)
         param_files = list(filter(os.path.exists, [pjoin(d, "parameter_file") for d in args.dir]))
-        print([pjoin(d, "parameter_file") for d in args.dir])
-        print(param_files)
 
         # Copy to output dir (with number appended to prevent overwrites)
         for i, d in enumerate(param_files):
