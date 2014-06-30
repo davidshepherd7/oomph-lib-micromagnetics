@@ -553,6 +553,14 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
+        # Plot |m| error vs time
+    if 'ml-only' in args.plots:
+        plot_ml_error_vs_time = par(plot_vs_time,
+                                    plot_values=['m_length_error_means'],
+                                    labels=args.label)
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        figs.extend(newfigs)
+
     if 'lte' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['LTE_norms', 'dts'],
