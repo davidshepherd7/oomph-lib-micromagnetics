@@ -511,9 +511,9 @@ def main():
     if 'trace' in args.plots:
         plot_traces = par(plot_vs_time,
                           plot_values=['trace_values','trace_values','trace_values', 'dts'],
-                          operations_on_values=[lambda x:x[0],
-                                                lambda x:x[1],
-                                                lambda x:x[2],
+                          operations_on_values=[lambda x:x[2],
+                                                lambda x:x[3],
+                                                lambda x:x[4],
                                                 None],
                           labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_traces)

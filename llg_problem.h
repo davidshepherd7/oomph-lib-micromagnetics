@@ -807,11 +807,6 @@ namespace oomph
     /// at the middle of each element.
     double compare_m_with_function(const SolutionFunctorBase& fct) const;
 
-    /// Best trace value to use is probably mean of m.
-    Vector<double> trace_values() const
-    {
-      return MManipulation::mean_nodal_magnetisation(*this);
-    }
 
     double get_error_norm() const
     {
