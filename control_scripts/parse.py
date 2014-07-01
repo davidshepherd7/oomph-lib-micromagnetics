@@ -808,6 +808,9 @@ def main():
 
     if args.save_to_dir is not None:
 
+        # Make sure folder exists
+        os.makedirs(args.save_to_dir, exist_ok=True)
+
         # Write plot command used to output dir
         plot_command_filename = pjoin(args.save_to_dir, "plot_command")
         with open(plot_command_filename, 'w') as plot_command_file:
@@ -832,9 +835,6 @@ def main():
 
         # Copy the figures
         for fig in figs:
-
-            # Make sure folder exists
-            os.makedirs(args.save_to_dir, exist_ok=True)
 
             # construct path
             name = safefilename(name_fig(fig))
