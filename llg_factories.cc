@@ -836,11 +836,12 @@ namespace oomph
         }
     }
 
-    InitialMFct* initial_m_factory(const std::string& m_name)
+    InitialMFct* initial_m_factory(const std::string& m_name,
+                                   const double& wave_solution_c)
     {
       if(m_name == "periodic_exact")
         {
-          return new InitialM::LLGWaveSolution;
+          return new InitialM::LLGWaveSolution(wave_solution_c);
         }
 
       TimeSpaceToDoubleVectFctPt fpt;

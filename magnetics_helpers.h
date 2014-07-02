@@ -314,7 +314,7 @@ namespace InitialM
   {
   public:
     /// Constructor
-    LLGWaveSolution() {}
+    LLGWaveSolution(const double& c) {C = c;}
 
     /// Virtual destructor
     virtual ~LLGWaveSolution() {}
@@ -332,6 +332,7 @@ namespace InitialM
 
     unsigned dim;
     double damping;
+    double C;
   };
 
 }

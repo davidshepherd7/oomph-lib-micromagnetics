@@ -90,8 +90,11 @@ namespace oomph
     /// Pick an applied field function pointer
     HAppFctPt h_app_factory(const std::string& field_name);
 
-    /// Pick an initial magnetisation function pointer
-    InitialMFct* initial_m_factory(const std::string& m_name);
+    /// Pick an initial magnetisation function pointer. ??ds have to pass
+    /// in wave solution parameter here but I don't like it... Need a
+    /// **kwargs type construct like python so we can pass through args!
+    InitialMFct* initial_m_factory(const std::string& m_name,
+                                   const double& wave_solution_c=0);
 
     /// Create a rescaled reduced integration scheme for this element.
     Integral* rescaled_nodal_quadrature_factory(const FiniteElement* ele_pt,

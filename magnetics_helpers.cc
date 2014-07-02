@@ -28,7 +28,7 @@ namespace oomph
 #endif
 
       // solution parameters
-      double a = 0.35*Pi;
+      double a = this->C*Pi;
       double k = 2 * Pi;
 
       // Rescale time because this is a solution to the LL equation

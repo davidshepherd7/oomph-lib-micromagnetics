@@ -86,6 +86,10 @@ namespace oomph
       specify_command_line_flag("-integration", &integration_type,
                                 "gauss, nodal, rnodal; default is gauss.");
       integration_type = "gauss";
+
+      specify_command_line_flag("-wave-solution-c", &wave_solution_c,
+                                "Constant for wave exact solution, multiplied by pi to get actual c used. Does nothing if not using it. Default 0.25 (i.e. pi/4).");
+      wave_solution_c = 0.25;
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -114,7 +118,7 @@ namespace oomph
       h_app_name = to_lower(h_app_name);
       mag_params_name = to_lower(mag_params_name);
 
-      initial_condition_pt = initial_m_factory(initial_m_name);
+      initial_condition_pt = initial_m_factory(initial_m_name, wave_solution_c);
       h_app_fct_pt = h_app_factory(h_app_name);
       mag_params_pt = magnetic_parameters_factory(mag_params_name);
 
@@ -289,6 +293,7 @@ namespace oomph
 
     double damping;
     double k1;
+    double wave_solution_c;
 
     int numerical_int_bem;
     int hlib_bem;
