@@ -77,6 +77,11 @@ def axis_label_thesisify(label):
                      'gauss' : 'Gaussian quadrature',
                      'dts' : r'$\Delta_n$',
                      'm length error maxes' : r'max$(|\mathbf{m}| - 1)$',
+
+                     # newton res stuff
+                     'max of "m length error maxes"' : r'max(max$(|\mathbf{m}| - 1)$)',
+                     'max min of "newton residuals"' : r'max$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
+                     'mean min of "newton residuals"' : r'mean$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
                      }
 
     # If it matches then change it
@@ -709,6 +714,42 @@ def main():
               y_operation=max,
               x_value='newton_residuals',
               x_operation=mean_min)
+
+        newfigs = multi_plot(all_results, args.split, fplot)
+        figs.extend(newfigs)
+
+
+    if 'scatter-ml-maxminnewtres' in args.plots:
+
+        def max_min(dataset):
+            mins = []
+            for residuals in dataset:
+                if len(residuals) > 0:
+                    mins.append(min(residuals))
+
+            return max(mins)
+
+        fplot = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='m_length_error_maxes',
+              y_operation=max,
+              x_value='newton_residuals',
+              x_operation=max_min)
+
+        newfigs = multi_plot(all_results, args.split, fplot)
+        figs.extend(newfigs)
+
+    if 'scatter-ml-newttol' in args.plots:
+
+        fplot = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='m_length_error_maxes',
+              y_operation=max,
+              x_value='-newton-tol')
 
         newfigs = multi_plot(all_results, args.split, fplot)
         figs.extend(newfigs)
