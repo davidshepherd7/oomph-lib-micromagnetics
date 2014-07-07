@@ -19,9 +19,6 @@
 // .cc?
 #include "../../src/generic/midpoint_method.h"
 
-// Print vectors nicely
-#include "./prettyprint98.hpp"
-
 // My vector helpers
 #include "./vector_helpers.h"
 #include "./magnetic_materials.h"

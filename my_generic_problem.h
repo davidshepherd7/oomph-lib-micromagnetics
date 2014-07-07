@@ -19,7 +19,6 @@
 #include "../../src/generic/general_purpose_preconditioners.h"
 
 #include "micromag_types.h"
-#include "prettyprint98.hpp"
 #include "energy_functions.h"
 
 

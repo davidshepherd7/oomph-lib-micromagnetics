@@ -1,15 +1,6 @@
 #ifndef OOMPH_MY_CLI_H
 #define OOMPH_MY_CLI_H
 
-
-// Include the appropriate version of the pretty print header depending on if we
-// are using c++11 or not
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-#include "prettyprint.hpp"
-#else
-#include "prettyprint98.hpp"
-#endif
-
 #include "magnetics_helpers.h"
 #include "micromag_types.h"
 #include "oomph_factories.h"

@@ -50,7 +50,6 @@ headers = array_interpolator.h \
 	vector_helpers.h \
 	boundary_element_handler.h \
 	pinned_boundary_element_handler.h \
-	prettyprint98.hpp \
 	residual_calculator.h \
 	poisson_test_problem.h \
 	multi_mesh.h \

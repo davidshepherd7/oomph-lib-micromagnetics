@@ -1,11 +1,6 @@
 
-
-
-
 #include "generic.h"
 #include <fenv.h>
-
-#include "../../prettyprint98.hpp"
 
 
 using namespace oomph;

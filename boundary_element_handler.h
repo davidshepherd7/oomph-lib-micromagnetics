@@ -14,7 +14,6 @@
 
 #include "../../src/generic/sum_of_matrices.h"
 
-#include "prettyprint98.hpp"
 #include "vector_helpers.h"
 
 #include "micromagnetics_boundary_element.h"
