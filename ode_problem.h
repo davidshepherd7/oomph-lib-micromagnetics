@@ -376,7 +376,7 @@ namespace oomph
     }
 
     /// Get residuals
-    void fill_in_contribution_to_residuals(Vector<double>& residuals)
+    void fill_in_contribution_to_residuals(Vector<double>& residuals) override
     {
       // Get pointer to one-and-only internal data object
       Data* dat_pt = internal_data_pt(0);
@@ -404,7 +404,7 @@ namespace oomph
     }
 
     void fill_in_contribution_to_jacobian(Vector<double>& residuals,
-                                          DenseMatrix<double>& jacobian)
+                                          DenseMatrix<double>& jacobian) override
     {
       // Get residuals
       fill_in_contribution_to_residuals(residuals);
@@ -421,7 +421,7 @@ namespace oomph
     }
 
     void fill_in_contribution_to_mass_matrix(Vector<double>& residuals,
-                                             DenseMatrix<double>& mm)
+                                             DenseMatrix<double>& mm) override
     {
       fill_in_contribution_to_residuals(residuals);
       for(unsigned j=0, nj=nvalue(); j<nj; j++)
@@ -523,7 +523,7 @@ namespace oomph
 
     virtual ~ODEProblem() {}
 
-    void build(Vector<Mesh*>& bulk_mesh_pts)
+    void build(Vector<Mesh*>& bulk_mesh_pts) override
     {
       // Call the underlying build
       MyProblem::build(bulk_mesh_pts);
@@ -536,7 +536,7 @@ namespace oomph
       oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
-    void set_initial_condition(const InitialConditionFct& ic)
+    void set_initial_condition(const InitialConditionFct& ic) override
     {
       // Loop over current & previous timesteps
       const unsigned nprev_values = time_stepper_pt()->nprev_values();
@@ -560,17 +560,17 @@ namespace oomph
       actions_after_set_initial_condition();
     }
 
-    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const override
     {
       trace_file << Trace_seperator << "exact";
     }
 
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const
+    virtual void write_additional_trace_data(std::ofstream& trace_file) const override
     {
       trace_file << Trace_seperator << exact_solution(time());
     }
 
-    double get_error_norm() const
+    double get_error_norm() const override
     {
       Vector<double> val = trace_values();
       Vector<double> exact = exact_solution(time());
@@ -586,14 +586,14 @@ namespace oomph
     }
 
     /// Error norm: use abs(error in data).
-    double global_temporal_error_norm()
+    double global_temporal_error_norm() override
     {
       Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
 
       return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
     }
 
-    Vector<double> trace_values() const {return solution();}
+    Vector<double> trace_values() const override {return solution();}
 
     ODEElement* element_pt()
     {return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0));}
@@ -613,7 +613,7 @@ namespace oomph
 
     // Output solution
     void output_solution(const unsigned& t, std::ostream& outstream,
-                         const unsigned& npoints=2) const
+                         const unsigned& npoints=2) const override
     {
       std::cout << solution(t) << std::endl;
       outstream << solution(t) << std::endl;
@@ -654,7 +654,7 @@ public:
       return std::abs(1 - VectorOps::two_norm(solution()));
     }
 
-    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const override
     {
       trace_file
         << Trace_seperator << "m_length_error_means"
@@ -672,7 +672,7 @@ public:
         << Trace_seperator << "alt_effective_damping";
   }
 
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const
+    virtual void write_additional_trace_data(std::ofstream& trace_file) const override
     {
 
       Vector<double> m = solution();
@@ -694,7 +694,7 @@ public:
         << Trace_seperator << Alt_eff_damp;
     }
 
-    double get_error_norm() const
+    double get_error_norm() const override
     {
       // Assumption: started with InitialM::z, damping = 0.5, happ =
       // HApp::minus_z, Hk = 0

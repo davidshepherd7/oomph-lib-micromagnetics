@@ -97,14 +97,14 @@ namespace oomph
     /// and not have to worry so much about memory management!
     virtual ~LLGProblem() {}
 
-    std::string problem_name() const {return "LLG";}
+    std::string problem_name() const override {return "LLG";}
 
     /// Get the jacobian as a SumOfMatrices. This is probably the best way
     /// to deal with Jacobians involving a dense block (i.e. in fully
     /// implicit bem). If we aren't using that then this is basically the
     /// same as using the cr matrix form but with the Jacobian wrapped
     /// inside a SumOfMatrices class.
-    void get_jacobian(DoubleVector &residuals, SumOfMatrices &jacobian)
+    void get_jacobian(DoubleVector &residuals, SumOfMatrices &jacobian) override
     {
       // Get the fem Jacobian and the residuals
       CRDoubleMatrix* fem_jacobian_pt =
@@ -202,7 +202,7 @@ namespace oomph
     /// we are using fully implicit bem then this is not a good idea for
     /// "real" problems but useful for tests. Otherwise this is exactly the
     /// same as Problem::get_jacobian().
-    void get_jacobian(DoubleVector &residuals, CRDoubleMatrix &jacobian)
+    void get_jacobian(DoubleVector &residuals, CRDoubleMatrix &jacobian) override
     {
       // If we're calculating ms here then include the bem matrix. Warning:
       // this is not going to be fast! Use the sumofmatrices version
@@ -274,7 +274,7 @@ namespace oomph
       }
 
     /// Function that does the real work of the constructors.
-    void build(Vector<Mesh*>& bulk_mesh_pts);
+    void build(Vector<Mesh*>& bulk_mesh_pts) override;
 
     /// Renormalise magnetisation to 1 (needed with BDF2)
     void renormalise_magnetisation()
@@ -351,7 +351,7 @@ namespace oomph
       Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
     }
 
-    virtual void actions_before_time_integration()
+    virtual void actions_before_time_integration() override
     {
       MyProblem::actions_before_time_integration();
 
@@ -362,7 +362,7 @@ namespace oomph
     }
 
 
-    virtual void actions_before_implicit_timestep()
+    virtual void actions_before_implicit_timestep() override
     {
       MyProblem::actions_before_implicit_timestep();
 
@@ -441,7 +441,7 @@ namespace oomph
     }
 
 
-    virtual void actions_after_implicit_timestep()
+    virtual void actions_after_implicit_timestep() override
       {
         MyProblem::actions_after_implicit_timestep();
 
@@ -462,7 +462,7 @@ namespace oomph
       }
 
 
-    virtual void actions_before_newton_step()
+    virtual void actions_before_newton_step() override
     {
       oomph_info << std::endl
                  << "Newton step " << Nnewton_iter_taken + 1 << std::endl
@@ -475,7 +475,7 @@ namespace oomph
         }
     }
 
-    virtual void actions_after_newton_step()
+    virtual void actions_after_newton_step() override
     {
       if(!Inside_segregated_magnetostatics)
         {
@@ -485,7 +485,7 @@ namespace oomph
     }
 
 
-    virtual void actions_before_newton_solve()
+    virtual void actions_before_newton_solve() override
     {
       if(!Inside_segregated_magnetostatics)
         {
@@ -514,7 +514,7 @@ namespace oomph
     }
 
 
-    virtual void actions_before_explicit_timestep()
+    virtual void actions_before_explicit_timestep() override
     {
       // Set this variable to avoid getting BEM in mass matrix (due to a
       // hack in oomph core.. fix that instead?)
@@ -526,7 +526,7 @@ namespace oomph
       MyProblem::actions_before_explicit_timestep();
     }
 
-    virtual void actions_after_explicit_timestep()
+    virtual void actions_after_explicit_timestep() override
     {
       MyProblem::actions_after_explicit_timestep();
 
@@ -543,7 +543,7 @@ namespace oomph
       Inside_explicit_timestep = false;
     }
 
-    virtual void actions_before_explicit_stage()
+    virtual void actions_before_explicit_stage() override
     {
       MyProblem::actions_before_explicit_stage();
 
@@ -557,7 +557,7 @@ namespace oomph
       segregated_pin_indices(non_m_indices);
     }
 
-    virtual void actions_after_explicit_stage()
+    virtual void actions_after_explicit_stage() override
     {
       // Remove m-only segregation
       undo_segregated_pinning();
@@ -568,7 +568,7 @@ namespace oomph
       MyProblem::actions_after_explicit_stage();
     }
 
-    virtual void actions_after_newton_solve()
+    virtual void actions_after_newton_solve() override
     {
       oomph_info << std::endl
                  << "Finalising" << std::endl
@@ -615,7 +615,7 @@ namespace oomph
           }
       }
 
-    virtual void actions_before_newton_convergence_check()
+    virtual void actions_before_newton_convergence_check() override
       {
         // Call base class actions function
         MyProblem::actions_before_newton_convergence_check();
@@ -672,7 +672,7 @@ namespace oomph
       }
 
 
-    void write_additional_trace_headers(std::ofstream& trace_file) const
+    void write_additional_trace_headers(std::ofstream& trace_file) const override
     {
       trace_file
         << Trace_seperator << "m_length_error_means"
@@ -694,7 +694,7 @@ namespace oomph
 
     }
 
-    void write_additional_trace_data(std::ofstream& trace_file) const
+    void write_additional_trace_data(std::ofstream& trace_file) const override
     {
       Vector<Vector<double> > ms = MManipulation::nodal_magnetisations(*this);
       Vector<double> ml_errors = MManipulation::nodal_m_length_errors(ms);
@@ -733,7 +733,7 @@ namespace oomph
       return H_app;
     }
 
-    void initial_doc_additional() const
+    void initial_doc_additional() const override
     {
       // If we have a H matrix then write out its rank data
       if(Bem_handler_pt != 0)
@@ -768,10 +768,10 @@ namespace oomph
 
     /// \short Error for adaptive timestepper (rms of nodal error determined by
     /// comparison with explicit timestepper result).
-    double global_temporal_error_norm();
+    double global_temporal_error_norm() override;
 
 
-    virtual void actions_after_set_initial_condition()
+    virtual void actions_after_set_initial_condition() override
       {
         MyProblem::actions_after_set_initial_condition();
 
@@ -781,7 +781,7 @@ namespace oomph
         calculate_energies(false);
       }
 
-    virtual void dump(std::ofstream& dump_file) const
+    virtual void dump(std::ofstream& dump_file) const override
     {
       // Set very high precision to avoid any issues
       dump_file.precision(14);
@@ -790,7 +790,7 @@ namespace oomph
       MyProblem::dump(dump_file);
     }
 
-    virtual void read(std::ifstream& restart_file)
+    virtual void read(std::ifstream& restart_file) override
     {
       // Let base class handle the rest
       MyProblem::read(restart_file);
@@ -808,7 +808,7 @@ namespace oomph
     double compare_m_with_function(const SolutionFunctorBase& fct) const;
 
 
-    double get_error_norm() const
+    double get_error_norm() const override
     {
       if(Compare_with_mallinson)
         {
