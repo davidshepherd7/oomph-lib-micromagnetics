@@ -358,13 +358,14 @@ def run_failed(dir):
                 for f in ["failed", "Failed", "FAILED"]])
 
 
-def parse_parameter_sweep(root_dirs, skip_failed=False):
-    """Recursively parse directories inside each root_dir.
+def parse_parameter_sweep(root_dirs, skip_failed=False, **kwargs):
+    """Recursively parse directories inside each root_dir, in parallel unless
+    serial_mode=True is set.
 
     If skip_failed then skip anything for which run_failed(dir) returns
     false.
     """
-    results = []
+    result_dirs = []
     for root_dir in root_dirs:
         for dirname, _, _ in os.walk(root_dir):
             has_info = os.path.isfile(pjoin(dirname, "info"))
@@ -372,9 +373,11 @@ def parse_parameter_sweep(root_dirs, skip_failed=False):
 
             if has_info and not fail_skip:
                 print("Parsing", dirname)
-                results.append(parse_run(dirname))
+                result_dirs.append(dirname)
             elif fail_skip:
                 print("Skipping", dirname, "because it failed")
+
+    results = parallel_map(parse_run, result_dirs, **kwargs)
 
     return results
 

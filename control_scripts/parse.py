@@ -16,6 +16,7 @@ import os.path
 import ast
 import glob
 import shutil
+import multiprocessing as mp
 
 # Imports for specific functions
 from functools import partial as par
@@ -428,6 +429,12 @@ def main():
     parser.add_argument('--thesis', action='store_true',
                         help='Do some modifications to make plots prettier.')
 
+    parser.add_argument('--debug-mode', action='store_true',
+                        help = 'Enable debugging mode (run in serial).')
+
+    parser.add_argument('--ncores', '-n', '-j', default=mp.cpu_count(), type=int,
+                        help='Number of cores to use')
+
     args = parser.parse_args()
 
     # Handle some defaults like this instead of inside argparse otherwise
@@ -458,7 +465,9 @@ def main():
 
     # Get the results that aren't just empty
     really_all_results = mm.parse_parameter_sweep(args.dir,
-                                                  skip_failed=args.skip_failed)
+                                                  skip_failed=args.skip_failed,
+                                                  serial_mode=args.debug_mode,
+                                                  processes=args.ncores)
     all_results = [d for d in really_all_results if d is not None]
 
     print(len(all_results), "data sets out of", len(really_all_results), "used",
