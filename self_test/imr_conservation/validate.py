@@ -41,6 +41,8 @@ def main():
         '-h-app' : 'zero',
         '-damping' : [0.9, 0.01, 0],
         '-tmax' : 1.0,
+        '-wave-solution-c' : 1/12, # Jeong et. al's value
+
 
         # Integration/calculation details
         '-ts' : ["imr"],
@@ -64,6 +66,7 @@ def main():
         '-h-app' : 'zero',
         '-damping' : [0.5], #only one case because it's slower
         '-tmax' : 1.0,
+        '-wave-solution-c' : 1/12, # Jeong et. al's value
 
         # Integration/calculation details
         '-ts' : ["imr"],
