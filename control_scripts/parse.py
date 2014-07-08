@@ -207,6 +207,8 @@ def my_scatter(data, x_value, y_value,
                dataset_split_keys=None,
                labels=None,
                x_operation=None, y_operation=None,
+               xscale="log",
+               yscale="log",
                **kwargs):
     """Plot a scatter plot at point (x_value, y_value) for each dataset in
     data. Perform operations on data before plotting (by default take
@@ -266,8 +268,8 @@ def my_scatter(data, x_value, y_value,
     ax.set_xlabel(make_axis_label(x_value, x_operation))
     ax.set_ylabel(make_axis_label(y_value, y_operation))
 
-    ax.set_xscale("log")
-    ax.set_yscale("log")
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
 
 
     # Pick the right axis scales
@@ -823,7 +825,8 @@ def main():
                     labels=args.label,
                     dataset_split_keys=args.scatter_split,
                     x_value='-wave-solution-c',
-                    y_value='convergence_rate')
+                    y_value='convergence_rate',
+                    xscale='linear', yscale='linear')
 
         # Only plot the datasets with the largest refinement (others are
         # equivalent except for refinement level).
