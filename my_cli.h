@@ -175,6 +175,11 @@ namespace oomph
                                   "After each step also output the values calculated by the predictor (to a separate file).");
         output_predictor_values = -1;
 
+        specify_command_line_flag("-output-intial-conditions",
+                                  &output_initial_conditions,
+                                  "Output the initial conditions as though they were a time step (or as much as possible). Note that this shifts the doc info numbers.");
+        output_initial_conditions = -1;
+
         specify_command_line_flag("-convergence-test",
                                   &convergence_test,
                                   "Automatically select dt depending on given refinement to obtain convergence plots (as in Jeong2014).");
@@ -378,6 +383,7 @@ namespace oomph
     int output_ltes;
     int output_predictor_values;
     int doc_exact;
+    int output_initial_conditions;
 
     InitialConditionFct* initial_condition_pt;
     int initial_is_exact;

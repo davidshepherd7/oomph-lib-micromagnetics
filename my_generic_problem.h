@@ -129,6 +129,7 @@ using namespace StringConversion;
       Output_ltes = false;
       Output_predictor_values = false;
       Want_doc_exact = false;
+      Output_initial_condition = false;
 
       N_steps_taken = 0;
       Total_step_time= 0;
@@ -452,13 +453,14 @@ using namespace StringConversion;
 
     /// \short Write some general data about the previous time step to a
     /// trace file. Extend by overloading write_additional_trace_data(...).
-    void write_trace();
+    void write_trace(const unsigned& t_hist=0);
 
 
     /// \short Overload to write problem specific data into trace
     /// file. Note: don't add any line endings, seperate data with the
     /// Trace_seperator string (BEFORE each data entry).
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const {}
+    virtual void write_additional_trace_data(const unsigned& t_hist,
+                                             std::ofstream& trace_file) const {}
 
     /// \short Overload to write problem specific headers into trace
     /// file. Note: don't add any line endings, seperate headers with the
@@ -514,7 +516,7 @@ using namespace StringConversion;
     /// solution depending on should_doc_this_step(..) function. Maybe
     /// output ltes depending on value of Output_ltes. Extend by overloading
     /// output_solution(...).
-    void doc_solution();
+    void doc_solution(const unsigned& t_hist=0);
 
 
     /// Standard output function: loop over all elements in all meshes and
@@ -547,7 +549,8 @@ using namespace StringConversion;
 
     /// Standard output function: loop over all elements in all meshes and
     /// output exact solution.
-    virtual void output_exact_solution(std::ostream& outstream,
+    virtual void output_exact_solution(const unsigned& t_hist,
+                                       std::ostream& outstream,
                                        const unsigned& npoints=2) const
     {
       const double time = time_pt()->time();
@@ -568,7 +571,7 @@ using namespace StringConversion;
     }
 
     /// \short Error norm calculator
-    virtual double get_error_norm() const
+    virtual double get_error_norm(const unsigned& t_hist=0) const
     {
       if(Exact_solution_pt != 0)
         {
@@ -577,7 +580,7 @@ using namespace StringConversion;
           // return std::sqrt(integrate_over_problem(&f));
 
           // Nodal rms difference
-          const double t = time_pt()->time();
+          const double t = time_pt()->time(t_hist);
 
           double diffsq = 0;
 
@@ -586,8 +589,8 @@ using namespace StringConversion;
             {
               Node* nd_pt = mesh_pt()->node_pt(nd);
               Vector<double> values(nd_pt->nvalue(), 0.0), x(dim(), 0.0);
-              nd_pt->position(x);
-              nd_pt->value(values);
+              nd_pt->position(t_hist, x);
+              nd_pt->value(t_hist, values);
 
               Vector<double> exact = exact_solution(t, x);
 
@@ -607,10 +610,10 @@ using namespace StringConversion;
     }
 
     /// \short Dummy solution norm calculator (overload in derived classes).
-    virtual double get_solution_norm() const
+    virtual double get_solution_norm(const unsigned& t_hist=0) const
     {
       DoubleVector dofs;
-      get_dofs(dofs);
+      get_dofs(t_hist, dofs);
       return dofs.norm();
     }
 
@@ -666,7 +669,7 @@ using namespace StringConversion;
       return Want_doc_exact && (Exact_solution_pt != 0);
     }
 
-    virtual Vector<double> trace_values() const
+    virtual Vector<double> trace_values(const unsigned& t_hist=0) const
     {
       unsigned nele = mesh_pt()->nelement();
       unsigned e = nele/2;
@@ -677,7 +680,7 @@ using namespace StringConversion;
           // Just use an element somewhere in the middle...
           Node* nd_pt = mesh_pt()->finite_element_pt(e)->node_pt(0);
           values.assign(nd_pt->nvalue(), 0.0);
-          nd_pt->value(values);
+          nd_pt->value(t_hist, values);
         }
       else
         {
@@ -772,7 +775,7 @@ using namespace StringConversion;
     /// increase point size so that things are easily visible. Not
     /// implemented for nodes with varying numbers of values (you might
     /// need something fancier than a csv file for this).
-    void output_ltes(std::ostream& output) const
+    void output_ltes(const unsigned& t_hist, std::ostream& output) const
       {
         // Output position labels
         for(unsigned j=0; j<Dim; j++)
@@ -846,6 +849,9 @@ using namespace StringConversion;
 
     /// Should we output the predicted values too?
     bool Output_predictor_values;
+
+    /// Should we write output for initial conditions as though they are time steps as well?
+    bool Output_initial_condition;
 
     /// Function pointer for exact solution
     InitialConditionFct* Exact_solution_pt;

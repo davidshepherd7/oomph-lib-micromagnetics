@@ -202,7 +202,8 @@ namespace oomph
       return -1;
     }
 
-    Vector<Vector<double> > nodal_magnetisations(const LLGProblem& problem)
+    Vector<Vector<double> > nodal_magnetisations(const unsigned& t_hist,
+                                                 const LLGProblem& problem)
     {
       // create vector
       const unsigned nnode = problem.mesh_pt()->nnode();
@@ -213,17 +214,11 @@ namespace oomph
         {
           for(unsigned j=0; j<3; j++)
             {
-              ms[nd][j] = problem.mesh_pt()->node_pt(nd)->value(problem.m_index(j));
+              ms[nd][j] = problem.mesh_pt()->node_pt(nd)->value(t_hist,  problem.m_index(j));
             }
         }
 
       return ms;
-    }
-
-
-    Vector<double> mean_nodal_magnetisation(const LLGProblem& problem)
-    {
-      return mean_nodal_magnetisation(nodal_magnetisations(problem));
     }
 
     Vector<double> mean_nodal_magnetisation(const Vector<Vector<double> >& ms)

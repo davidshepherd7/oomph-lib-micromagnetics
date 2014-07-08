@@ -223,6 +223,11 @@ int main(int argc, char *argv[])
   problem_pt->Doc_info.output_jacobian = args_pt->output_jacobian;
   problem_pt->set_doc_times(args_pt->doc_times);
 
+  if(args_pt->output_initial_conditions != -1)
+    {
+      problem_pt->Output_initial_condition = bool(args_pt->output_initial_conditions);
+    }
+
   if(args_pt->doc_exact != -1)
     {
       problem_pt->Want_doc_exact = bool(args_pt->doc_exact);

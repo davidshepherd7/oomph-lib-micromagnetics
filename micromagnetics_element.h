@@ -419,21 +419,26 @@ namespace oomph
 
 
     /// \short Return a vector containing the magnetisation at a node.
-    Vector<double> get_m(unsigned node) const
+    Vector<double> get_m(const unsigned& t_hist,
+                         unsigned node) const
     {
       Vector<double> m(3, 0.0);
       for(unsigned j=0; j<3; j++)
         {
-          m[j] = nodal_value(node, m_index_micromag(j));
+          m[j] = nodal_value(t_hist, node, m_index_micromag(j));
         }
       return m;
+    }
+    Vector<double> get_m(unsigned node) const
+    {
+      return get_m(0, node);
     }
 
     /// \short Get the maximum difference in angle between the
     /// magnetisation of two nodes of the element. If this is large there
     /// is likely an error somewhere (in code or in problem setup), or
     /// there is not enough refinement.
-    double max_m_angle_variation() const
+    double max_m_angle_variation(const unsigned& t_hist) const
     {
       double max_angle = 0;
 
@@ -441,10 +446,10 @@ namespace oomph
       // to each other, store the maximum difference of angles.
       for(unsigned nd=0, n_nd=nnode(); nd<n_nd; nd++)
         {
-          Vector<double> m1 = get_m(nd);
+          Vector<double> m1 = get_m(t_hist, nd);
           for(unsigned nd2=0; nd2<n_nd; nd2++)
             {
-              Vector<double> m2 = get_m(nd2);
+              Vector<double> m2 = get_m(t_hist, nd2);
               max_angle = std::max(max_angle,
                                    VectorOps::angle_diff(m1, m2));
             }

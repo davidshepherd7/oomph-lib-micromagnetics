@@ -345,6 +345,26 @@ namespace oomph
     info_file << Doc_info.args_str;
     info_file.close();
 
+    // If requested then output history values before t=0.
+    if(Output_initial_condition)
+      {
+#ifdef PARANOID
+        if(ntime_stepper() != 1)
+          {
+            std::string err = "More/less that 1 time stepper, not sure what to output.";
+            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+#endif
+
+        // Output info for each history value in order.
+        const unsigned nval = time_stepper_pt()->nprev_values();
+        for(unsigned it=nval-1; it>0; it--)
+          {
+            doc_solution(it);
+          }
+      }
+
 
     // Write initial solution and anything else problem specific
     // (e.g. more trace file headers)
@@ -352,12 +372,13 @@ namespace oomph
     initial_doc_additional();
   }
 
-  void MyProblem::doc_solution()
+  void MyProblem::doc_solution(const unsigned& t_hist)
   {
     bool doc_this_step = true;
     if(!is_steady())
       {
-        doc_this_step = should_doc_this_step(time_pt()->dt(), time());
+        doc_this_step = should_doc_this_step(time_pt()->dt(t_hist),
+                                             time_pt()->time(t_hist));
       }
 
     const std::string dir = Doc_info.directory();
@@ -366,7 +387,7 @@ namespace oomph
     if(Always_write_trace || doc_this_step)
       {
         // Always output trace file data
-        write_trace();
+        write_trace(t_hist);
       }
 
     // Output full set of data if requested for this timestep
@@ -377,7 +398,7 @@ namespace oomph
         std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
                                 std::ios::out);
         soln_file.precision(Output_precision);
-        output_solution(0, soln_file);
+        output_solution(t_hist, soln_file);
         soln_file.close();
 
         // Exact solution if available and requested
@@ -386,7 +407,7 @@ namespace oomph
             std::ofstream exact_file((dir + "/" + "exact" + num + ".dat").c_str(),
                                      std::ios::out);
             exact_file.precision(Output_precision);
-            output_exact_solution(exact_file);
+            output_exact_solution(t_hist, exact_file);
             exact_file.close();
           }
 
@@ -399,7 +420,7 @@ namespace oomph
                                    std::ios::app);
             pvd_file.precision(Output_precision);
 
-            pvd_file << "<DataSet timestep=\"" << time()
+            pvd_file << "<DataSet timestep=\"" << time_pt()->time(t_hist)
                      << "\" group=\"\" part=\"0\" file=\"" << "soln"
                      << num << ".vtu"
                      << "\"/>" << std::endl;
@@ -439,7 +460,7 @@ namespace oomph
           {
             std::ofstream ltefile((dir + "/ltes" + num + ".csv").c_str(),
                                   std::ios::out);
-            output_ltes(ltefile);
+            output_ltes(t_hist, ltefile);
             ltefile.close();
           }
 
@@ -457,8 +478,12 @@ namespace oomph
           }
 #endif
 
-        if(Output_predictor_values
-           && time_stepper_pt()->adaptive_flag())
+        if(t_hist != 0)
+          {
+            std::string err = "Can't output history of predicted value: they aren't stored.";
+            OomphLibWarning(err, OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
+          }
+        else if(Output_predictor_values && time_stepper_pt()->adaptive_flag())
           {
             const unsigned predictor_time =
               time_stepper_pt()->predictor_storage_index();
@@ -513,19 +538,47 @@ namespace oomph
       }
   }
 
-  void MyProblem::write_trace()
+  void MyProblem::write_trace(const unsigned& t_hist)
   {
     std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str(),
                              std::ios::app);
     trace_file.precision(Output_precision);
 
-    double time = Dummy_doc_data, dt = Dummy_doc_data,
-      lte_norm = Dummy_doc_data;
+    double time = Dummy_doc_data, dt = Dummy_doc_data;
     if(!is_steady())
       {
-        time = this->time();
-        dt = this->time_pt()->dt();
-        lte_norm = this->lte_norm();
+        time = this->time_pt()->time(t_hist);
+        dt = this->time_pt()->dt(t_hist);
+      }
+
+    // Some values are impossible to get for history values, print dummy
+    // values instead.
+    double nnewton_iter_taken = Dummy_doc_data,
+      lte_norm = Dummy_doc_data,
+      real_time = Dummy_doc_data,
+      total_step_time = Dummy_doc_data;
+
+    Vector<double> solver_iterations(1, Dummy_doc_data),
+      solver_times(1, Dummy_doc_data),
+      jacobian_setup_times(1, Dummy_doc_data),
+      preconditioner_setup_times(1, Dummy_doc_data),
+      max_res(1, Dummy_doc_data);
+
+    if(t_hist == 0)
+      {
+        nnewton_iter_taken = Nnewton_iter_taken;
+        solver_iterations = Solver_iterations;
+        solver_times = Solver_times;
+        jacobian_setup_times = Jacobian_setup_times;
+        preconditioner_setup_times = Preconditioner_setup_times;
+        real_time = std::time(0);
+        total_step_time = Total_step_time;
+        max_res = Max_res;
+
+        if(!is_steady())
+          {
+            lte_norm = this->lte_norm();
+          }
       }
 
     // Write out data that can be done for every problem
@@ -533,22 +586,22 @@ namespace oomph
       << Doc_info.number()
       << Trace_seperator << time
       << Trace_seperator << dt
-      << Trace_seperator << get_error_norm()
+      << Trace_seperator << get_error_norm(t_hist)
 
-      << Trace_seperator << Nnewton_iter_taken
-      << Trace_seperator << Solver_iterations
+      << Trace_seperator << nnewton_iter_taken
+      << Trace_seperator << solver_iterations
 
-      << Trace_seperator << Solver_times
-      << Trace_seperator << Jacobian_setup_times
-      << Trace_seperator << Preconditioner_setup_times
+      << Trace_seperator << solver_times
+      << Trace_seperator << jacobian_setup_times
+      << Trace_seperator << preconditioner_setup_times
 
       << Trace_seperator << lte_norm
-      << Trace_seperator << trace_values()
+      << Trace_seperator << trace_values(t_hist)
 
-      << Trace_seperator << std::time(0)
-      << Trace_seperator << Max_res
-      << Trace_seperator << get_solution_norm()
-      << Trace_seperator << Total_step_time
+      << Trace_seperator << real_time
+      << Trace_seperator << max_res
+      << Trace_seperator << get_solution_norm(t_hist)
+      << Trace_seperator << total_step_time
 
       // Reserved slots in case I think of more things to add later
       << Trace_seperator << Dummy_doc_data
@@ -558,10 +611,9 @@ namespace oomph
       << Trace_seperator << Dummy_doc_data
       << Trace_seperator << Dummy_doc_data;
 
-    //??ds residuals?
 
     // Add problem specific data
-    write_additional_trace_data(trace_file);
+    write_additional_trace_data(t_hist, trace_file);
 
     // Finish off this line
     trace_file << std::endl;

@@ -565,15 +565,16 @@ namespace oomph
       trace_file << Trace_seperator << "exact";
     }
 
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const override
+    virtual void write_additional_trace_data(const unsigned& t_hist,
+                                             std::ofstream& trace_file) const override
     {
-      trace_file << Trace_seperator << exact_solution(time());
+      trace_file << Trace_seperator << exact_solution(time_pt()->time(t_hist));
     }
 
-    double get_error_norm() const override
+    double get_error_norm(const unsigned& t_hist=0) const override
     {
-      Vector<double> val = trace_values();
-      Vector<double> exact = exact_solution(time());
+      Vector<double> val = trace_values(t_hist);
+      Vector<double> exact = exact_solution(time_pt()->time(t_hist));
 
       return VectorOps::two_norm_diff(val, exact);
     }
@@ -593,7 +594,10 @@ namespace oomph
       return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
     }
 
-    Vector<double> trace_values() const override {return solution();}
+    Vector<double> trace_values(const unsigned& t_hist=0) const override
+    {
+      return solution(t_hist);
+    }
 
     ODEElement* element_pt()
     {return checked_dynamic_cast<ODEElement*>(mesh_pt()->element_pt(0));}
@@ -672,7 +676,8 @@ public:
         << Trace_seperator << "alt_effective_damping";
   }
 
-    virtual void write_additional_trace_data(std::ofstream& trace_file) const override
+    virtual void write_additional_trace_data(const unsigned& t_hist,
+                                             std::ofstream& trace_file) const override
     {
 
       Vector<double> m = solution();
@@ -683,18 +688,33 @@ public:
         << Trace_seperator << 0
         << Trace_seperator << m[0]
         << Trace_seperator << m[1]
-        << Trace_seperator << m[2]
+        << Trace_seperator << m[2];
 
-        << Trace_seperator << Exchange_energy
-        << Trace_seperator << Zeeman_energy
-        << Trace_seperator << Crystalline_anisotropy_energy
-        << Trace_seperator << Magnetostatic_energy
-        << Trace_seperator << MyProblem::Dummy_doc_data
-        << Trace_seperator << Effective_damping_constant
-        << Trace_seperator << Alt_eff_damp;
+      if(t_hist == 0)
+        {
+        trace_file
+          << Trace_seperator << Exchange_energy
+          << Trace_seperator << Zeeman_energy
+          << Trace_seperator << Crystalline_anisotropy_energy
+          << Trace_seperator << Magnetostatic_energy
+          << Trace_seperator << MyProblem::Dummy_doc_data
+          << Trace_seperator << Effective_damping_constant
+          << Trace_seperator << Alt_eff_damp;
+        }
+      else
+        {
+          trace_file
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << MyProblem::Dummy_doc_data;
+        }
     }
 
-    double get_error_norm() const override
+    double get_error_norm(const unsigned& t_hist=0) const override
     {
       // Assumption: started with InitialM::z, damping = 0.5, happ =
       // HApp::minus_z, Hk = 0
@@ -704,8 +724,8 @@ public:
       MagneticParameters* mag_parameters_pt =
         magnetic_parameters_factory("simple-llg");
 
-      double time = ts_pt()->time();
-      Vector<double> m_now = solution();
+      double time = ts_pt()->time_pt()->time(t_hist);
+      Vector<double> m_now = solution(t_hist);
       double exact_time = switching_time_wrapper(mag_parameters_pt, m_now);
 
       return std::abs(exact_time - time);

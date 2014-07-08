@@ -694,13 +694,33 @@ namespace oomph
 
     }
 
-    void write_additional_trace_data(std::ofstream& trace_file) const override
+    void write_additional_trace_data(const unsigned& t_hist,
+                                     std::ofstream& trace_file) const override
     {
-      Vector<Vector<double> > ms = MManipulation::nodal_magnetisations(*this);
+      Vector<Vector<double> > ms = MManipulation::nodal_magnetisations(t_hist,
+                                                                       *this);
       Vector<double> ml_errors = MManipulation::nodal_m_length_errors(ms);
-      Vector<double> angle_variations = elemental_max_m_angle_variations();
+      Vector<double> angle_variations = elemental_max_m_angle_variations(t_hist);
       Vector<double> mean_m = MManipulation::mean_nodal_magnetisation(ms);
-      Vector<double> h_app = first_element_happ();
+      Vector<double> h_app = first_element_happ(t_hist);
+
+
+      // Energies only available for present time
+      double exchange_energy = Dummy_doc_data, zeeman_energy = Dummy_doc_data,
+        crystalline_anisotropy_energy = Dummy_doc_data,
+        magnetostatic_energy = Dummy_doc_data,
+        micromagnetic_energy = Dummy_doc_data,
+        abs_damping_error = Dummy_doc_data, rel_damping_error = Dummy_doc_data;
+      if(t_hist == 0)
+        {
+          exchange_energy = Exchange_energy;
+          zeeman_energy = Zeeman_energy;
+          crystalline_anisotropy_energy = Crystalline_anisotropy_energy;
+          magnetostatic_energy = Magnetostatic_energy;
+          micromagnetic_energy = this->micromagnetic_energy();
+          abs_damping_error = Abs_damping_error;
+          rel_damping_error = Rel_damping_error;
+        }
 
       trace_file
         << Trace_seperator << VectorOps::mean(ml_errors)
@@ -711,22 +731,22 @@ namespace oomph
         << Trace_seperator << mean_m[1]
         << Trace_seperator << mean_m[2]
 
-        << Trace_seperator << Exchange_energy
-        << Trace_seperator << Zeeman_energy
-        << Trace_seperator << Crystalline_anisotropy_energy
-        << Trace_seperator << Magnetostatic_energy
-        << Trace_seperator << micromagnetic_energy()
-        << Trace_seperator << Abs_damping_error
-        << Trace_seperator << Rel_damping_error
+        << Trace_seperator << exchange_energy
+        << Trace_seperator << zeeman_energy
+        << Trace_seperator << crystalline_anisotropy_energy
+        << Trace_seperator << magnetostatic_energy
+        << Trace_seperator << micromagnetic_energy
+        << Trace_seperator << abs_damping_error
+        << Trace_seperator << rel_damping_error
         << Trace_seperator << h_app
         << Trace_seperator << VectorOps::max(ml_errors)
         ;
     }
 
     /// Get happ value from first element
-    Vector<double> first_element_happ() const
+    Vector<double> first_element_happ(const unsigned& t_hist=0) const
     {
-      double t = time_stepper_pt()->time();
+      double t = time_pt()->time(t_hist);
       Vector<double> dummy_x, dummy_s;
       Vector<double> H_app = ele_pt()->get_applied_field(t, dummy_x);
 
@@ -744,7 +764,7 @@ namespace oomph
 
     /// \short Return a vector of the maximum angle variation in each
     /// element.
-    Vector<double> elemental_max_m_angle_variations() const
+    Vector<double> elemental_max_m_angle_variations(const unsigned& t_hist=0) const
     {
       Vector<double> angles;
 
@@ -760,7 +780,7 @@ namespace oomph
                 checked_dynamic_cast<MicromagEquations*>
                 (mesh_pt(msh)->element_pt(e));
 
-              angles.push_back(ele_pt->max_m_angle_variation());
+              angles.push_back(ele_pt->max_m_angle_variation(t_hist));
             }
         }
       return angles;
@@ -808,14 +828,14 @@ namespace oomph
     double compare_m_with_function(const SolutionFunctorBase& fct) const;
 
 
-    double get_error_norm() const override
+    double get_error_norm(const unsigned& t_hist) const override
     {
       if(Compare_with_mallinson)
         {
           using namespace CompareSolutions;
 
-          double time = ele_pt()->node_pt(0)->time_stepper_pt()->time();
-          Vector<double> m_now = MManipulation::mean_nodal_magnetisation(*this);
+          double time = time_pt()->time(t_hist);
+          Vector<double> m_now = MManipulation::mean_nodal_magnetisation(t_hist, *this);
           double exact_time = switching_time_wrapper(mag_parameters_pt(), m_now);
 
           return std::abs(exact_time - time);

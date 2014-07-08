@@ -413,12 +413,26 @@ namespace MManipulation
                        const std::deque<double>& previous_energies);
 
   /// Get a vector of the nodal values of the magnetisation
-  Vector<Vector<double> > nodal_magnetisations(const LLGProblem& problem);
+  Vector<Vector<double> > nodal_magnetisations(const unsigned& t_hist,
+                                               const LLGProblem& problem);
+  inline Vector<Vector<double> > nodal_magnetisations(const LLGProblem& problem)
+  {
+    return nodal_magnetisations(0, problem);
+  }
 
   /// Get the average of each magnetisation direction, specify either m
   /// values or problem.
   Vector<double> mean_nodal_magnetisation(const Vector<Vector<double> >& ms);
-  Vector<double> mean_nodal_magnetisation(const LLGProblem& problem);
+  inline Vector<double> mean_nodal_magnetisation(const unsigned& t_hist,
+                                          const LLGProblem& problem)
+  {
+    return mean_nodal_magnetisation(nodal_magnetisations(t_hist, problem));
+  }
+  inline Vector<double> mean_nodal_magnetisation(const LLGProblem& problem)
+  {
+    return mean_nodal_magnetisation(0, problem);
+  }
+
 
   /// Get list of |m| errors
   Vector<double> nodal_m_length_errors(const Vector<Vector<double> >& ms);
