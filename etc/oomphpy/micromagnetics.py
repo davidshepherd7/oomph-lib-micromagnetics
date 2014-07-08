@@ -529,9 +529,7 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
     if mpi_command is None:
         mpi_command = []
 
-
     # Always use absolute path to outdir
-    # ============================================================
     outdir = os.path.abspath(outdir)
 
     # Make sure outdir is consistent: find its arg + compare
@@ -558,7 +556,10 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
         print("Can't find binary", binary)
         raise OSError;
 
+
     # Write the command used to a file
+    # ============================================================
+
     with open(pjoin(outdir, "run_script"), 'w') as script_file:
         script = generate_run_script(mpi_command, binary, arglist, outdir)
         script_file.write(script)
@@ -567,6 +568,10 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
     # read/write/execute, first digit is owner, second is group, third is
     # others, 5 = read/execute)
     os.chmod(pjoin(outdir, "run_script"), 0o775)
+
+
+    # Run the command itself
+    # ============================================================
 
     # Run with specified args, and in the driver folder. Put output (stdout
     # and stderr) into a file.
@@ -581,7 +586,35 @@ def run_driver(arglist, outdir, binary=None, mpi_command=None):
         with open(pjoin(outdir, "FAILED"), 'w') as fail_file:
             print('This run failed!', file=fail_file)
 
+
+
+    # Append git information to info file
+    # ============================================================
+
+    # Get micromag git info
+    try:
+        mm_git_rev = subp.check_output(['git', 'rev-parse', '--verify', 'HEAD'],
+                                       cwd=rootdir()
+                                       ).decode(sys.stdout.encoding).strip()
+    except subp.CalledProcessError:
+        mm_git_rev = None
+
+    # Get oomph git info
+    try:
+        oomph_git_rev = subp.check_output(['git', 'rev-parse', '--verify', 'HEAD'],
+                                          cwd=pjoin(rootdir(), "..", "..")
+                                          ).decode(sys.stdout.encoding).strip()
+    except subp.CalledProcessError:
+        oomph_git_rev = None
+
+    # Write to info file
+    with open(pjoin(outdir, "info"), 'a') as info_file:
+        info_file.write("micromagnetics_git_revision " + str(mm_git_rev)+"\n")
+        info_file.write("oomph_lib_git_revision " + str(oomph_git_rev)+"\n")
+
+
     return err_code
+
 
 def generate_run_script(mpi_command, binary, arglist, outdir):
 
