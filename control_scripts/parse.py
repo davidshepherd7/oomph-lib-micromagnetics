@@ -673,6 +673,14 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_err_scatter)
         figs.extend(newfigs)
 
+        for fig in newfigs:
+            for ax in fig.axes:
+                xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
+                ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
+                ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
+                ax.legend()
+
+
     if 'scatter-err-tols' in args.plots:
         plot_err_scatter = \
           par(my_scatter,
