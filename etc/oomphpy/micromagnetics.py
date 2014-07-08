@@ -15,6 +15,7 @@ import ast
 import itertools as it
 import functools as ft
 import scipy as sp
+import scipy.optimize
 
 # Imports for specific functions
 from functools import partial as par
@@ -211,6 +212,39 @@ def split_to_comparable_groups(dicts, key_to_compare_over, key_filter=None):
 
     return comparable_groups
 
+
+def convergence_rate(dataset, error_norm_norm=max):
+    """For a set of convergence tests calculate the rate of covergence.
+    Parameter "error_norm_norm" is used to convert the list of error
+    norms at each time step to a single error norm.
+    """
+
+    # Check that we have a set of convergence tests
+    assert all([d['-convergence-test'] == "1" for d in dataset])
+
+    # Check that all parameters other than -ref match
+    def arguments_match(data1, data2, exclusions=['-ref', '-outdir']):
+        for k, v in data1.items():
+            if is_arg_key(k) and not k in exclusions:
+                if v != data2[k]:
+                    return False
+
+        return True
+    assert all([arguments_match(dataset[1], d) for d in dataset[1:]])
+
+
+    # Extract data to be fitted
+    dts, errs = unzip([( sp.mean(d['dts']), error_norm_norm(d['error_norms']) )
+                          for d in dataset])
+
+    # fit the data to a 2nd order polynomial
+    def f(x, a, b, c):
+        return a*(x**b) + c
+    parameters, covar = sp.optimize.curve_fit(f, dts, errs)
+    rate = parameters[1]     # rate of convergence = power of x (second
+                             # parameter).
+
+    return rate
 
 
 # Parsing functions

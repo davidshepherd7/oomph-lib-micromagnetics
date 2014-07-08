@@ -214,17 +214,7 @@ def check_convergence(datasets, expected_rate, tol=0.2):
     test only for dt.
     """
 
-    # Check that we have a set of convergence tests
-    assert all([d['-convergence-test'] == "1" for d in datasets])
-
-    # Extract data to be fitted
-    dts, errs = mm.unzip([(sp.mean(d['dts']), max(d['error_norms'])) for d in datasets])
-
-    # fit the data to a 2nd order polynomial
-    def f(x, a, b, c):
-        return a*(x**b) + c
-    parameters, covar = scipy.optimize.curve_fit(f, dts, errs)
-    rate = parameters[1]     # rate of convergence
+    rate = mm.convergence_rate(datasets, error_norm_norm=max)
 
     # Check if near to expected value
     ok = abs(rate - expected_rate) < tol
