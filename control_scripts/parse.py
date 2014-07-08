@@ -807,6 +807,32 @@ def main():
         figs.extend(newfigs)
 
 
+    if 'convergence-c' in args.plots:
+
+        # First we need to add convergence rate to the datasets.
+        conv_datasets = mm.split_to_comparable_groups(all_results, '-ref')
+        for dataset in conv_datasets:
+            rate = mm.convergence_rate(dataset, error_norm_norm=max)
+
+            # Add to all data in the set
+            for d in dataset:
+                d['convergence_rate'] = rate
+
+
+        fplot = par(my_scatter,
+                    labels=args.label,
+                    dataset_split_keys=args.scatter_split,
+                    x_value='-wave-solution-c',
+                    y_value='convergence_rate')
+
+        # Only plot the datasets with the largest refinement (others are
+        # equivalent except for refinement level).
+        max_ref = max([d['-ref'] for d in all_results])
+        max_ref_results = [d for d in all_results if d['-ref'] == max_ref]
+        newfigs = multi_plot(max_ref_results, args.split, fplot)
+
+
+
     # Printing
     # ============================================================
 
