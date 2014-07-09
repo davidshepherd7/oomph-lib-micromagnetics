@@ -78,11 +78,18 @@ def axis_label_thesisify(label):
                      'gauss' : 'Gaussian quadrature',
                      'dts' : r'$\Delta_n$',
                      'm length error maxes' : r'max$(|\mathbf{m}| - 1)$',
+                     '-tol' : r'$\epsilon_\Delta$',
+                     'trace values' : r'$y_n$',
+                     'error norms' : r'$|y(t_n) - y_n|$',
 
                      # newton res stuff
                      'max of "m length error maxes"' : r'max(max$(|\mathbf{m}| - 1)$)',
                      'max min of "newton residuals"' : r'max$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
                      'mean min of "newton residuals"' : r'mean$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
+
+                     # ode aimr stuff
+                     'mean of "dts"' : r'mean($\Delta_n$)',
+                     'max of "error norms"' : r'$||y_n - y(t_n)||_\infty$',
                      }
 
     # If it matches then change it
@@ -92,6 +99,21 @@ def axis_label_thesisify(label):
 
     # Otherwise no match: don't change
     return label
+
+def legend_thesisify(label):
+
+    replaces = {'imr' : 'IMR',
+                'tr' : 'TR',
+                'bdf2' : 'BDF2',
+                'bdf1' : 'BDF1',
+                }
+
+    for k, v in replaces.items():
+        if k == label:
+            return v
+    else:
+        return label
+
 
 
 def latex_safe(string):
@@ -892,6 +914,14 @@ def main():
             for ax in f.axes:
                 ax.set_xlabel(axis_label_thesisify(ax.get_xlabel()))
                 ax.set_ylabel(axis_label_thesisify(ax.get_ylabel()))
+
+            # Replace strings in legends
+            for ax in f.axes:
+                if ax.get_legend() is not None: # if legend exists
+                    handles, labels = ax.get_legend_handles_labels()
+                    labels = [legend_thesisify(l) for l in labels]
+                    ax.legend(handles, labels)
+
 
 
     # if requested then save figures
