@@ -237,7 +237,7 @@ namespace oomph
       /// Constructor
       OrderReductionTest()
       {
-        Lambda = -5;
+        Lambda = -100;
       }
 
       /// Virtual destructor
@@ -247,7 +247,7 @@ namespace oomph
       Vector<double> operator()(const double& t, const Vector<double>& x) const
       {
         Vector<double> values(1);
-        values[0] = std::sin(t) + std::cos(t);
+        values[0] = std::sin(t);
         return values;
       }
 
@@ -256,7 +256,7 @@ namespace oomph
                                 const Vector<double>& u) const
       {
         Vector<double> deriv(1, 0.0);
-        deriv[0] = Lambda*u[0] + (1-Lambda)*std::cos(t) - (1+Lambda)*std::sin(t);
+        deriv[0] = Lambda*u[0] - Lambda*std::sin(t) + std::cos(t);
         return deriv;
       }
 
@@ -288,7 +288,6 @@ namespace oomph
         {
           deriv_functions::OrderReductionTest* or_pt =
             new deriv_functions::OrderReductionTest;
-          or_pt->Lambda = -100;
           return or_pt;
         }
 
