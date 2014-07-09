@@ -54,7 +54,7 @@ def name_fig(fig):
     """Try to come up with a good name for a figure based on labels.
     """
 
-    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""] + [fig._ds_name]
+    main_label = [t.get_text() for t in fig.texts if t.get_text() != ""]
 
     axes_labels = [ax.get_ylabel() + "vs" + ax.get_xlabel()
                    for ax in fig.axes]
@@ -311,9 +311,6 @@ def multi_plot(data, keys_to_split_on, plot_function):
         # data in dataset have the same value for the keys in
         # keys_to_split_on so we just get it from the first one).
         fig.suptitle(' '.join(labels))
-
-        # Add a new member to figure: the name of the figure
-        fig._ds_name = '_'.join(labels)
 
         figs.append(fig)
 
@@ -877,6 +874,12 @@ def main():
     # End of prints/plots
     # ============================================================
 
+    # Generate filenames for each figure, and add as a new class
+    # member. Must be done before "thesisify" because that changes the axis
+    # labels to latex code.
+    for fig in figs:
+        fig._ds_name = name_fig(fig)
+
 
     # Prettyfy for thesis
     if args.thesis:
@@ -925,7 +928,7 @@ def main():
         for fig in figs:
 
             # construct path
-            name = safefilename(name_fig(fig))
+            name = safefilename(fig._ds_name)
             path = pjoin(args.save_to_dir, name + ".pdf")
 
             # Do it
