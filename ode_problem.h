@@ -155,7 +155,7 @@ namespace oomph
     {
       Vector<double> deriv(2, 0.0);
       deriv[0] = -100*u[0] + u[1];
-      deriv[1] = -0.1*u[1];
+      deriv[1] = 0*u[0] - 0.1*u[1];
       return deriv;
     }
 
@@ -203,6 +203,7 @@ namespace oomph
       SimpleStiffTest()
       {
         Lambda = 100;
+        Y_intial = 1;
       }
 
       /// Virtual destructor
@@ -212,7 +213,7 @@ namespace oomph
       Vector<double> operator()(const double& t, const Vector<double>& x) const
       {
         Vector<double> values(1);
-        values[0] = std::exp(-Lambda * t);
+        values[0] = std::exp(-Lambda * t) * Y_intial;
         return values;
       }
 
@@ -226,6 +227,7 @@ namespace oomph
       }
 
       double Lambda;
+      double Y_intial;
     };
 
     /// Another stiff solution: Atkinson pg. 158, also example 8.2 pg 129.
