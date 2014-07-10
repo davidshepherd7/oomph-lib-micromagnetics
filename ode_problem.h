@@ -297,15 +297,29 @@ namespace oomph
       // Get residuals
       fill_in_contribution_to_residuals(residuals);
 
-      // Use FD for jacobian
-      GeneralisedElement::fill_in_jacobian_from_internal_by_fd
-        (residuals, jacobian, true);
+      if(Exact_solution_pt->have_jacobian())
+        {
+          // get df/du jacobian
+          double t = internal_data_pt(0)->time_stepper_pt()->time();
+          Vector<double> dummy, u(nvalue(), 0.0);
+          internal_data_pt(0)->value(u);
+          Exact_solution_pt->jacobian(t, dummy, u, jacobian);
 
-      // // Or we can use this for problems where f(t, u) = f(t), if better
-      // // convergence is needed
-      // #warning "jacobian assume no direct u dependence in residual"
-      //     jacobian(0, 0) = internal_data_pt(0)->time_stepper_pt()->weight(1, 0);
-
+          // We need jacobian of residual = f - dudt so subtract diagonal
+          // (dudt)/du term.
+          const double a = internal_data_pt(0)->time_stepper_pt()->weight(1,0);
+          const unsigned n = nvalue();
+          for(unsigned i=0; i<n; i++)
+            {
+              jacobian(i, i) -= a;
+            }
+        }
+      else
+        {
+          // Use FD for jacobian
+          GeneralisedElement::fill_in_jacobian_from_internal_by_fd
+            (residuals, jacobian, true);
+        }
     }
 
     void fill_in_contribution_to_mass_matrix(Vector<double>& residuals,
