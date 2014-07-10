@@ -73,4 +73,23 @@ namespace oomph
     }
 
   }
+
+  double LLGODEProblem::get_error_norm(const unsigned& t_hist) const
+  {
+    if(Mallinson_applicable)
+      {
+        using namespace CompareSolutions;
+        double exact_time = switching_time_wrapper(Magnetic_parameters_pt,
+                                                   exact_solution(0.0),
+                                                   solution());
+
+        double actual_time = ts_pt()->time_pt()->time(t_hist);
+
+        return std::abs(exact_time - actual_time);
+      }
+    else
+      {
+        return MyProblem::Dummy_doc_data;
+      }
+  }
 }

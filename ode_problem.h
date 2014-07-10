@@ -20,6 +20,8 @@ namespace oomph
 
   namespace deriv_functions
   {
+    class LLODESolution;
+
     inline Vector<double> cos(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
@@ -409,7 +411,7 @@ namespace oomph
 
     virtual ~ODEProblem() {}
 
-    void build(Vector<Mesh*>& bulk_mesh_pts) override
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
     {
       // Call the underlying build
       MyProblem::build(bulk_mesh_pts);
@@ -457,7 +459,7 @@ namespace oomph
       trace_file << Trace_seperator << exact_solution(time_pt()->time(t_hist));
     }
 
-    double get_error_norm(const unsigned& t_hist=0) const override
+    virtual double get_error_norm(const unsigned& t_hist=0) const override
     {
       Vector<double> val = trace_values(t_hist);
       Vector<double> exact = exact_solution(time_pt()->time(t_hist));
@@ -538,7 +540,7 @@ namespace oomph
       Alt_eff_damp = MyProblem::Dummy_doc_data;
 
       Mallinson_applicable = false;
-      H_app_fpt = 0;
+      Magnetic_parameters_pt = 0;
     }
 
     virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
@@ -546,9 +548,9 @@ namespace oomph
       ODEProblem::build(bulk_mesh_pts);
 
 #ifdef PARANOID
-      if(H_app_fpt == 0)
+      if(Magnetic_parameters_pt == 0)
         {
-          std::string err = "Applied field function pointer not set.";
+          std::string err = "Magnetic_parameters_pt is null!";
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
@@ -557,9 +559,18 @@ namespace oomph
       // Set parameters in solution
       element_pt()->Exact_solution_pt->initialise_from_problem(this);
 
-      // Rough check for if we can use Mallinson
-#warning not implemented mallinson check
-      Mallinson_applicable = true;
+      // Rough check for if we can use Mallinson: h is constant in time and
+      // axis aligned.
+      double ftol = 1e-12;
+      Vector<double> dummy;
+      Vector<double> h0 = Magnetic_parameters_pt->h_app(0, dummy);
+      Vector<double> h1 = Magnetic_parameters_pt->h_app(0.1, dummy);
+      Vector<double> h2 = Magnetic_parameters_pt->h_app(1000000, dummy);
+      Mallinson_applicable =
+        (two_norm_diff(h0, h1) < ftol)
+        && (two_norm_diff(h1, h2) < ftol)
+        && (std::abs(h0[0]) < ftol) // no x component
+        && (std::abs(h0[1]) < ftol); // no y component
     }
 
     double m_length_error() const
@@ -623,40 +634,11 @@ namespace oomph
         }
     }
 
-    double get_error_norm(const unsigned& t_hist=0) const override
-    {
-      if(Mallinson_applicable)
-        {
 
-#warning "rewrite this bit"
-          // Assumption: started with InitialM::z, damping = 0.5, happ =
-          // HApp::minus_z, Hk = 0
+    virtual double get_error_norm(const unsigned& t_hist=0) const override;
 
-          using namespace CompareSolutions;
-
-          MagneticParameters* mag_parameters_pt =
-            magnetic_parameters_factory("simple-llg");
-
-          double time = ts_pt()->time_pt()->time(t_hist);
-          Vector<double> m_now = solution(t_hist);
-
-          double m_theta_initial = CompareSolutions::cart2theta(solution(0));
-
-          double exact_time = switching_time_wrapper(mag_parameters_pt, m_now);
-
-          return std::abs(exact_time - time);
-        }
-      else
-        {
-          return MyProblem::Dummy_doc_data;
-        }
-    }
-
-    /// Damping of llg equation
-    double Damping;
-
-    /// Applied field
-    HAppFctPt H_app_fpt;
+    /// Storage for magnetic parameters object
+    MagneticParameters* Magnetic_parameters_pt;
 
     /// Can we use mallinson solution?
     bool Mallinson_applicable;
@@ -677,7 +659,7 @@ namespace oomph
 
     LLGODECliArgs()
     {
-      h_app_fpt = 0;
+      mag_parameters_pt = 0;
     }
 
     virtual ~LLGODECliArgs() {}
@@ -697,22 +679,26 @@ namespace oomph
     {
       ODECliArgs::run_factories();
 
-      h_app_fpt = Factories::h_app_factory(h_app_name);
+      // Create magnetic parameters
+      mag_parameters_pt = Factories::magnetic_parameters_factory("simple-llg");
+      mag_parameters_pt->Gilbert_damping = damping;
+      mag_parameters_pt->Applied_field_fct_pt = Factories::h_app_factory(h_app_name);
     }
 
     virtual void assign_specific_parameters(MyProblem* problem_pt) const override
     {
       ODECliArgs::assign_specific_parameters(problem_pt);
 
+      // Assign magnetic parameters pointer
       auto llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
-      llg_ode_pt->Damping = damping;
-      llg_ode_pt->H_app_fpt = h_app_fpt;
+      llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
     }
 
     double damping;
     std::string h_app_name;
-    HAppFctPt h_app_fpt;
+    MagneticParameters* mag_parameters_pt;
   };
+
 
   namespace deriv_functions
   {
@@ -725,10 +711,7 @@ namespace oomph
       /// Virtual destructor
       virtual ~LLODESolution()
       {
-        damping = 0.01;
-        h_app_fpt = 0;
-
-        // ??ds h needs to be a function
+        magnetic_parameters_pt = 0;
       }
 
       /// Just the initial condition actually, no exact solution that can fit
@@ -747,17 +730,19 @@ namespace oomph
                                 const Vector<double>& m) const
       {
 #ifdef PARANOID
-        if(h_app_fpt == 0)
+        if(magnetic_parameters_pt == 0)
           {
-            std::string err = "Null applied field function pointer.";
+            std::string err = "magnetic_parameters_pt is null!";
             throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                                 OOMPH_EXCEPTION_LOCATION);
           }
 #endif
 
-        Vector<double> h = h_app_fpt(t, x);
+        Vector<double> h = magnetic_parameters_pt->h_app(t, x);
         Vector<double> mxh = cross(m, h);
         Vector<double> mxmxh = cross(m, mxh);
+
+        double damping = magnetic_parameters_pt->damping();
 
         Vector<double> deriv(3, 0.0);
         for(unsigned j=0; j<3; j++)
@@ -768,17 +753,14 @@ namespace oomph
         return deriv;
       }
 
-      /// Get damping from problem
+      /// Get parameters from problem
       void initialise_from_problem(const Problem* problem_pt)
       {
         auto llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
-
-        damping = llg_ode_pt->Damping;
-        h_app_fpt = llg_ode_pt->H_app_fpt;
+        magnetic_parameters_pt = llg_ode_pt->Magnetic_parameters_pt;
       }
 
-      double damping;
-      HAppFctPt h_app_fpt;
+      MagneticParameters* magnetic_parameters_pt;
     };
   }
 

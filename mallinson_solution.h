@@ -56,18 +56,13 @@ namespace oomph
                         / sin(theta_start)));
     }
 
+
     inline double switching_time_wrapper(const MagneticParameters* const parameters_pt,
+                                         const Vector<double>& initm,
                                          const Vector<double> &m)
     {
       Vector<double> x; //dummy
       Vector<double> H = HApp::minus_z(0, x);
-
-      // Get initial magnetisation
-      Vector<double> initial_values = InitialM::z(0, x);
-      Vector<double> initm;
-      initm.assign(initial_values.begin()+2, initial_values.end());
-      // (can't use range constructor because they are not implemented for
-      // oomph vectors, for some reason...)
 
       double theta_start = cart2theta(initm);
       double theta_now = cart2theta(m);
@@ -82,6 +77,20 @@ namespace oomph
 
       return analytical_time;
     }
+
+
+    inline double switching_time_wrapper(const MagneticParameters* const parameters_pt,
+                                         const Vector<double> &m)
+    {
+      // Get initial magnetisation for m0 ~= z
+      Vector<double> x; //dummy
+      Vector<double> initial_values = InitialM::z(0, x);
+      Vector<double> initm;
+      initm.assign(initial_values.begin()+2, initial_values.end());
+
+      return switching_time_wrapper(parameters_pt, initm, m);
+    }
+
 
     inline double analytic_phi(const double &alpha,
                                const double &theta_start,
