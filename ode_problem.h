@@ -4,6 +4,10 @@
 #include "my_cli.h"
 #include "my_generic_problem.h"
 #include "micromag_types.h"
+#include "mallinson_solution.h"
+
+// For creating happ function for llg ode
+#include "llg_factories.h"
 
 namespace oomph
 {
@@ -16,50 +20,6 @@ namespace oomph
 
   namespace deriv_functions
   {
-
-    inline Vector<double> llg(const double& time, const Vector<double>& x)
-    {
-      Vector<double> values(3, 0.0);
-      return values;
-    }
-    inline Vector<double> dllg(const double& t, const Vector<double>& x,
-                               const Vector<double>& u)
-    {
-      throw OomphLibError("Function not yet implemented",
-                          OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
-      Vector<double> deriv(3, 0.0);
-      return deriv;
-    }
-
-
-    inline Vector<double> ll(const double& time, const Vector<double>& x)
-    {
-      Vector<double> m(3, 0.0);
-      m[2] = 1.0;
-      m[0] = 0.2;
-      normalise(m);
-      return m;
-    }
-    inline Vector<double> dll(const double& t, const Vector<double>& x,
-                              const Vector<double>& m)
-    {
-      Vector<double> deriv(3, 0.0), dummy;
-      Vector<double> happ = HApp::minus_z(t, dummy);
-
-      Vector<double> mxh = cross(m, happ);
-      Vector<double> mxmxh = cross(m, mxh);
-
-      double damping = 0.5;
-
-      for(unsigned j=0; j<3; j++)
-        {
-          deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping* mxmxh[j]);
-        }
-
-      return deriv;
-    }
-
-
     inline Vector<double> cos(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);
@@ -267,83 +227,8 @@ namespace oomph
 
   namespace ODEFactories
   {
-
     // Pick an exact solution using a name
-    inline SolutionFunctorBase* exact_solutions_factory
-    (const std::string& exact_name)
-    {
-      if(exact_name == "damped_oscillation")
-        {
-          return new deriv_functions::DampedOscillation;
-        }
-      else if(exact_name == "simple_stiff")
-        {
-          return new deriv_functions::SimpleStiffTest;
-        }
-      else if(exact_name == "order_reduction")
-        {
-          return new deriv_functions::OrderReductionTest;
-        }
-      else if(exact_name == "strong_order_reduction")
-        {
-          deriv_functions::OrderReductionTest* or_pt =
-            new deriv_functions::OrderReductionTest;
-          return or_pt;
-        }
-
-      TimeSpaceToDoubleVectFctPt fpt;
-      TimeSpaceValueToDoubleVectFctPt dfpt;
-
-      if(exact_name == "sin")
-        {
-          fpt = &deriv_functions::sin;
-          dfpt = &deriv_functions::dsin;
-        }
-      else if(exact_name == "cos")
-        {
-          fpt = &deriv_functions::cos;
-          dfpt = &deriv_functions::dcos;
-        }
-      else if(exact_name == "exp")
-        {
-          fpt = &deriv_functions::exp;
-          dfpt = &deriv_functions::dexp;
-        }
-      else if(exact_name == "poly3")
-        {
-          fpt = &deriv_functions::poly3;
-          dfpt = &deriv_functions::dpoly3;
-        }
-      else if(exact_name == "stiff_test")
-        {
-          fpt = &deriv_functions::stiff_test;
-          dfpt = &deriv_functions::dstiff_test;
-        }
-      else if(exact_name == "poly2")
-        {
-          fpt = &deriv_functions::poly2;
-          dfpt = &deriv_functions::dpoly2;
-        }
-      else if(exact_name == "ll")
-        {
-          fpt = &deriv_functions::ll;
-          dfpt = &deriv_functions::dll;
-        }
-      else if(exact_name == "llg")
-        {
-          fpt = &deriv_functions::llg;
-          dfpt = &deriv_functions::dllg;
-        }
-      else
-        {
-          throw OomphLibError("Unrecognised exact solution " + exact_name,
-                              OOMPH_EXCEPTION_LOCATION,
-                              OOMPH_CURRENT_FUNCTION);
-        }
-
-      return new SolutionFunctor(fpt, dfpt);
-    }
-
+    SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name);
   }
 
 
@@ -541,7 +426,7 @@ namespace oomph
     {
       // Loop over current & previous timesteps
       const unsigned nprev_values = time_stepper_pt()->nprev_values();
-      for(int t=0; t<nprev_values+1; t++)
+      for(unsigned t=0; t<nprev_values+1; t++)
         {
           double time = time_pt()->time(t);
 
@@ -641,7 +526,7 @@ namespace oomph
   class LLGODEProblem : public ODEProblem
   {
 
-public:
+  public:
 
     LLGODEProblem()
     {
@@ -652,6 +537,29 @@ public:
       Effective_damping_constant = MyProblem::Dummy_doc_data;
       Alt_eff_damp = MyProblem::Dummy_doc_data;
 
+      Mallinson_applicable = false;
+      H_app_fpt = 0;
+    }
+
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
+    {
+      ODEProblem::build(bulk_mesh_pts);
+
+#ifdef PARANOID
+      if(H_app_fpt == 0)
+        {
+          std::string err = "Applied field function pointer not set.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Set parameters in solution
+      element_pt()->Exact_solution_pt->initialise_from_problem(this);
+
+      // Rough check for if we can use Mallinson
+#warning not implemented mallinson check
+      Mallinson_applicable = true;
     }
 
     double m_length_error() const
@@ -675,7 +583,7 @@ public:
         << Trace_seperator << "total_energy"
         << Trace_seperator << "effective_damping"
         << Trace_seperator << "alt_effective_damping";
-  }
+    }
 
     virtual void write_additional_trace_data(const unsigned& t_hist,
                                              std::ofstream& trace_file) const override
@@ -693,14 +601,14 @@ public:
 
       if(t_hist == 0)
         {
-        trace_file
-          << Trace_seperator << Exchange_energy
-          << Trace_seperator << Zeeman_energy
-          << Trace_seperator << Crystalline_anisotropy_energy
-          << Trace_seperator << Magnetostatic_energy
-          << Trace_seperator << MyProblem::Dummy_doc_data
-          << Trace_seperator << Effective_damping_constant
-          << Trace_seperator << Alt_eff_damp;
+          trace_file
+            << Trace_seperator << Exchange_energy
+            << Trace_seperator << Zeeman_energy
+            << Trace_seperator << Crystalline_anisotropy_energy
+            << Trace_seperator << Magnetostatic_energy
+            << Trace_seperator << MyProblem::Dummy_doc_data
+            << Trace_seperator << Effective_damping_constant
+            << Trace_seperator << Alt_eff_damp;
         }
       else
         {
@@ -717,22 +625,43 @@ public:
 
     double get_error_norm(const unsigned& t_hist=0) const override
     {
-      // Assumption: started with InitialM::z, damping = 0.5, happ =
-      // HApp::minus_z, Hk = 0
+      if(Mallinson_applicable)
+        {
 
-      using namespace CompareSolutions;
+#warning "rewrite this bit"
+          // Assumption: started with InitialM::z, damping = 0.5, happ =
+          // HApp::minus_z, Hk = 0
 
-      MagneticParameters* mag_parameters_pt =
-        magnetic_parameters_factory("simple-llg");
+          using namespace CompareSolutions;
 
-      double time = ts_pt()->time_pt()->time(t_hist);
-      Vector<double> m_now = solution(t_hist);
-      double exact_time = switching_time_wrapper(mag_parameters_pt, m_now);
+          MagneticParameters* mag_parameters_pt =
+            magnetic_parameters_factory("simple-llg");
 
-      return std::abs(exact_time - time);
+          double time = ts_pt()->time_pt()->time(t_hist);
+          Vector<double> m_now = solution(t_hist);
+
+          double m_theta_initial = CompareSolutions::cart2theta(solution(0));
+
+          double exact_time = switching_time_wrapper(mag_parameters_pt, m_now);
+
+          return std::abs(exact_time - time);
+        }
+      else
+        {
+          return MyProblem::Dummy_doc_data;
+        }
     }
 
-private:
+    /// Damping of llg equation
+    double Damping;
+
+    /// Applied field
+    HAppFctPt H_app_fpt;
+
+    /// Can we use mallinson solution?
+    bool Mallinson_applicable;
+
+  private:
 
     double Exchange_energy;
     double Zeeman_energy;
@@ -740,8 +669,118 @@ private:
     double Magnetostatic_energy;
     double Effective_damping_constant;
     double Alt_eff_damp;
+  };
 
-};
+  class LLGODECliArgs : public ODECliArgs
+  {
+  public:
+
+    LLGODECliArgs()
+    {
+      h_app_fpt = 0;
+    }
+
+    virtual ~LLGODECliArgs() {}
+
+    virtual void set_flags() override
+    {
+      ODECliArgs::set_flags();
+
+      specify_command_line_flag("-damping", &damping, "LLG damping constant.");
+      damping = 0.01;
+
+      specify_command_line_flag("-h-app", &h_app_name);
+      h_app_name =  "minus_z";
+    }
+
+    virtual void run_factories() override
+    {
+      ODECliArgs::run_factories();
+
+      h_app_fpt = Factories::h_app_factory(h_app_name);
+    }
+
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const override
+    {
+      ODECliArgs::assign_specific_parameters(problem_pt);
+
+      auto llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
+      llg_ode_pt->Damping = damping;
+      llg_ode_pt->H_app_fpt = h_app_fpt;
+    }
+
+    double damping;
+    std::string h_app_name;
+    HAppFctPt h_app_fpt;
+  };
+
+  namespace deriv_functions
+  {
+
+    /// Derivative function for ll equation as an ode, needs to go after
+    /// llgode problem class.
+    class LLODESolution : public SolutionFunctorBase
+    {
+    public:
+      /// Virtual destructor
+      virtual ~LLODESolution()
+      {
+        damping = 0.01;
+        h_app_fpt = 0;
+
+        // ??ds h needs to be a function
+      }
+
+      /// Just the initial condition actually, no exact solution that can fit
+      /// this framework.
+      Vector<double> operator()(const double& t, const Vector<double>&x) const
+      {
+        Vector<double> m(3, 0.0);
+        m[2] = 1.0;
+        m[0] = 0.2;
+        normalise(m);
+        return m;
+      }
+
+      /// Derivative function.
+      Vector<double> derivative(const double& t, const Vector<double>& x,
+                                const Vector<double>& m) const
+      {
+#ifdef PARANOID
+        if(h_app_fpt == 0)
+          {
+            std::string err = "Null applied field function pointer.";
+            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                OOMPH_EXCEPTION_LOCATION);
+          }
+#endif
+
+        Vector<double> h = h_app_fpt(t, x);
+        Vector<double> mxh = cross(m, h);
+        Vector<double> mxmxh = cross(m, mxh);
+
+        Vector<double> deriv(3, 0.0);
+        for(unsigned j=0; j<3; j++)
+          {
+            deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping*mxmxh[j]);
+          }
+
+        return deriv;
+      }
+
+      /// Get damping from problem
+      void initialise_from_problem(const Problem* problem_pt)
+      {
+        auto llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
+
+        damping = llg_ode_pt->Damping;
+        h_app_fpt = llg_ode_pt->H_app_fpt;
+      }
+
+      double damping;
+      HAppFctPt h_app_fpt;
+    };
+  }
 
 
 } // End of oomph namespace

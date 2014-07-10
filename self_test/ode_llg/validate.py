@@ -33,6 +33,8 @@ def main():
          '-exact' : "ll",
          '-ts' : ["rk2", "midpoint-bdf"],
          '-dt' : 0.01,
+         '-damping' : 0.5,
+         '-h-app' : 'minus_z',
         }
 
     # Where it's going to end up

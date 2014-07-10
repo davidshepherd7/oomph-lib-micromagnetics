@@ -109,7 +109,7 @@ namespace oomph
         }
       else if(cli_args_name == "llgode") //??ds temp hack...
         {
-          cli_args_pt = new ODECliArgs;
+          cli_args_pt = new LLGODECliArgs;
         }
       else if(cli_args_name == "poisson")
         {

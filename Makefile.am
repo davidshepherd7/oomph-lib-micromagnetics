@@ -7,6 +7,7 @@ SUBDIRS = self_test
 sources = micromagnetics_element.cc \
 	micromagnetics_boundary_element.cc \
 	energy_functions.cc \
+	ode_problem.cc \
 	template_free_poisson.cc \
 	magnetic_materials.cc \
 	llg_problem.cc \
