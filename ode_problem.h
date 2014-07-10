@@ -767,6 +767,36 @@ namespace oomph
         return deriv;
       }
 
+      void jacobian(const double& t, const Vector<double>& x,
+                    const Vector<double>& m,
+                    DenseMatrix<double>& jacobian) const override
+      {
+        Vector<double> h = magnetic_parameters_pt->h_app(t, x);
+        double damping = magnetic_parameters_pt->damping();
+
+        DenseDoubleMatrix skew_h = skew(h);
+        DenseDoubleMatrix skew_mxh = skew(cross(m, h));
+        DenseDoubleMatrix skew_m = skew(m);
+
+        DenseDoubleMatrix skew_m_skew_h;
+        skew_h.multiply(skew_m, skew_m_skew_h);
+
+        // Combine to get the jacobian
+        for(unsigned i=0; i<3; i++)
+          {
+            for(unsigned j=0; j<3; j++)
+              {
+                jacobian(i, j) = -(1/(1 + damping*damping))
+                  * ( skew_h(j, i) // transposed
+                      + damping*skew_mxh(j, i) // transposed
+                      + damping*skew_m_skew_h(j, i)); // transposed twice
+              }
+          }
+        #warning clean this up!
+      }
+
+      bool have_jacobian() const override {return true;}
+
       /// Get parameters from problem
       void initialise_from_problem(const Problem* problem_pt)
       {
