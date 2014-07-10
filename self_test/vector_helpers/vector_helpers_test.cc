@@ -123,6 +123,45 @@ int main()
       }
   }
 
+  // Skew cross product
+  // ============================================================
+  {
+    std::cout << "Checking skew cross product." << std::endl;
+    Vector<Vector<double> > a, b;
+
+    // Do for some random vectors
+    for(unsigned i=0; i<30; i++)
+      {
+        Vector<double> tempa = random_vector(3);
+        Vector<double> tempb = random_vector(3);
+
+        a.push_back(tempa);
+        b.push_back(tempb);
+      }
+
+    // Run tests
+    for(unsigned i=0; i< a.size(); i++)
+      {
+        DenseDoubleMatrix skew_a = skew(a[i]);
+        DoubleVector b_temp = vec2doublevector(b[i]);
+        DoubleVector v;
+
+        skew_a.multiply(b_temp, v);
+
+        // Just compare with the old cross product implementation
+        double error = two_norm_diff(doublevector2vec(v), cross(a[i],b[i]));
+
+        if(!numerical_zero(error))
+          {
+            std::cerr << "Error:"
+                      << "opt_cross("
+                      << a[i] << ", " << b[i] << ") == " << cross(a[i], b[i]) <<std::endl
+                      << "Got: " << doublevector2vec(v) << std::endl;
+            return_value++;
+          }
+      }
+  }
+
 
   // Optimised double cross product
   // ============================================================

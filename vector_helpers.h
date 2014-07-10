@@ -47,6 +47,35 @@ namespace VectorOps
 #endif
   }
 
+  /// Convert a DoubleVector to a Vector<double>.
+  inline Vector<double> doublevector2vec(const DoubleVector& v)
+    {
+      Vector<double> out(v.nrow());
+      for(unsigned j=0; j<v.nrow(); j++)
+        {
+          out[j] = v[j];
+        }
+      return out;
+    }
+
+  /// Convert a DoubleVector to a Vector<double>.
+  inline DoubleVector vec2doublevector(const Vector<double>& v)
+  {
+    LinearAlgebraDistribution dist(MPI_Helpers::communicator_pt(),
+                                   v.size(), false);
+    DoubleVector out;
+    out.build(dist, 0.0);
+
+    // Copy manually because build(const LinearAlgebraDistribution& dist,
+    // const Vector<double>& v) is fucking broken!
+    for(unsigned j=0; j<v.size(); j++)
+      {
+        out[j] = v[j];
+      }
+
+    return out;
+  }
+
   // Probably not always best/fastest because not optimised for dimension but
   // useful...
   inline double dot(const Vector<double>& a, const Vector<double>& b)
@@ -184,7 +213,28 @@ namespace VectorOps
       }
   }
 
+  /// Get matrix s.t. skew(a).b = a x b
+  inline DenseDoubleMatrix skew(const Vector<double>& a)
+  {
+#ifdef PARANOID
+    if(a.size() != 3)
+      {
+        std::string err = "skew only works for vectors of length 3.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
 
+    DenseDoubleMatrix result(3, 3, 0.0);
+    result(0, 1) = -a[2];
+    result(0, 2) = a[1];
+    result(1, 0) = a[2];
+    result(1, 2) = -a[0];
+    result(2, 0) = -a[1];
+    result(2, 1) = a[0];
+
+    return result;
+  }
 
 
 
