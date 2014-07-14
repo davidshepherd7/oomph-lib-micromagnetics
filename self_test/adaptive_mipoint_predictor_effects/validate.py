@@ -38,7 +38,7 @@ def main():
         "-solver" : "som-gmres",
         "-prec" : "som-main-exact",
         "-tmax" : 15,
-        '-dt' : 0.1,
+        '-dt-initial' : 0.1,
         '-newton-tol' : 1e-12,
         }
 

@@ -56,7 +56,7 @@ namespace oomph
     virtual void set_flags()
       {
         specify_command_line_flag("-dt", &dt, "Time step size");
-        dt = 1e-6;
+        dt = 0.1;
 
         specify_command_line_flag("-tmax", &tmax, "Time at which to stop");
         tmax = 1.0;
@@ -64,6 +64,10 @@ namespace oomph
         specify_command_line_flag("-tol", &tol,
                                   "Adaptive time step tolerance (default 0 = fixed step)");
         tol = 0.0;
+
+        specify_command_line_flag("-dt-initial", &dt_initial,
+                                  "Initial dt for adaptive time step selection, default: 1e-5.");
+        dt_initial = 1e-5;
 
         specify_command_line_flag("-ref", &refinement, "Spatial refinement level of mesh");
         refinement = 1;
@@ -197,6 +201,14 @@ namespace oomph
       setup(argc,argv);
       this->set_flags();
       parse_and_assign(argc, argv, true);
+
+      if(command_line_flag_has_been_set("-dt") &&
+         command_line_flag_has_been_set("-tol"))
+        {
+          std::string err = "Cannot set both dt and adaptive dt tolerance, use -initial-dt to set initial dt for adaptive time step.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
 
       // Run any processing that needs to be done on the arguments
       // (e.g. creating meshes).
@@ -358,6 +370,7 @@ namespace oomph
 
     // Variables
     double dt;
+    double dt_initial;
     double tmax;
     double tol;
     int dummy_adaptivity;

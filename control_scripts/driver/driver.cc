@@ -274,6 +274,8 @@ int main(int argc, char *argv[])
         }
     }
 
+  // Choose which dt to use (calculate from refinement level for convergence
+  // test, or use the dtinitial for adaptive or just use dt?).
   double dt;
   if(args_pt->convergence_test != -1
      && bool(args_pt->convergence_test))
@@ -284,6 +286,10 @@ int main(int argc, char *argv[])
 
       // Then choose dt as in Jeong2014
       dt = 0.32*(1/Nx);
+    }
+  else if(args_pt->tol != 0)
+    {
+      dt = args_pt->dt_initial;
     }
   else
     {

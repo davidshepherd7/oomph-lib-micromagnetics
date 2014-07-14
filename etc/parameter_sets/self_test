@@ -1,7 +1,7 @@
 {
 '-driver' : ["ode"],
 '-ts' : ['bdf2'],
-'-dt' : [1e-4],
+'-dt-initial' : [1e-4],
 '-tmax' : [1.0],
 '-tol' : [1e-3],
 }

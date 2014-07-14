@@ -95,6 +95,7 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
                "-outdir", outdir,
                "-tol", str(tol),
                "-tmax", "4",
+               "-dt-initial", 1e-6,
                "-ts", timestepper,
                "-mp-pred", predictor,
                "-exact", exact]
