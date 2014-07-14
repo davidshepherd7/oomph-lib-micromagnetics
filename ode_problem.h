@@ -555,12 +555,52 @@ namespace oomph
 
       Mallinson_applicable = false;
       Magnetic_parameters_pt = 0;
+
+      Renormalise_each_time_step = false;
     }
 
     virtual ~LLGODEProblem()
     {
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
     }
+
+    void renormalise_magnetisation()
+    {
+      oomph_info << "Renormalising nodal magnetisations." << std::endl;
+
+      Vector<double> values(3, 0.0);
+      mesh_pt()->element_pt(0)->internal_data_pt(0)->value(values);
+      VectorOps::normalise(values);
+
+      for(unsigned j=0; j<3; j++)
+        {
+          mesh_pt()->element_pt(0)->internal_data_pt(0)
+            ->set_value(j, values[j]);
+        }
+    }
+
+    virtual void actions_after_newton_solve() override
+    {
+      ODEProblem::actions_after_newton_solve();
+
+      // If we're using BDF we need to keep M normalised.
+      if(Renormalise_each_time_step)
+        {
+          renormalise_magnetisation();
+        }
+    }
+
+    virtual void actions_after_explicit_timestep() override
+    {
+      ODEProblem::actions_after_explicit_timestep();
+
+      // We need to keep M normalised...
+      if(Renormalise_each_time_step)
+        {
+          renormalise_magnetisation();
+        }
+    }
+
 
 
     virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
@@ -665,6 +705,9 @@ namespace oomph
     /// Can we use mallinson solution?
     bool Mallinson_applicable;
 
+    /// Should we renormalise?
+    bool Renormalise_each_time_step;
+
   private:
 
     double Exchange_energy;
@@ -695,6 +738,9 @@ namespace oomph
 
       specify_command_line_flag("-h-app", &h_app_name);
       h_app_name =  "minus_z";
+
+      specify_command_line_flag("-renormalise", &renormalise);
+      renormalise = -1;
     }
 
     virtual void run_factories() override
@@ -714,11 +760,24 @@ namespace oomph
       // Assign magnetic parameters pointer
       LLGODEProblem* llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
       llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
+
+      if((renormalise != -1 && bool(renormalise))
+         || (ts_name == "tr" || ts_name == "bdf2" || ts_name == "bdf1"))
+        {
+          llg_ode_pt->Renormalise_each_time_step = bool(renormalise);
+        }
+      else
+        {
+          llg_ode_pt->Renormalise_each_time_step = false;
+        }
+
     }
 
     double damping;
     std::string h_app_name;
     MagneticParameters* mag_parameters_pt;
+
+    int renormalise;
   };
 
 
