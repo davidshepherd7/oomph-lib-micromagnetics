@@ -1,7 +1,7 @@
 
 
 #include "../../mallinson_solution.h"
-#include "../../magnetic_materials.h"
+#include "../../magnetic_parameters.h"
 #include "../../magnetics_helpers.h"
 #include "../../../../src/generic/Vector.h"
 #include <iostream>

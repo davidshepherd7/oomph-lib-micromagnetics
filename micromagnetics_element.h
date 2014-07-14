@@ -21,7 +21,7 @@
 
 // My vector helpers
 #include "./vector_helpers.h"
-#include "./magnetic_materials.h"
+#include "./magnetic_parameters.h"
 
 // Magnetostatic elements are based on Poisson
 #include "./template_free_poisson.h"

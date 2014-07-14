@@ -9,7 +9,7 @@ sources = micromagnetics_element.cc \
 	energy_functions.cc \
 	ode_problem.cc \
 	template_free_poisson.cc \
-	magnetic_materials.cc \
+	magnetic_parameters.cc \
 	llg_problem.cc \
 	llg_factories.cc \
 	variable_order_quadrature.cc \
@@ -40,7 +40,7 @@ headers = array_interpolator.h \
 	llg_problem.h \
 	llg_cli.h \
 	llg_factories.h \
-	magnetic_materials.h \
+	magnetic_parameters.h \
 	template_free_poisson_flux.h \
 	magnetics_helpers.h \
 	template_free_poisson.h \
