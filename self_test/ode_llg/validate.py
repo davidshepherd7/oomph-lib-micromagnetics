@@ -35,7 +35,12 @@ def main():
          '-dt' : 0.01,
          '-damping' : 0.5,
          '-h-app' : 'minus_z',
+         '-newton-tol' : 1e-12,
+         '-newton-max-iterations' : 4,
         }
+        # be very harsh on Newton conditions to check that the Jacobian is
+        # correct.
+
 
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))

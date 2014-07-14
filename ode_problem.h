@@ -787,12 +787,11 @@ namespace oomph
             for(unsigned j=0; j<3; j++)
               {
                 jacobian(i, j) = -(1/(1 + damping*damping))
-                  * ( skew_h(j, i) // transposed
-                      + damping*skew_mxh(j, i) // transposed
-                      + damping*skew_m_skew_h(j, i)); // transposed twice
+                  * ( - skew_h(i, j)
+                      - damping*skew_mxh(i, j)
+                      - damping*skew_m_skew_h(i, j));
               }
           }
-        #warning clean this up!
       }
 
       bool have_jacobian() const override {return true;}
