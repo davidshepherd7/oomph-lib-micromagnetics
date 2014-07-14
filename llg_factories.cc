@@ -948,5 +948,46 @@ namespace oomph
       return nqf_pt;
     }
 
+    MagneticParameters* magnetic_parameters_factory(const std::string& name)
+    {
+      using namespace MagParameterHelpers;
+      using namespace StringConversion;
+
+      MagneticParameters* parameters_pt = 0;
+
+      // Set properties as used in mumag standard problem #4
+      if(to_lower(name) == "mumag4")
+        {
+          parameters_pt = magnetic_parameters_factory("simple-llg");
+          parameters_pt->Exchange_coeff = Astar_to_A(1.3e-11, 1e-9, 8e5);
+          parameters_pt->Gilbert_damping = 0.02;
+        }
+
+      // Set parameters to remove as many coefficients as possible from the
+      // LLG.
+      else if(to_lower(name) == "simple-llg")
+        {
+          parameters_pt = new MagneticParameters;
+        }
+
+      // Set parameters as many coefficients as possible from the LLG. Set
+      // damping = 0.5, lex = 1, hk = 1.
+      else if(to_lower(name) == "simple-llg-anisotropy")
+        {
+          parameters_pt = magnetic_parameters_factory("simple-llg");
+          parameters_pt->Anisotropy_coeff = 0.5; // This gives hk = 1
+        }
+
+      else
+        {
+          std::string error_msg = "Unrecognised name: "
+            + to_lower(name);
+          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      return parameters_pt;
+    }
+
   } // end of Factories
 }

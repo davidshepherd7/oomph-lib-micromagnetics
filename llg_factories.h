@@ -21,7 +21,7 @@ namespace oomph
   class Mesh;
   class Integral;
   class MicromagBEMElementEquations;
-
+  class MagneticParameters;
 
   namespace Factories
   {
@@ -115,6 +115,10 @@ namespace oomph
     /// integration scheme. ugh... factories for factories...
     NodalQuadratureFactoryFctPt
     nodal_quadrature_factory_factory(const std::string& label);
+
+    /// Pick the magnetic parameters to use
+    MagneticParameters* magnetic_parameters_factory (const std::string& name);
+
 
   } // end of Factories
 

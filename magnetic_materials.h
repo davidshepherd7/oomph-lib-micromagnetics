@@ -261,54 +261,6 @@ namespace oomph
   };
 
 
-
-  namespace Factories
-  {
-
-    using namespace StringConversion;
-    using namespace MagParameterHelpers;
-
-    /// \short Create a MagneticsParameters object.
-    inline MagneticParameters* magnetic_parameters_factory(const std::string & parameters_name)
-    {
-      MagneticParameters* parameters_pt = 0;
-
-      // Set properties as used in mumag standard problem #4
-      if(to_lower(parameters_name) == "mumag4")
-        {
-          parameters_pt = magnetic_parameters_factory("simple-llg");
-          parameters_pt->Exchange_coeff = Astar_to_A(1.3e-11, 1e-9, 8e5);
-          parameters_pt->Gilbert_damping = 0.02;
-        }
-
-      // Set parameters to remove as many coefficients as possible from the
-      // LLG.
-      else if(to_lower(parameters_name) == "simple-llg")
-        {
-          parameters_pt = new MagneticParameters;
-        }
-
-      // Set parameters as many coefficients as possible from the LLG. Set
-      // damping = 0.5, lex = 1, hk = 1.
-      else if(to_lower(parameters_name) == "simple-llg-anisotropy")
-        {
-          parameters_pt = magnetic_parameters_factory("simple-llg");
-          parameters_pt->Anisotropy_coeff = 0.5; // This gives hk = 1
-        }
-
-      else
-        {
-          std::string error_msg = "Unrecognised parameters_name: "
-            + to_lower(parameters_name);
-          throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
-      return parameters_pt;
-    }
-  }
-
-
 }
 
 #endif
