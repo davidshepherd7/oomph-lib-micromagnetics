@@ -451,7 +451,7 @@ def parallel_map(function, *args, serial_mode=False, **kwargs):
     # For debugging we often need to run in serial (to get useful stack
     # traces).
     if serial_mode:
-        results = map(function, *args)
+        results = list(map(function, *args))
 
     else:
         # Run in all parameter sets in parallel
