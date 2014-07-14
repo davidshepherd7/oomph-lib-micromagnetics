@@ -704,7 +704,7 @@ namespace oomph
       ODECliArgs::assign_specific_parameters(problem_pt);
 
       // Assign magnetic parameters pointer
-      auto llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
+      LLGODEProblem* llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
       llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
     }
 
@@ -799,7 +799,7 @@ namespace oomph
       /// Get parameters from problem
       void initialise_from_problem(const Problem* problem_pt)
       {
-        auto llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
+        const LLGODEProblem* llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
         magnetic_parameters_pt = llg_ode_pt->Magnetic_parameters_pt;
       }
 
