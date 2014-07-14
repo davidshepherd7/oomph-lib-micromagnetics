@@ -603,6 +603,7 @@ namespace oomph
       trace_file
         << Trace_seperator << "m_length_error_means"
         << Trace_seperator << "m_length_error_std_devs"
+        << Trace_seperator << "m_length_error_maxes"
         << Trace_seperator << "max_angle_errors"
         << Trace_seperator << "mean_mxs"
         << Trace_seperator << "mean_mys"
@@ -625,6 +626,7 @@ namespace oomph
       trace_file
         << Trace_seperator << m_length_error()
         << Trace_seperator << 0
+        << Trace_seperator << m_length_error()
         << Trace_seperator << 0
         << Trace_seperator << m[0]
         << Trace_seperator << m[1]
