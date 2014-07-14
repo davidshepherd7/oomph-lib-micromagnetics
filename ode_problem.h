@@ -557,6 +557,12 @@ namespace oomph
       Magnetic_parameters_pt = 0;
     }
 
+    virtual ~LLGODEProblem()
+    {
+      delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
+    }
+
+
     virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
     {
       ODEProblem::build(bulk_mesh_pts);
