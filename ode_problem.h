@@ -254,6 +254,8 @@ namespace oomph
       unsigned nvalue = exact.size();
 
       add_internal_data(new Data(timestepper_pt, nvalue));
+
+      Use_fd_jacobian = false;
     }
 
     virtual ~ODEElement() {}
@@ -297,7 +299,7 @@ namespace oomph
       // Get residuals
       fill_in_contribution_to_residuals(residuals);
 
-      if(Exact_solution_pt->have_jacobian())
+      if(Exact_solution_pt->have_jacobian() && !Use_fd_jacobian)
         {
           // get df/du jacobian
           double t = internal_data_pt(0)->time_stepper_pt()->time();
@@ -364,52 +366,9 @@ namespace oomph
     }
 
     SolutionFunctorBase* Exact_solution_pt;
+
+    bool Use_fd_jacobian;
   };
-
-
-  class ODECliArgs : public MyCliArgs
-  {
-  public:
-
-    ODECliArgs() {}
-    virtual ~ODECliArgs() {}
-
-    virtual void set_flags()
-    {
-      MyCliArgs::set_flags();
-
-      specify_command_line_flag("-exact", &exact_name);
-      exact_name = "sin";
-
-      // specify_command_line_flag("-initial-m", &initial_m_name);
-      // initial_m_name = "z";
-
-    }
-
-    virtual void run_factories()
-    {
-
-      exact_name = to_lower(exact_name);
-      initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name);
-      initial_is_exact = true;
-
-      MyCliArgs::run_factories();
-    }
-
-    /// Overloaded to just create a single ode element
-    virtual void build_meshes()
-    {
-      mesh_pts.push_back(new Mesh);
-      mesh_pts[0]->
-        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_pt()));
-    }
-
-    std::string exact_name;
-
-    // for micromag odes only
-    std::string initial_m_name;
-  };
-
 
 
   class ODEProblem : public MyProblem
@@ -421,6 +380,8 @@ namespace oomph
     {
       // Don't output to trace file every step, often too many steps
       Always_write_trace = false;
+
+      Use_fd_jacobian = false;
     }
 
     virtual ~ODEProblem() {}
@@ -432,6 +393,8 @@ namespace oomph
 
       // Set up the global mesh
       build_global_mesh();
+
+      element_pt()->Use_fd_jacobian = Use_fd_jacobian;
 
       // assign equation numbers
       this->assign_eqn_numbers();
@@ -535,6 +498,7 @@ namespace oomph
       return solution;
     }
 
+    bool Use_fd_jacobian;
 
   };
 
@@ -717,6 +681,63 @@ namespace oomph
     double Effective_damping_constant;
     double Alt_eff_damp;
   };
+
+
+  class ODECliArgs : public MyCliArgs
+  {
+  public:
+
+    ODECliArgs() {}
+    virtual ~ODECliArgs() {}
+
+    virtual void set_flags()
+    {
+      MyCliArgs::set_flags();
+
+      specify_command_line_flag("-exact", &exact_name);
+      exact_name = "sin";
+
+      // specify_command_line_flag("-initial-m", &initial_m_name);
+      // initial_m_name = "z";
+
+      specify_command_line_flag("-fd-jacobian", &fd_jacobian,
+                                "Finite difference the Jacobian, default: -1.");
+      fd_jacobian = -1;
+    }
+
+    virtual void run_factories()
+    {
+
+      exact_name = to_lower(exact_name);
+      initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name);
+      initial_is_exact = true;
+
+      MyCliArgs::run_factories();
+    }
+
+    /// Overloaded to just create a single ode element
+    virtual void build_meshes()
+    {
+      mesh_pts.push_back(new Mesh);
+      mesh_pts[0]->
+        add_element_pt(new ODEElement(time_stepper_pt, exact_solution_pt()));
+    }
+
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const override
+    {
+      ODEProblem* ode_pt = checked_dynamic_cast<ODEProblem*>(problem_pt);
+      if(fd_jacobian != -1)
+        {
+          ode_pt->Use_fd_jacobian = bool(fd_jacobian);
+        }
+
+    }
+
+    std::string exact_name;
+
+    int fd_jacobian;
+  };
+
 
   class LLGODECliArgs : public ODECliArgs
   {
