@@ -835,7 +835,7 @@ namespace oomph
       {
         Vector<double> m(3, 0.0);
         m[2] = 1.0;
-        m[0] = 0.2;
+        m[0] = 0.01;
         normalise(m);
         return m;
       }
