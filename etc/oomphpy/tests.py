@@ -41,7 +41,7 @@ def check_error_norm(data, tol=1e-5, identifier=None):
         mm.badprint("with max error norm of", max_err_norm)
 
     else:
-        mm.okprint("error norm ok in", identifier)
+        mm.okprint("max error norm of", max_err_norm, "ok in", identifier)
 
     return norm_test
 
@@ -79,7 +79,7 @@ def check_ndt_less_than(data, max_ndt, identifier=None):
         mm.badprint("n steps is", ndt, "which is more than", max_ndt)
 
     else:
-        mm.okprint("n steps ok in", identifier)
+        mm.okprint("n steps", ndt, "ok in", identifier)
 
     return passed
 
