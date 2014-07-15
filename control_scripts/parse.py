@@ -915,6 +915,12 @@ def main():
                 ax.set_xlabel(axis_label_thesisify(ax.get_xlabel()))
                 ax.set_ylabel(axis_label_thesisify(ax.get_ylabel()))
 
+            # If there is only one line then remove the legend
+            for ax in f.axes:
+                leg = ax.get_legend()
+                if (leg is not None) and (len(leg.get_lines()) == 1):
+                    ax.legend_ = None
+
             # Replace strings in legends
             for ax in f.axes:
                 if ax.get_legend() is not None: # if legend exists
