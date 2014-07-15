@@ -15,7 +15,7 @@ namespace oomph
   {
   public:
     /// Constructor: Initialise pointers to null.
-    LLGArgs() : h_app_fct_pt(0), mag_params_pt(0) {}
+    LLGArgs() : mag_params_pt(0) {}
 
     virtual ~LLGArgs()
     {
@@ -43,6 +43,10 @@ namespace oomph
 
       specify_command_line_flag("-k1", &k1);
       k1 = -10;
+
+      specify_command_line_flag("-ms-debug-coeff", &ms_debug_coeff,
+                                "Debugging multiplier for magnetostatic field strength.");
+      ms_debug_coeff = -10;
 
       // Flags automatically default to false
       specify_command_line_flag("-pin-boundary-m");
@@ -119,7 +123,8 @@ namespace oomph
       mag_params_name = to_lower(mag_params_name);
 
       initial_condition_pt = initial_m_factory(initial_m_name, wave_solution_c);
-      h_app_fct_pt = h_app_factory(h_app_name);
+
+      // Build magnetic parameters object
       mag_params_pt = magnetic_parameters_factory(mag_params_name);
 
       if(command_line_flag_has_been_set("-damping"))
@@ -132,6 +137,15 @@ namespace oomph
           mag_params_pt->Anisotropy_coeff = k1;
         }
 
+      if(command_line_flag_has_been_set("-ms-debug-coeff"))
+        {
+          mag_params_pt->Magnetostatic_debug_coeff = ms_debug_coeff;
+        }
+
+      HApp::HAppFctPt h_app_fct_pt = h_app_factory(h_app_name);
+      mag_params_pt->Applied_field_fct_pt = h_app_fct_pt;
+
+
       // Copy flags into bools in this class
       pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
     }
@@ -141,7 +155,6 @@ namespace oomph
       LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
 
       // Set parameters
-      mag_params_pt->Applied_field_fct_pt = h_app_fct_pt;
       llg_pt->set_mag_parameters_pt(mag_params_pt);
 
 
@@ -275,7 +288,6 @@ namespace oomph
 
     }
 
-    HApp::HAppFctPt h_app_fct_pt;
     MagneticParameters* mag_params_pt;
 
     // Strings for input to factory functions
@@ -293,6 +305,7 @@ namespace oomph
 
     double damping;
     double k1;
+    double ms_debug_coeff;
     double wave_solution_c;
 
     int numerical_int_bem;
