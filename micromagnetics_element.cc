@@ -148,6 +148,9 @@ namespace oomph
       }
 #endif
     Ms_calc_pt->get_magnetostatic_field(intp_pt, h_magnetostatic);
+
+    for(unsigned j=0; j<3; j++)
+      {h_magnetostatic[j] *= magnetostatic_coeff();}
   }
 
 
