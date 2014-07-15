@@ -565,6 +565,19 @@ namespace oomph
         }
     }
 
+    virtual void actions_before_time_integration() override
+    {
+      // Check that initial condition is unit length
+#ifdef PARANOID
+      if(m_length_error() > 1e-14)
+        {
+          std::string err = "Initial condition has wrong |m|.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+    }
+
 
 
     virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
