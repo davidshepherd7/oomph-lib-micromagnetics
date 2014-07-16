@@ -631,37 +631,54 @@ namespace oomph
                             OOMPH_CURRENT_FUNCTION);
     }
 
-
     /// \short Create a variable order quadrature object based on the
-    /// dimension and shape of the element. Only works for
-    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
+    /// dimension and shape of the element.
+    Integral* variable_order_integrator_factory(const unsigned& dim,
+                                                const unsigned& nnode_1d,
+                                                const ElementGeometry::ElementGeometry& geom)
     {
-      if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 3))
+      using namespace ElementGeometry;
+
+      if(nnode_1d != 2)
+        {
+          std::string err = "Not implemented for nnode_1d != 2.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if((dim == 2) && (geom == T))
         {
           return new TVariableOrderGaussLegendre<1>;
         }
-      else if((el_pt->nodal_dimension() == 2) && (el_pt->nvertex_node() == 4))
+      else if((dim == 2) && (geom == Q))
         {
           return new QVariableOrderGaussLegendre<1>;
         }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 4))
+      else if((dim == 3) && (geom == T))
         {
           return new TVariableOrderGaussLegendre<2>;
         }
-      else if((el_pt->nodal_dimension() == 3) && (el_pt->nvertex_node() == 8))
+      else if((dim == 3) && (geom == Q))
         {
           return new QVariableOrderGaussLegendre<2>;
         }
       else
         {
           std::string err("Cannot determine element type.\n");
-          err += "Maybe it is a higher order element (NNODE_1D > 2)?\n";
-          err += "Variable order quadratures are not supported for this case.";
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
     }
 
+
+    /// \short Create a variable order quadrature object based on the
+    /// dimension and shape of the element.
+    Integral* variable_order_integrator_factory(const FiniteElement* const el_pt)
+    {
+      return variable_order_integrator_factory(el_pt->dim(),
+                                               el_pt->nnode_1d(),
+                                               el_pt->element_geometry());
+    }
 
 
     /// \short Return a function which will create the appropriate BEM face
