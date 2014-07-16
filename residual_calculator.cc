@@ -28,14 +28,6 @@ namespace oomph
     // Factor to rescale time s.t. it matches with Gilbert form of llg
     const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
 
-
-    // Cache time stepper weights needed in Jacobian (??ds write some
-    // documentation on this? needs proper maths really...)
-    double d_value_evaltime_by_dvalue_np1 =
-      e_pt->node_pt(0)->time_stepper_pt()->weight(0,0);
-    double d_valuederivative_evaltime_by_dvalue_np1 =
-      e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
-
     // Create interpolator
     MMArrayInterpolator intp(e_pt);
 
@@ -309,6 +301,10 @@ namespace oomph
     // Create interpolator
     MMArrayInterpolator intp(e_pt);
 
+    // Allocate vectors outside intergration loop
+    Vector<double> xvec(ndim, 0.0),  mvec(3, 0.0), h_cryst_anis,
+      h_magnetostatic, s(eldim);
+
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
@@ -317,7 +313,6 @@ namespace oomph
         //======================================================================
         /// Calculate/get/interpolate all values for the residual calculations
         //======================================================================
-        Vector<double> s(eldim);
         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
         // Set up interpolator for this point
@@ -335,10 +330,7 @@ namespace oomph
                                       intp.dmdx(2)};
 
         // Copy some things into vectors ready for use in function calls
-        // ??ds get rid of this?
-        Vector<double> xvec(ndim, 0.0);
         for(unsigned i=0; i<ndim; i++) {xvec[i] = intp_x[i];}
-        Vector<double> mvec(3, 0.0);
         for(unsigned i=0; i<3; i++) {mvec[i] = intp_m[i];}
 
         // Source functions (for debugging, normally zero)
@@ -346,7 +338,6 @@ namespace oomph
         const double phi_1_source = e_pt->get_phi_1_source(time,xvec);
 
         // Fields at integration point
-        Vector<double> h_cryst_anis, h_magnetostatic;
         Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
         e_pt->get_magnetostatic_field(s, h_magnetostatic);
@@ -463,11 +454,6 @@ namespace oomph
 
           for(unsigned l2=0;l2<n_node;l2++){
 
-            // Timestepper weight for m at this node, at this
-            // time. Assuming all nodes have same timestepper, seems pretty
-            // safe bet.
-            double mt0weight = d_valuederivative_evaltime_by_dvalue_np1;
-
             for(unsigned j=0; j<ndim; j++) {gradpsil2[j] = intp.dpsidx(l2,j);}
 
             double gradtestldotgradpsil2 = 0.0;
@@ -575,11 +561,13 @@ namespace oomph
                   {
                     diffterms[i] = llg_precess_c * dhcadm[i][j];
                   }
-                diffterms[j] -= llg_damp_c * intp.psi(l2) * mt0weight;
+                diffterms[j] -= llg_damp_c * intp.psi(l2) *
+                  d_valuederivative_evaltime_by_dvalue_np1;
 
                 // mass matrix component due to time derivative
                 jacobian(m_eqn[j],m_unknown[j])
-                  += intp.test(l) * intp.psi(l2) * mt0weight * W;
+                  += intp.test(l) * intp.psi(l2) *
+                  d_valuederivative_evaltime_by_dvalue_np1 * W;
 
                 for(unsigned i=0; i<3; i++) // loop over the m we differentiate w.r.t.
                   {
