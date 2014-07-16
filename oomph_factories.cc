@@ -528,7 +528,11 @@ namespace oomph
     {
       if(nnode_1d == 2)
         {
-          if(dim ==1 && is_q_element) // Q line
+          if(dim ==1 && !is_q_element) // T line
+            {
+              return new TGauss<1, 2>;
+            }
+          else if(dim ==1 && is_q_element) // Q line
             {
               return new Gauss<1, 2>;
             }
@@ -551,6 +555,8 @@ namespace oomph
         }
       std::string err("Cannot determine element type.\n");
       err += "Not implemented (yet?) for nnode1d != 2, is that the problem?";
+      err += "I got dim = " + to_string(dim) + ", nnode1d = " + to_string(nnode_1d);
+      err += " and is_q_element = " + to_string(is_q_element);
       throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
