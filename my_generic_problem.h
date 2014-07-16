@@ -522,7 +522,7 @@ using namespace StringConversion;
     /// Standard output function: loop over all elements in all meshes and
     /// output.
     virtual void output_solution(const unsigned& t, std::ostream& outstream,
-      const unsigned& npoints=2) const
+                                 const unsigned& npoints=2) const
       {
         const unsigned n_msh = nsub_mesh();
         for(unsigned msh=0; msh<n_msh; msh++)

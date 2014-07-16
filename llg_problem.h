@@ -198,6 +198,25 @@ namespace oomph
         }
     }
 
+    void output_solution(const unsigned& t, std::ostream& outstream,
+                         const unsigned& npoints=2) const override
+    {
+      MyProblem::output_solution(t, outstream, npoints);
+
+      // Output error in |m| if requested.
+      // ??ds refactor to merge with other addtional doc stuff somehow?
+      if(Doc_m_length_error)
+        {
+          const std::string dir = Doc_info.directory();
+          const std::string num = to_string(Doc_info.number());
+
+          std::ofstream ml_file((dir + "/ml_error" + num + ".csv").c_str(),
+                                std::ios::out);
+          doc_m_length_error(t, ml_file);
+          ml_file.close();
+        }
+    }
+
     /// Get the Jacobian as a CRDoubleMatrix (the normal matrix format). If
     /// we are using fully implicit bem then this is not a good idea for
     /// "real" problems but useful for tests. Otherwise this is exactly the
@@ -965,6 +984,49 @@ namespace oomph
         Crystalline_anisotropy_energy + Magnetostatic_energy;
     }
 
+    /// Output |m| error values of each node along with spatial position
+    /// for plotting with paraview. To plot load the csv file, use "Table
+    /// To Points", add a 3D view, set the ltes to visible and color by the
+    /// lte of interest. Useful to set "Representation" to "Points" and
+    /// increase point size so that things are easily visible. Not
+    /// implemented for nodes with varying numbers of values (you might
+    /// need something fancier than a csv file for this).
+    void doc_m_length_error(const unsigned& t_hist, std::ostream& output) const
+    {
+      // Output position labels
+      for(unsigned j=0; j<Dim; j++)
+        {
+          output << "x" << j << ", ";
+        }
+
+      // Output label for |m| error
+      output << "ml_error" << ", ";
+
+      output << std::endl;
+
+      // Output actual positions and errors
+      for(unsigned i=0, ni=mesh_pt()->nnode(); i<ni; i++)
+        {
+          Node* nd_pt = mesh_pt()->node_pt(i);
+
+          // Output position of node
+          for(unsigned j=0; j<Dim; j++)
+            {
+              output << nd_pt->x(j) << ", ";
+            }
+
+          // and the error
+          Vector<double> m(3, 0.0);
+          for(unsigned j=0; j<3; j++)
+            {
+              m[j] = nd_pt->value(t_hist, m_index(j));
+            }
+          output << std::abs(1 - VectorOps::two_norm(m));
+
+          output << std::endl;
+        }
+    }
+
     /// Can we check the solution using Mallinson's exact time + phi
     /// solutions?
     bool Compare_with_mallinson;
@@ -988,6 +1050,9 @@ namespace oomph
     /// Should the magnetisation be relaxed before we start time
     /// integration
     bool Relax_magnetisation;
+
+    /// Should we write out spatial values of |m| error
+    bool Doc_m_length_error;
 
   private:
 

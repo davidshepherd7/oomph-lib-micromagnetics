@@ -66,6 +66,10 @@ namespace oomph
       specify_command_line_flag("-check-angles", &check_angles);
       check_angles = -1;
 
+      specify_command_line_flag("-doc-ml-error", &doc_ml_error,
+                                "Write out spatial values of error in |m|, default: -1.");
+      doc_ml_error = -1;
+
       specify_command_line_flag("-llg-prec", &llg_prec_name,
                                 "Set preconditioner for llg block, only used if overall preconditioner is a magnetostatics block preconditioner");
       llg_prec_name = "";
@@ -286,6 +290,12 @@ namespace oomph
         }
       // else do nothing
 
+
+      if(doc_ml_error != -1)
+        {
+          llg_pt->Doc_m_length_error = bool(doc_ml_error);
+        }
+
     }
 
     MagneticParameters* mag_params_pt;
@@ -297,6 +307,8 @@ namespace oomph
     std::string llg_prec_name;
     std::string llg_sub_prec_name;
     std::string phi1_singularity_method;
+
+    int doc_ml_error;
 
 
     /// Flag to control renormalisation of |m| after each step. -1 =
