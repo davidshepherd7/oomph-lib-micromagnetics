@@ -536,10 +536,9 @@ namespace oomph
     Integral* quadrature_pt = 0;
     if(Force_gaussian_quadrature_in_energy)
       {
-        bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(ele_pt()) != 0);
         quadrature_pt = gauss_integration_factory(ele_pt()->dim(),
                                                   ele_pt()->nnode_1d(),
-                                                  is_q_element);
+                                                  ele_pt()->element_geometry());
 
         // ??ds assumed that all elements integrated over have the same
         // geometry and nnodes!

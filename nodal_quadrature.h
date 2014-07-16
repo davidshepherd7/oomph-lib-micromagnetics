@@ -46,10 +46,6 @@ namespace oomph
     /// Actually set up the integration scheme
     virtual void build()
     {
-      // Crude way to check the type of element, should really add a function
-      // for this to FiniteElement.
-      bool is_q_element = (dynamic_cast<const QElementGeometricBase*>(ele_pt()) != 0);
-
       // Construct integration scheme for integration of shape
       // function. Use factory so that we don't have to hard code (or
       // template by) the dimension/shape of the elements. Have to store in
@@ -58,7 +54,7 @@ namespace oomph
       std::auto_ptr<Integral> int_pt
         (Factories::gauss_integration_factory(ele_pt()->dim(),
                                               ele_pt()->nnode_1d(),
-                                              is_q_element));
+                                              ele_pt()->element_geometry()));
 
       // Get constants
       const unsigned nnode = ele_pt()->nnode();

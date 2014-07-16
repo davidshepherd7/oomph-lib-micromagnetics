@@ -220,7 +220,7 @@ namespace oomph
     /// Construct a Gaussian quadrature object
     Integral* gauss_integration_factory(const unsigned& dim,
                                         const unsigned& nnode_1d,
-                                        const bool& is_q_element);
+                                        const ElementGeometry::ElementGeometry& elgeom);
 
   }
 }

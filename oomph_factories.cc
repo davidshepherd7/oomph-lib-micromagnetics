@@ -524,31 +524,33 @@ namespace oomph
 
     Integral* gauss_integration_factory(const unsigned& dim,
                                         const unsigned& nnode_1d,
-                                        const bool& is_q_element)
+                                        const ElementGeometry::ElementGeometry& geom)
     {
+      using namespace ElementGeometry;
+
       if(nnode_1d == 2)
         {
-          if(dim ==1 && !is_q_element) // T line
+          if(dim ==1 && geom == T) // T line
             {
               return new TGauss<1, 2>;
             }
-          else if(dim ==1 && is_q_element) // Q line
+          else if(dim ==1 && geom == Q) // Q line
             {
               return new Gauss<1, 2>;
             }
-          else if((dim == 2) && !is_q_element) //triangle
+          else if((dim == 2) && geom == T) //triangle
             {
               return new TGauss<2, 2>;
             }
-          else if((dim == 2) && is_q_element) // square
+          else if((dim == 2) && geom == Q) // square
             {
               return new Gauss<2, 2>;
             }
-          else if((dim == 3) && !is_q_element) // tet
+          else if((dim == 3) && geom == T) // tet
             {
               return new TGauss<3, 2>;
             }
-          else if((dim == 3) && is_q_element) // brick
+          else if((dim == 3) && geom == Q) // brick
             {
               return new Gauss<3, 2>;
             }
@@ -556,7 +558,7 @@ namespace oomph
       std::string err("Cannot determine element type.\n");
       err += "Not implemented (yet?) for nnode1d != 2, is that the problem?";
       err += "I got dim = " + to_string(dim) + ", nnode1d = " + to_string(nnode_1d);
-      err += " and is_q_element = " + to_string(is_q_element);
+      err += " and element geometry = " + to_string(geom);
       throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
