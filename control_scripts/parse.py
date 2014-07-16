@@ -501,16 +501,17 @@ def main():
     if args.print_all_data:
         pprint(all_results)
 
-    # Filter the results based on the arguments given
+    # Filter the results based on the arguments given, using literal eval
+    # means that floats are compared as floats, strings as strings etc.
     for f in args.filter:
         key, value = ast.literal_eval(f)
-        all_results = [d for d in all_results if d[key] == value]
+        all_results = [d for d in all_results if ast.literal_eval(d[key]) == value]
         print("filtering with", f, ".", len(all_results), "results left")
 
 
     for f in args.not_filter:
         key, value = ast.literal_eval(f)
-        all_results = [d for d in all_results if d[key] != value]
+        all_results = [d for d in all_results if ast.literal_eval(d[key]) != value]
         print("filtering with not", f, ".", len(all_results), "results left")
 
 
