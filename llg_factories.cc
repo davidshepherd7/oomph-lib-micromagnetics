@@ -595,6 +595,35 @@ namespace oomph
              "./meshes/cylinder25_40." + to_string(refinement_level) + ".face",
              time_stepper_pt);
         }
+      else if(mesh_name == "sq_annular" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          std::cout << "nx: " << nx << std::endl;
+
+          const double r_min = 0.5, r_max = 1.5, phi_min = 0, phi_max = 180;
+
+          // Warp the domain as in oomph-lib website example
+          const unsigned n_node = mesh_pt->nnode();
+          for(unsigned nd=0; nd<n_node; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+
+              // Get the nodal coordinates
+              const double x_old = nd_pt->x(0);
+              const double y_old = nd_pt->x(1);
+
+              // Map from the old x/y to the new r/phi:
+              const double r = r_min+(r_max-r_min)*x_old;
+              const double phi = (phi_min + (phi_max-phi_min)*y_old)*Pi/180.0;
+
+              // Set new nodal coordinates
+              nd_pt->x(0)=r*std::cos(phi);
+              nd_pt->x(1)=r*std::sin(phi);
+            }
+        }
       else
         {
           throw OomphLibError("Unrecognised mesh name " + mesh_name,
