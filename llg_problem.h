@@ -765,11 +765,15 @@ namespace oomph
     /// Get happ value from first element
     Vector<double> first_element_happ(const unsigned& t_hist=0) const
     {
+      // get time
       double t = time_pt()->time(t_hist);
-      Vector<double> dummy_x, dummy_s;
-      Vector<double> H_app = ele_pt()->get_applied_field(t, dummy_x);
 
-      return H_app;
+      // get a position inside the element
+      Vector<double> dummy_s(dim(), 0.0), dummy_x(dim());
+      ele_pt()->interpolated_x(t_hist, dummy_s, dummy_x);
+
+      // get the field
+      return ele_pt()->get_applied_field(t, dummy_x);
     }
 
     void initial_doc_additional() const override
