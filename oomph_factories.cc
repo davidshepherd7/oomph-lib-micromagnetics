@@ -177,7 +177,7 @@ namespace oomph
           // Scale it. We do this after shifting so that we are scaling the
           // entire multi-mesh, including gaps between meshes. This is much
           // more intuitive.
-          scale_mesh(scaling, mesh_pt);
+          mesh_pt->scale_mesh(scaling);
 
           // Add to list
           mesh_pts.push_back(mesh_pt);

@@ -37,22 +37,6 @@ namespace oomph
       }
   }
 
-
-  /// Multiply all positions of nodes in mesh by scaling factor.
-  // ??ds Move inside Mesh?
-  // ??ds assumes mesh is around zero?
-  inline void scale_mesh(double scaling_factor, Mesh* mesh_pt)
-  {
-    // For each node scale any positions that exist
-    for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
-      {
-        Node* nd_pt = mesh_pt->node_pt(nd);
-        nd_pt->x(0) *= scaling_factor;
-        if(nd_pt->ndim() > 1) {nd_pt->x(1) *= scaling_factor;}
-        if(nd_pt->ndim() > 2) {nd_pt->x(2) *= scaling_factor;}
-      }
-  }
-
   // /// Create two meshes near each other.
   // inline Vector<Mesh*> generate_my_multi_mesh(int refinement_level,
   //                                             TimeStepper* ts_pt,

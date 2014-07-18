@@ -654,7 +654,7 @@ namespace oomph
         }
 
       // Scale the mesh as requested
-      scale_mesh(scaling_factor, mesh_pt);
+      mesh_pt->scale_mesh(scaling_factor);
 
       // This should go inside an element factory but our meshes don't
       // allow that :(
