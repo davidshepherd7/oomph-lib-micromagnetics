@@ -422,6 +422,13 @@ namespace oomph
             (nx, lx, time_stepper_pt);
           mesh_pt->setup_boundary_element_info();
         }
+      else if(mesh_name == "st_line" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new OneDMesh<TMicromagElement<1,2> >
+            (nx, lx, time_stepper_pt);
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "sq_cube" && nnode1d == 2)
         {
           double lx = 1.0;
@@ -716,7 +723,11 @@ namespace oomph
     BEMElementFactoryFctPt bem_element_factory_factory
     (const FiniteElement* bulk_ele_pt)
     {
-      if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
+      if(dynamic_cast<const TElement<1,2>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<1,2> >;
+        }
+      else if(dynamic_cast<const TElement<2, 2>*>(bulk_ele_pt) != 0)
         {
           return &bem_element_factory<TMicromagBEMElement<2,2> >;
         }
@@ -751,7 +762,12 @@ namespace oomph
     FluxMeshFactoryFctPt
     mm_flux_mesh_factory_factory(const FiniteElement* bulk_ele_pt)
     {
-      if(dynamic_cast<const TMicromagElement<2, 2>*>(bulk_ele_pt) != 0)
+      if(dynamic_cast<const TMicromagElement<1, 2>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<TMicromagElement<1, 2> > >;
+        }
+      else if(dynamic_cast<const TMicromagElement<2, 2>*>(bulk_ele_pt) != 0)
         {
           return Factories::surface_mesh_factory
             <MicromagFluxElement<TMicromagElement<2, 2> > >;
