@@ -395,6 +395,21 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "sq_square_xstretch" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
+            (nx, nx, lx, lx, time_stepper_pt);
+
+          // Stretch in the x direction (for testing jacobian of
+          // transformation stuff).
+          const unsigned n_node = mesh_pt->nnode();
+          for(unsigned nd=0; nd<n_node; nd++)
+            {
+              Node* nd_pt = mesh_pt->node_pt(nd);
+              nd_pt->x(0) *= 2;
+            }
+        }
       else if(mesh_name == "sq_square_periodic" && nnode1d == 2)
         {
           double lx = 1.0;
