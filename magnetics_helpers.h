@@ -157,7 +157,7 @@ namespace HApp
   inline Vector<double> tanhx_minus_z(const double& t, const Vector<double> &x)
   {
     Vector<double> h(3, 0.0);
-    h[2] = -1.1*tanh(5*x[0]);
+    h[2] = -1.1*tanh(5*(x[0] - 0.5));
     return h;
   }
 
