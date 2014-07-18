@@ -368,8 +368,10 @@ namespace oomph
 
     // Write initial solution and anything else problem specific
     // (e.g. more trace file headers)
-    this->doc_solution();
     initial_doc_additional();
+
+    // Doc the initial condition
+    this->doc_solution();
   }
 
   void MyProblem::doc_solution(const unsigned& t_hist)
