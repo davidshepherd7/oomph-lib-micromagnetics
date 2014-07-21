@@ -408,8 +408,8 @@ def main():
     # Don't mess up my formating in the help message
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('--dir', '-d', action='append',
-                        help='Set the directory to look for data in (default "results").')
+    parser.add_argument('dir', nargs="*", default=["results"],
+                        help='Set the directory(s) to look for data in (default "results").')
 
     parser.add_argument('--print-all-data', action='store_true',
                         help='Pretty print all data to stdout')
