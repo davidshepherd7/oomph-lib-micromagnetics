@@ -555,8 +555,63 @@ namespace oomph
               return new Gauss<3, 2>;
             }
         }
+      if(nnode_1d == 3)
+        {
+          if(dim ==1 && geom == T) // T line
+            {
+              return new TGauss<1, 3>;
+            }
+          else if(dim ==1 && geom == Q) // Q line
+            {
+              return new Gauss<1, 3>;
+            }
+          else if((dim == 2) && geom == T) //triangle
+            {
+              return new TGauss<2, 3>;
+            }
+          else if((dim == 2) && geom == Q) // square
+            {
+              return new Gauss<2, 3>;
+            }
+          else if((dim == 3) && geom == T) // tet
+            {
+              return new TGauss<3, 3>;
+            }
+          else if((dim == 3) && geom == Q) // brick
+            {
+              return new Gauss<3, 3>;
+            }
+        }
+      else if(nnode_1d == 4)
+        {
+          if(dim ==1 && geom == T) // T line
+            {
+              return new TGauss<1, 4>;
+            }
+          else if(dim ==1 && geom == Q) // Q line
+            {
+              return new Gauss<1, 4>;
+            }
+          else if((dim == 2) && geom == T) //triangle
+            {
+              return new TGauss<2, 4>;
+            }
+          else if((dim == 2) && geom == Q) // square
+            {
+              return new Gauss<2, 4>;
+            }
+          else if((dim == 3) && geom == T) // tet
+            {
+              // Note: there's no scheme for <3,4> so we use <3,5> instead
+              return new TGauss<3, 5>;
+            }
+          else if((dim == 3) && geom == Q) // brick
+            {
+              return new Gauss<3, 4>;
+            }
+        }
       std::string err("Cannot determine element type.\n");
-      err += "Not implemented (yet?) for nnode1d != 2, is that the problem?";
+      err += "Only implemented for 1 < nnode1d < 4, is that the problem?";
       err += "I got dim = " + to_string(dim) + ", nnode1d = " + to_string(nnode_1d);
       err += " and element geometry = " + to_string(geom);
       throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
