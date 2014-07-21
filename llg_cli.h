@@ -38,6 +38,10 @@ namespace oomph
       specify_command_line_flag("-renormalise", &renormalise);
       renormalise = -1;
 
+      specify_command_line_flag("-compare-residuals-with-gauss", &compare_residuals_with_gauss,
+                                "Compare residual calculations with those given by high order Gauss? default: -1.");
+      compare_residuals_with_gauss = -1;
+
       specify_command_line_flag("-damping", &damping);
       damping = -10;
 
@@ -179,6 +183,11 @@ namespace oomph
       else
         {
           llg_pt->Renormalise_each_time_step = renormalise;
+        }
+
+      if(compare_residuals_with_gauss != -1)
+        {
+          llg_pt->Compare_with_gauss_quadrature = bool(compare_residuals_with_gauss);
         }
 
       /// Pick the function which will be used by each element to create an
@@ -323,6 +332,8 @@ namespace oomph
     /// Flag to control renormalisation of |m| after each step. -1 =
     /// default for timestepper, 0 = off, 1 = on.
     int renormalise;
+
+    int compare_residuals_with_gauss;
 
     double damping;
     double k1;

@@ -101,3 +101,4 @@ self_test/hlib/linking/hlib_test_driver
 self_test/hlib/matrix_generation/hlib_matrix_generate_driver
 self_test/square2tri/square2tri_driver
 self_test/brick2tet/brick2tet_driver
+self_test/quadrature_accuracy/quadrature_accuracy_driver

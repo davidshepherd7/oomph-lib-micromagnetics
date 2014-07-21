@@ -89,6 +89,7 @@ namespace oomph
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
       Renormalise_each_time_step = false;
+      Compare_with_gauss_quadrature = false;
     }
 
     /// Virtual destructor. Policy decision: my problem classes won't call
@@ -492,7 +493,9 @@ namespace oomph
           // Call base class version
           MyProblem::actions_before_newton_step();
         }
+
     }
+
 
     virtual void actions_after_newton_step() override
     {
@@ -500,6 +503,11 @@ namespace oomph
         {
           // Call base class version
           MyProblem::actions_after_newton_step();
+
+          if(Compare_with_gauss_quadrature)
+            {
+              compare_with_gauss_quadrature();
+            }
         }
     }
 
@@ -528,6 +536,11 @@ namespace oomph
               non_m_indices.push_back(phi_index());
 
               segregated_pin_indices(non_m_indices);
+            }
+
+          if(Compare_with_gauss_quadrature)
+            {
+              compare_with_gauss_quadrature();
             }
         }
     }
@@ -633,6 +646,41 @@ namespace oomph
               }
           }
       }
+
+
+    /// Calculate residuals using Gaussian quadrature so we can compare
+    /// values. Not const because we have to swap out the quadrature
+    /// pointers.
+    void compare_with_gauss_quadrature()
+    {
+      const unsigned n_ele = mesh_pt()->nelement();
+
+      Vector<Integral*> backup_q_pt(n_ele);
+      std::auto_ptr<Integral> gauss_pt
+        (Factories::gauss_integration_factory
+         (ele_pt()->dim(), 4, ele_pt()->element_geometry()));
+
+      // switch integration schemes
+      for(unsigned ele=0; ele<n_ele; ele++)
+        {
+          FiniteElement* ele_pt = mesh_pt()->finite_element_pt(ele);
+          backup_q_pt[ele] = ele_pt->integral_pt();
+
+          ele_pt->set_integration_scheme(gauss_pt.get());
+        }
+
+      DoubleVector residuals;
+      get_residuals(residuals);
+
+      // revert integration schemes
+      for(unsigned ele=0; ele<n_ele; ele++)
+        {
+          FiniteElement* ele_pt = mesh_pt()->finite_element_pt(ele);
+          ele_pt->set_integration_scheme(backup_q_pt[ele]);
+        }
+
+      std::cout << "***" << residuals.max() << std::endl;
+    }
 
     virtual void actions_before_newton_convergence_check() override
       {
@@ -1043,6 +1091,9 @@ namespace oomph
 
     /// Normalise magnetisation problem after each step?
     bool Renormalise_each_time_step;
+
+    /// Compare residual with calculations by gauss quadrature?
+    bool Compare_with_gauss_quadrature;
 
     bool Pin_boundary_m;
     bool Use_fd_jacobian;
