@@ -252,6 +252,21 @@ namespace oomph
         return ml_errors;
       }
 
+    double integrate_over_mesh(const ElementalFunction* func_pt,
+                               const Mesh* const mesh_pt,
+                               const Integral* quadrature_pt)
+    {
+      double result = 0;
+      for(unsigned e=0, ne=mesh_pt->nelement(); e < ne; e++)
+        {
+          MicromagEquations* ele_pt
+            = checked_dynamic_cast<MicromagEquations*>
+            (mesh_pt->element_pt(e));
+          result += ele_pt->integrate_over_element(func_pt, quadrature_pt);
+        }
+      return result;
+    }
+
   }
 
   namespace MeshCreationHelpers

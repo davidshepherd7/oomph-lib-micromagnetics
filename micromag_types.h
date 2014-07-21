@@ -16,6 +16,7 @@ namespace oomph
   class MicromagBEMElementEquations;
   class TimeStepper;
   class FiniteElement;
+  class MMInterpolator;
 
 
 
@@ -51,6 +52,23 @@ namespace oomph
 
   /// Function type for use as general initial condition
   typedef SolutionFunctorBase InitialConditionFct;
+
+  /// \short Function class for functions to integrate over elements.
+  class ElementalFunction
+  {
+  public:
+
+    /// \short Virtual destructor (to stop compiler complaining).
+    virtual ~ElementalFunction() {}
+
+    /// \short Function to integrate over the element.
+    virtual double call(const GeneralisedElement* ele_pt,
+                        MMInterpolator* intp_pt) const = 0;
+
+    // /// \short Helper function to automatically create an interpolator
+    // /// object for call.
+    // double call(const GeneralisedElement* ele_pt, const Vector<double> &s) const;
+  };
 
 
 

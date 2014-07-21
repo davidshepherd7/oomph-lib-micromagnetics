@@ -720,13 +720,6 @@ using namespace StringConversion;
     /// initial conditions.
     virtual void actions_after_set_initial_condition();
 
-    /// Integrate a function given by func_pt over every element in a mesh
-    /// and return the total. This should probably be in the mesh class but
-    /// that's core oomph-lib so I'll leave it here.
-    virtual double integrate_over_mesh(const ElementalFunction* func_pt,
-                                       const Mesh* const mesh_pt,
-                                       const Integral* quadrature_pt=0) const;
-
     /// \short Integrate a function given by func_pt over every element
     /// in every bulk mesh in this problem.
     virtual double integrate_over_problem(const ElementalFunction* func_pt,

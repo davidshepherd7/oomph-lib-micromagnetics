@@ -436,6 +436,13 @@ namespace MManipulation
 
   /// Get list of |m| errors
   Vector<double> nodal_m_length_errors(const Vector<Vector<double> >& ms);
+
+  /// Integrate a function given by func_pt over every element in a mesh
+  /// and return the total. This should probably be in the mesh class but
+  /// that's core oomph-lib so I'll leave it here.
+  double integrate_over_mesh(const ElementalFunction* func_pt,
+                             const Mesh* const mesh_pt,
+                             const Integral* quadrature_pt=0);
 }
 
   class TetMeshBase;

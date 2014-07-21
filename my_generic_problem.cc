@@ -8,33 +8,19 @@
 
 #include "sum_of_matrices_preconditioner.h"
 
+#include "magnetics_helpers.h"
+
 
 namespace oomph
 {
-
-  /// Integrate a function given by func_pt over every element in a mesh
-  /// and return the total. This should probably be in the mesh class but
-  /// that's core oomph-lib so I'll leave it here.
-  double MyProblem::integrate_over_mesh(const ElementalFunction* func_pt,
-                                        const Mesh* const mesh_pt,
-                                        const Integral* quadrature_pt) const
-  {
-    double result = 0;
-    for(unsigned e=0, ne=mesh_pt->nelement(); e < ne; e++)
-      {
-        MicromagEquations* ele_pt
-          = checked_dynamic_cast<MicromagEquations*>
-          (mesh_pt->element_pt(e));
-        result += ele_pt->integrate_over_element(func_pt, quadrature_pt);
-      }
-    return result;
-  }
 
   /// \short Integrate a function given by func_pt over every element
   /// in every bulk mesh in this problem.
   double MyProblem::integrate_over_problem(const ElementalFunction* func_pt,
                                            const Integral* quadrature_pt) const
   {
+    using namespace MManipulation;
+
     double result = 0;
     for(unsigned j=0; j<this->nsub_mesh(); j++)
       {
