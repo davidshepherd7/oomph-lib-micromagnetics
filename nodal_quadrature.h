@@ -49,9 +49,9 @@ namespace oomph
       // Construct integration scheme for integration of shape
       // function. Use factory so that we don't have to hard code (or
       // template by) the dimension/shape of the elements. Have to store in
-      // pointer to use factory, use auto ptr so that it is deleted
-      // automatically. In c++11 this should be replaced by unique_ptr.
-      std::auto_ptr<Integral> int_pt
+      // pointer to use factory, use smart ptr so that it is deleted
+      // automatically.
+      std::unique_ptr<Integral> int_pt
         (Factories::gauss_integration_factory(ele_pt()->dim(),
                                               ele_pt()->nnode_1d(),
                                               ele_pt()->element_geometry()));
