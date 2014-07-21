@@ -404,18 +404,17 @@ def main():
     # ============================================================
 
     parser = argparse.ArgumentParser(description=main.__doc__,
-
-    # Don't mess up my formating in the help message
-    formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     # Show defaults in help
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('dir', nargs="*", default=["results"],
-                        help='Set the directory(s) to look for data in (default "results").')
+                        help='Set the directory(s) to look for data in')
 
     parser.add_argument('--print-all-data', action='store_true',
                         help='Pretty print all data to stdout')
 
-    parser.add_argument('--plots', '-p', action='append', default=[],
-                        help='choose what to plot (default "m")')
+    parser.add_argument('--plots', '-p', action='append', default=['m'],
+                        help='choose what to plot')
 
     parser.add_argument('--print-data', '-v', action='append', default=[],
                         help='Choose values to print')
@@ -458,18 +457,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Handle some defaults like this instead of inside argparse otherwise
-    # arguments are appended to defaults rather than replacing them.
-    if args.plots + args.print_data == []:
-        print("No plots or prints requested, so plotting magnetisations")
-        args.plots = ['m']
-
-    if (args.dir is None) or (args.dir == []):
-        print("No directories given, so parsing ./results")
-        args.dir = ["results"]
-
-    if args.split is None:
-        args.split = ['mesh', 'h-app', 'initial-m', 'mag-params', 'scale']
 
     # If we are in ssh mode then don't use a plotting type which requires
     # X11. This has to happen before we import pyplot.
@@ -478,7 +465,6 @@ def main():
         matplotlib.use('Agg')
 
     import matplotlib.pyplot as plt
-
 
 
     # Main function
