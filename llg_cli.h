@@ -48,6 +48,10 @@ namespace oomph
                                 "Debugging multiplier for magnetostatic field strength.");
       ms_debug_coeff = -10;
 
+      specify_command_line_flag("-h-app-debug-coeff", &h_app_debug_coeff,
+                                "Debugging multiplier for applied field strength.");
+      h_app_debug_coeff = -10;
+
       // Flags automatically default to false
       specify_command_line_flag("-pin-boundary-m");
 
@@ -144,6 +148,11 @@ namespace oomph
       if(command_line_flag_has_been_set("-ms-debug-coeff"))
         {
           mag_params_pt->Magnetostatic_debug_coeff = ms_debug_coeff;
+        }
+
+      if(command_line_flag_has_been_set("-h-app-debug-coeff"))
+        {
+          mag_params_pt->Applied_field_debug_coeff = h_app_debug_coeff;
         }
 
       HApp::HAppFctPt h_app_fct_pt = h_app_factory(h_app_name);
@@ -318,6 +327,7 @@ namespace oomph
     double damping;
     double k1;
     double ms_debug_coeff;
+    double h_app_debug_coeff;
     double wave_solution_c;
 
     int numerical_int_bem;

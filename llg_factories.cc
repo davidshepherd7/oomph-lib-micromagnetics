@@ -623,8 +623,6 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
 
-          std::cout << "nx: " << nx << std::endl;
-
           const double r_min = 0.5, r_max = 1.5, phi_min = 0, phi_max = 180;
 
           // Warp the domain as in oomph-lib website example
