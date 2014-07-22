@@ -210,7 +210,7 @@ namespace oomph
       //??ds get rid of?
       double time = 0.0;
       Time* time_pt = This_element->node_pt(0)->time_stepper_pt()->time_pt();
-      time += time_pt->time();
+      time += time_pt->time(Time_index);
       return time;
     }
 
