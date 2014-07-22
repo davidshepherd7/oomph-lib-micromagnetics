@@ -422,7 +422,7 @@ def main():
     parser.add_argument('--label', '-l', action='append',
                         help='Add additional labels to line, for keys begining with dash specify them as: `-s=-dt` to avoid issues with `-` being read as a new argument.')
 
-    parser.add_argument('--split', '-s', action='append',
+    parser.add_argument('--split', '-s', action='append', default=[],
                         help="Split into different plots for different values of these keys, for keys begining with dash specify them as: `-s=-dt` to avoid issues with `-` being read as a new argument.")
 
     parser.add_argument('--scatter-split', '-t', action='append',
