@@ -413,7 +413,7 @@ def main():
     parser.add_argument('--print-all-data', action='store_true',
                         help='Pretty print all data to stdout')
 
-    parser.add_argument('--plots', '-p', action='append', default=['m'],
+    parser.add_argument('--plots', '-p', action='append', default=[],
                         help='choose what to plot')
 
     parser.add_argument('--print-data', '-v', action='append', default=[],
