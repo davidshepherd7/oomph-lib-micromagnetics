@@ -658,7 +658,7 @@ namespace oomph
       Vector<Integral*> backup_q_pt(n_ele);
       std::unique_ptr<Integral> gauss_pt
         (Factories::gauss_integration_factory
-         (ele_pt()->dim(), 4, ele_pt()->element_geometry()));
+         (ele_pt()->dim(), ele_pt()->nnode_1d(), ele_pt()->element_geometry()));
 
       // switch integration schemes
       for(unsigned ele=0; ele<n_ele; ele++)
