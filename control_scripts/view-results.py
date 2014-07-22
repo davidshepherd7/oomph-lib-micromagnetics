@@ -66,10 +66,10 @@ def main():
                                      # Show defaults in help
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('dir', default=["results"], nargs="*",
+    parser.add_argument('dir', default="results", type=str, nargs="?",
                         help='Pick results directory, default is "results".')
 
-    parser.add_argument('--ncores', '-j', default=mp.cpu_count(), type=int,
+    parser.add_argument('--ncores', '-j', default=multiprocessing.cpu_count(), type=int,
                         help='Set number of cores to use for conversions.')
 
     parser.add_argument('--just-unzip', '-u', action="store_true",
