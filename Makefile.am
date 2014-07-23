@@ -30,6 +30,7 @@ incl_cc_files =
 
 # Define the headers
 headers = array_interpolator.h \
+	new_interpolators.h \
 	micromagnetics_boundary_element.h \
 	energy_functions.h \
 	micromagnetics_element.h \
