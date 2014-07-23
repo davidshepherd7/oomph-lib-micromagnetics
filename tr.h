@@ -32,7 +32,7 @@ namespace oomph
     virtual ~TR() {}
 
     ///Return the actual order of the scheme
-    unsigned order() {return 2;}
+    unsigned order() const {return 2;}
 
     /// Set the weights
     void set_weights()
@@ -68,7 +68,7 @@ namespace oomph
     }
 
     /// Number of previous values available.
-    unsigned nprev_values() {return 1;}
+    unsigned nprev_values() const {return 1;}
 
     /// Location in data of derivatives
     unsigned derivative_index(const unsigned& t) const
@@ -88,7 +88,7 @@ namespace oomph
     unsigned predicted_value_index() const {return derivative_index(1)+1;}
 
      /// Number of timestep increments that need to be stored by the scheme
-    unsigned ndt() {return 2;}
+    unsigned ndt() const {return 2;}
 
     /// \short Initialise the time-history for the Data values, corresponding
     /// to an impulsive start.
