@@ -273,6 +273,16 @@ namespace oomph
             mdotn += m[j] * normal[j];
           }
 
+        // Get dmdn at this point via the bulk element
+        std::unique_ptr<CachingMMInterpolator>
+          bulk_intp_pt(Factories::mm_interpolator_factory(bulk_element_pt()));
+        bulk_intp_pt->build(local_coordinate_in_bulk(s));
+
+        Vector<double> dmdn(3, 0.0);
+        dmdn[0] = VectorOps::dot(bulk_intp_pt->dmdx(0), normal);
+        dmdn[1] = VectorOps::dot(bulk_intp_pt->dmdx(1), normal);
+        dmdn[2] = VectorOps::dot(bulk_intp_pt->dmdx(2), normal);
+
         // Loop over the test functions doing residual and Jacobian
         // contributions.
         for(unsigned l=0;l<n_node;l++)
@@ -285,6 +295,12 @@ namespace oomph
 
             // Add contribution to phi residual
             residuals[phi_1_eqn] += mdotn * intp_pt->test(l) * W;
+
+            // Add magnetisation Neumann boundary condition contribution
+            for(unsigned j=0; j<3; j++)
+              {
+                residuals[m_index_micromag(j)] += dmdn[j] * intp_pt->test(l) * W;
+              }
 
             // Skip rest if Jacobian not requested
             if(!flag) continue;
@@ -302,6 +318,9 @@ namespace oomph
                     // phi_1 residual w.r.t m[j]
                     jacobian(phi_1_eqn, m_unknown)
                       += intp_pt->psi(l2) * intp_pt->test(l) * normal[j] * W;
+
+                    //??ds add m Neumann boundary contribution, somehow...
+                    #warning no jacobian entry for m neumann boundary condition
 
                   }
               }
