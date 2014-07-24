@@ -15,17 +15,12 @@ namespace oomph
   {
     // Make sure the field has 3 dimensions (even if there are only two
     // spatial dimensions).
-    hms.resize(3, 0.0);
+    hms.assign(3, 0.0);
 
-    const double* hms_temp;
-    // Copy the derivative elements into the field vector (it only has
-    // [nodal dimension] entries).
-    hms_temp = intp_pt->dphidx();
-
-    // Multiply by -1
-    for(unsigned j=0; j<3; j++)
+    // Copy the first Dim entries and multiply by -1.
+    for(unsigned j=0; j<intp_pt->dim(); j++)
       {
-        hms[j] = -1 * hms_temp[j];
+        hms[j] = -1 * intp_pt->dphidx()[j];
       }
   }
 
