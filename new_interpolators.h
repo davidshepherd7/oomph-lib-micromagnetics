@@ -393,7 +393,9 @@ namespace oomph
         {
           for(unsigned i_tm=0; i_tm<Nprev_value_current_value; i_tm++)
             {
-              x += This_element->raw_nodal_position(i_tm, i_nd, j) * Psi(i_nd);
+              x += This_element->raw_nodal_position(i_tm, i_nd, j)
+                * Psi(i_nd)
+                * (*Ts_weights_pt) (0, i_tm);
             }
         }
       return x;
@@ -407,7 +409,8 @@ namespace oomph
           for(unsigned i_tm=0; i_tm<Nprev_value_derivative; i_tm++)
             {
               dxdt += This_element->raw_nodal_position(i_tm, i_nd, j)
-                * Psi(i_nd) * (*Ts_weights_pt)(1, i_tm);
+                * Psi(i_nd)
+                * (*Ts_weights_pt)(1, i_tm);
             }
         }
       return dxdt;
@@ -420,7 +423,8 @@ namespace oomph
         {
           for(unsigned i_tm=0; i_tm<Nprev_value_current_value; i_tm++)
             {
-              value += This_element->raw_nodal_value(i_tm, i_nd, j)*Psi(i_nd)
+              value += This_element->raw_nodal_value(i_tm, i_nd, j)
+                * Psi(i_nd)
                 * (*Ts_weights_pt) (0, i_tm);
             }
         }
@@ -435,7 +439,8 @@ namespace oomph
           for(unsigned i_tm=0; i_tm<Nprev_value_derivative; i_tm++)
             {
               dvaluedt += This_element->raw_nodal_value(i_tm, i_nd, j)
-                * Psi(i_nd) * (*Ts_weights_pt)(1, i_tm);
+                * Psi(i_nd)
+                * (*Ts_weights_pt)(1, i_tm);
             }
         }
       return dvaluedt;
@@ -449,7 +454,7 @@ namespace oomph
         {
           for(unsigned i_tm=0; i_tm<Nprev_value_current_value; i_tm++)
             {
-              dvaluedx += This_element->raw_nodal_value(0, i_nd, i_val)
+              dvaluedx += This_element->raw_nodal_value(i_tm, i_nd, i_val)
                 * dpsidx()(i_nd, i_direc)
                 * (*Ts_weights_pt) (0, i_tm);
             }
