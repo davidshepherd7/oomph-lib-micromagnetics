@@ -53,8 +53,17 @@ namespace oomph
     void fill_in_contribution_to_jacobian(Vector<double> &residuals,
                                           DenseMatrix<double> &jacobian)
     {
-      //Call the generic routine with the flag set to 1
-      fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
+      if(bulk_element_pt()->Use_fd_jacobian)
+        {
+          // Generalised element version is by FD
+          FiniteElement::fill_in_contribution_to_jacobian(residuals,
+                                                          jacobian);
+        }
+      else
+        {
+          //Call the generic routine with the flag set to 1
+          fill_in_generic_residual_contribution_fluxes(residuals,jacobian,1);
+        }
     }
 
 
