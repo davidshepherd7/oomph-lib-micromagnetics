@@ -7,6 +7,7 @@
 
 #include "nodal_quadrature.h"
 
+#include "new_interpolators.h"
 
 // Meshes for mesh factory
 #include "../../src/meshes/simple_rectangular_quadmesh.h"
@@ -1062,6 +1063,48 @@ namespace oomph
         }
 
       return parameters_pt;
+    }
+
+    CachingMMArrayInterpolator* array_interpolator_factory
+    (const FiniteElement* ele_pt, const unsigned& time_step_index,
+     const TimeStepper* alternative_ts_pt)
+    {
+      // Choose time stepper
+      const TimeStepper* ts_pt = 0;
+      if(alternative_ts_pt != 0)
+        {
+          ts_pt = alternative_ts_pt;
+        }
+      else
+        {
+          ts_pt = ele_pt->node_pt(0)->time_stepper_pt();
+        }
+
+      // Create a caching interpolator
+      CachingMMArrayInterpolator* cintp_pt = new CachingMMArrayInterpolator;
+
+      // Choose underlying interpolator type
+      if(ts_pt->nprev_values_for_value_at_evaluation_time() != 1
+         && time_step_index == 0)
+        {
+          cintp_pt->Intp_pt = new RawTimeInterpolatedValueInterpolator;
+        }
+      else if(time_step_index != 0)
+        {
+          HistoryInterpolator* intp_pt = new HistoryInterpolator;
+          intp_pt->Time_index = time_step_index;
+          cintp_pt->Intp_pt = intp_pt;
+        }
+      else
+        {
+          cintp_pt->Intp_pt = new RawInterpolator;
+        }
+
+      // Set pointers in interpolator
+      cintp_pt->Intp_pt->This_element = ele_pt;
+      cintp_pt->Intp_pt->Ts_pt = ts_pt;
+
+      return cintp_pt;
     }
 
   } // end of Factories

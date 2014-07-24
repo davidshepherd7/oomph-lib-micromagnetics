@@ -2,6 +2,9 @@
 #include "./micromagnetics_element.h"
 #include "./vector_helpers.h"
 
+#include "llg_factories.h"
+#include "new_interpolators.h"
+
 using namespace oomph;
 using namespace VectorOps;
 
@@ -29,7 +32,9 @@ namespace oomph
     const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
 
     // Create interpolator
-    MMArrayInterpolator intp(e_pt);
+    std::unique_ptr<CachingMMArrayInterpolator>
+      intp_pt(Factories::array_interpolator_factory(e_pt));
+
 
     //======================================================================
     /// Begin loop over the knots (integration points)
@@ -43,20 +48,20 @@ namespace oomph
         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
         // Set up interpolator for this point
-        intp.build(s);
+        intp_pt->build(s);
 
-        double W = e_pt->integral_pt()->weight(ipt) * intp.j();
+        double W = e_pt->integral_pt()->weight(ipt) * intp_pt->j();
 
         // Calculate other things:
 
         // cache pointers from interpolator
-        const double* intp_m = intp.m();
-        const double* intp_dmdt = intp.dmdt();
-        const double time = intp.time();
-        const double* intp_x = intp.x();
-        const double* intp_dmdx[3] = {intp.dmdx(0),
-                                      intp.dmdx(1),
-                                      intp.dmdx(2)};
+        const double* intp_m = intp_pt->m();
+        const double* intp_dmdt = intp_pt->dmdt();
+        const double time = intp_pt->time();
+        const double* intp_x = intp_pt->x();
+        const double* intp_dmdx[3] = {intp_pt->dmdx(0),
+                                      intp_pt->dmdx(1),
+                                      intp_pt->dmdx(2)};
 
         // Copy some things into vectors ready for use in function calls
         // ??ds get rid of this?
@@ -73,7 +78,9 @@ namespace oomph
         Vector<double> h_cryst_anis, h_magnetostatic;
         Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
-        e_pt->get_magnetostatic_field(&intp, h_magnetostatic);
+        e_pt->get_magnetostatic_field(s, h_magnetostatic);
+        # warning using slow get magnetostaic field call
+        //??ds convert to use new interpolators
 
         Vector<double> h_simple(3, 0.0);
         h_simple[0] = h_applied[0] + h_cryst_anis[0] + h_magnetostatic[0];
@@ -91,7 +98,7 @@ namespace oomph
             // Cache test function derivative in a vector for easier access
             // ??ds remove?
             Vector<double> dtestdxl(ndim, 0.0);
-            for(unsigned j=0; j<ndim; j++) dtestdxl[j] = intp.dtestdx(l, j);
+            for(unsigned j=0; j<ndim; j++) dtestdxl[j] = intp_pt->dtestdx(l, j);
 
             // Total potential (phi)
             const int phi_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_index_micromag());
@@ -100,20 +107,20 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(e_pt->node_pt(l)->is_on_boundary())))
               {
-                residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
-                residuals[phi_eqn] -= intp.div_m()*intp.test(l)*W;         // div(m)
+                residuals[phi_eqn] -= phi_source*intp_pt->test(l)*W; // source
+                residuals[phi_eqn] -= intp_pt->div_m()*intp_pt->test(l)*W;         // div(m)
                 for(unsigned k=0;k<ndim;k++)                       // Poisson
-                  residuals[phi_eqn] -= intp.dphidx()[k]*intp.dtestdx(l,k)*W;
+                  residuals[phi_eqn] -= intp_pt->dphidx()[k]*intp_pt->dtestdx(l,k)*W;
               }
 
             // Reduced potential (phi_1), only difference is in b.c.s
             const int phi_1_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
-                residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
-                residuals[phi_1_eqn] -= intp.div_m()*intp.test(l)*W;
+                residuals[phi_1_eqn] -= phi_1_source*intp_pt->test(l)*W;
+                residuals[phi_1_eqn] -= intp_pt->div_m()*intp_pt->test(l)*W;
                 for(unsigned k=0;k<ndim;k++)
-                  residuals[phi_1_eqn] -= intp.dphi1dx()[k]*intp.dtestdx(l,k)*W;
+                  residuals[phi_1_eqn] -= intp_pt->dphi1dx()[k]*intp_pt->dtestdx(l,k)*W;
               }
 
             // LL itself (m, time evolution)
@@ -134,16 +141,16 @@ namespace oomph
                   {
                     // dmdt
                     residuals[m_eqn] += ll_conversion_factor *intp_dmdt[i]
-                      * intp.test(l) * W;
+                      * intp_pt->test(l) * W;
 
                     // mxh for non-exchange fields (precession)
                     residuals[m_eqn] += opt_cross(i, intp_m, h_simple)
-                      * intp.test(l) * W;
+                      * intp_pt->test(l) * W;
 
                     // mxmxh for non-exchange fields (damping)
                     residuals[m_eqn] += llg_damp_c *
                       opt_double_cross(i, intp_m, intp_m, h_simple)
-                      * intp.test(l) * W;
+                      * intp_pt->test(l) * W;
 
                     // mxex term (precession)
                     residuals[m_eqn] -= opt_cross(i, intp_m, gradmdotgradtest)
@@ -158,9 +165,9 @@ namespace oomph
                       {
                         sum += intp_m[j] *
                           (intp_m[i]*dot(dtestdxl, intp_dmdx[j], ndim)
-                           + intp.test(l)*dot(intp_dmdx[i], intp_dmdx[j], ndim))
+                           + intp_pt->test(l)*dot(intp_dmdx[i], intp_dmdx[j], ndim))
 
-                          + intp.test(l) * intp_m[i]
+                          + intp_pt->test(l) * intp_m[i]
                           * dot(intp_dmdx[j], intp_dmdx[j], ndim);
                       }
                     residuals[m_eqn] -= llg_damp_c * sum * W;
@@ -186,7 +193,7 @@ namespace oomph
             double gradtestldotgradpsil2 = 0.0;
             for(unsigned i=0; i < ndim; i++)
               {
-                gradtestldotgradpsil2 += intp.dtestdx(l,i) * intp.dpsidx(l2,i);
+                gradtestldotgradpsil2 += intp_pt->dtestdx(l,i) * intp_pt->dpsidx(l2,i);
               }
 
             // Total potential (phi)
@@ -299,7 +306,8 @@ namespace oomph
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
     // Create interpolator
-    MMArrayInterpolator intp(e_pt);
+    std::unique_ptr<CachingMMArrayInterpolator>
+      intp_pt(Factories::array_interpolator_factory(e_pt));
 
     // Allocate vectors outside intergration loop
     Vector<double> xvec(ndim, 0.0),  mvec(3, 0.0), h_cryst_anis,
@@ -316,18 +324,18 @@ namespace oomph
         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
 
         // Set up interpolator for this point
-        intp.build(s);
+        intp_pt->build(s);
 
-        double W = e_pt->integral_pt()->weight(ipt) * intp.j();
+        double W = e_pt->integral_pt()->weight(ipt) * intp_pt->j();
 
         // cache pointers from interpolator for speed of access
-        const double* intp_m = intp.m();
-        const double* intp_dmdt = intp.dmdt();
-        const double time = intp.time();
-        const double* intp_x = intp.x();
-        const double* intp_dmdx[3] = {intp.dmdx(0),
-                                      intp.dmdx(1),
-                                      intp.dmdx(2)};
+        const double* intp_m = intp_pt->m();
+        const double* intp_dmdt = intp_pt->dmdt();
+        const double time = intp_pt->time();
+        const double* intp_x = intp_pt->x();
+        const double* intp_dmdx[3] = {intp_pt->dmdx(0),
+                                      intp_pt->dmdx(1),
+                                      intp_pt->dmdx(2)};
 
         // Copy some things into vectors ready for use in function calls
         for(unsigned i=0; i<ndim; i++) {xvec[i] = intp_x[i];}
@@ -357,20 +365,20 @@ namespace oomph
             // the boundary element matrix and phi_1.)
             if((phi_eqn >= 0) && (!(e_pt->node_pt(l)->is_on_boundary())))
               {
-                residuals[phi_eqn] -= phi_source*intp.test(l)*W; // source
-                residuals[phi_eqn] -= intp.div_m()*intp.test(l)*W;         // div(m)
+                residuals[phi_eqn] -= phi_source*intp_pt->test(l)*W; // source
+                residuals[phi_eqn] -= intp_pt->div_m()*intp_pt->test(l)*W;         // div(m)
                 for(unsigned k=0;k<ndim;k++)                       // Poisson
-                  residuals[phi_eqn] -= intp.dphidx()[k]*intp.dtestdx(l,k)*W;
+                  residuals[phi_eqn] -= intp_pt->dphidx()[k]*intp_pt->dtestdx(l,k)*W;
               }
 
             // Reduced potential (phi_1), only difference is in b.c.s
             const int phi_1_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_1_index_micromag());
             if(phi_1_eqn >= 0)
               {
-                residuals[phi_1_eqn] -= phi_1_source*intp.test(l)*W;
-                residuals[phi_1_eqn] -= intp.div_m()*intp.test(l)*W;
+                residuals[phi_1_eqn] -= phi_1_source*intp_pt->test(l)*W;
+                residuals[phi_1_eqn] -= intp_pt->div_m()*intp_pt->test(l)*W;
                 for(unsigned k=0;k<ndim;k++)
-                  residuals[phi_1_eqn] -= intp.dphi1dx()[k]*intp.dtestdx(l,k)*W;
+                  residuals[phi_1_eqn] -= intp_pt->dphi1dx()[k]*intp_pt->dtestdx(l,k)*W;
               }
 
             // LLG itself (m, time evolution)
@@ -381,7 +389,7 @@ namespace oomph
             double gradtestdotgradmi[3] = {0,0,0};
             for(unsigned i=0; i<3; i++)
               for(unsigned j=0; j<ndim; j++)
-                gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp_dmdx[i][j];
+                gradtestdotgradmi[i] += intp_pt->dtestdx(l,j) * intp_dmdx[i][j];
 
             // add to residual
             for(unsigned i=0; i<3; i++)
@@ -396,7 +404,7 @@ namespace oomph
                         + llg_precess_c * opt_cross(i, intp_m, h_cryst_anis)
                         + llg_precess_c * opt_cross(i, intp_m, h_magnetostatic)
                         - llg_damp_c * opt_cross(i, intp_m, intp_dmdt)
-                        )*intp.test(l)*W;
+                        )*intp_pt->test(l)*W;
 
                     // (m x exchange) term (separate because it involves
                     // derivatives of the test function).
@@ -448,21 +456,21 @@ namespace oomph
               gradtestdotgradmi[i] = 0.0;
               for(unsigned j=0; j<ndim; j++) //??ds repeated calculation..
                 {
-                  gradtestdotgradmi[i] += intp.dtestdx(l,j) * intp_dmdx[i][j];
+                  gradtestdotgradmi[i] += intp_pt->dtestdx(l,j) * intp_dmdx[i][j];
                 }
             }
 
           for(unsigned l2=0;l2<n_node;l2++){
 
-            for(unsigned j=0; j<ndim; j++) {gradpsil2[j] = intp.dpsidx(l2,j);}
+            for(unsigned j=0; j<ndim; j++) {gradpsil2[j] = intp_pt->dpsidx(l2,j);}
 
             double gradtestldotgradpsil2 = 0.0;
             for(unsigned i=0; i < ndim; i++)
               {
-                gradtestldotgradpsil2 += intp.dtestdx(l,i) * intp.dpsidx(l2,i);
+                gradtestldotgradpsil2 += intp_pt->dtestdx(l,i) * intp_pt->dpsidx(l2,i);
               }
 
-            e_pt->get_hca_derivative(time,xvec,mvec,intp.psi(l2),dhcadm);
+            e_pt->get_hca_derivative(time,xvec,mvec,intp_pt->psi(l2),dhcadm);
 
             //=========================================================
             /// Actual Jacobian calculation
@@ -497,7 +505,7 @@ namespace oomph
                     for(unsigned j=0; j<ndim; j++){
                       const int m_unknown = e_pt->nodal_local_eqn(l2,e_pt->m_index_micromag(j));
                       if(m_unknown >= 0)
-                        jacobian(phi_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
+                        jacobian(phi_eqn,m_unknown) += - intp_pt->dpsidx(l2,j) * intp_pt->test(l) * W;
                     }
                   }
 
@@ -519,7 +527,7 @@ namespace oomph
               for(unsigned j=0; j<ndim; j++){
                 const int m_unknown = e_pt->nodal_local_eqn(l2,e_pt->m_index_micromag(j));
                 if(m_unknown >= 0)
-                  jacobian(phi_1_eqn,m_unknown) += - intp.dpsidx(l2,j) * intp.test(l) * W;
+                  jacobian(phi_1_eqn,m_unknown) += - intp_pt->dpsidx(l2,j) * intp_pt->test(l) * W;
               }
 
               // nothing w.r.t. phi
@@ -541,7 +549,7 @@ namespace oomph
               for(unsigned j=0; j<3; j++){
                 if(m_eqn[j] >= 0)
                   jacobian(m_eqn[j],phi_unknown) -= llg_precess_c
-                    * magstatic_c * opt_cross(j, intp_m, gradpsil2) * W * intp.test(l);
+                    * magstatic_c * opt_cross(j, intp_m, gradpsil2) * W * intp_pt->test(l);
               }
             }
 
@@ -561,12 +569,12 @@ namespace oomph
                   {
                     diffterms[i] = llg_precess_c * dhcadm[i][j];
                   }
-                diffterms[j] -= llg_damp_c * intp.psi(l2) *
+                diffterms[j] -= llg_damp_c * intp_pt->psi(l2) *
                   d_valuederivative_evaltime_by_dvalue_np1;
 
                 // mass matrix component due to time derivative
                 jacobian(m_eqn[j],m_unknown[j])
-                  += intp.test(l) * intp.psi(l2) *
+                  += intp_pt->test(l) * intp_pt->psi(l2) *
                   d_valuederivative_evaltime_by_dvalue_np1 * W;
 
                 for(unsigned i=0; i<3; i++) // loop over the m we differentiate w.r.t.
@@ -578,17 +586,17 @@ namespace oomph
 
                     // dmidmj x (....)
                     jacobian(m_eqn[i],m_unknown[j]) +=
-                      W * intp.test(l) * intp.psi(l2) * opt_cross(i, jhat, nondiffterms)
+                      W * intp_pt->test(l) * intp_pt->psi(l2) * opt_cross(i, jhat, nondiffterms)
                       * d_value_evaltime_by_dvalue_np1;
 
                     // m x d/dmj(.....)
                     jacobian(m_eqn[i], m_unknown[j]) +=
-                      W * intp.test(l) * opt_cross(i, intp_m, diffterms);
+                      W * intp_pt->test(l) * opt_cross(i, intp_m, diffterms);
 
                     // Exchange contribution
                     jacobian(m_eqn[i],m_unknown[j])
                       -= llg_precess_c * exch_c * W *
-                      ( intp.psi(l2) * opt_cross(i, jhat, gradtestdotgradmi)
+                      ( intp_pt->psi(l2) * opt_cross(i, jhat, gradtestdotgradmi)
 
                         + opt_cross(i, intp_m, jhat) * gradtestldotgradpsil2
                         )
