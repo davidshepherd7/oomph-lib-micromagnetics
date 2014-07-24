@@ -16,8 +16,7 @@ namespace oomph
   class MicromagBEMElementEquations;
   class TimeStepper;
   class FiniteElement;
-  class MMInterpolator;
-
+  class CachingMMInterpolator;
 
 
   // Function pointer types
@@ -63,7 +62,7 @@ namespace oomph
 
     /// \short Function to integrate over the element.
     virtual double call(const GeneralisedElement* ele_pt,
-                        MMInterpolator* intp_pt) const = 0;
+                        CachingMMInterpolator* intp_pt) const = 0;
 
     // /// \short Helper function to automatically create an interpolator
     // /// object for call.

@@ -33,7 +33,7 @@ namespace oomph
 
     // Create interpolator
     std::unique_ptr<CachingMMArrayInterpolator>
-      intp_pt(Factories::array_interpolator_factory(e_pt));
+      intp_pt(Factories::mm_array_interpolator_factory(e_pt));
 
 
     //======================================================================
@@ -307,7 +307,7 @@ namespace oomph
 
     // Create interpolator
     std::unique_ptr<CachingMMArrayInterpolator>
-      intp_pt(Factories::array_interpolator_factory(e_pt));
+      intp_pt(Factories::mm_array_interpolator_factory(e_pt));
 
     // Allocate vectors outside intergration loop
     Vector<double> xvec(ndim, 0.0),  mvec(3, 0.0), h_cryst_anis,

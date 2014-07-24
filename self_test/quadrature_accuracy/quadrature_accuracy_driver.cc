@@ -13,7 +13,7 @@ inline double x_func(const double& x, const double& y)
 
 class LinearFunction : public ElementalFunction
 {
-  double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
+  double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const override
     {
       double x = x_func(intp_pt->x()[0], intp_pt->x()[1]);
       return 0.7*x;
@@ -22,7 +22,7 @@ class LinearFunction : public ElementalFunction
 
 class QuadraticFunction : public ElementalFunction
 {
-  double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
+  double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const override
   {
     double x = x_func(intp_pt->x()[0], intp_pt->x()[1]);
     return std::sqrt(2)*x*x - x;
@@ -31,7 +31,7 @@ class QuadraticFunction : public ElementalFunction
 
 class CubicFunction : public ElementalFunction
 {
-  double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
+  double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const override
   {
     double x = x_func(intp_pt->x()[0], intp_pt->x()[1]);
     return std::sqrt(3)*x*x*x + std::sqrt(2)*x*x - x;
@@ -40,7 +40,7 @@ class CubicFunction : public ElementalFunction
 
 class QuarticFunction : public ElementalFunction
 {
-  double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const
+  double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const override
   {
     double x = x_func(intp_pt->x()[0], intp_pt->x()[1]);
     return std::sqrt(5)*x*x*x*x + std::sqrt(3)*x*x*x + std::sqrt(2)*x*x - x;

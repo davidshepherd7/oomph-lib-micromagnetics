@@ -493,35 +493,24 @@ namespace oomph
     }
   };
 
-
-  // Base class for a caching interpolator. Calculates interpolated
-  // position and derivatives using Intp_pt and stores them in arrays.
-  // Provides an interface which allows the user to ignore whether the
-  // value was cached or not.
-  class CachingArrayInterpolatorBase
+  /// Base class for a caching interpolator. Gives interface functions
+  /// common to all caching interpolators no matter what array storage they
+  /// are using.
+  class CachingInterpolatorBase
   {
   public:
 
-    CachingArrayInterpolatorBase() : Intp_pt(0) {}
+    CachingInterpolatorBase() : Intp_pt(0) {}
 
-    virtual ~CachingArrayInterpolatorBase()
+    virtual ~CachingInterpolatorBase()
     {
       delete Intp_pt; Intp_pt = 0;
     }
 
     virtual void build(const Vector<double>& s)
     {
-      // Clear memoised values
-      X.reset();
-      Dxdt.reset();
-      Intp_time.reset();
-
-      // Store values in interpolator
       Intp_pt->build(s);
     }
-
-    /// Check if something is initialised
-    bool uninitialised(double* val_pt) { return val_pt == 0; }
 
     /// Get time value
     double time()
@@ -532,6 +521,45 @@ namespace oomph
         }
 
       return Intp_time.get();
+    }
+
+
+    // Access functions for Jacobian and shape/test functions from
+    // interpolator itself.
+    double j() const {return Intp_pt->J;}
+    const Vector<double>& s() const {return Intp_pt->S;}
+    double psi(const unsigned &i) const {return Intp_pt->Psi(i);}
+    double test(const unsigned &i) const {return Intp_pt->Test(i);}
+    double dpsidx(const unsigned &i, const unsigned &i_direc) const
+    {return Intp_pt->Dpsidx(i, i_direc);}
+    double dtestdx(const unsigned &i, const unsigned &i_direc) const
+    {return Intp_pt->Dtestdx(i, i_direc);}
+
+    InterpolatorBase* Intp_pt;
+
+  protected:
+
+    Cached<double> Intp_time;
+
+  };
+
+  /// Base class for caching interpolators using c-arrays. Calculates
+  /// interpolated position and derivatives using Intp_pt and stores them
+  /// in arrays. Provides an interface which allows the user to ignore
+  /// whether the value was cached or not. With c++11 we can probably ditch
+  /// this and use std::array<double> in CachingArrayInterpolator.
+  class CachingArrayInterpolatorBase : public CachingInterpolatorBase
+  {
+  public:
+
+    virtual void build(const Vector<double>& s) override
+    {
+      CachingInterpolatorBase::build(s);
+
+      // Clear memoised values
+      X.reset();
+      Dxdt.reset();
+      Intp_time.reset();
     }
 
     /// Get x values
@@ -562,24 +590,61 @@ namespace oomph
       return Dxdt.get();
     }
 
-    // Access functions for Jacobian and shape/test functions from
-    // interpolator itself.
-    double j() const {return Intp_pt->J;}
-    const Vector<double>& s() const {return Intp_pt->S;}
-    double psi(const unsigned &i) const {return Intp_pt->Psi(i);}
-    double test(const unsigned &i) const {return Intp_pt->Test(i);}
-    double dpsidx(const unsigned &i, const unsigned &i_direc) const
-    {return Intp_pt->Dpsidx(i, i_direc);}
-    double dtestdx(const unsigned &i, const unsigned &i_direc) const
-    {return Intp_pt->Dtestdx(i, i_direc);}
-
-    InterpolatorBase* Intp_pt;
-
   protected:
     CachedArray<3> X;
     CachedArray<3> Dxdt;
-    Cached<double> Intp_time;
 
+  };
+
+
+
+  class CachingVectorInterpolatorBase : public CachingInterpolatorBase
+  {
+  public:
+
+    virtual void build(const Vector<double>& s) override
+    {
+      CachingInterpolatorBase::build(s);
+
+      // Clear memoised values
+      X.reset();
+      Dxdt.reset();
+      Intp_time.reset();
+    }
+
+    /// Get x values
+    const Vector<double>& x()
+    {
+      if(!X.is_initialised())
+        {
+          X.set().assign(Intp_pt->Dim, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              X.set()[j] = Intp_pt->interpolate_x(j);
+            }
+        }
+
+      return X.get();
+    }
+
+    /// Get dxdt values
+    const Vector<double>& dxdt()
+    {
+      if(!Dxdt.is_initialised())
+        {
+          Dxdt.set().assign(Intp_pt->Dim, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dxdt.set()[j] = Intp_pt->interpolate_dxdt(j);
+            }
+        }
+
+      return Dxdt.get();
+    }
+
+  protected:
+    Cached<Vector<double> > X;
+    Cached<Vector<double> > Dxdt;
   };
 
 
@@ -803,6 +868,163 @@ namespace oomph
     CachedArray<3> Dmdx[3];
     CachedArray<3> Dphidx;
     CachedArray<3> Dphi1dx;
+
+    Cached<double> Div_m;
+  };
+
+
+
+
+
+  class CachingMMInterpolator : public CachingVectorInterpolatorBase
+  {
+
+  public:
+    /// Default constructor
+    CachingMMInterpolator() {}
+
+    /// Destructor
+    virtual ~CachingMMInterpolator() {}
+
+    virtual void build(const Vector<double>& s) override
+    {
+      CachingVectorInterpolatorBase::build(s);
+
+      // Clear storage
+      M.reset();
+      Phi.reset();
+      Phi1.reset();
+      Dmdt.reset();
+      Dphidx.reset();
+      Dphi1dx.reset();
+      for(unsigned i=0; i<3; i++) {Dmdx[i].reset();}
+      Div_m.reset();
+    }
+
+    const Vector<double>& m()
+    {
+      if(!M.is_initialised())
+        {
+          M.set().assign(3, 0.0);
+          for(unsigned j=0; j<3; j++)
+            {
+              M.set()[j] = Intp_pt->interpolate_value(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return M.get();
+    }
+
+    double phi()
+    {
+      if(!Phi.is_initialised())
+        {
+          Phi.set() = Intp_pt->interpolate_value(ele_pt()->phi_index_micromag());
+        }
+
+      return Phi.get();
+    }
+
+    double phi1()
+    {
+      if(!Phi1.is_initialised())
+        {
+          Phi1.set() = Intp_pt->interpolate_value(ele_pt()->phi_1_index_micromag());
+        }
+
+      return Phi1.get();
+    }
+
+    const Vector<double>& dmdt()
+    {
+      if(!Dmdt.is_initialised())
+        {
+          Dmdt.set().assign(3, 0.0);
+          for(unsigned j=0; j<3; j++)
+            {
+              Dmdt.set()[j] = Intp_pt->interpolate_dvaluedt(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return Dmdt.get();
+    }
+
+    const Vector<double>& dmdx(const unsigned &i_val)
+    {
+      if(!Dmdx[i_val].is_initialised())
+        {
+          Dmdx[i_val].set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dmdx[i_val].set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->m_index_micromag(i_val), j);
+            }
+        }
+
+      return Dmdx[i_val].get();
+    }
+
+    const Vector<double>& dphidx()
+    {
+      if(!Dphidx.is_initialised())
+        {
+          Dphidx.set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphidx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_index_micromag(), j);
+            }
+        }
+
+      return Dphidx.get();
+    }
+
+    const Vector<double>& dphi1dx()
+    {
+      if(!Dphi1dx.is_initialised())
+        {
+          Dphi1dx.set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphi1dx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_1_index_micromag(), j);
+            }
+        }
+
+      return Dphi1dx.get();
+    }
+
+    double div_m()
+    {
+      if(!Div_m.is_initialised())
+        {
+          double div_m = 0;
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              div_m += this->dmdx(j)[j];
+            }
+          Div_m.set() = div_m;
+        }
+      return Div_m.get();
+    }
+
+    const MicromagEquations* ele_pt() const
+    {
+      return dynamic_cast<const MicromagEquations*>(Intp_pt->This_element);
+    }
+
+  protected:
+
+    /// Storage arrays
+    Cached<Vector<double> > M;
+    Cached<double> Phi;
+    Cached<double> Phi1;
+
+    Cached<Vector<double>> Dmdt;
+
+    Cached<Vector<double> > Dmdx[3];
+    Cached<Vector<double> > Dphidx;
+    Cached<Vector<double> > Dphi1dx;
 
     Cached<double> Div_m;
   };

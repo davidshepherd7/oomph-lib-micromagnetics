@@ -22,6 +22,7 @@ namespace oomph
   class Integral;
   class MicromagBEMElementEquations;
   class MagneticParameters;
+  class CachingMMInterpolator;
   class CachingMMArrayInterpolator;
 
   namespace Factories
@@ -121,10 +122,13 @@ namespace oomph
     MagneticParameters* magnetic_parameters_factory (const std::string& name);
 
     /// Pick an interpolator to use
-    CachingMMArrayInterpolator* array_interpolator_factory
+    CachingMMInterpolator* mm_interpolator_factory
     (const FiniteElement* ele_pt, const unsigned& time_step_index=0,
      const TimeStepper* alternative_ts_pt=0);
 
+    CachingMMArrayInterpolator* mm_array_interpolator_factory
+    (const FiniteElement* ele_pt, const unsigned& time_step_index=0,
+     const TimeStepper* alternative_ts_pt=0);
 
   } // end of Factories
 

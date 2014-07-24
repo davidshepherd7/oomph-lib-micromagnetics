@@ -18,70 +18,70 @@
 namespace oomph
 {
 
-  class MMInterpolator;
+  class CachingMMInterpolator;
 
   // Boilerplate junk...
 
   class ExchangeEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class dExchangeEnergydtFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class ZeemanEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class dZeemanEnergydtFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class CrystallineAnisotropyEnergyFunction  : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class dCrystallineAnisotropydtEnergyFunction  : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class MagnetostaticEnergyFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class dMagnetostaticEnergydtFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class DmdtSquaredFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class UnitFunction : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class DmdtDotHeff : public ElementalFunction
   {
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
   class ExactFunctionDiffSquared : public ElementalFunction
   {
     public:
     InitialMFct* Exact_pt;
-    double call(const GeneralisedElement* ele_pt, MMInterpolator* intp_pt) const;
+    double call(const GeneralisedElement* ele_pt, CachingMMInterpolator* intp_pt) const;
   };
 
 

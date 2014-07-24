@@ -5,8 +5,8 @@
 // For output in
 #include <iomanip>
 
-// Needed for integrate_over_element(...) :(
-#include "tr.h"
+#include "new_interpolators.h"
+#include "llg_factories.h"
 
 using namespace oomph;
 using namespace MathematicalConstants;
@@ -20,71 +20,37 @@ namespace oomph
   double MicromagEquations::integrate_over_element(const ElementalFunction* func_pt,
                                                    const Integral* quadrature_pt) const
   {
-    // Assumed same time stepper at all nodes
-    TimeStepper* ts_pt = node_pt(0)->time_stepper_pt();
-
     // If no pointer was set then use the element's pointer.
     if(quadrature_pt == 0)
       {
         quadrature_pt = integral_pt();
       }
 
-    // Maybe use a bdf2 time stepper instead: imr and tr in our
-    // implementation doesn't give second order accurate derivative
-    // approximations.
-    BDF<2> bdf;
-    if((dynamic_cast<MidpointMethodBase*>(ts_pt) != 0)
-       ||(dynamic_cast<TR*>(ts_pt) != 0))
-      {
-        // Always do time derivative interpolation using BDF2 timestepper
-        // to increase accuracy (midpoint is lower order for time
-        // derivatives and implementing optional timestepper function
-        // argument everywhere would be awful because C++ sucks).
-
-        //??ds increase order of BDF? would require implementing it myself...
-
-        // Check some things and set it up
-#ifdef PARANOID
-        // Check we have enough stored time steps
-        if(bdf.ndt() > ts_pt->time_pt()->ndt())
-          {
-            std::string error_msg = "Not enough time steps in node's time stepper to use BDF2 for time derivative calculations.";
-            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-
-        // Try to check if time steppers are compatible... ??ds
-#warning No check for compatability of time stepper with bdf2 used for integrals!
-        if(0)
-          {
-            std::string error_msg = "";
-            throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-#endif
-
-        // Finish off time stepper construction
-        bdf.time_pt() = ts_pt->time_pt();
-        bdf.set_weights();
-
-        ts_pt = &bdf;
-      }
+    // Create an appropriate interpolator. Use time index fixed at zero so
+    // that we can't end up with time interpolated current values and can't
+    // accidentally calculate inaccurate time derivatives (e.g. IMR, TR
+    // don't give accurate derivative approxmations outside residual
+    // calcuations).
+    std::unique_ptr<CachingMMInterpolator> intp_pt
+      (Factories::mm_interpolator_factory(this, 0));
 
     // Loop over knots and sum to calculate integral
     double result = 0;
-    for(unsigned ipt=0, nipt = quadrature_pt->nweight(); ipt<nipt; ipt++)
+    const unsigned nipt = quadrature_pt->nweight();
+    for(unsigned ipt=0; ipt<nipt; ipt++)
       {
         // Get position in element
         Vector<double> s(this->dim());
         for(unsigned j=0; j<this->dim(); j++)
           {s[j] = quadrature_pt->knot(ipt,j);}
 
-        MMInterpolator intp(this, s, ts_pt);
-        double J = intp.j();
+        intp_pt->build(s);
+
+        double J = intp_pt->j();
         double w = quadrature_pt->weight(ipt);
 
         // Add contribution
-        result += func_pt->call(this, &intp) * w * J;
+        result += func_pt->call(this, intp_pt.get()) * w * J;
       }
 
     return result;
