@@ -211,7 +211,7 @@ namespace oomph
   {
   public:
 
-    virtual void check_interpolator_applicable() const
+    virtual void check_interpolator_applicable() const override
     {
       using namespace InterpolatorHelpers;
 
@@ -314,7 +314,7 @@ namespace oomph
       Nprev_value_current_value = Ts_pt->nprev_values_for_value_at_evaluation_time();
     }
 
-    virtual void check_interpolator_applicable() const
+    virtual void check_interpolator_applicable() const override
     {
       using namespace InterpolatorHelpers;
 
@@ -413,16 +413,14 @@ namespace oomph
   };
 
 
-  /// Simplest interpolator implementation: no hanging nodes, no position
-  /// time stepping, no history interpolation, no time-interpolation of
-  /// current value (i.e midpoint rule).
+  /// Interpolator to interpolate from history values.
   class HistoryInterpolator : public InterpolatorBase
   {
   public:
 
     unsigned Time_index;
 
-    virtual void check_interpolator_applicable() const
+    virtual void check_interpolator_applicable() const override
     {
       using namespace InterpolatorHelpers;
 
