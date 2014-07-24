@@ -413,6 +413,87 @@ namespace oomph
   };
 
 
+  /// Simplest interpolator implementation: no hanging nodes, no position
+  /// time stepping, no history interpolation, no time-interpolation of
+  /// current value (i.e midpoint rule).
+  class HistoryInterpolator : public InterpolatorBase
+  {
+  public:
+
+    unsigned Time_index;
+
+    virtual void check_interpolator_applicable() const
+    {
+      using namespace InterpolatorHelpers;
+
+      // If paranoid check that all nodes have the same nvalues.
+      check_nvalues_in_element_same(This_element);
+
+      // If paranoid check that all node's time steppers are the same
+      check_timesteppers_same(This_element);
+
+      TimeStepper* pos_ts_pt = This_element->node_pt(0)->position_time_stepper_pt();
+      check_position_timestepper_matches_main(Ts_pt, pos_ts_pt);
+
+      // If paranoid check that we don't need history values to evaluate
+      // current time value.
+      check_no_history_values_in_current_value(This_element->node_pt(0)->time_stepper_pt());
+    }
+
+
+    double interpolate_time() const override
+    {
+      return Ts_pt->time_pt()->time(Time_index);
+    }
+
+    double interpolate_x(const unsigned& j) const override
+    {
+      double x = 0;
+      for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
+        {
+          x += This_element->raw_nodal_position(Time_index, i_nd, j) * Psi(i_nd);
+        }
+      return x;
+    }
+
+    double interpolate_dxdt(const unsigned& j) const override
+    {
+      std::string err = "Can't calculate history time derivatives.";
+      throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+    }
+
+    double interpolate_value(const unsigned& j) const override
+    {
+      double value = 0;
+      for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
+        {
+          value += This_element->raw_nodal_value(Time_index, i_nd, j)*Psi(i_nd);
+        }
+      return value;
+    }
+
+    double interpolate_dvaluedt(const unsigned& j) const override
+    {
+      std::string err = "Can't calculate history time derivatives.";
+      throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
+    }
+
+    double interpolate_dvaluedx(const unsigned &i_val,
+                                const unsigned& i_direc) const override
+    {
+      double dvaluedx = 0;
+      for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
+        {
+          dvaluedx += This_element->raw_nodal_value(Time_index, i_nd, i_val)
+            * Dpsidx(i_nd, i_direc);
+        }
+      return dvaluedx;
+    }
+  };
+
+
   // Base class for a caching interpolator. Calculates interpolated
   // position and derivatives using Intp_pt and stores them in arrays.
   // Provides an interface which allows the user to ignore whether the
