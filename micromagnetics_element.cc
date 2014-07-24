@@ -179,17 +179,22 @@ namespace oomph
     // Tecplot header info
     outfile << tecplot_zone_string(n_plot);
 
+    // Create interpolator to use. Always need to specify a time step so
+    // that it works correctly with e.g. midpoint.
+    std::unique_ptr<CachingMMArrayInterpolator>
+      intp_pt(Factories::mm_array_interpolator_factory(this, t));
+
     // Loop over plot points
     unsigned num_plot_points = nplot_points(n_plot);
     for(unsigned iplot=0; iplot<num_plot_points; iplot++)
       {
         get_s_plot(iplot, n_plot, s);
 
-        MMArrayInterpolator intp(this, t);
-        intp.build(s);
+        // Set s in interpolator
+        intp_pt->build(s);
 
         // output eulerian coordinates of plot point
-        for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp.x()[i] << " ";
+        for(unsigned i=0; i<nodal_dimension(); i++) outfile << intp_pt->x()[i] << " ";
 
         // Output the magnetostatic at this point (for both decoupled and
         // fully coupled methods).
@@ -199,13 +204,13 @@ namespace oomph
         for(unsigned i=0; i<3; i++) outfile << h_magnetostatic[i] << " ";
 
         // Phi 1 at this point
-        outfile << intp.phi1() << " ";
+        outfile << intp_pt->phi1() << " ";
 
         // Phi total at this point
-        outfile << intp.phi() << " ";
+        outfile << intp_pt->phi() << " ";
 
         // Output m at this point
-        for(unsigned i=0; i<3; i++) outfile << intp.m()[i] << " ";
+        for(unsigned i=0; i<3; i++) outfile << intp_pt->m()[i] << " ";
 
         // End the line ready for next point
         outfile << std::endl;
@@ -346,6 +351,11 @@ namespace oomph
     //??ds use n_intpt/nodal_dimension()? - only good for simple shaped elements?
     //??ds causes small issuse with output - points for soln/exact are at the corners of elements but for errors they are at the int pts
 
+    // Create interpolator to use: specify 0th time step so that it works
+    // correctly with e.g. midpoint.
+    std::unique_ptr<CachingMMInterpolator>
+      intp_pt(Factories::mm_interpolator_factory(this, 0));
+
     //Loop over the integration points
     for(unsigned ipt=0;ipt<n_intpt;ipt++)
       {
@@ -356,14 +366,20 @@ namespace oomph
             s[i] = integral_pt()->knot(ipt,i);
           }
 
-        MMInterpolator intp(this, s);
-        Vector<double> itp_soln = intp.value();
+        intp_pt->build(s);
 
-        double W = intp.j() * integral_pt()->weight(ipt);
+        // Grab all interpolated values
+        Vector<double> itp_soln;
+        for(unsigned j=0; j<nvalues; j++)
+          {
+            itp_soln.push_back(intp_pt->Intp_pt->interpolate_value(j));
+          }
+
+        double W = intp_pt->j() * integral_pt()->weight(ipt);
 
         // Get entire exact solution at point x and time "time"
         Vector<double> exact_soln(nvalues, 0.0);
-        (*exact_soln_pt)(time, intp.x(), exact_soln);
+        (*exact_soln_pt)(time, intp_pt->x(), exact_soln);
 
         // Output the error (difference between exact and itp solutions)
         for(unsigned i=0; i<nvalues; i++)
