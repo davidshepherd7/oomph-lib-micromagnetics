@@ -127,16 +127,32 @@ namespace oomph
 
     virtual ~InterpolatorBase() {}
 
-    virtual void build(const FiniteElement* ele_pt, const Vector<double>& s)
+    /// Cache some values from element, set up test functions and check
+    /// that the interpolator will work for the given element.
+    virtual void build(const Vector<double>& s)
     {
+      // Check we have the right pointers
+#ifdef PARANOID
+      if(This_element == 0)
+        {
+          std::string err = "This_element pointer is null! Need to set it before building.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+      if(Ts_pt == 0)
+        {
+          std::string err = "Ts_pt is null need to set it before building!";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
       // get pointers
-      This_element = ele_pt;
-      Ts_pt = ele_pt->node_pt(0)->time_stepper_pt();
       Ts_weights_pt = Ts_pt->weights_pt();
 
       // get constants
-      Dim = ele_pt->nodal_dimension();
-      Nnode = ele_pt->nnode();
+      Dim = This_element->nodal_dimension();
+      Nnode = This_element->nnode();
       Nprev_value_derivative = Ts_pt->ntstorage();
 
       // Allocate shape function memory if needed
@@ -284,16 +300,16 @@ namespace oomph
   /// Midpoint rule interpolator: no hanging nodes, no position time
   /// stepping, no history interpolation. But can handle time-interpolation
   /// of current value (i.e midpoint rule).
-  class TimeInterpolatedValueInterpolator : public InterpolatorBase
+  class RawTimeInterpolatedValueInterpolator : public InterpolatorBase
   {
     // Maybe this should just inherit from RawInterpolator... mostly the same.
   public:
 
     unsigned Nprev_value_current_value;
 
-    virtual void build(const FiniteElement* ele_pt, const Vector<double>& s) override
+    virtual void build(const Vector<double>& s) override
     {
-      InterpolatorBase::build(ele_pt, s);
+      InterpolatorBase::build(s);
 
       Nprev_value_current_value = Ts_pt->nprev_values_for_value_at_evaluation_time();
     }
@@ -412,8 +428,7 @@ namespace oomph
       delete Intp_pt; Intp_pt = 0;
     }
 
-    virtual void build(const FiniteElement* ele_pt,
-                       const Vector<double>& s)
+    virtual void build(const Vector<double>& s)
     {
       // Clear memoised values
       X.reset();
@@ -421,7 +436,7 @@ namespace oomph
       Intp_time.reset();
 
       // Store values in interpolator
-      Intp_pt->build(ele_pt, s);
+      Intp_pt->build(s);
     }
 
     /// Check if something is initialised
@@ -500,10 +515,9 @@ namespace oomph
     /// Destructor
     virtual ~CachingArrayInterpolator() {}
 
-    virtual void build(const FiniteElement* ele_pt,
-                       const Vector<double>& s) override
+    virtual void build(const Vector<double>& s) override
     {
-      CachingArrayInterpolatorBase::build(ele_pt, s);
+      CachingArrayInterpolatorBase::build(s);
 
       Values.reset();
       Dvaluesdt.reset();
@@ -574,10 +588,9 @@ namespace oomph
     /// Destructor
     virtual ~CachingMMArrayInterpolator() {}
 
-    virtual void build(const FiniteElement* ele_pt,
-                       const Vector<double>& s) override
+    virtual void build(const Vector<double>& s) override
     {
-      CachingArrayInterpolatorBase::build(ele_pt, s);
+      CachingArrayInterpolatorBase::build(s);
 
       // Clear storage
       M.reset();
