@@ -52,6 +52,21 @@ cd $TPWD
 cut -d\; -f 4 < $llg_bdf_midpoint_dir/trace > $llg_bdf_midpoint_dir/time_error_norms
 wrapped_fpdiff $llg_bdf_midpoint_dir/time_error_norms validata/zeros 0 1e-5
 
+# Standard implementation of midpoint
+# ============================================================
+
+llg_midpoint_dir="$TPWD/Validation/llg_midpoint"
+new_clean_dir $llg_midpoint_dir
+cd $CONTROL_SCRIPTS/driver/
+./driver llg -ms-method disabled -tmax 0.3 -dt 1e-2 -solver superlu -h-app minus_z \
+    -ts old-imr -newton-tol 1e-12 -initial-m z -mag-params 'simple-llg' \
+    -outdir $llg_midpoint_dir > $llg_midpoint_dir/stdout
+
+# Check the errors are small by comparing with a file full of zeros
+cd $TPWD
+cut -d\; -f 4 < $llg_midpoint_dir/trace > $llg_midpoint_dir/time_error_norms
+wrapped_fpdiff $llg_midpoint_dir/time_error_norms validata/zeros 0 1e-5
+
 
 # same for ll residual
 # ============================================================
