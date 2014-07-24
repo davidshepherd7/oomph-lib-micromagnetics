@@ -4,6 +4,9 @@
 // class MicromagEquations;
 #include "./micromagnetics_element.h"
 
+#include "new_interpolators.h"
+#include "llg_factories.h"
+
 // Note: we can't use a .cc file here easily because then we would need to
 // instantiate the template for every possible element, of which there are
 // quite a few...
@@ -237,9 +240,10 @@ namespace oomph
         m_index[j] = bulk_element_pt()->m_index_micromag(j);
       }
 
-    // Create interpolator (deals with midpoint weirdness, so still
-    // very useful even for such a simple residual).
-    FaceElementArrayInterpolator<5> intp(this);
+    // Create interpolator ??ds might need some changes to handle face
+    // element derivatives..
+    std::unique_ptr<CachingMMArrayInterpolator>
+      intp_pt(Factories::mm_array_interpolator_factory(this));
 
     //Loop over the integration points
     //--------------------------------
@@ -251,9 +255,10 @@ namespace oomph
         for(unsigned i=0; i<(dim-1); i++) {s[i] = integral_pt()->knot(ipt, i);}
 
         // Set up interpolator at this point
-        intp.build(s);
+        intp_pt->build(s);
+        const double* m = intp_pt->m();
 
-        const double W = integral_pt()->weight(ipt) * intp.j();
+        const double W = integral_pt()->weight(ipt) * intp_pt->j();
 
         // Get normal vector, force 3 entries for ease of combination with
         // m which always has 3 entries.
@@ -265,7 +270,7 @@ namespace oomph
         double mdotn = 0.0;
         for(unsigned j=0; j<dim; j++)
           {
-            mdotn += intp.value()[m_index[j]] * normal[j];
+            mdotn += m[j] * normal[j];
           }
 
         // Loop over the test functions doing residual and Jacobian
@@ -279,7 +284,7 @@ namespace oomph
             if(phi_1_eqn < 0) continue;
 
             // Add contribution to phi residual
-            residuals[phi_1_eqn] += mdotn * intp.test(l) * W;
+            residuals[phi_1_eqn] += mdotn * intp_pt->test(l) * W;
 
             // Skip rest if Jacobian not requested
             if(!flag) continue;
@@ -296,7 +301,7 @@ namespace oomph
 
                     // phi_1 residual w.r.t m[j]
                     jacobian(phi_1_eqn, m_unknown)
-                      += intp.psi(l2) * intp.test(l) * normal[j] * W;
+                      += intp_pt->psi(l2) * intp_pt->test(l) * normal[j] * W;
 
                   }
               }

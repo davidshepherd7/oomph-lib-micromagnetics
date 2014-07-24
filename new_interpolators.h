@@ -154,6 +154,7 @@ namespace oomph
       Dim = This_element->nodal_dimension();
       Nnode = This_element->nnode();
       Nprev_value_derivative = Ts_pt->ntstorage();
+      S = s;
 
       // Allocate shape function memory if needed
       if(Psi.nindex1() != Nnode || Dpsidx.nindex2() != Dim)
@@ -164,11 +165,25 @@ namespace oomph
           Dtestdx.resize(Nnode, Dim);
         }
 
-      // Set up shape + test functions for this position
-      S = s;
-      J = This_element->dshape_eulerian(s, Psi, Dpsidx);
-      Test = Psi;
-      Dtestdx = Dpsidx;
+      // Calculate shape/test/derivatives as possible according to geometry.
+      if(This_element->nodal_dimension() == This_element->dim())
+        {
+          // Set up shape + test + derivative functions for this position
+          J = This_element->dshape_eulerian(s, Psi, Dpsidx);
+          Test = Psi;
+          Dtestdx = Dpsidx;
+
+          Can_calculate_x_derivatives = true;
+        }
+      else
+        {
+          // Set up shape + test functions for this position
+          This_element->shape(s, Psi);
+          J = This_element->J_eulerian(s);
+          Test = Psi;
+
+          Can_calculate_x_derivatives = false;
+        }
 
       // Paranoid checks for this interpolator
       check_interpolator_applicable();
@@ -185,6 +200,33 @@ namespace oomph
     virtual double interpolate_dvaluedx(const unsigned& i_val,
                                         const unsigned& i_direc) const=0;
 
+    const DShape& dpsidx() const
+    {
+#ifdef PARANOID
+      if(!Can_calculate_x_derivatives)
+        {
+          std::string err = "Can't get x derivatives for this geometry.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Dpsidx;
+    }
+
+    const DShape& dtestdx() const
+    {
+#ifdef PARANOID
+      if(!Can_calculate_x_derivatives)
+        {
+          std::string err = "Can't get x derivatives for this geometry.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+      return Dtestdx;
+    }
+
+
     ///
     unsigned Dim;
     unsigned Nnode;
@@ -198,9 +240,13 @@ namespace oomph
     double J;
     Shape Psi;
     Shape Test;
+    Vector<double> S;
+
+    private:
+    bool Can_calculate_x_derivatives;
     DShape Dpsidx;
     DShape Dtestdx;
-    Vector<double> S;
+
   };
 
 
@@ -290,7 +336,7 @@ namespace oomph
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
         {
           dvaluedx += This_element->raw_nodal_value(0, i_nd, i_val)
-            * Dpsidx(i_nd, i_direc);
+            * dpsidx()(i_nd, i_direc);
         }
       return dvaluedx;
     }
@@ -404,7 +450,7 @@ namespace oomph
           for(unsigned i_tm=0; i_tm<Nprev_value_current_value; i_tm++)
             {
               dvaluedx += This_element->raw_nodal_value(0, i_nd, i_val)
-                * Dpsidx(i_nd, i_direc)
+                * dpsidx()(i_nd, i_direc)
                 * (*Ts_weights_pt) (0, i_tm);
             }
         }
@@ -485,7 +531,7 @@ namespace oomph
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
         {
           dvaluedx += This_element->raw_nodal_value(Time_index, i_nd, i_val)
-            * Dpsidx(i_nd, i_direc);
+            * dpsidx()(i_nd, i_direc);
         }
       return dvaluedx;
     }
@@ -529,9 +575,9 @@ namespace oomph
     double psi(const unsigned &i) const {return Intp_pt->Psi(i);}
     double test(const unsigned &i) const {return Intp_pt->Test(i);}
     double dpsidx(const unsigned &i, const unsigned &i_direc) const
-    {return Intp_pt->Dpsidx(i, i_direc);}
+    {return Intp_pt->dpsidx()(i, i_direc);}
     double dtestdx(const unsigned &i, const unsigned &i_direc) const
-    {return Intp_pt->Dtestdx(i, i_direc);}
+    {return Intp_pt->dtestdx()(i, i_direc);}
 
     unsigned dim() const { return Intp_pt->Dim; }
     const TimeStepper* ts_pt() const { return Intp_pt->Ts_pt; }
