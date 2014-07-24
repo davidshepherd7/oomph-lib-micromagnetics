@@ -533,6 +533,9 @@ namespace oomph
     double dtestdx(const unsigned &i, const unsigned &i_direc) const
     {return Intp_pt->Dtestdx(i, i_direc);}
 
+    unsigned dim() const { return Intp_pt->Dim; }
+    const TimeStepper* ts_pt() const { return Intp_pt->Ts_pt; }
+
     InterpolatorBase* Intp_pt;
 
   protected:
