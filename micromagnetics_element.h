@@ -39,7 +39,7 @@ namespace oomph
   template <class ELEMENT> class MicromagFluxElement;
 
   class MMInterpolator;
-  class MMArrayInterpolator;
+  class CachingMMArrayInterpolator;
 
   //==============================================================================
   /// A class for the maths used in solving the Landau-Lifshitz-Gilbert equations.
@@ -285,12 +285,12 @@ namespace oomph
     /// \short Calculation of magnetostatic field. Optimised version for
     /// calculations when we aleady have an interpolator (e.g. during
     /// residual calculations).
-    virtual void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+    virtual void get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                                          Vector<double> &h_magnetostatic) const;
 
     /// Get the time derivative of the magnetostatic field at a point.
     virtual void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
+    (CachingMMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const;
 
 
     // OUTPUT FUNCTIONS

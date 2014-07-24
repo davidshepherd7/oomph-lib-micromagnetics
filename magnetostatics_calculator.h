@@ -9,8 +9,8 @@
 namespace oomph
 {
 
-  class MMInterpolator;
-  class MMArrayInterpolator;
+  class CachingMMInterpolator;
+  class CachingMMArrayInterpolator;
   class MagnetostaticFieldEquations;
 
   /// Class to calculate magnetostatic field
@@ -19,10 +19,10 @@ namespace oomph
   public:
     virtual ~MagnetostaticsCalculator() {}
 
-    virtual void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+    virtual void get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                                          Vector<double> &H_ms) const=0;
     virtual void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &H_ms) const=0;
+    (CachingMMInterpolator* intp_pt, Vector<double> &H_ms) const=0;
   };
 
 
@@ -36,11 +36,11 @@ namespace oomph
 
     virtual ~ImplicitMagnetostaticsCalculator() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+    void get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &H_ms) const;
+    (CachingMMInterpolator* intp_pt, Vector<double> &H_ms) const;
 
     unsigned phi_index_micromag() const {return 0;}
 
@@ -58,11 +58,11 @@ namespace oomph
 
     virtual ~SemiImplicitMagnetostaticsCalculator() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+    void get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &H_ms) const;
+    (CachingMMInterpolator* intp_pt, Vector<double> &H_ms) const;
 
     /// \short Non-const access function for Magnetostatic_field_element_pt.
     MagnetostaticFieldEquations*& magnetostatic_field_element_pt()
@@ -102,11 +102,11 @@ namespace oomph
 
     virtual ~AnalyticalMagnetostatics() {}
 
-    void get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+    void get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                                  Vector<double> &H_ms) const;
 
     void get_magnetostatic_field_time_derivative
-    (MMInterpolator* intp_pt, Vector<double> &H_ms) const
+    (CachingMMInterpolator* intp_pt, Vector<double> &H_ms) const
     {
       //??ds dummy value
       H_ms.assign(3, -1000.0);

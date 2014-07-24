@@ -62,14 +62,16 @@ namespace oomph
   (const Vector<double> &s, Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    MMArrayInterpolator intp(this);
-    intp.build(s);
-    get_magnetostatic_field(&intp, h_magnetostatic);
+    std::unique_ptr<CachingMMArrayInterpolator>
+      intp_pt(Factories::mm_array_interpolator_factory(this));
+    intp_pt->build(s);
+
+    get_magnetostatic_field(intp_pt.get(), h_magnetostatic);
   }
 
   /// Get the time derivative of the magnetostatic field at a point.
   void MicromagEquations::get_magnetostatic_field_time_derivative
-  (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
+  (CachingMMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
   {
 #ifdef PARANOID
     if(intp_pt == 0)
@@ -97,7 +99,7 @@ namespace oomph
   /// calculations when we aleady have an interpolator (e.g. during
   /// residual calculations).
   void MicromagEquations::get_magnetostatic_field
-  (MMArrayInterpolator* intp_pt, Vector<double> &h_magnetostatic) const
+  (CachingMMArrayInterpolator* intp_pt, Vector<double> &h_magnetostatic) const
   {
 #ifdef PARANOID
     if(intp_pt == 0)

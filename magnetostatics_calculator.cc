@@ -5,10 +5,12 @@
 #include "../../src/generic/oomph_utilities.h"
 #include "micromagnetics_element.h"
 
+#include "new_interpolators.h"
+
 namespace oomph
 {
   void ImplicitMagnetostaticsCalculator::
-  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+  get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                           Vector<double> &hms) const
   {
     // Make sure the field has 3 dimensions (even if there are only two
@@ -28,25 +30,28 @@ namespace oomph
   }
 
   void ImplicitMagnetostaticsCalculator::get_magnetostatic_field_time_derivative
-  (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
+  (CachingMMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
   {
-    // Copy the derivative elements into the field vector (it only has
-    // [nodal dimension] entries).
-    dh_ms_dt = intp_pt->d2valuedxdt(phi_index_micromag());
+    throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                        OOMPH_EXCEPTION_LOCATION);
 
-    // Make sure the field has 3 dimensions (even if there are only two
-    // spatial dimensions).
-    dh_ms_dt.resize(3, 0.0);
+    // // Copy the derivative elements into the field vector (it only has
+    // // [nodal dimension] entries).
+    // dh_ms_dt = intp_pt->d2valuedxdt(phi_index_micromag());
 
-    // Multiply by -1
-    for(unsigned j=0; j<3; j++)
-      {
-        dh_ms_dt[j] *= -1;
-      }
+    // // Make sure the field has 3 dimensions (even if there are only two
+    // // spatial dimensions).
+    // dh_ms_dt.resize(3, 0.0);
+
+    // // Multiply by -1
+    // for(unsigned j=0; j<3; j++)
+    //   {
+    //     dh_ms_dt[j] *= -1;
+    //   }
   }
 
   void SemiImplicitMagnetostaticsCalculator::
-  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+  get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                           Vector<double> &h_ms) const
   {
     // Get magnetostatic field from field element. Safe to assume that all
@@ -58,7 +63,7 @@ namespace oomph
 
 
   void SemiImplicitMagnetostaticsCalculator::get_magnetostatic_field_time_derivative
-  (MMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
+  (CachingMMInterpolator* intp_pt, Vector<double> &dh_ms_dt) const
   {
     // Get magnetostatic field derivative from field element
     magnetostatic_field_element_pt()->
@@ -67,7 +72,7 @@ namespace oomph
   }
 
   void AnalyticalMagnetostatics::
-  get_magnetostatic_field(MMArrayInterpolator* intp_pt,
+  get_magnetostatic_field(CachingMMArrayInterpolator* intp_pt,
                           Vector<double> &h_ms) const
   {
 #ifdef PARANOID

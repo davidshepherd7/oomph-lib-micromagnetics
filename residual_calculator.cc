@@ -78,9 +78,7 @@ namespace oomph
         Vector<double> h_cryst_anis, h_magnetostatic;
         Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
-        e_pt->get_magnetostatic_field(s, h_magnetostatic);
-        # warning using slow get magnetostaic field call
-        //??ds convert to use new interpolators
+        e_pt->get_magnetostatic_field(intp_pt.get(), h_magnetostatic);
 
         Vector<double> h_simple(3, 0.0);
         h_simple[0] = h_applied[0] + h_cryst_anis[0] + h_magnetostatic[0];
@@ -348,7 +346,7 @@ namespace oomph
         // Fields at integration point
         Vector<double> h_applied = e_pt->get_applied_field(time, xvec);
         e_pt->get_H_cryst_anis_field(time, xvec, mvec, h_cryst_anis);
-        e_pt->get_magnetostatic_field(s, h_magnetostatic);
+        e_pt->get_magnetostatic_field(intp_pt.get(), h_magnetostatic);
 
 
         //======================================================================
