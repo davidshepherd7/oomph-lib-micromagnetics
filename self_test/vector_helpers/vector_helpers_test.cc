@@ -211,6 +211,36 @@ int main()
       }
   }
 
+  // Polar coordinates helpers
+  // ============================================================
+  {
+    std::cout << "Checking polar coordinate functions." << std::endl;
+    Vector<Vector<double> > a;
+
+    // Do for some random vectors
+    for(unsigned i=0; i<30; i++)
+      {
+        a.push_back(random_vector(2));
+      }
+
+    // test for origin (r=0 -> theta singular)
+    a.push_back(Vector<double>(2, 0.0));
+
+    // Run tests
+    for(unsigned i=0; i< a.size(); i++)
+      {
+        Vector<double> r = polar_to_cart(cart_to_polar(a[i]));
+
+        double error = two_norm_diff(a[i], r);
+        if(!numerical_zero(error, 1e-12))
+          {
+            std::cerr << "Error in polar conversion functions, "
+                      << r << " and " << a[i] << " should be identical."
+                      << std::endl;
+          }
+      }
+  }
+
 
   return return_value;
 }

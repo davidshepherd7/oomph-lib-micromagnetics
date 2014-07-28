@@ -963,6 +963,54 @@ namespace VectorOps
     return std::abs(value - exact)/exact;
   }
 
+  inline Vector<double> cart_to_polar(const Vector<double>& x)
+  {
+#ifdef PARANOID
+    if(x.size() != 2)
+      {
+        std::string err = "Only defined for 2d case.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    Vector<double> r_theta(2, 0.0);
+    r_theta[0] = two_norm(x);
+
+    // Catch singular r=0 case
+    if(r_theta[0] == 0)
+      {
+        r_theta[1] = 0.0;
+      }
+    else
+      {
+        r_theta[1] = std::asin(x[1]/r_theta[0]);
+      }
+
+    return r_theta;
+  }
+
+  inline Vector<double> polar_to_cart(const Vector<double>& r_theta)
+  {
+#ifdef PARANOID
+    if(r_theta.size() != 2)
+      {
+        std::string err = "Only defined for 2d case.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    const double r = r_theta[0];
+    const double theta = r_theta[1];
+
+    Vector<double> x(2, 0.0);
+    x[0] = r * std::cos(theta);
+    x[1] = r * std::sin(theta);
+
+    return x;
+  }
+
 }
 
 #endif
