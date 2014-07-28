@@ -90,6 +90,7 @@ namespace oomph
                                     int refinement_level,
                                     TimeStepper* time_stepper_pt,
                                     double scaling_factor,
+                                    double rotate_xy_angle,
                                     unsigned nnode1d);
 
   /// Function pointer type to create a nodal quadrature scheme. Mean

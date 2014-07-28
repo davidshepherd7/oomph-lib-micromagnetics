@@ -125,6 +125,10 @@ namespace oomph
         specify_command_line_flag("-yshift", &yshift);
         yshift = 1.5;
 
+        specify_command_line_flag("-rotate-xy", &rotate_xy_angle,
+                                  "Rotate 2d mesh by angle (in degrees).");
+        rotate_xy_angle = 0.0;
+
         specify_command_line_flag("-scale", &scale);
         scale = 1.0;
 
@@ -361,7 +365,7 @@ namespace oomph
           {
             mesh_pts.push_back
               (mesh_factory_pt(mesh_name, refinement, time_stepper_pt,
-                                          scale, nnode1d));
+                                          scale, rotate_xy_angle, nnode1d));
           }
 
         return mesh_pts;
@@ -431,6 +435,7 @@ namespace oomph
     double xshift;
     double yshift;
     double scale;
+    double rotate_xy_angle;
 
   };
 

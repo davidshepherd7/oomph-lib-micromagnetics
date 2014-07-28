@@ -474,6 +474,9 @@ namespace MManipulation
     /// Move all nodes of a mesh by (x, y, z). ??ds Move inside Mesh?
     void shift_mesh(const double& x, const double& y, const double& z,
                     Mesh* mesh_pt);
+
+    /// Rotate a mesh in the x-y plane
+    void rotate_mesh(const double& theta, Mesh* mesh_pt);
   }
 
 }

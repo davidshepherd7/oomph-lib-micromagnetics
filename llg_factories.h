@@ -50,6 +50,7 @@ namespace oomph
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
                            double scaling_factor=1.0,
+                           double rotate_xy_angle=0.0,
                            unsigned nnode1d = 2);
 
     LLGResidualCalculator* residual_calculator_factory(const std::string& residual);

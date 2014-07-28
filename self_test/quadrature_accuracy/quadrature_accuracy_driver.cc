@@ -93,14 +93,20 @@ int main()
 
   // construct meshes
   Vector<std::pair<Mesh*, std::string> > mesh_pts;
-  mesh_pts.push_back(std::make_pair(llg_mesh_factory("st_square", refinement, ts_pt, scaling, 2),
+  mesh_pts.push_back(std::make_pair(llg_mesh_factory("st_square", refinement,
+                                                     ts_pt, scaling, 0.0, 2),
                                     "st_square"));
-  mesh_pts.push_back(std::make_pair(llg_mesh_factory("sq_square", refinement, ts_pt, scaling, 2),
+  mesh_pts.push_back(std::make_pair(llg_mesh_factory("sq_square", refinement,
+                                                     ts_pt, scaling, 0.0, 2),
                                     "sq_square"));
-  mesh_pts.push_back(std::make_pair(llg_mesh_factory("ut_square", refinement, ts_pt, scaling, 2),
+  mesh_pts.push_back(std::make_pair(llg_mesh_factory("ut_square", refinement,
+                                                     ts_pt, scaling, 0.0, 2),
                                     "ut_square"));
-  mesh_pts.push_back(std::make_pair(llg_mesh_factory("sq_annular", refinement, ts_pt, scaling, 2),
+
+  mesh_pts.push_back(std::make_pair(llg_mesh_factory("sq_annular", refinement,
+                                                     ts_pt, scaling, 0.0, 2),
                                     "sq_annular"));
+
 
   Vector<std::pair<NodalQuadratureFactoryFctPt, std::string> > quad_fact_pts;
   quad_fact_pts.push_back(std::make_pair(&high_order_gauss_factory,

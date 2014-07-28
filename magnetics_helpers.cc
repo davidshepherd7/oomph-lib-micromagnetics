@@ -826,5 +826,39 @@ namespace oomph
           if(nd_pt->ndim() > 2) {nd_pt->x(2) += z;}
         }
     }
+
+    void rotate_mesh(const double& theta, Mesh* mesh_pt)
+    {
+#ifdef PARANOID
+      if(mesh_pt->node_pt(0)->ndim() != 2)
+        {
+          std::string err = "Only for 2d meshes at the moment.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      using namespace VectorOps;
+
+      const unsigned ndim = mesh_pt->node_pt(0)->ndim();
+
+      // For each node shift any positions that exist
+      for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+          Vector<double> polar_x = cart_to_polar(nd_pt->position());
+
+          // Rotate
+          polar_x[1] += theta;
+
+          Vector<double> new_x = polar_to_cart(polar_x);
+
+          for(unsigned i=0; i<ndim; i++)
+            {
+              nd_pt->x(i) = new_x[i];
+            }
+        }
+    }
+
   }
 }

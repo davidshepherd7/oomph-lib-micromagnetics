@@ -379,6 +379,7 @@ namespace oomph
                            int refinement_level,
                            TimeStepper* time_stepper_pt,
                            double scaling_factor,
+                           double rotate_xy_angle,
                            unsigned nnode1d)
     {
       // Ignore case in mesh names
@@ -512,8 +513,8 @@ namespace oomph
       else if(mesh_name == "sqt_cubeoid" && nnode1d == 2)
         {
           Mesh* qmesh_pt = llg_mesh_factory("sq_cubeoid", refinement_level,
-                                        time_stepper_pt,
-                                        1, nnode1d);
+                                            time_stepper_pt,
+                                            1, rotate_xy_angle, nnode1d);
           //??ds memory leak, fix? Can't delete this mesh or nodes will
           //go...
 
@@ -581,7 +582,7 @@ namespace oomph
         {
           Mesh* qmesh_pt = llg_mesh_factory("sq_mumag4", refinement_level,
                                             time_stepper_pt,
-                                            1, nnode1d);
+                                            1, rotate_xy_angle, nnode1d);
 
           // Convert to tet mesh
           TetMeshBase* tmesh_pt = new TetMeshBase;
@@ -649,6 +650,12 @@ namespace oomph
           throw OomphLibError("Unrecognised mesh name " + mesh_name,
                               OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
+        }
+
+      // rotate the mesh if requested
+      if(rotate_xy_angle != 0.0)
+        {
+          MeshCreationHelpers::rotate_mesh(rotate_xy_angle, mesh_pt);
         }
 
       // Scale the mesh as requested

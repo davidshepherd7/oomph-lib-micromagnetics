@@ -140,11 +140,12 @@ namespace oomph
     /// Create a vector of meshes with the names given in mesh details and
     /// shifted as also specified in mesh_details.
     Vector<Mesh*> multimesh_factory(MeshFactoryFctPt underlying_factory,
-                                           Vector<ShiftedMeshDetails>& mesh_details,
-                                           int refinement_level,
-                                           TimeStepper* time_stepper_pt,
-                                           double scaling,
-                                           unsigned nnode1d)
+                                    Vector<ShiftedMeshDetails>& mesh_details,
+                                    int refinement_level,
+                                    TimeStepper* time_stepper_pt,
+                                    double scaling,
+                                    double rotate_xy_angle,
+                                    unsigned nnode1d)
     {
 #ifdef PARANOID
       if(underlying_factory == 0)
@@ -165,6 +166,7 @@ namespace oomph
                                              refinement_level,
                                              time_stepper_pt,
                                              1.0,
+                                             rotate_xy_angle,
                                              nnode1d);
 
           // Shift it
@@ -188,12 +190,12 @@ namespace oomph
 
     /// Create a pair of meshes near to each other (shifted along x).
     Vector<Mesh*> simple_multimesh_factory(MeshFactoryFctPt underlying_factory,
-                                                  const std::string& mesh_name,
-                                                  int refinement_level,
-                                                  TimeStepper* time_stepper_pt,
-                                                  double xshift,
-                                                  double scaling,
-                                                  unsigned nnode1d)
+                                           const std::string& mesh_name,
+                                           int refinement_level,
+                                           TimeStepper* time_stepper_pt,
+                                           double xshift,
+                                           double scaling,
+                                           unsigned nnode1d)
     {
       Vector<ShiftedMeshDetails> inputs(2);
       inputs[0].mesh_name = mesh_name;
@@ -205,7 +207,7 @@ namespace oomph
 
       return multimesh_factory(underlying_factory,
                                inputs, refinement_level,
-                               time_stepper_pt, scaling, nnode1d);
+                               time_stepper_pt, scaling, 0.0, nnode1d);
     }
 
 
@@ -249,7 +251,7 @@ namespace oomph
       // Construct the meshes using the general multimesh factory
       return multimesh_factory(underlying_factory,
                                inputs, refinement_level,
-                               time_stepper_pt, scaling, nnode1d);
+                               time_stepper_pt, scaling, 0.0, nnode1d);
     }
 
 
