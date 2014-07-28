@@ -1013,6 +1013,10 @@ namespace oomph
         {
           nqf_pt = &Factories::nodal_quadrature_factory<LocalNodalQuadrature>;
         }
+      else if(label == "gnodal")
+        {
+          nqf_pt = &Factories::nodal_quadrature_factory<GlobalNodalQuadrature>;
+        }
       else if(label == "uwnodal")
         {
           nqf_pt = &Factories::nodal_quadrature_factory<UnitWeightNodalQuadrature>;

@@ -89,6 +89,12 @@ namespace oomph
         }
     }
 
+    /// Should the elemental jacobian be 1 for this quadrature?
+    virtual bool unit_jacobian() const
+    {
+      return false;
+    }
+
     /// Get Jacobian of transformation at point s (separate function so
     /// that it can be overloaded by other nodal quadrature schemes).
     virtual double J_eulerian(const Vector<double>& s) const
@@ -227,6 +233,42 @@ namespace oomph
     /// Broken assignment operator
     void operator=(const LocalNodalQuadrature& dummy)
     {BrokenCopy::broken_assign("LocalNodalQuadrature");}
+
+  };
+
+
+  /// As nodal quadrature but do everything on the global level. Not sure
+  /// if this works...
+  class GlobalNodalQuadrature : public NodalQuadrature
+  {
+  public:
+    /// Constructor
+    GlobalNodalQuadrature() {}
+
+    /// Virtual destructor
+    virtual ~GlobalNodalQuadrature() {}
+
+    /// Real constructor
+    GlobalNodalQuadrature(const FiniteElement* ele_pt)
+    {
+      Ele_pt = ele_pt;
+      build();
+    }
+
+    /// Should the elemental jacobian be 1 for this quadrature?
+    virtual bool unit_jacobian() const override
+    {
+      return true;
+    }
+
+  private:
+    /// Broken copy constructor
+    GlobalNodalQuadrature(const GlobalNodalQuadrature& dummy)
+    {BrokenCopy::broken_copy("GlobalNodalQuadrature");}
+
+    /// Broken assignment operator
+    void operator=(const GlobalNodalQuadrature& dummy)
+    {BrokenCopy::broken_assign("GlobalNodalQuadrature");}
 
   };
 

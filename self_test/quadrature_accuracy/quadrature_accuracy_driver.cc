@@ -117,6 +117,8 @@ int main()
                                          "lnodal"));
   // quad_fact_pts.push_back(std::make_pair(nodal_quadrature_factory_factory("nodal"),
   //                                        "nodal"));
+  quad_fact_pts.push_back(std::make_pair(nodal_quadrature_factory_factory("gnodal"),
+                                         "gnodal"));
 
   // Vector to store pointers to quadratures so we can delete them later
   Vector<Integral*> quad_pts;

@@ -5,6 +5,8 @@
 #include "llg_factories.h"
 #include "new_interpolators.h"
 
+#include "nodal_quadrature.h"
+
 using namespace oomph;
 using namespace VectorOps;
 
@@ -324,7 +326,22 @@ namespace oomph
         // Set up interpolator for this point
         intp_pt->build(s);
 
-        double W = e_pt->integral_pt()->weight(ipt) * intp_pt->j();
+        // Get jacobian depending on integration scheme: some nodal
+        // integration schemes need J=1.
+        double J = 0.0;
+        NodalQuadrature* ni_pt = dynamic_cast<NodalQuadrature*>(e_pt->integral_pt());
+        if(ni_pt != 0 && ni_pt->unit_jacobian())
+          {
+            J = 1.0;
+          }
+        else
+          {
+            J = intp_pt->j();
+          }
+
+        double W = e_pt->integral_pt()->weight(ipt) * J;
+
+        std::cout << intp_pt->j() << std::endl;
 
         // cache pointers from interpolator for speed of access
         const double* intp_m = intp_pt->m();

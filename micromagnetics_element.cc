@@ -8,6 +8,10 @@
 #include "new_interpolators.h"
 #include "llg_factories.h"
 
+// For stupid global integration schemes
+#include "nodal_quadrature.h"
+
+
 using namespace oomph;
 using namespace MathematicalConstants;
 using namespace VectorOps;
@@ -46,7 +50,17 @@ namespace oomph
 
         intp_pt->build(s);
 
-        double J = intp_pt->j();
+        double J = 0.0;
+        NodalQuadrature* ni_pt = dynamic_cast<NodalQuadrature*>(integral_pt());
+        if(ni_pt != 0 && ni_pt->unit_jacobian())
+          {
+            J = 1.0;
+          }
+        else
+          {
+            J = intp_pt->j();
+          }
+
         double w = quadrature_pt->weight(ipt);
 
         // Add contribution
