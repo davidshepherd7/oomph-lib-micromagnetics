@@ -963,6 +963,19 @@ namespace VectorOps
     return std::abs(value - exact)/exact;
   }
 
+  inline bool rel_error_check(const double& value, const double& exact,
+                              const double& tol, const double& fp_zero=1e-12)
+  {
+    if(value < fp_zero && exact < fp_zero)
+      {
+        return true;
+      }
+    else
+      {
+        return rel_error(value, exact) < tol;
+      }
+  }
+
   inline Vector<double> cart_to_polar(const Vector<double>& x)
   {
 #ifdef PARANOID

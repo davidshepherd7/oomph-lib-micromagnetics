@@ -173,10 +173,9 @@ int main()
             }
 
           // Check nodal value is close to high order gauss
-          double relerr = std::abs((results[0] - results[2])/results[0]);
-          if(relerr > 1e-3)
+          if(!rel_error_check(results[2], results[0], 1e-3))
             {
-              std::cerr << "nodal quadrature relerr of " << relerr
+              std::cerr << "nodal quadrature relerr "
                         << "larger than tol when integrating "
                         <<  functions[i_func].second
                         << " on mesh " << mesh_pts[msh].second << std::endl;
@@ -186,7 +185,7 @@ int main()
             }
           else
             {
-              std::cout << "relerr of " << relerr << " ok." << std::endl << std::endl;
+              std::cout << "relerr ok." << std::endl << std::endl;
             }
 
         }
