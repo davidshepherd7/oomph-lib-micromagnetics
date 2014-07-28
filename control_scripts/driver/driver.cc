@@ -217,6 +217,11 @@ int main(int argc, char *argv[])
         bool(args_pt->output_predictor_values);
     }
 
+if(args_pt->should_doc_boundaries != -1)
+  {
+    problem_pt->Should_doc_boundaries = bool(args_pt->should_doc_boundaries);
+  }
+
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string();
   problem_pt->Doc_info.set_directory(args_pt->outdir);

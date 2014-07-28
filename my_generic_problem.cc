@@ -244,6 +244,8 @@ namespace oomph
       }
 #endif
 
+    const std::string& dir = Doc_info.directory();
+
     // Output Jacobian if requested
     if((to_lower(Doc_info.output_jacobian) == "at_start")
        || (to_lower(Doc_info.output_jacobian) == "always"))
@@ -254,7 +256,7 @@ namespace oomph
     // pvd files
     // ============================================================
     // Write start of .pvd XML file
-    std::ofstream pvd_file((Doc_info.directory() + "/" + "soln.pvd").c_str(),
+    std::ofstream pvd_file((dir + "/" + "soln.pvd").c_str(),
                            std::ios::out);
     pvd_file << "<?xml version=\"1.0\"?>" << std::endl
              << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">"
@@ -265,7 +267,7 @@ namespace oomph
     // Write start of exact.pvd XML file
     if(doc_exact())
       {
-        std::ofstream pvd_file((Doc_info.directory() + "/" + "exact.pvd").c_str(),
+        std::ofstream pvd_file((dir + "/" + "exact.pvd").c_str(),
                                std::ios::out);
         pvd_file << "<?xml version=\"1.0\"?>" << std::endl
                  << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">"
@@ -278,7 +280,7 @@ namespace oomph
     // ============================================================
 
     // Clear (by overwriting) and write headers
-    std::ofstream trace_file((Doc_info.directory() + "/" + Trace_filename).c_str());
+    std::ofstream trace_file((dir + "/" + Trace_filename).c_str());
     trace_file
       << "DocInfo_numbers"
       << Trace_seperator << "times"
@@ -319,7 +321,7 @@ namespace oomph
 
     // Info file
     // ============================================================
-    std::ofstream info_file((Doc_info.directory() + "/" + Info_filename).c_str());
+    std::ofstream info_file((dir + "/" + Info_filename).c_str());
     info_file
       << "real_time " << real_date_time() << std::endl
       << "unix_time " << std::time(0) << std::endl
@@ -349,6 +351,13 @@ namespace oomph
           {
             doc_solution(it);
           }
+      }
+
+    // Output boundary numbers for each boundary node
+    // ============================================================
+    if(Should_doc_boundaries)
+      {
+        this->doc_boundaries(dir + "/nodes_on_boundary");
       }
 
 
@@ -606,6 +615,40 @@ namespace oomph
     // Finish off this line
     trace_file << std::endl;
     trace_file.close();
+  }
+
+  void MyProblem::doc_boundaries(const std::string& boundary_file_basename) const
+  {
+    const unsigned n_boundary = mesh_pt()->nboundary();
+    for(unsigned b=0; b<n_boundary; b++)
+      {
+        std::ofstream boundary_file((boundary_file_basename +
+                                     to_string(b) + ".csv").c_str(),
+                                    std::ios::out);
+
+        // write headers
+        boundary_file << "x,y,z,b" << std::endl;
+
+        const unsigned n_boundary_node = mesh_pt()->nboundary_node(b);
+        for(unsigned nd=0; nd<n_boundary_node; nd++)
+          {
+            Node* node_pt = mesh_pt()->boundary_node_pt(b, nd);
+            Vector<double> position = node_pt->position();
+
+            // Write out this node
+            for(unsigned i=0; i<dim(); i++)
+              {
+                boundary_file << position[i] << ",";
+              }
+            for(unsigned i=dim(); i<3; i++)
+              {
+                boundary_file << 0.0 << ",";
+              }
+            boundary_file << b << std::endl;
+          }
+
+        boundary_file.close();
+      }
   }
 
   void MyProblem::set_up_impulsive_initial_condition()

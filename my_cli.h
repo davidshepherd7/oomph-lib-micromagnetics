@@ -188,6 +188,10 @@ namespace oomph
                                   "Output the initial conditions as though they were a time step (or as much as possible). Note that this shifts the doc info numbers.");
         output_initial_conditions = -1;
 
+        specify_command_line_flag("-output-boundary-node-positions", &should_doc_boundaries,
+                          "Output the positions of boundary nodes?");
+        should_doc_boundaries = -1;
+
         specify_command_line_flag("-convergence-test",
                                   &convergence_test,
                                   "Automatically select dt depending on given refinement to obtain convergence plots (as in Jeong2014).");
@@ -423,6 +427,7 @@ namespace oomph
     double doc_times_interval;
     Vector<double> doc_times;
     int always_write_trace;
+    int should_doc_boundaries;
 
     int dump;
     std::string restart_file;

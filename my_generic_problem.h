@@ -130,6 +130,7 @@ using namespace StringConversion;
       Output_predictor_values = false;
       Want_doc_exact = false;
       Output_initial_condition = false;
+      Should_doc_boundaries = false;
 
       N_steps_taken = 0;
       Total_step_time= 0;
@@ -538,6 +539,8 @@ using namespace StringConversion;
           }
       }
 
+    /// Output nodes with boundary number to csv file
+    virtual void doc_boundaries(const std::string& boundary_file_basename) const;
 
     /// output_solution(...) with default output time step = 0 = current
     /// time.
@@ -833,6 +836,9 @@ using namespace StringConversion;
 
     /// Should we try to output exact solution?
     bool Want_doc_exact;
+
+    /// Should we output the locations of the boundary nodes?
+    bool Should_doc_boundaries;
 
     /// Should we dump ready for a restart?
     bool Dump;
