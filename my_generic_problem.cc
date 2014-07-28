@@ -499,7 +499,7 @@ namespace oomph
 
     if(test_pt != 0)
       {
-        double min_size = mesh_pt(0)->finite_element_pt(0)->size();
+        double min_size = mesh_pt(0)->finite_element_pt(0)->compute_physical_size();
 
         // Loop over all meshes in problem
         for(unsigned msh=0, nmsh=nsub_mesh(); msh<nmsh; msh++)
@@ -508,7 +508,7 @@ namespace oomph
             for(unsigned ele=0, nele=mesh_pt->nelement(); ele<nele; ele++)
               {
                 FiniteElement* ele_pt = mesh_pt->finite_element_pt(ele);
-                double new_size = ele_pt->size();
+                double new_size = ele_pt->compute_physical_size();
                 if(new_size < min_size)
                   {
                     min_size = new_size;
