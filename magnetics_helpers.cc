@@ -800,5 +800,31 @@ namespace oomph
             }
         }
     }
+
+
+    void shift_mesh(const double& x, const double& y, const double& z,
+                    Mesh* mesh_pt)
+    {
+#ifdef PARANOID
+      // If given shifts in more dimensions than we have then error
+      if(((mesh_pt->node_pt(0)->ndim() == 1) && ((y != 0.0) || (z != 0.0)))
+         ||
+         ((mesh_pt->node_pt(0)->ndim() == 2) && (z != 0.0)))
+        {
+          std::string err = "Warning tried to shift a mesh in more dimensions than possible";
+          throw OomphLibError(err, OOMPH_EXCEPTION_LOCATION,
+                              OOMPH_CURRENT_FUNCTION);
+        }
+#endif
+
+      // For each node shift any positions that exist
+      for(unsigned nd=0, nnd=mesh_pt->nnode(); nd<nnd; nd++)
+        {
+          Node* nd_pt = mesh_pt->node_pt(nd);
+          nd_pt->x(0) += x;
+          if(nd_pt->ndim() > 1) {nd_pt->x(1) += y;}
+          if(nd_pt->ndim() > 2) {nd_pt->x(2) += z;}
+        }
+    }
   }
 }

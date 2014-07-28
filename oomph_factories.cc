@@ -8,7 +8,6 @@
 
 // mesh factories
 #include "../../src/generic/mesh.h"
-#include "multi_mesh.h"
 
 // solver factories
 #include "../../src/generic/linear_solver.h"
@@ -169,10 +168,10 @@ namespace oomph
                                              nnode1d);
 
           // Shift it
-          shift_mesh(mesh_details[j].xshift,
-                     mesh_details[j].yshift,
-                     mesh_details[j].zshift,
-                     mesh_pt);
+          MeshCreationHelpers::shift_mesh(mesh_details[j].xshift,
+                                          mesh_details[j].yshift,
+                                          mesh_details[j].zshift,
+                                          mesh_pt);
 
           // Scale it. We do this after shifting so that we are scaling the
           // entire multi-mesh, including gaps between meshes. This is much

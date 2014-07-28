@@ -18,7 +18,6 @@
 #include "../../src/meshes/simple_cubic_mesh.h"
 #include "../../src/meshes/tetgen_mesh.h"
 #include "../../src/meshes/triangle_mesh.h"
-#include "./multi_mesh.h"
 #include "./single_element_mesh.h"
 #include "./simpler_cubic_mesh.h"
 

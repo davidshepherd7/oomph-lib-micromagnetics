@@ -54,7 +54,6 @@ headers = array_interpolator.h \
 	pinned_boundary_element_handler.h \
 	residual_calculator.h \
 	poisson_test_problem.h \
-	multi_mesh.h \
 	sum_of_matrices_preconditioner.h \
 	single_element_mesh.h \
 	ode_problem.h \
