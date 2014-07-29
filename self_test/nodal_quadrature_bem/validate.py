@@ -42,7 +42,7 @@ def main():
         '-dt' : 0.1,
 
         '-ms-method' : 'implicit',
-        '-integration' : 'lnodal',
+        '-quadrature' : 'lnodal',
         '-newton-tol' : 1e-12,
         "-solver" : "som-gmres",
         "-prec" : "som-main-exact",

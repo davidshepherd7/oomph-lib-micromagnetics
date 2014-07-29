@@ -99,9 +99,9 @@ namespace oomph
                                 "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");
       relax_m = -1;
 
-      specify_command_line_flag("-integration", &integration_type,
+      specify_command_line_flag("-quadrature", &quadrature_type,
                                 "gauss, nodal, rnodal; default is gauss.");
-      integration_type = "gauss";
+      quadrature_type = "gauss";
 
       specify_command_line_flag("-wave-solution-c", &wave_solution_c,
                                 "Constant for wave exact solution, multiplied by pi to get actual c used. Does nothing if not using it. Default 0.25 (i.e. pi/4).");
@@ -191,9 +191,9 @@ namespace oomph
         }
 
       /// Pick the function which will be used by each element to create an
-      /// integration scheme.
+      /// quadrature scheme.
       llg_pt->Nodal_quadrature_factory_fpt =
-        Factories::nodal_quadrature_factory_factory(integration_type);
+        Factories::nodal_quadrature_factory_factory(quadrature_type);
 
 
       // Dirichlet boundries, just use same function for b.c. as initial
@@ -348,7 +348,7 @@ namespace oomph
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
 
-    std::string integration_type;
+    std::string quadrature_type;
 
     std::string ms_method;
 

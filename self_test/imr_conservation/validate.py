@@ -53,7 +53,7 @@ def main():
 
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
-        '-integration' : ['lnodal'],
+        '-quadrature' : ['lnodal'],
         }
 
     argdicts_2d = {
@@ -75,7 +75,7 @@ def main():
         '-dt' : [0.1],
         '-newton-tol' : 1e-12,
         '-renormalise' : [0],
-        '-integration' : ['lnodal'],
+        '-quadrature' : ['lnodal'],
         }
 
     # Where it's going to end up
