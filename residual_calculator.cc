@@ -13,6 +13,117 @@ using namespace VectorOps;
 namespace oomph
 {
 
+  // ??ds manual residual calc:
+  double test_case(const MicromagEquations* e_pt,
+                 const unsigned& this_node,
+                 const unsigned& this_mi)
+  {
+
+    const unsigned ndim = e_pt->nodal_dimension();
+    const unsigned eldim = e_pt->dim();
+
+    const double llg_damp_c = e_pt->llg_damping_coeff();
+    const double llg_precess_c = e_pt->llg_precession_coeff();
+    const double exch_c = e_pt->exchange_coeff();
+
+
+    // for(unsigned j=0; j<e_pt->integral_pt()->nweight(); j++)
+    //   {
+    //     Vector<double> s(eldim), s2(eldim);
+    //     for(unsigned i=0; i<eldim; i++) {s[i] = e_pt->integral_pt()->knot(j,i);}
+
+    //     e_pt->local_coordinate_of_node(j, s2);
+
+    //     if(s2 != s)
+    //       {
+    //         std::cout << "uh oh" << s << s2
+    //                   << std::endl;
+    //       }
+    //   }
+
+    // for(unsigned l=0; l<e_pt->nnode(); l++)
+    //   {
+    //     for(unsigned ipt=0, nipt = e_pt->integral_pt()->nweight(); ipt<nipt; ipt++)
+    //       {
+    //         std::unique_ptr<CachingMMArrayInterpolator>
+    //           intp_pt(Factories::mm_array_interpolator_factory(e_pt));
+    //         Vector<double> s(eldim);
+    //         for(unsigned j=0; j<eldim; j++) {s[j] = e_pt->integral_pt()->knot(ipt,j);}
+    //         intp_pt->build(s);
+
+    //         std::cout << std::endl;
+    //         std::cout << "at " << s << " test number " << l << std::endl;
+    //         std::cout << "test: " << intp_pt->test(l) << std::endl;
+    //         std::cout << "dtestdx "  " = [" << intp_pt->dtestdx(l,0)
+    //                   << ", " << intp_pt->dtestdx(l,1) << "]" << std::endl;
+    //       }
+
+    //     {
+    //       std::unique_ptr<CachingMMArrayInterpolator>
+    //         intp_pt(Factories::mm_array_interpolator_factory(e_pt));
+    //       Vector<double> s(eldim, 0.5);
+
+    //       intp_pt->build(s);
+
+    //       std::cout << std::endl;
+    //       std::cout << "at " << s << " test number " << l << std::endl;
+    //       std::cout << "test: " << intp_pt->test(l) << std::endl;
+    //       std::cout << "dtestdx "  " = [" << intp_pt->dtestdx(l,0)
+    //                 << ", " << intp_pt->dtestdx(l,1) << "]" << std::endl;
+    //     }
+    //   }
+
+
+    double resi = 0.0;
+
+    // this node's contribution
+    {
+      std::unique_ptr<CachingMMArrayInterpolator>
+        intp_pt(Factories::mm_array_interpolator_factory(e_pt));
+      Vector<double> s(eldim); e_pt->local_coordinate_of_node(this_node, s);
+      intp_pt->build(s);
+      const double W = e_pt->integral_pt()->weight(this_node) * intp_pt->j();
+
+      Vector<double> xvec(ndim, 0.0);
+      for(unsigned i=0; i<ndim; i++) {xvec[i] = intp_pt->x()[i];}
+      Vector<double> h_applied = e_pt->get_applied_field(intp_pt->time(), xvec);
+
+      resi += (intp_pt->dmdt()[this_mi]
+               + llg_precess_c*opt_cross(this_mi, intp_pt->m(), h_applied)
+               // + opt_cross(this_mi, intp_pt->m(), h_cryst_anis)
+               // + opt_cross(this_mi, intp_pt->m(), h_magnetostatic)
+               - llg_precess_c*llg_damp_c * opt_cross(this_mi, intp_pt->m(), intp_pt->dmdt())
+               )*intp_pt->test(this_node)*W;
+    }
+
+    // exchange: needs sum over all nodes
+    for(unsigned l=0; l<e_pt->nnode(); l++)
+      {
+        std::unique_ptr<CachingMMArrayInterpolator>
+          intp_pt(Factories::mm_array_interpolator_factory(e_pt));
+        Vector<double> s(eldim); e_pt->local_coordinate_of_node(l, s);
+        intp_pt->build(s);
+
+        const double W = e_pt->integral_pt()->weight(l) * intp_pt->j();
+
+        Vector<double> new_laplacian(3);
+        Vector<double> vdtestdx(ndim, 0.0);
+        for(unsigned j=0; j<ndim; j++) {vdtestdx[j] = intp_pt->dtestdx(l, j);}
+
+        new_laplacian[0] = - intp_pt->m()[2]*dot(intp_pt->dmdx(1), vdtestdx, ndim)
+          + intp_pt->m()[1] * dot(intp_pt->dmdx(2), vdtestdx, ndim);
+        new_laplacian[1] = intp_pt->m()[2]*dot(intp_pt->dmdx(0), vdtestdx, ndim)
+          - intp_pt->m()[0] * dot(intp_pt->dmdx(2), vdtestdx, ndim);
+        new_laplacian[2] = -intp_pt->m()[1]*dot(intp_pt->dmdx(0), vdtestdx, ndim)
+          + intp_pt->m()[0] * dot(intp_pt->dmdx(1), vdtestdx, ndim);
+
+        resi -= llg_precess_c* exch_c * new_laplacian[this_mi] * W;
+      }
+
+    return resi;
+  }
+
+
   void LLGResidualCalculator::ll_residual
   (const MicromagEquations* const e_pt,
    Vector<double> &residuals, DenseMatrix<double> &jacobian,
@@ -283,6 +394,8 @@ namespace oomph
    const unsigned& flag) const
   {
 
+    Vector<double> old_resi(residuals.size(), 0.0);
+
     //======================================================================
     /// Get some useful numbers and set up memory.
     //======================================================================
@@ -313,6 +426,17 @@ namespace oomph
     Vector<double> xvec(ndim, 0.0),  mvec(3, 0.0), h_cryst_anis,
       h_magnetostatic, s(eldim);
 
+
+    //??ds do m here
+    for(unsigned l=0; l<n_node; l++)
+      {
+        for(unsigned j=0; j<3; j++)
+          {
+            residuals[e_pt->nodal_local_eqn(l, e_pt->m_index_micromag(j))]
+              = test_case(e_pt, l, j);
+          }
+      }
+
     //======================================================================
     /// Begin loop over the knots (integration points)
     //======================================================================
@@ -340,8 +464,6 @@ namespace oomph
           }
 
         double W = e_pt->integral_pt()->weight(ipt) * J;
-
-        std::cout << intp_pt->j() << std::endl;
 
         // cache pointers from interpolator for speed of access
         const double* intp_m = intp_pt->m();
@@ -373,6 +495,7 @@ namespace oomph
         // Loop over the test functions/nodes adding contributions to residuals
         for(unsigned l=0;l<n_node;l++)
           {
+
             // Total potential (phi)
             const int phi_eqn = e_pt->nodal_local_eqn(l, e_pt->phi_index_micromag());
             // If value is not pinned and not on the boundary.( We need to treat
@@ -413,7 +536,7 @@ namespace oomph
                 if(m_eqn >= 0)  // If it's not a boundary condition
                   {
                     // dmdt, mxh_ap, mxh_ca, mxh_ms and mxdmdt terms
-                    residuals[m_eqn] +=
+                    old_resi[m_eqn] +=
                       ( intp_dmdt[i]
                         + llg_precess_c * opt_cross(i, intp_m, h_applied)
                         + llg_precess_c * opt_cross(i, intp_m, h_cryst_anis)
@@ -423,7 +546,7 @@ namespace oomph
 
                     // (m x exchange) term (separate because it involves
                     // derivatives of the test function).
-                    residuals[m_eqn] -= exch_c * llg_precess_c *
+                    old_resi[m_eqn] -= exch_c * llg_precess_c *
                       opt_cross(i, intp_m, gradtestdotgradmi) * W;
                   }
               }
@@ -626,5 +749,12 @@ namespace oomph
 
       }// End of loop over integration points
 
-  } // End of fill in residuals function
+    // if(two_norm_diff(residuals, old_resi) > 1e-12)
+    //   {
+    //     std::cout  << std::endl;
+    //     std::cout << residuals << std::endl;
+    //     std::cout << old_resi << std::endl;
+    //   }
+  }
+
 }
