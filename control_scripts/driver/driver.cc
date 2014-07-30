@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
 
   // Create problem class and argument parser
   oomph_info << "Making " << problem_name << " problem." << std::endl;
-  MyProblem* problem_pt = problem_factory(problem_name);
-  MyCliArgs* args_pt = args_factory(problem_name);
+  std::unique_ptr<MyProblem> problem_pt(problem_factory(problem_name));
+  std::unique_ptr<MyCliArgs> args_pt(args_factory(problem_name));
   args_pt->parse(argc, argv);
 
   oomph_info << "With the following arguments:" << std::endl;
@@ -250,17 +250,17 @@ if(args_pt->should_doc_boundaries != -1)
     }
 
   // Assign anything problem specific
-  args_pt->assign_specific_parameters(problem_pt);
+  args_pt->assign_specific_parameters(problem_pt.get());
 
 
   // Build and initialise the problem
   problem_pt->build(args_pt->mesh_pts);
 
   //??ds temp hack for mm problems
-  LLGArgs* mm_args_pt = dynamic_cast<LLGArgs*>(args_pt);
+  LLGArgs* mm_args_pt = dynamic_cast<LLGArgs*>(args_pt.get());
   if(mm_args_pt !=0)
     {
-      LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt);
+      LLGProblem* llg_pt = checked_dynamic_cast<LLGProblem*>(problem_pt.get());
 
       if(llg_pt->implicit_ms_flag() || llg_pt->Decoupled_ms)
         {
@@ -303,7 +303,7 @@ if(args_pt->should_doc_boundaries != -1)
 
 
   // Give the initial condition functor any problem info it needs
-  args_pt->initial_condition_pt->initialise_from_problem(problem_pt);
+  args_pt->initial_condition_pt->initialise_from_problem(problem_pt.get());
 
   // Get initial condition from either a function pt or a restart file
   if(args_pt->restart_file == "")
@@ -373,16 +373,12 @@ if(args_pt->should_doc_boundaries != -1)
 
   // Maybe have to clean up bem handler, I wish we could use c++11 so we
   // could not have to do this stuff by hand...
-  LLGProblem* llg_pt = dynamic_cast<LLGProblem*>(problem_pt);
+  LLGProblem* llg_pt = dynamic_cast<LLGProblem*>(problem_pt.get());
   if(llg_pt != 0)
     {
       delete llg_pt->Bem_handler_pt; llg_pt->Bem_handler_pt = 0;
       delete llg_pt->Residual_calculator_pt; llg_pt->Residual_calculator_pt = 0;
     }
-
-  // Done with problem and args pointers
-  delete problem_pt; problem_pt = 0;
-  delete args_pt; args_pt = 0;
 
   // Shut down oomph-lib's MPI
   MPI_Helpers::finalize();
