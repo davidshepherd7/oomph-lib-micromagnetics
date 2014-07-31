@@ -102,7 +102,7 @@ def unzip(l):
     does with this list.
 
     See http://www.shocksolution.com/2011/07/python-lists-to-tuples-and-tuples-to-lists/"""
-    return zip(*l)
+    return map(list, zip(*l))
 
 
 def badprint(*args, **kwargs):
