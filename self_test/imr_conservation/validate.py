@@ -27,6 +27,7 @@ def main():
     # Look for parallel in args
     parser = argparse.ArgumentParser()
     parser.add_argument('--parallel', action = "store_true")
+    parser.add_argument('--short', action = "store_true")
     args = parser.parse_args()
 
 
@@ -78,17 +79,49 @@ def main():
         '-quadrature' : ['lnodal'],
         }
 
+
+    # Seems like exact solution is weird, so check another case as well
+    argdicts_non_exact = {
+         # Problem specification
+        '-driver' : 'llg',
+        '-ms-method' : 'disabled',
+        '-mesh' : ['sq_square', 'st_square'],
+        '-initial-m' : 'smoothly_varying_5',
+        '-h-app' : 'zero',
+        '-damping' : [0.5],
+        '-tmax' : 1.0,
+
+        # Integration/calculation details
+        '-ts' : ["imr"],
+        '-ref' : [2],
+        '-dt' : [0.1],
+        '-newton-tol' : 1e-12,
+        '-renormalise' : [0],
+        '-quadrature' : ['lnodal'],
+        }
+
+
     # Where it's going to end up
     base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
     # Run
-    err_codes_1d, outdirs_1d = mm.run_sweep(argdicts_1d, base_outdir,
-                                            parallel_sweep=args.parallel)
-    err_codes_2d, outdirs_2d = mm.run_sweep(argdicts_2d, base_outdir + "_2d",
-                                            parallel_sweep=args.parallel)
+    if not args.short:
+        err_codes_1d, outdirs_1d = mm.run_sweep(argdicts_1d, base_outdir,
+                                                parallel_sweep=args.parallel)
+        err_codes_2d, outdirs_2d = mm.run_sweep(argdicts_2d, base_outdir + "_2d",
+                                                parallel_sweep=args.parallel)
+    else:
+        err_codes_1d = []
+        outdirs_1d = []
+        err_codes_2d = []
+        outdirs_2d = []
 
-    err_codes = err_codes_1d + err_codes_2d
-    outdirs = outdirs_1d + outdirs_2d
+    err_codes_non_exact, outdirs_non_exact = mm.run_sweep(argdicts_non_exact,
+                                                          base_outdir+"_non_exact",
+                                                          parallel_sweep=args.parallel)
+
+    err_codes = err_codes_1d + err_codes_2d + err_codes_non_exact
+    outdirs = outdirs_1d + outdirs_2d + outdirs_non_exact
 
 
     # Get data
