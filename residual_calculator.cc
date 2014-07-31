@@ -108,7 +108,7 @@ namespace oomph
 
         Vector<double> new_laplacian(3);
         Vector<double> vdtestdx(ndim, 0.0);
-        for(unsigned j=0; j<ndim; j++) {vdtestdx[j] = intp_pt->dtestdx(l, j);}
+        for(unsigned j=0; j<ndim; j++) {vdtestdx[j] = intp_pt->dtestdx(this_node, j);}
 
         new_laplacian[0] = - intp_pt->m()[2]*dot(intp_pt->dmdx(1), vdtestdx, ndim)
           + intp_pt->m()[1] * dot(intp_pt->dmdx(2), vdtestdx, ndim);
