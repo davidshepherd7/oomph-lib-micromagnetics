@@ -401,10 +401,10 @@ namespace oomph
             // LLG itself (m, time evolution)
             //=================================================
 
-            Vector<double> vdtestdx(ndim, 0.0);
+            double vdtestdx[3];
             for(unsigned j=0; j<ndim; j++) {vdtestdx[j] = intp_pt->dtestdx(l, j);}
 
-            Vector<double> new_laplacian(3);
+            double new_laplacian[3];
             new_laplacian[0] = - intp_pt->m()[2]*dot(intp_pt->dmdx(1), vdtestdx, ndim)
               + intp_pt->m()[1] * dot(intp_pt->dmdx(2), vdtestdx, ndim);
             new_laplacian[1] = intp_pt->m()[2]*dot(intp_pt->dmdx(0), vdtestdx, ndim)
