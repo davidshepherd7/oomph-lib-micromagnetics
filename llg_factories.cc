@@ -714,12 +714,8 @@ namespace oomph
     {
       using namespace ElementGeometry;
 
-      if(nnode_1d != 2)
-        {
-          std::string err = "Not implemented for nnode_1d != 2.";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+      //??ds nnnode1d doesn't matter right??
+
 
       if((dim == 2) && (geom == T))
         {
@@ -788,6 +784,32 @@ namespace oomph
           return &bem_element_factory<QMicromagBEMElement<3,2> >;
         }
 
+      else if(dynamic_cast<const TElement<1,3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<1,3> >;
+        }
+      else if(dynamic_cast<const TElement<2, 3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<2,3> >;
+        }
+      else if(dynamic_cast<const TElement<3, 3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<TMicromagBEMElement<3,3> >;
+        }
+
+      else if(dynamic_cast<const QElement<1,3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<1,3> >;
+        }
+      else if(dynamic_cast<const QElement<2,3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<2,3> >;
+        }
+      else if(dynamic_cast<const QElement<3,3>*>(bulk_ele_pt) != 0)
+        {
+          return &bem_element_factory<QMicromagBEMElement<3,3> >;
+        }
+
       else
         {
           throw OomphLibError("Unrecognised element type",
@@ -831,6 +853,23 @@ namespace oomph
         {
           return Factories::surface_mesh_factory
             <MicromagFluxElement<QMicromagElement<3,2> > >;
+        }
+
+      // nnode1d =3
+      else if(dynamic_cast<const QMicromagElement<1,3>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<1,3> > >;
+        }
+      else if(dynamic_cast<const QMicromagElement<2,3>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<2,3> > >;
+        }
+      else if(dynamic_cast<const QMicromagElement<3,3>*>(bulk_ele_pt) != 0)
+        {
+          return Factories::surface_mesh_factory
+            <MicromagFluxElement<QMicromagElement<3,3> > >;
         }
 
       else

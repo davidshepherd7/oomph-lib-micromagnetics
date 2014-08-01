@@ -203,7 +203,8 @@ namespace oomph
 
   /// As nodal quadrature but do the weight calculation on a standard
   /// element (local coordinates) without mapping back to global. This is
-  /// done by setting the Jacobian of the transformation to 1.
+  /// done by setting the Jacobian of the transformation (used for the
+  /// weight integration only) to 1.
   class LocalNodalQuadrature : public NodalQuadrature
   {
   public:
