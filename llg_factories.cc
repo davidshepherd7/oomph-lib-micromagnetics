@@ -652,6 +652,14 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 
+      // Check nnode1d is correct
+      if(mesh_pt->finite_element_pt(0)->nnode_1d() != nnode1d)
+        {
+          std::string err = "Incorrect nnode1d";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
       // rotate the mesh if requested
       if(rotate_xy_angle != 0.0)
         {
