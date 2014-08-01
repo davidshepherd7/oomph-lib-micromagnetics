@@ -112,7 +112,7 @@ explicit_dir="$TPWD/Validation/explicit_llg"
 new_clean_dir $explicit_dir
 cd $CONTROL_SCRIPTS/driver/
 ./driver ll -ms-method disabled -tmax 0.3 -dt 1e-2 -h-app minus_z \
-    -ts rk4 -mesh single-element \
+    -ts rk4 -mesh q_single_element \
     -initial-m z -mag-params 'simple-llg' \
     -outdir $explicit_dir > $explicit_dir/stdout
 

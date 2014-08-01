@@ -483,9 +483,20 @@ namespace oomph
           checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
             disable_triangulateio_restart();
         }
-      else if(mesh_name == "single-element" && nnode1d == 2)
+      else if(mesh_name == "q_single_element" && nnode1d == 2)
         {
-          mesh_pt = new SingleElementMesh<QMicromagElement<2,2> >(time_stepper_pt);
+          mesh_pt = new QSingleElementMesh<QMicromagElement<2,2> >(time_stepper_pt);
+        }
+      else if(mesh_name == "t_single_element" && nnode1d == 2)
+        {
+          mesh_pt = new TSingleElementMesh<TMicromagElement<2,2> >(time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
         }
       else if(mesh_name == "ut_square" && nnode1d == 2)
         {
