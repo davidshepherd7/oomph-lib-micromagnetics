@@ -7,6 +7,8 @@
 #include "new_interpolators.h"
 #include "llg_factories.h"
 
+#include <memory> // unique_ptr
+
 // Note: we can't use a .cc file here easily because then we would need to
 // instantiate the template for every possible element, of which there are
 // quite a few...

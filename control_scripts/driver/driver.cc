@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include <memory> // unique_ptr
+
 using namespace oomph;
 using namespace MathematicalConstants;
 using namespace StringConversion;

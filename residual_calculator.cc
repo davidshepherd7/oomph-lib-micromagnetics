@@ -7,6 +7,8 @@
 
 #include "nodal_quadrature.h"
 
+#include <memory> // unique_ptr
+
 using namespace oomph;
 using namespace VectorOps;
 
