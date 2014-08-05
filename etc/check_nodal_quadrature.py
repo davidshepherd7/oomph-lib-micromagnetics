@@ -9,10 +9,20 @@ import scipy.linalg
 import scipy.integrate
 import scipy.optimize
 
-from scipy import sin, cos, exp, sqrt, pi, dot, cross, array
+from scipy import sin, cos, exp, sqrt, pi, dot, cross
 
 # my library
 import utils
+
+
+# Optionally use 128bit arrays everywhere
+USE_128_FLOATS = False
+if USE_128_FLOATS:
+    def array(*args, **kwargs):
+        return sp.array(*args, dtype=sp.float128, **kwargs)
+else:
+    from scipy import array
+
 
 # ??ds shape functions should really be a property of nodes I think...
 # ??ds use factory to construct nodes with the expected properties?
