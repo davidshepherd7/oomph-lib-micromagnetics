@@ -2,25 +2,14 @@
 
 import sys
 import argparse
-import os
-import os.path
 import copy
 
 import scipy as sp
 import scipy.linalg
 import scipy.integrate
 import scipy.optimize
+
 from scipy import sin, cos, exp, sqrt, pi, dot, cross, array
-from scipy.optimize import newton
-
-from os.path import join as pjoin
-
-import functools as ft
-from functools import partial as par
-
-import itertools as it
-
-from pprint import pprint
 
 # my library
 import utils
@@ -102,7 +91,7 @@ class Element(object):
                     for i, n in enumerate(self.nodes)])
 
 
-class TriElement(Element):
+class TriangleElement(Element):
 
     def __init__(self, x0, x1, x2):
         self.nodes = [Node(x0), Node(x1), Node(x2)]
@@ -184,7 +173,9 @@ def m_initial_z(x):
     return m
 
 
-def nodal_quadrature_fac(ele):
+def nodal_quadrature_factory(ele):
+    """Create the local nodal quadrature scheme for an element.
+    """
     betas = []
     for i, n in enumerate(ele.nodes):
         beta, _ = sp.integrate.dblquad(lambda x,y: ele.shape([x,y], i),
@@ -204,20 +195,12 @@ def skew(a):
                   [-a[1], a[0], 0.0]])
 
 
-def integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc, p=False):
+def llg_residual_integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc):
 
     # Componentwise dot product of mxdmdx and dtestdx (pretending we
     # have vector test functions)
     mxdmdx = sp.dot(skew(m), dmdx)
     exch = array([sp.dot(r_mxdmdx, dtestdx) for r_mxdmdx in mxdmdx])
-
-    if p:
-        print(mnext, mprev)
-        a = ((mnext - mprev) / 0.1)*test + sp.dot(sp.cross((mnext + mprev) / 2, happ), test)
-        b = - dampc * sp.cross((mnext + mprev) / 2, (mnext - mprev)/0.1) * test
-        print("*", a)
-        print("**", b)
-        print("dmdt =", dmdt)
 
     return (sp.dot(dmdt, test)
             + sp.dot(sp.cross(m, happ), test)
@@ -225,29 +208,7 @@ def integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc, p=False):
             - exch)
 
 
-def residual(ele, nodal_m_vals, time, happ, p=False):
-
-    # Calculate residuals for each test function
-    rs = []
-    for i_node in ele.nodei():
-
-        # Integrand as a function only of local coord
-        def integrand2(s):
-            x = ele.interpolate(time, s, lambda n:n.x)
-            mnext = ele.interpolate_data(time, s, nodal_m_vals)
-            mprev = ele.interpolate(time, s, lambda n:n.mprev)
-            dmdx = ele.interpolate_data_dx(time, s, nodal_m_vals)
-            test = ele.test(s, i_node)
-            dtestdx = ele.dtestdx(s, i_node)
-
-            return integrand(time, x, mnext, mprev, dmdx, test, dtestdx, happ, p)
-
-        rs.append(ele.quad.integrate(integrand2, p))
-
-    return array(rs)
-
-
-def mlen(m):
+def m_length_error(m):
     return abs(1 - sqrt(sp.dot(m,m)))
 
 
@@ -257,7 +218,7 @@ def output_solution(t, ele):
         print("x =", n.x)
         print("m =",n.m)
 
-    m_len_errors = [mlen(n.m) for n in ele.nodes]
+    m_len_errors = [m_length_error(n.m) for n in ele.nodes]
     print("max length error =", max(m_len_errors))
     print()
 
@@ -270,7 +231,10 @@ def initialise_solution(ele, func):
         n.m = copy.deepcopy(func(n.x))
 
 
-def time_integrate(residual, y0, dt, tmax, callback=None):
+def time_integrate(residual, y0, dt, tmax, actions_after_time_step=None):
+    """Integrate non-linear residual function over time.
+    """
+
     t = 0
     ts = [t]
     ys = [y0]
@@ -291,9 +255,9 @@ def time_integrate(residual, y0, dt, tmax, callback=None):
                                          f_tol=1e-12,
                                          rdiff=1e-14)
 
-        # Store or whatever
-        if callback is not None:
-            callback(t, ynp1)
+        # Store values or whatever
+        if actions_after_time_step is not None:
+            actions_after_time_step(t, ynp1)
 
         # Store
         ts.append(t)
@@ -306,8 +270,8 @@ def time_integrate(residual, y0, dt, tmax, callback=None):
 def main():
 
     # create element and quadrature
-    ele = TriElement([1,0], [0, 0.5], [0, 0])
-    ele.quad = nodal_quadrature_fac(ele)
+    ele = TriangleElement([1,0], [0, 0.5], [0, 0])
+    ele.quad = nodal_quadrature_factory(ele)
 
     # Set initial conditions:
 
@@ -337,7 +301,7 @@ def main():
         for i_node in ele.nodei():
 
             # Integrand as a function only of local coord
-            def integrand2(s):
+            def integrand(s):
                 x_s = ele.interpolate(time, s, lambda n:n.x)
                 m_s = ele.interpolate_data(time, s, m)
                 dmdx_s = ele.interpolate_data_dx(time, s, m)
@@ -345,17 +309,17 @@ def main():
                 test_s = ele.test(s, i_node)
                 dtestdx_s = ele.dtestdx(s, i_node)
 
-                return integrand(time, x_s, m_s,
+                return llg_residual_integrand(time, x_s, m_s,
                                  dmdt_s, dmdx_s,
                                  test_s, dtestdx_s,
                                  happ, damping)
 
-            rs.append(ele.quad.integrate(integrand2))
+            rs.append(ele.quad.integrate(integrand))
 
         return array(rs)
 
 
-    def actions_after_timestep(t, new_m):
+    def my_actions_after_timestep(t, new_m):
         """Actions after time step: store new values and print.
         """
         # Update nodal values
@@ -370,7 +334,8 @@ def main():
     m0 = array([n.m for n in ele.nodes])
 
     # Integrate
-    ts, ms = time_integrate(residual, m0, dt, tmax, callback=actions_after_timestep)
+    ts, ms = time_integrate(residual, m0, dt, tmax,
+                            actions_after_time_step=my_actions_after_timestep)
 
     return 0
 
