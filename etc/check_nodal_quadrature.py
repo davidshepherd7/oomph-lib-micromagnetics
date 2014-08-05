@@ -10,7 +10,7 @@ import scipy as sp
 import scipy.linalg
 import scipy.integrate
 import scipy.optimize
-from scipy import sin, cos, sqrt, pi, dot, cross, array
+from scipy import sin, cos, exp, sqrt, pi, dot, cross, array
 from scipy.optimize import newton
 
 from os.path import join as pjoin
@@ -22,34 +22,26 @@ import itertools as it
 
 from pprint import pprint
 
+# my library
+import utils
 
 # ??ds shape functions should really be a property of nodes I think...
-
 # ??ds use factory to construct nodes with the expected properties?
-
-
-# # testing for element
-# s = sp.array([1, 0.5])
-# print([n.x for n in ele.nodes])
-# print([ele.shape(s, j) for j in ele.nodei()])
-# print([ele.dshapedx(s, j) for j in ele.nodei()])
-# print(ele.interpolate(s, lambda n:n.x))
-# print(ele.interpolate(s, lambda n:n.m))
 
 
 class Node(object):
 
     def __init__(self, x):
-        self.x = sp.array(x)
-        self.m = sp.array([0.0, 0.0, 0.0])
-        self.mprev = sp.array([0.0, 0.0, 0.0])
+        self.x = array(x)
+        self.m = array([0.0, 0.0, 0.0])
+        self.mprev = array([0.0, 0.0, 0.0])
 
 
 class Element(object):
 
     def __init__(self):
         self.nodes = []
-        self.el_dim = 0
+        self.el_dim = None
         self.quad = None
 
     # helpers
@@ -82,9 +74,8 @@ class Element(object):
 
     # derived: jacobian of transformation and inverse
     def dxds(self, s):
-        x_mat = sp.transpose(sp.array([n.x for n in self.nodes]))
-        dshapeds_mat = sp.array(
-            [self.dshapeds(s, j) for j in self.nodei()])
+        x_mat = sp.transpose(array([n.x for n in self.nodes]))
+        dshapeds_mat = array([self.dshapeds(s, j) for j in self.nodei()])
 
         return sp.dot(x_mat, dshapeds_mat)
 
@@ -119,11 +110,11 @@ class TriElement(Element):
 
     def local_coordinate_of_node(self, j):
         if j == 0:
-            return sp.array([1, 0])
+            return array([1, 0])
         elif j == 1:
-            return sp.array([0, 1])
+            return array([0, 1])
         elif j == 2:
-            return sp.array([0, 0])
+            return array([0, 0])
         else:
             raise IndexError
 
@@ -161,15 +152,13 @@ class Quadrature(object):
 
     def integrate(self, function, p=False):
         # eval function at each knot
-        knot_values = sp.array([function(s) for s in self.knots])
+        knot_values = array([function(s) for s in self.knots])
 
-        # Add up and multiply by weights
+        # Add up and multiply by weights, do it "manually" to make sure we do
+        # the right thing with vector fuctions.
         thesum = 0.0
         for v, w in zip(knot_values, self.weights):
             thesum += v*w
-            if p:
-                print("integartion", v,w,thesum)
-
 
         return thesum
 
@@ -189,7 +178,7 @@ def m_initial(x):
 
 
 def m_initial_z(x):
-    m = array([0.5, 0.1, 1.0])
+    m = array([0.2, 0.0, 1.0])
     ml = sqrt(sp.dot(m,m))
     m = m/ml
     return m
@@ -208,35 +197,24 @@ def nodal_quadrature_fac(ele):
 
 
 def skew(a):
-    result = sp.zeros((3,3))
-    result[0, 1] = -a[2];
-    result[0, 2] = a[1];
-    result[1, 0] = a[2];
-    result[1, 2] = -a[0];
-    result[2, 0] = -a[1];
-    result[2, 1] = a[0];
-
-    return result
+    """Skew matrix of a vector a.
+    """
+    return array([[0.0, -a[2], a[1]],
+                  [a[2], 0.0, -a[0]],
+                  [-a[1], a[0], 0.0]])
 
 
-def integrand(t, x, mnext, mprev, dmdx, test, dtestdx, happ, p=False):
+def integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc, p=False):
 
-    dampc = 0.5
-    dt = 0.1
-
-    # imr approximations
-    m = (mnext + mprev)/2
-    dmdt = (mnext - mprev)/dt
-
-     # Componentwise dot product of mxdmdx and dtestdx (pretending we
+    # Componentwise dot product of mxdmdx and dtestdx (pretending we
     # have vector test functions)
     mxdmdx = sp.dot(skew(m), dmdx)
-    exch = sp.array([sp.dot(r_mxdmdx, dtestdx) for r_mxdmdx in mxdmdx])
+    exch = array([sp.dot(r_mxdmdx, dtestdx) for r_mxdmdx in mxdmdx])
 
     if p:
         print(mnext, mprev)
         a = ((mnext - mprev) / 0.1)*test + sp.dot(sp.cross((mnext + mprev) / 2, happ), test)
-        b = -0.5 * sp.cross((mnext + mprev) / 2, (mnext - mprev)/0.1) * test
+        b = - dampc * sp.cross((mnext + mprev) / 2, (mnext - mprev)/0.1) * test
         print("*", a)
         print("**", b)
         print("dmdt =", dmdt)
@@ -266,7 +244,7 @@ def residual(ele, nodal_m_vals, time, happ, p=False):
 
         rs.append(ele.quad.integrate(integrand2, p))
 
-    return sp.array(rs).flatten()
+    return array(rs)
 
 
 def mlen(m):
@@ -276,7 +254,11 @@ def mlen(m):
 def output_solution(t, ele):
     print("t =", t)
     for n in ele.nodes:
-        print(n.x, n.m, n.mprev, mlen(n.m))
+        print("x =", n.x)
+        print("m =",n.m)
+
+    m_len_errors = [mlen(n.m) for n in ele.nodes]
+    print("max length error =", max(m_len_errors))
     print()
 
     return
@@ -288,53 +270,143 @@ def initialise_solution(ele, func):
         n.m = copy.deepcopy(func(n.x))
 
 
+def time_integrate(residual, y0, dt, tmax, callback=None):
+    t = 0
+    ts = [t]
+    ys = [y0]
+
+    while t < tmax:
+        t += dt
+
+        # Construct residual dependant only on next y value
+        yn = ys[-1]
+        def time_residual(ynp1):
+            y = (ynp1 + yn)/2
+            dydt = (ynp1 - yn)/dt
+            return residual(t, y, dydt)
+
+        # Solve system
+        ynp1 = sp.optimize.newton_krylov(time_residual,
+                                         yn,
+                                         f_tol=1e-12,
+                                         rdiff=1e-14)
+
+        # Store or whatever
+        if callback is not None:
+            callback(t, ynp1)
+
+        # Store
+        ts.append(t)
+        ys.append(ynp1)
+
+
+    return (ts, ys)
+
+
 def main():
 
     # create element and quadrature
-    ele = TriElement([1,0], [0, 1], [0, 0])
+    ele = TriElement([1,0], [0, 0.5], [0, 0])
     ele.quad = nodal_quadrature_fac(ele)
 
-    # Set initial conditions
+    # Set initial conditions:
 
-    # initialise_solution(ele, m_initial)
-    # happ = array([0,0,0])
-
-    initialise_solution(ele, m_initial_z)
-    happ = array([0, 0, -1.1])
-
+    # Varying in space, no applied field
+    initialise_solution(ele, m_initial)
+    happ = array([0,0,0])
+    damping = 0.5
     dt = 0.1
-    t = 0.0
+    tmax = 1.0
 
-    output_solution(t, ele)
+    # # Constant in space, reversal under applied field
+    # initialise_solution(ele, m_initial_z)
+    # happ = array([0, 0, -1.1])
+    # damping = 0.5
+    # dt = 0.1
+    # tmax = 1.0
 
-    while t < 1.0:
 
-        t = t + dt
+    # Doc initial solution
+    output_solution(0.0, ele)
 
-        temp = sp.array([n.m for n in ele.nodes])
-        print(residual(ele, temp, happ=happ, time=t, p=True))
+    # Define the residual function in terms of m and dmdt.
+    def residual(time, m, dmdt):
 
-        # minimise residual
-        curr_m = sp.array([[1,1,1] for n in ele.nodes])
-        out = sp.optimize.newton_krylov(lambda m: residual(ele, m,
-                                                     happ=happ,
-                                                     time=t),
-                                        copy.deepcopy(curr_m),
-                                        f_tol=1e-12,
-                                        rdiff=1e-14,
-                                        )
+        # Calculate residuals for each test function
+        rs = []
+        for i_node in ele.nodei():
 
-        # Update m values
-        for new_m, n in zip(out, ele.nodes):
+            # Integrand as a function only of local coord
+            def integrand2(s):
+                x_s = ele.interpolate(time, s, lambda n:n.x)
+                m_s = ele.interpolate_data(time, s, m)
+                dmdx_s = ele.interpolate_data_dx(time, s, m)
+                dmdt_s = ele.interpolate_data(time, s, dmdt)
+                test_s = ele.test(s, i_node)
+                dtestdx_s = ele.dtestdx(s, i_node)
+
+                return integrand(time, x_s, m_s,
+                                 dmdt_s, dmdx_s,
+                                 test_s, dtestdx_s,
+                                 happ, damping)
+
+            rs.append(ele.quad.integrate(integrand2))
+
+        return array(rs)
+
+
+    def actions_after_timestep(t, new_m):
+        """Actions after time step: store new values and print.
+        """
+        # Update nodal values
+        for new_m_node, n in zip(new_m, ele.nodes):
             n.mprev = copy.deepcopy(n.m)
-            n.m = copy.deepcopy(new_m)
-
-            print(n.m - n.mprev)
+            n.m = copy.deepcopy(new_m_node)
 
         # Print
         output_solution(t, ele)
 
+    # Get initial condition
+    m0 = array([n.m for n in ele.nodes])
+
+    # Integrate
+    ts, ms = time_integrate(residual, m0, dt, tmax, callback=actions_after_timestep)
+
     return 0
+
+
+
+
+# Self tests
+# ============================================================
+
+def test_time_integration():
+
+    dt = 0.01
+    tmax = 1
+
+    def check_time_integration(res, y0, exact):
+        ts, ys = time_integrate(res, y0, dt, tmax)
+
+        exacts = [exact(t) for t in ts]
+
+        print(ts, ys, exacts)
+
+        utils.assert_list_almost_equal(ys, exacts, 1e-3)
+
+    tests = [(lambda t,y,dy: y - dy, 1.0, lambda t: array(exp(t))),
+
+             (lambda t,y,dy: y + dy, 1.0, lambda t: array(exp(-t))),
+
+             (lambda t,y,dy: array([-0.1*sin(t), y[1]]) - dy,
+              array([0.1*cos(0.0), exp(0.0)]),
+              lambda t: array([0.1*cos(t), exp(t)])),
+
+            ]
+
+    for r, y0, exact in tests:
+        yield check_time_integration, r, y0, exact
+
 
 
 if __name__ == "__main__":
