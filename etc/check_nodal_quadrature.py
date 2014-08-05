@@ -64,6 +64,12 @@ class Element(object):
     def dtestdx(self, s, j):
         return self.dshapedx(s, j)
 
+    def vtest(self, s, j):
+        return array([self.shape(s, j), self.shape(s, j), self.shape(s, j)])
+
+    def vdtestdx(self, s, j):
+        return array([self.dshapedx(s, j), self.dshapedx(s, j), self.dshapedx(s, j)])
+
     # derived: jacobian of transformation and inverse
     def dxds(self, s):
         x_mat = sp.transpose(array([n.x for n in self.nodes]))
@@ -99,17 +105,24 @@ class TriangleElement(Element):
     def __init__(self, x0, x1, x2):
         self.nodes = [Node(x0), Node(x1), Node(x2)]
         self.el_dim = 2
+        self.node_s = [array([1, 0]),
+                       array([0, 1]),
+                       array([0, 0])]
+
+        # Check some things
+        self.check_element()
+
+    def check_element(self):
+        # Check that our shape functions obey the delta identity.
+        for i in self.nodei():
+            assert abs(self.shape(self.node_s[i], i) - 1) < 1e-14
+            for j in self.nodei():
+                if i != j:
+                    assert self.shape(self.node_s[j], i) < 1e-14
+        return
 
     def local_coordinate_of_node(self, j):
-        if j == 0:
-            return array([1, 0])
-        elif j == 1:
-            return array([0, 1])
-        elif j == 2:
-            return array([0, 0])
-        else:
-            raise IndexError
-
+        return self.node_s[j]
 
     def shape(self, s, j):
         if j == 0:
@@ -225,6 +238,14 @@ def llg_residual_integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc):
     mxdmdx = sp.dot(skew(m), dmdx)
     exch = array([sp.dot(r_mxdmdx, dtestdx) for r_mxdmdx in mxdmdx])
 
+
+    # exch = sp.zeros(3)
+    # exch[0] = sp.dot(mxdmdx[0], dtestdx[0])
+    # exch[1] = sp.dot(mxdmdx[1], dtestdx[1])
+    # exch[2] = sp.dot(mxdmdx[2], dtestdx[2])
+
+
+
     return (sp.dot(dmdt, test)
             + sp.dot(sp.cross(m, happ), test)
             - dampc * sp.dot(sp.cross(m, dmdt), test)
@@ -292,8 +313,9 @@ def time_integrate(residual, y0, dt, tmax, actions_after_time_step=None):
 
 def main():
 
+
     # create element and quadrature
-    ele = TriangleElement([1,0], [0, 0.5], [0, 0])
+    ele = TriangleElement(array([1,0]), array([0, 0.5]), array([0, 0]))
     ele.quad = local_nodal_quadrature_factory(ele)
 
     # Set initial conditions:
@@ -301,9 +323,9 @@ def main():
     # Varying in space, no applied field
     initialise_solution(ele, m_initial)
     happ = array([0,0,0])
-    damping = 0.5
-    dt = 0.1
-    tmax = 1.0
+    damping = sp.float128(0.5)
+    dt = sp.float128(0.1)
+    tmax = sp.float128(1.0)
 
     # # Constant in space, reversal under applied field
     # initialise_solution(ele, m_initial_z)
@@ -347,8 +369,8 @@ def main():
         return array(rs)
 
     def print_residual(time):
-        m = [(n.m +n.mprev)/2 for n in ele.nodes]
-        dmdt = [(n.m - n.mprev)/dt for n in ele.nodes]
+        m = array([(n.m +n.mprev)/2 for n in ele.nodes])
+        dmdt = array([(n.m - n.mprev)/dt for n in ele.nodes])
         print(residual(time, m, dmdt, True))
 
 
@@ -357,8 +379,8 @@ def main():
         """
         # Update nodal values
         for new_m_node, n in zip(new_m, ele.nodes):
-            n.mprev = copy.deepcopy(n.m)
-            n.m = copy.deepcopy(new_m_node)
+            n.mprev = array(copy.deepcopy(n.m))
+            n.m = array(copy.deepcopy(new_m_node))
 
         # Print
         output_solution(t, ele)
