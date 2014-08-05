@@ -18,6 +18,9 @@ import utils
 # ??ds use factory to construct nodes with the expected properties?
 
 
+# s = elemental local coordinate
+# x = global coordinate
+
 class Node(object):
 
     def __init__(self, x):
@@ -173,7 +176,7 @@ def m_initial_z(x):
     return m
 
 
-def nodal_quadrature_factory(ele):
+def local_nodal_quadrature_factory(ele):
     """Create the local nodal quadrature scheme for an element.
     """
     betas = []
@@ -184,7 +187,27 @@ def nodal_quadrature_factory(ele):
                                         lambda x: 1-x)
         betas.append(beta)
 
-    return Quadrature([n.x for n in ele.nodes], betas)
+    return Quadrature([ele.local_coordinate_of_node(i) for i in ele.nodei()], betas)
+
+
+def global_nodal_quadrature_factory(ele):
+    """Create the global nodal quadrature scheme for an element.
+    """
+
+    betas = []
+    for i, n in enumerate(ele.nodes):
+
+        # Global integral of shape function: integrate over element local
+        # coords but multiply by Jacobian of transformation.
+        beta, _ = sp.integrate.dblquad(lambda sx,sy: ele.shape([sx,sy], i) * ele.J([sx, sy]),
+                                        0, 1,
+                                        lambda sx: 0,
+                                        lambda sx: 1-sx)
+        betas.append(beta)
+
+    # Integration points are nodal positions in global coords, but to calculate
+    # values at these points we use local coords.
+    return Quadrature([ele.local_coordinate_of_node(i) for i in ele.nodei()], betas)
 
 
 def skew(a):
@@ -205,7 +228,8 @@ def llg_residual_integrand(t, x, m, dmdt, dmdx, test, dtestdx, happ, dampc):
     return (sp.dot(dmdt, test)
             + sp.dot(sp.cross(m, happ), test)
             - dampc * sp.dot(sp.cross(m, dmdt), test)
-            - exch)
+            - exch
+            )
 
 
 def m_length_error(m):
@@ -216,7 +240,7 @@ def output_solution(t, ele):
     print("t =", t)
     for n in ele.nodes:
         print("x =", n.x)
-        print("m =",n.m)
+        print("m =", n.m)
 
     m_len_errors = [m_length_error(n.m) for n in ele.nodes]
     print("max length error =", max(m_len_errors))
@@ -255,7 +279,6 @@ def time_integrate(residual, y0, dt, tmax, actions_after_time_step=None):
                                          f_tol=1e-12,
                                          rdiff=1e-14)
 
-        # Store values or whatever
         if actions_after_time_step is not None:
             actions_after_time_step(t, ynp1)
 
@@ -271,7 +294,7 @@ def main():
 
     # create element and quadrature
     ele = TriangleElement([1,0], [0, 0.5], [0, 0])
-    ele.quad = nodal_quadrature_factory(ele)
+    ele.quad = local_nodal_quadrature_factory(ele)
 
     # Set initial conditions:
 
@@ -290,11 +313,8 @@ def main():
     # tmax = 1.0
 
 
-    # Doc initial solution
-    output_solution(0.0, ele)
-
     # Define the residual function in terms of m and dmdt.
-    def residual(time, m, dmdt):
+    def residual(time, m, dmdt, dprint=False, check_global=False):
 
         # Calculate residuals for each test function
         rs = []
@@ -309,14 +329,27 @@ def main():
                 test_s = ele.test(s, i_node)
                 dtestdx_s = ele.dtestdx(s, i_node)
 
-                return llg_residual_integrand(time, x_s, m_s,
-                                 dmdt_s, dmdx_s,
-                                 test_s, dtestdx_s,
-                                 happ, damping)
+                # Hook for debug printing:
+                if dprint:
+                    pass
+
+                if check_global:
+                    assert all(x_s == s)
+
+                return llg_residual_integrand(time,
+                                              x_s, m_s,
+                                              dmdt_s, dmdx_s,
+                                              test_s, dtestdx_s,
+                                              happ, damping) * ele.J(s)
 
             rs.append(ele.quad.integrate(integrand))
 
         return array(rs)
+
+    def print_residual(time):
+        m = [(n.m +n.mprev)/2 for n in ele.nodes]
+        dmdt = [(n.m - n.mprev)/dt for n in ele.nodes]
+        print(residual(time, m, dmdt, True))
 
 
     def my_actions_after_timestep(t, new_m):
@@ -329,6 +362,12 @@ def main():
 
         # Print
         output_solution(t, ele)
+
+
+
+    # Doc initial solution
+    output_solution(0.0, ele)
+    print_residual(0.0)
 
     # Get initial condition
     m0 = array([n.m for n in ele.nodes])
