@@ -851,7 +851,7 @@ namespace oomph
           Vector<double> polar_x = cart_to_polar(nd_pt->position());
 
           // Rotate
-          polar_x[1] += theta;
+          polar_x[1] += theta * (MathematicalConstants::Pi/180);
 
           Vector<double> new_x = polar_to_cart(polar_x);
 
