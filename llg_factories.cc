@@ -1067,6 +1067,10 @@ namespace oomph
         {
           fpt = &InitialM::smoothly_varying_50;
         }
+      else if(m_name == "smoothly_varying_50_xflipped")
+        {
+          fpt = &InitialM::smoothly_varying_50_xflipped;
+        }
       else if(m_name == "smoothly_varying_500")
         {
           fpt = &InitialM::smoothly_varying_500;
@@ -1074,6 +1078,22 @@ namespace oomph
       else if(m_name == "smoothly_varying_5000")
         {
           fpt = &InitialM::smoothly_varying_5000;
+        }
+      else if(m_name == "alt_smoothly_varying_5")
+        {
+          fpt = &InitialM::alt_smoothly_varying_5;
+        }
+      else if(m_name == "alt_smoothly_varying_50")
+        {
+          fpt = &InitialM::alt_smoothly_varying_50;
+        }
+      else if(m_name == "alt_smoothly_varying_500")
+        {
+          fpt = &InitialM::alt_smoothly_varying_500;
+        }
+      else if(m_name == "alt_smoothly_varying_5000")
+        {
+          fpt = &InitialM::alt_smoothly_varying_5000;
         }
       else
         {

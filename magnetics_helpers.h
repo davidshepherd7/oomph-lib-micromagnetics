@@ -311,6 +311,27 @@ namespace InitialM
     return m;
   }
 
+  inline Vector<double> alt_smoothly_varying_m_helper(double l, const double& t,
+                                                  const Vector<double> &x)
+  {
+    Vector<double> m(5, 0.0);
+
+    m[2] = sin(x[0]*2*Pi/l)/2 + sin(x[1]*2*Pi/l)/2;
+    m[3] = cos(x[0]*2*Pi/l)/2 + cos(x[1]*2*Pi/l)/2;
+    m[4] = std::sqrt(1.0 - m[2]*m[2] - m[3]*m[3]); // normalise
+
+#ifdef PARANOID
+    if(std::abs(1 - m[2]*m[2] - m[3]*m[3] - m[4]*m[4]) > 1e-14)
+      {
+        std::string err = "Non unit length initial m!";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    return m;
+  }
+
   inline Vector<double> smoothly_varying_5(const double& t, const Vector<double> &x)
   {return smoothly_varying_m_helper(5.0, t, x);}
   inline Vector<double> smoothly_varying_50(const double& t, const Vector<double> &x)
@@ -319,6 +340,23 @@ namespace InitialM
   {return smoothly_varying_m_helper(500.0, t, x);}
   inline Vector<double> smoothly_varying_5000(const double& t, const Vector<double> &x)
   {return smoothly_varying_m_helper(5000.0, t, x);}
+
+  inline Vector<double> alt_smoothly_varying_5(const double& t, const Vector<double> &x)
+  {return alt_smoothly_varying_m_helper(5.0, t, x);}
+  inline Vector<double> alt_smoothly_varying_50(const double& t, const Vector<double> &x)
+  {return alt_smoothly_varying_m_helper(50.0, t, x);}
+  inline Vector<double> alt_smoothly_varying_500(const double& t, const Vector<double> &x)
+  {return alt_smoothly_varying_m_helper(500.0, t, x);}
+  inline Vector<double> alt_smoothly_varying_5000(const double& t, const Vector<double> &x)
+  {return alt_smoothly_varying_m_helper(5000.0, t, x);}
+
+  inline Vector<double> smoothly_varying_50_xflipped(const double& t, const Vector<double> &x)
+  {
+    Vector<double> x2 = x;
+    x2[0] = 1 - x2[0];
+    return smoothly_varying_m_helper(50, t, x2);
+  }
+
 
   class LLGWaveSolution : public SolutionFunctorBase
   {
