@@ -90,26 +90,20 @@ def main():
                          + ' | tar x', shell=True)
         return 0
 
-    # If there are as many .vtu files as dat or dat.gz then no need to convert files
-    if len(glob.glob(pjoin(args.dir, "soln*.vtu"))) == len(glob.glob(pjoin(args.dir, "soln*.dat*"))):
-        print("Already converted files, just running paraview.")
+    # Unzip any individually zipped files (from parse)
+    zippeddatfiles = glob.glob(pjoin(args.dir, "*.dat.gz"))
+    if len(zippeddatfiles) > 0:
+        subp.check_call(["gunzip"] + zippeddatfiles)
+        print("gunzipped the files for you")
 
-    else:
+    # Get the list of files
+    datafiles = glob.glob(pjoin(args.dir, "*.dat"))
+    if len(datafiles) == 0:
+        error("No .dat files found in", args.dir)
 
-        # Unzip any individually zipped files (from parse)
-        zippeddatfiles = glob.glob(pjoin(args.dir, "*.dat.gz"))
-        if len(zippeddatfiles) > 0:
-            subp.check_call(["gunzip"] + zippeddatfiles)
-            print("gunzipped the files for you")
-
-        # Get the list of files
-        datafiles = glob.glob(pjoin(args.dir, "*.dat"))
-        if len(datafiles) == 0:
-            error("No .dat files found in", args.dir)
-
-        # Convert files in parallel (map is blocking, preserves order of args).
-        print("Converting", len(datafiles), "files to .vtu")
-        Pool().map(convert_to_vtu, datafiles)
+    # Convert files in parallel (map is blocking, preserves order of args).
+    print("Converting", len(datafiles), "files to .vtu")
+    Pool().map(convert_to_vtu, datafiles)
 
     # zip dat files up if requested
     if args.zip_dat_files:
