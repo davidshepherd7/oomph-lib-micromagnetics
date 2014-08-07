@@ -487,6 +487,39 @@ namespace MManipulation
 
     /// Rotate a mesh in the x-y plane
     void rotate_mesh(const double& theta, Mesh* mesh_pt);
+
+    /// Construct an equilateral triangle mesh using a square mesh.
+    /// Replaces each square with four triangles:
+    ///
+    ///     o = node
+    ///
+    ///       o------------------------------------------------/o
+    ///       | \---                                       /--- |
+    ///       |     \--                                 /--     |
+    ///       |        \---                         /---        |
+    ///       |            \---                 /---            |
+    ///       |                \--           /--                |
+    ///       |                   \---   /---                   |
+    ///       |                       o--                       |
+    ///       |                   /---   \---                   |
+    ///       |                /--           \--                |
+    ///       |            /---                 \---            |
+    ///       |        /---                         \---        |
+    ///       |     /--                                 \--     |
+    ///       | /---                                       \--- |
+    ///       o------------------------------------------------\o
+    ///
+    Mesh* equilateral_triangle_mesh(int refinement_level,
+                                    TimeStepper* time_stepper_pt,
+                                    unsigned nnode1d,
+                                    ElementFactoryFctPt element_factory_fpt);
+
+    /// ??ds
+    Mesh* union_jack_triangle_mesh(int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d,
+                                   ElementFactoryFctPt element_factory_fpt);
+
   }
 
 }

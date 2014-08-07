@@ -396,6 +396,51 @@ namespace oomph
           mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,2> >
             (nx, nx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "set_square" && nnode1d == 2)
+        {
+          ElementFactoryFctPt f_pt =
+            &general_element_factory<TMicromagElement<2, 2> >;
+
+          mesh_pt = MeshCreationHelpers::equilateral_triangle_mesh
+            (refinement_level, time_stepper_pt, nnode1d, f_pt);
+
+          mesh_pt->setup_boundary_element_info();
+
+          // Turn off triangle refinement dump stuff (breaks Micromag
+          // elements).
+          checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+            disable_triangulateio_restart();
+        }
+    else if(mesh_name == "st_union_jack_square" && nnode1d == 2)
+      {
+        ElementFactoryFctPt f_pt =
+          &general_element_factory<TMicromagElement<2, 2> >;
+
+        mesh_pt = MeshCreationHelpers::union_jack_triangle_mesh
+          (refinement_level, time_stepper_pt, nnode1d, f_pt);
+
+        mesh_pt->setup_boundary_element_info();
+
+        // Turn off triangle refinement dump stuff (breaks Micromag
+        // elements).
+        checked_dynamic_cast<TriangleMeshBase*>(mesh_pt)->
+          disable_triangulateio_restart();
+      }
+    else if(mesh_name == "set_square_periodic" && nnode1d == 2)
+      {
+        mesh_pt = llg_mesh_factory("set_square", refinement_level,
+                                   time_stepper_pt, 1.0, 0.0, 2);
+
+        // Link boundary 0 to boundary 2 and boundary 1 to boundary 3
+        MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 1, 3, 0); // x
+        MeshCreationHelpers::slow_make_boundaries_periodic(mesh_pt, 0, 2, 1); // y
+      }
+      else if(mesh_name == "sq_square" && nnode1d == 3)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2,3> >
+            (nx, nx, lx, lx, time_stepper_pt);
+        }
       else if(mesh_name == "sq_square_xstretch" && nnode1d == 2)
         {
           double lx = 1.0;

@@ -6,6 +6,8 @@
 
 #include "../../src/meshes/tetgen_mesh.h"
 
+#include "../../src/generic/triangle_mesh.h"
+
 namespace oomph
 {
 
@@ -858,6 +860,219 @@ namespace oomph
               nd_pt->x(i) = new_x[i];
             }
         }
+    }
+
+    Mesh* equilateral_triangle_mesh(int refinement_level,
+                                    TimeStepper* time_stepper_pt,
+                                    unsigned nnode1d,
+                                    ElementFactoryFctPt element_factory_fpt)
+    {
+      using namespace Factories;
+
+#ifdef PARANOID
+      if(nnode1d != 2)
+        {
+          std::string err = "Not implemented";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Create a mesh of Q elements to easily generate the nodes to use in
+      // our real mesh.
+      std::unique_ptr<Mesh> sq_mesh_pt
+        (llg_mesh_factory("sq_square", refinement_level,
+                          time_stepper_pt, 1.0, 0.0, nnode1d));
+
+      // Create our real mesh
+      Mesh* et_mesh_pt = new TriangleMeshBase;
+
+      // Copy nodes over
+      const unsigned n_node = sq_mesh_pt->nnode();
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          et_mesh_pt->add_node_pt(sq_mesh_pt->node_pt(nd));
+        }
+
+      // Copy boundary information from nodes to the mesh
+      et_mesh_pt->copy_boundary_node_data_from_nodes();
+
+
+      // Node mapping from square element to triangular elements
+      Vector<unsigned> a(4), b(4);
+      a[0] = 0; a[1] = 2; a[2] = 3; a[3] = 1;
+      b[0] = 2; b[1] = 3; b[2] = 1; b[3] = 0;
+
+
+      // Create the T elements and the central nodes
+      const unsigned n_ele = sq_mesh_pt->nelement();
+      for(unsigned i_ele=0; i_ele<n_ele; i_ele++)
+        {
+          FiniteElement* q_ele_pt = sq_mesh_pt->finite_element_pt(i_ele);
+
+          // Find the middle of the element
+          Vector<double> middle(2, 0.0);
+          const unsigned n_vertex_node = q_ele_pt->nnode();
+          for(unsigned nd=0; nd<n_vertex_node; nd++)
+            {
+              Node* nd_pt = q_ele_pt->node_pt(nd);
+              middle[0] += nd_pt->position(0);
+              middle[1] += nd_pt->position(1);
+            }
+          middle[0] /= 4;
+          middle[1] /= 4;
+
+          // Now make the elements and node
+          Node* new_nd_pt = 0;
+          for(unsigned i=0; i<4; i++)
+            {
+              FiniteElement* et_ele_pt = element_factory_fpt();
+
+              // First time round: make new node + add to mesh
+              if(i == 0)
+                {
+                  new_nd_pt = et_ele_pt->construct_node(0, time_stepper_pt);
+                  new_nd_pt->x(0) = middle[0];
+                  new_nd_pt->x(1) = middle[1];
+
+                  et_mesh_pt->add_node_pt(new_nd_pt);
+                }
+
+              et_ele_pt->node_pt(0) = q_ele_pt->node_pt(a[i]);
+              et_ele_pt->node_pt(1) = new_nd_pt;
+              et_ele_pt->node_pt(2) = q_ele_pt->node_pt(b[i]);
+
+              et_mesh_pt->add_element_pt(et_ele_pt);
+            }
+
+
+        }
+
+      // The sq mesh will be deleted so we need to wipe out it's node
+      // pointers so that it doesn't delete them.
+      sq_mesh_pt->flush_node_storage();
+      // Leave the square elements in there because we want them to be
+      // deleted.
+
+#ifdef PARANOID
+      if(std::abs(et_mesh_pt->total_size() - 1.0) > 1e-12)
+        {
+          std::string err = "Mesh has wrong area";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      return et_mesh_pt;
+    }
+
+    Mesh* union_jack_triangle_mesh(int refinement_level,
+                                   TimeStepper* time_stepper_pt,
+                                   unsigned nnode1d,
+                                   ElementFactoryFctPt element_factory_fpt)
+    {
+      using namespace Factories;
+
+#ifdef PARANOID
+      if(nnode1d != 2)
+        {
+          std::string err = "Not implemented";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Create a mesh of Q elements to easily generate the nodes to use in
+      // our real mesh.
+      std::unique_ptr<Mesh> sq_mesh_pt
+        (llg_mesh_factory("sq_square", refinement_level,
+                          time_stepper_pt, 1.0, 0.0, nnode1d));
+
+      // Create our real mesh
+      Mesh* et_mesh_pt = new TriangleMeshBase;
+
+      // Copy nodes over
+      const unsigned n_node = sq_mesh_pt->nnode();
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          et_mesh_pt->add_node_pt(sq_mesh_pt->node_pt(nd));
+        }
+
+      // Copy boundary information from nodes to the mesh
+      et_mesh_pt->copy_boundary_node_data_from_nodes();
+
+
+      // Create the T elements and the central nodes
+      const unsigned n_ele = sq_mesh_pt->nelement();
+      for(unsigned i_ele=0; i_ele<n_ele; i_ele++)
+        {
+          FiniteElement* q_ele_pt = sq_mesh_pt->finite_element_pt(i_ele);
+
+          // Find the middle of the element
+          Vector<double> middle(2, 0.0);
+          const unsigned n_vertex_node = q_ele_pt->nnode();
+          for(unsigned nd=0; nd<n_vertex_node; nd++)
+            {
+              Node* nd_pt = q_ele_pt->node_pt(nd);
+              middle[0] += nd_pt->position(0);
+              middle[1] += nd_pt->position(1);
+            }
+          middle[0] /= 4;
+          middle[1] /= 4;
+
+          // Choose node mapping from square element to triangular elements
+          Vector<unsigned> a(2), b(2), c(2);
+          if((middle[0] < 0.5 && middle[1] < 0.5)
+             || (middle[0] > 0.5 && middle[1] > 0.5 ))
+            {
+              a[0] = 0; a[1] = 0;
+              b[0] = 1; b[1] = 3;
+              c[0] = 3; c[1] = 2;
+            }
+          else if((middle[0] < 0.5 && middle[1] > 0.5 )
+                  || (middle[0] > 0.5 && middle[1] < 0.5 ))
+            {
+              a[0] = 0; a[1] = 1;
+              b[0] = 1; b[1] = 3;
+              c[0] = 2; c[1] = 2;
+            }
+          else
+            {
+              std::string err = "Can't figure out quadrant.";
+              throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                                  OOMPH_EXCEPTION_LOCATION);
+            }
+
+          for(unsigned i=0; i<2; i++)
+            {
+              FiniteElement* et_ele_pt = element_factory_fpt();
+
+              et_ele_pt->node_pt(0) = q_ele_pt->node_pt(a[i]);
+              et_ele_pt->node_pt(1) = q_ele_pt->node_pt(b[i]);
+              et_ele_pt->node_pt(2) = q_ele_pt->node_pt(c[i]);
+
+              et_mesh_pt->add_element_pt(et_ele_pt);
+            }
+
+
+        }
+
+      // The sq mesh will be deleted so we need to wipe out it's node
+      // pointers so that it doesn't delete them.
+      sq_mesh_pt->flush_node_storage();
+      // Leave the square elements in there because we want them to be
+      // deleted.
+
+#ifdef PARANOID
+      if(std::abs(et_mesh_pt->total_size() - 1.0) > 1e-12)
+        {
+          std::string err = "Mesh has wrong area";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      return et_mesh_pt;
     }
 
   }

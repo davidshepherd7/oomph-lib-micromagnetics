@@ -222,6 +222,13 @@ namespace oomph
                                         const unsigned& nnode_1d,
                                         const ElementGeometry::ElementGeometry& elgeom);
 
+
+    /// Construct an element
+    template<class ELEMENT> FiniteElement* general_element_factory()
+    {
+      return new ELEMENT;
+    }
+
   }
 }
 
