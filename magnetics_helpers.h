@@ -19,6 +19,7 @@ namespace oomph
 {
 
   class LLGProblem;
+  class MagneticParameters;
 
   /// Generic zero initial condition function
   template<unsigned NVAL>
@@ -381,6 +382,83 @@ namespace InitialM
     unsigned dim;
     double damping;
     double C;
+  };
+
+
+  /// Derivative function for ll equation as an ode, needs to go after
+  /// llgode problem class.
+  class LLODESolution : public SolutionFunctorBase
+  {
+  public:
+    /// Virtual destructor
+    virtual ~LLODESolution()
+    {
+      magnetic_parameters_pt = 0;
+    }
+
+    /// Just the initial condition actually, no exact solution that can fit
+    /// this framework.
+    Vector<double> operator()(const double& t, const Vector<double>&x) const override
+    {
+      Vector<double> m(3, 0.0);
+      m[2] = 1.0;
+      m[0] = 0.01;
+      normalise(m);
+      return m;
+    }
+
+    /// Derivative function.
+    Vector<double> derivative(const double& t, const Vector<double>& x,
+                              const Vector<double>& m) const override;
+
+    void jacobian(const double& t, const Vector<double>& x,
+                  const Vector<double>& m,
+                  DenseMatrix<double>& jacobian) const override;
+
+    bool have_jacobian() const override {return true;}
+
+    /// Get parameters from problem
+    void initialise_from_problem(const Problem* problem_pt) override;
+
+    MagneticParameters* magnetic_parameters_pt;
+  };
+
+  /// solution from Mallinson, uses LLODESolution for LLG derivative
+  /// + Jacobian
+  class LLGMallinsonSolution : public SolutionFunctorBase
+  {
+  public:
+    /// Constructor
+    LLGMallinsonSolution()
+    {
+      mag_params_pt = 0;
+    }
+
+    /// Virtual destructor
+    virtual ~LLGMallinsonSolution() {}
+
+    void initialise_from_problem(const Problem* problem_pt);
+    Vector<double> operator()(const double& t, const Vector<double>& x) const;
+
+    Vector<double> derivative(const double& t, const Vector<double>& x,
+                              const Vector<double>& u) const
+    {
+      return llg_ode_solution.derivative(t, x, u);
+    }
+
+    void jacobian(const double& t, const Vector<double>& x,
+                  const Vector<double>& m,
+                  DenseMatrix<double>& jacobian) const override
+    {
+      llg_ode_solution.jacobian(t, x, m, jacobian);
+    }
+
+  private:
+
+    Vector<double> initial_m;
+    const MagneticParameters* mag_params_pt;
+    LLODESolution llg_ode_solution;
+
   };
 
 }

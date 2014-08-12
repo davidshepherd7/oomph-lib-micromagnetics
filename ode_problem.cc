@@ -1,4 +1,6 @@
 #include "ode_problem.h"
+#include "magnetics_helpers.h"
+
 
 namespace oomph
 {
@@ -26,7 +28,11 @@ namespace oomph
         }
       else if(exact_name == "ll")
         {
-          return new deriv_functions::LLODESolution;
+          return new InitialM::LLODESolution;
+        }
+      else if(exact_name == "mallinson")
+        {
+          return new InitialM::LLGMallinsonSolution;
         }
 
       TimeSpaceToDoubleVectFctPt fpt;
@@ -76,7 +82,14 @@ namespace oomph
 
   double LLGODEProblem::get_error_norm(const unsigned& t_hist) const
   {
-    if(Mallinson_applicable)
+    // Use proper solution if we have it
+    if(dynamic_cast<InitialM::LLGMallinsonSolution*>(Exact_solution_pt) != 0)
+      {
+        return ODEProblem::get_error_norm(t_hist);
+      }
+
+    // Otherwise maybe mallinson
+    else if(Mallinson_applicable)
       {
         using namespace CompareSolutions;
         double exact_time = switching_time_wrapper(Magnetic_parameters_pt,
@@ -87,6 +100,8 @@ namespace oomph
 
         return std::abs(exact_time - actual_time);
       }
+
+    // Otherwise no solution at all
     else
       {
         return MyProblem::Dummy_doc_data;

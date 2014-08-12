@@ -68,9 +68,10 @@ namespace oomph
 
 
     // A polynomial of degree 2
-    double b0 = 0.5, b1 = 0, b2 = 1;
     inline Vector<double> poly2(const double& time, const Vector<double>& x)
     {
+      double b0 = 0.5, b1 = 0, b2 = 1;
+
       Vector<double> values(1);
       values[0] =  b2*time*time + b1*time +b0;
       return values;
@@ -78,6 +79,8 @@ namespace oomph
     inline Vector<double> dpoly2(const double& t, const Vector<double>& x,
                                  const Vector<double>& u)
     {
+      double b1 = 0, b2 = 1;
+
       Vector<double> deriv(1, 0.0);
       deriv[0] = 2*t*b2 + b1;
       return deriv;
@@ -85,9 +88,10 @@ namespace oomph
 
 
     // A polynomial of degree 3
-    double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
     inline Vector<double> poly3(const double& time, const Vector<double>& x)
     {
+      double a0 = 0.5, a1 = 0, a2 = 0, a3 = 1;
+
       Vector<double> values(1);
       values[0] = a3*time*time*time + a2*time*time + a1*time +a0;
       return values;
@@ -95,6 +99,8 @@ namespace oomph
     inline Vector<double> dpoly3(const double& t, const Vector<double>& x,
                                  const Vector<double>& u)
     {
+      double a1 = 0, a2 = 0, a3 = 1;
+
       Vector<double> deriv(1, 0.0);
       deriv[0] = 3*t*t*a3 + 2*t*a2 + a1;
       return deriv;
@@ -813,100 +819,6 @@ namespace oomph
 
     int renormalise;
   };
-
-
-  namespace deriv_functions
-  {
-
-    /// Derivative function for ll equation as an ode, needs to go after
-    /// llgode problem class.
-    class LLODESolution : public SolutionFunctorBase
-    {
-    public:
-      /// Virtual destructor
-      virtual ~LLODESolution()
-      {
-        magnetic_parameters_pt = 0;
-      }
-
-      /// Just the initial condition actually, no exact solution that can fit
-      /// this framework.
-      Vector<double> operator()(const double& t, const Vector<double>&x) const
-      {
-        Vector<double> m(3, 0.0);
-        m[2] = 1.0;
-        m[0] = 0.01;
-        normalise(m);
-        return m;
-      }
-
-      /// Derivative function.
-      Vector<double> derivative(const double& t, const Vector<double>& x,
-                                const Vector<double>& m) const
-      {
-#ifdef PARANOID
-        if(magnetic_parameters_pt == 0)
-          {
-            std::string err = "magnetic_parameters_pt is null!";
-            throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                                OOMPH_EXCEPTION_LOCATION);
-          }
-#endif
-
-        Vector<double> h = magnetic_parameters_pt->h_app(t, x);
-        Vector<double> mxh = cross(m, h);
-        Vector<double> mxmxh = cross(m, mxh);
-
-        double damping = magnetic_parameters_pt->damping();
-
-        Vector<double> deriv(3, 0.0);
-        for(unsigned j=0; j<3; j++)
-          {
-            deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping*mxmxh[j]);
-          }
-
-        return deriv;
-      }
-
-      void jacobian(const double& t, const Vector<double>& x,
-                    const Vector<double>& m,
-                    DenseMatrix<double>& jacobian) const override
-      {
-        Vector<double> h = magnetic_parameters_pt->h_app(t, x);
-        double damping = magnetic_parameters_pt->damping();
-
-        DenseDoubleMatrix skew_h = skew(h);
-        DenseDoubleMatrix skew_mxh = skew(cross(m, h));
-        DenseDoubleMatrix skew_m = skew(m);
-
-        DenseDoubleMatrix skew_m_skew_h;
-        skew_h.multiply(skew_m, skew_m_skew_h);
-
-        // Combine to get the jacobian
-        for(unsigned i=0; i<3; i++)
-          {
-            for(unsigned j=0; j<3; j++)
-              {
-                jacobian(i, j) = -(1/(1 + damping*damping))
-                  * ( - skew_h(i, j)
-                      - damping*skew_mxh(i, j)
-                      - damping*skew_m_skew_h(i, j));
-              }
-          }
-      }
-
-      bool have_jacobian() const override {return true;}
-
-      /// Get parameters from problem
-      void initialise_from_problem(const Problem* problem_pt)
-      {
-        const LLGODEProblem* llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
-        magnetic_parameters_pt = llg_ode_pt->Magnetic_parameters_pt;
-      }
-
-      MagneticParameters* magnetic_parameters_pt;
-    };
-  }
 
 
 } // End of oomph namespace

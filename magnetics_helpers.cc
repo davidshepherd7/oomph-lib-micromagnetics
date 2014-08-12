@@ -3,6 +3,7 @@
 #include "energy_functions.h"
 
 #include "llg_problem.h"
+#include "ode_problem.h"
 
 #include "../../src/meshes/tetgen_mesh.h"
 
@@ -68,6 +69,93 @@ namespace oomph
         = checked_dynamic_cast<const LLGProblem*>(problem_pt);
       dim = llg_pt->dim();
       damping = llg_pt->mag_parameters_pt()->Gilbert_damping;
+    }
+
+    Vector<double> LLODESolution::derivative(const double& t, const Vector<double>& x,
+                                             const Vector<double>& m) const
+    {
+#ifdef PARANOID
+      if(magnetic_parameters_pt == 0)
+        {
+          std::string err = "magnetic_parameters_pt is null!";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      Vector<double> h = magnetic_parameters_pt->h_app(t, x);
+      Vector<double> mxh = cross(m, h);
+      Vector<double> mxmxh = cross(m, mxh);
+
+      double damping = magnetic_parameters_pt->damping();
+
+      Vector<double> deriv(3, 0.0);
+      for(unsigned j=0; j<3; j++)
+        {
+          deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping*mxmxh[j]);
+        }
+
+      return deriv;
+    }
+
+    void LLODESolution::jacobian(const double& t, const Vector<double>& x,
+                                 const Vector<double>& m,
+                                 DenseMatrix<double>& jacobian) const
+    {
+      Vector<double> h = magnetic_parameters_pt->h_app(t, x);
+      double damping = magnetic_parameters_pt->damping();
+
+      DenseDoubleMatrix skew_h = skew(h);
+      DenseDoubleMatrix skew_mxh = skew(cross(m, h));
+      DenseDoubleMatrix skew_m = skew(m);
+
+      DenseDoubleMatrix skew_m_skew_h;
+      skew_h.multiply(skew_m, skew_m_skew_h);
+
+      // Combine to get the jacobian
+      for(unsigned i=0; i<3; i++)
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              jacobian(i, j) = -(1/(1 + damping*damping))
+                * ( - skew_h(i, j)
+                    - damping*skew_mxh(i, j)
+                    - damping*skew_m_skew_h(i, j));
+            }
+        }
+    }
+
+    void LLODESolution::initialise_from_problem(const Problem* problem_pt)
+    {
+      const LLGODEProblem* llg_ode_pt = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
+      magnetic_parameters_pt = llg_ode_pt->Magnetic_parameters_pt;
+    }
+
+
+    Vector<double> LLGMallinsonSolution::operator()(const double& t,
+                                                    const Vector<double>& x) const
+    {
+      // If not initialised we still need to return something of correct size
+      if(mag_params_pt == 0)
+        {
+          return Vector<double>(3, 0.0);
+        }
+      else
+        {
+          return CompareSolutions::m_exact(*mag_params_pt, initial_m, t);
+        }
+    }
+
+    void LLGMallinsonSolution::initialise_from_problem(const Problem* problem_pt)
+    {
+      const LLGODEProblem* llg_pt
+        = checked_dynamic_cast<const LLGODEProblem*>(problem_pt);
+      mag_params_pt = llg_pt->Magnetic_parameters_pt;
+
+      llg_ode_solution.initialise_from_problem(problem_pt);
+
+      // Get initial values from underlying solution
+      initial_m = llg_ode_solution(0.0, Vector<double>());
     }
   }
 
