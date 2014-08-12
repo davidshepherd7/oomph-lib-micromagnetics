@@ -1024,6 +1024,68 @@ namespace VectorOps
     return x;
   }
 
+  // Convert to/from spherical polars. Using the (radial, polar, azimuthal)
+  // = (r, theta, phi) system as used by Mallinson.
+  inline Vector<double> sphpolar_to_cart(const Vector<double>& rpolarazi)
+  {
+#ifdef PARANOID
+    if(rpolarazi.size() != 3)
+      {
+        std::string err = "Wrong size input vector.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    const double r = rpolarazi[0];
+    const double polar = rpolarazi[1];
+    const double azi = rpolarazi[2];
+
+    if(r == 0)
+      {
+        Vector<double> x(3, 0.0);
+        return x;
+      }
+    else
+      {
+        Vector<double> x(3, 0.0);
+        x[0] = r*std::cos(azi)*std::sin(polar);
+        x[1] = r*std::sin(azi)*std::sin(polar);
+        x[2] = r*std::cos(polar);
+
+        return x;
+      }
+  }
+
+  inline Vector<double> cart_to_sphpolar(const Vector<double>& x)
+  {
+    const double r = two_norm(x);
+
+    if(r == 0)
+      {
+        Vector<double> rpolarazi(3, 0.0);
+        return rpolarazi;
+      }
+    else
+    {
+      Vector<double> rpolarazi(3, 0.0);
+      rpolarazi[0] = r;
+      rpolarazi[1] = acos(x[2]/rpolarazi[0]);
+      rpolarazi[2] = atan2(x[1], x[0]);
+
+      return rpolarazi;
+    }
+  }
+
+  inline Vector<double> rpolarazi(const double& r, const double& polar, const double& azi)
+    {
+      Vector<double> rpolarazi(3, 0.0);
+      rpolarazi[0] = r;
+      rpolarazi[1] = polar;
+      rpolarazi[2] = azi;
+      return rpolarazi;
+    }
+
 }
 
 #endif

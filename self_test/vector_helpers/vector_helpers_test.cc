@@ -242,6 +242,37 @@ int main()
       }
   }
 
+  // Spherical polar coordinates helpers
+  // ============================================================
+  {
+    std::cout << "Checking spherical polar coordinate functions." << std::endl;
+    Vector<Vector<double> > a;
+
+    // Do for some random vectors
+    for(unsigned i=0; i<30; i++)
+      {
+        a.push_back(random_vector(3));
+      }
+
+    // test for origin (r=0 -> theta singular)
+    a.push_back(Vector<double>(3, 0.0));
+
+    // Run tests
+    for(unsigned i=0; i< a.size(); i++)
+      {
+        Vector<double> r = sphpolar_to_cart(cart_to_sphpolar(a[i]));
+
+        double error = two_norm_diff(a[i], r);
+        if(!numerical_zero(error, 1e-12))
+          {
+            std::cerr << "Error in spherical polar conversion functions, "
+                      << r << " and " << a[i] << " should be identical."
+                      << std::endl;
+            return_value++;
+          }
+      }
+  }
+
 
   return return_value;
 }
