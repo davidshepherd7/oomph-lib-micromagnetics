@@ -237,6 +237,7 @@ int main()
             std::cerr << "Error in polar conversion functions, "
                       << r << " and " << a[i] << " should be identical."
                       << std::endl;
+            return_value++;
           }
       }
   }
