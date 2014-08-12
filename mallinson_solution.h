@@ -130,6 +130,54 @@ namespace oomph
       return result;
     }
 
+
+    inline Vector<double> m_exact(const MagneticParameters& parameters,
+                                  const Vector<double>& m0,
+                                  const double& time)
+    {
+      const Vector<double> dummy;
+
+#ifdef PARANOID
+      if(cart2phi(m0) != 0)
+        {
+          std::string err = "Not sure if this works for phi0 != 0.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if(parameters.normalised_hk() != 0)
+        {
+          std::string err = "Won't work with anisotropy.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
+      if(parameters.h_app(0, dummy) != parameters.h_app(std::sqrt(2.0), dummy))
+        {
+          std::string err = "Won't work with non-constant field.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // Get parameters
+      const double theta0 = cart2theta(m0);
+      const double alpha = parameters.gilbert_damping();
+      const double H = VectorOps::two_norm(parameters.h_app(0, dummy));
+
+      // Calculate exact magnetisation
+      const double expterm = std::exp(time * H * alpha/(alpha*alpha + 1));
+      const double theta = 2*std::atan(std::tan(theta0/2) * expterm);
+      const double phi = analytic_phi(alpha, theta0, theta);
+
+      // Return in cartesian coords
+      Vector<double> rpolarazi(3, 0.0);
+      rpolarazi[0] = 1.0;
+      rpolarazi[1] = theta;
+      rpolarazi[2] = phi;
+      return VectorOps::sphpolar_to_cart(rpolarazi);
+    }
+
   }
 
 
