@@ -558,6 +558,46 @@ namespace oomph
         {
           renormalise_magnetisation();
         }
+
+      // Update energies etc.
+      Vector<double> dummy;
+
+      double prev_energy = Zeeman_energy + Crystalline_anisotropy_energy;
+
+      Zeeman_energy = -VectorOps::dot(solution(),
+                                      Magnetic_parameters_pt->h_app(time(), dummy));
+      Crystalline_anisotropy_energy = 0.0; //??ds not implemented
+      double energy = Zeeman_energy + Crystalline_anisotropy_energy;
+
+      Alt_eff_damp = effective_damping(energy, prev_energy);
+    }
+
+    virtual void actions_after_set_initial_condition() override
+    {
+      ODEProblem::actions_after_set_initial_condition();
+
+      // Get energies
+      Vector<double> dummy;
+      Zeeman_energy = -VectorOps::dot(solution(),
+                                      Magnetic_parameters_pt->h_app(time(), dummy));
+      Crystalline_anisotropy_energy = 0.0; //??ds not implemented
+    }
+
+    /// Calculate effective damping from midpoint
+    double effective_damping(const double& energy, const double& prev_energy)
+    {
+      const double dt = time_pt()->dt(0);
+
+      Data* dat_pt = mesh_pt()->element_pt(0)->internal_data_pt(0);
+
+      Vector<double> dmdt(3, 0.0);
+      for(unsigned i=0; i<3; i++)
+        {
+          dmdt[i] = (dat_pt->value(0, i) - dat_pt->value(1, i))/dt;
+        }
+      const double dmdtnorm = two_norm(dmdt);
+
+      return -(energy - prev_energy)/(dt*dmdtnorm*dmdtnorm);
     }
 
     virtual void actions_after_explicit_timestep() override
