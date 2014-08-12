@@ -68,6 +68,11 @@ namespace oomph
       specify_command_line_flag("-mallinson", &mallinson);
       mallinson = -1;
 
+      specify_command_line_flag("-use-m-mallinson", &use_m_mallinson,
+                                "When using mallinson exact solution use error based on M instead of time, default: -1.");
+      use_m_mallinson = -1;
+
+
       specify_command_line_flag("-ms-method", &ms_method);
       ms_method = "implicit";
 
@@ -249,7 +254,14 @@ namespace oomph
               || (mesh_name == "ut_sphere")))
          || mallinson == 1)
         {
-          llg_pt->Compare_with_mallinson = true;
+          if(use_m_mallinson != -1 && bool(use_m_mallinson))
+            {
+              llg_pt->Compare_with_mallinson_m = true;
+            }
+          else
+            {
+              llg_pt->Compare_with_mallinson = true;
+            }
         }
 
       if(check_angles != -1)
@@ -347,6 +359,7 @@ namespace oomph
     int check_angles;
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
+    int use_m_mallinson;
 
     std::string quadrature_type;
 

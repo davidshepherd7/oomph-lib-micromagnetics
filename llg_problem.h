@@ -41,6 +41,7 @@ namespace oomph
     /// Default constructor - do nothing except nulling pointers.
     LLGProblem() :
       Compare_with_mallinson(false),
+      Compare_with_mallinson_m(false),
       Previous_energies(5, 0.0)
     {
       Boundary_solution_pt = 0;
@@ -911,6 +912,23 @@ namespace oomph
 
           return std::abs(exact_time - time);
         }
+      else if(Compare_with_mallinson_m)
+        {
+          using namespace CompareSolutions;
+
+          // Assume that initial m is this one, as in
+          // switching_time_wrapper(...)
+          Vector<double> initial_values = InitialM::z(0, Vector<double>());
+          Vector<double> initm;
+          initm.assign(initial_values.begin()+2, initial_values.end());
+
+          double time = time_pt()->time(t_hist);
+          Vector<double> m_now = MManipulation::mean_nodal_magnetisation(t_hist, *this);
+          Vector<double> exact_m = m_exact(*mag_parameters_pt(),
+                                           initm, time);
+
+          return VectorOps::two_norm_diff(m_now, exact_m);
+        }
       else
         {
           return MyProblem::get_error_norm();
@@ -1080,8 +1098,9 @@ namespace oomph
     }
 
     /// Can we check the solution using Mallinson's exact time + phi
-    /// solutions?
+    /// solutions? Or compare the whole thing?
     bool Compare_with_mallinson;
+    bool Compare_with_mallinson_m;
 
     bool Disable_ms;
 
