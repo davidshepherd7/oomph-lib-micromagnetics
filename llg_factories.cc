@@ -614,6 +614,15 @@ namespace oomph
 
           mesh_pt->setup_boundary_element_info();
         }
+      else if(mesh_name == "sq_mumag4_2d" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimpleRectangularQuadMesh<QMicromagElement<2, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 500, 125, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "sq_mumag4+" && nnode1d == 2)
         {
           unsigned this_nx = refinement_level;
