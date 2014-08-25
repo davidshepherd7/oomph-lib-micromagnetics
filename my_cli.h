@@ -210,13 +210,13 @@ namespace oomph
       this->set_flags();
       parse_and_assign(argc, argv, true);
 
-      if(command_line_flag_has_been_set("-dt") &&
-         command_line_flag_has_been_set("-tol"))
-        {
-          std::string err = "Cannot set both dt and adaptive dt tolerance, use -initial-dt to set initial dt for adaptive time step.";
-          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
+      // if(command_line_flag_has_been_set("-dt") &&
+      //    command_line_flag_has_been_set("-tol"))
+      //   {
+      //     std::string err = "Cannot set both dt and adaptive dt tolerance, use -initial-dt to set initial dt for adaptive time step.";
+      //     throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+      //                         OOMPH_EXCEPTION_LOCATION);
+      //   }
 
       // Run any processing that needs to be done on the arguments
       // (e.g. creating meshes).
