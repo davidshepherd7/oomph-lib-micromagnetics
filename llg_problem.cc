@@ -166,7 +166,7 @@ namespace oomph
                 // serial, otherwise do nothing? ??ds Could be problems
                 // when nodes duplicated? Not sure how all that works
 #else
-                // Just grab the first node and pin it
+                // Just grab the first boundary node and pin it
                 Node* pinned_phi_1_node_pt = bulk_mesh_pts[msh]->boundary_node_pt(0,0);
                 pinned_phi_1_node_pt->pin(phi_1_index());
                 pinned_phi_1_node_pt->set_value(phi_1_index(), 0.0);

@@ -586,7 +586,10 @@ namespace oomph
     /// Calculate effective damping from midpoint
     double effective_damping(const double& energy, const double& prev_energy)
     {
-      const double dt = time_pt()->dt(0);
+      // Get dt, make sure it's the one we just used not the one that
+      // adaptivity has chosen as the next dt by calculating it from the
+      // times.
+      const double dt = time_pt()->time(0) - time_pt()->time(1);
 
       Data* dat_pt = mesh_pt()->element_pt(0)->internal_data_pt(0);
 
@@ -643,7 +646,7 @@ namespace oomph
       element_pt()->Exact_solution_pt->initialise_from_problem(this);
 
       // Rough check for if we can use Mallinson: h is constant in time and
-      // axis aligned.
+      // axis aligned and non-zero damping.
       double ftol = 1e-12;
       Vector<double> dummy;
       Vector<double> h0 = Magnetic_parameters_pt->h_app(0, dummy);
