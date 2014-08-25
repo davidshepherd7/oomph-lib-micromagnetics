@@ -24,6 +24,7 @@
 #include "../../src/generic/explicit_timesteppers.h"
 #include "tr.h"
 #include "cayley_integrators.h"
+#include "bdf2_with_predictor.h"
 
 
 // Preconditioner factories
@@ -99,6 +100,13 @@ namespace oomph
       else if(ts_name == "bdf2")
         {
           return new BDF<2>(adaptive_flag);
+        }
+      else if(ts_name == "bdf2-pred")
+        {
+          BDF2Pred* bdf2_pt = new BDF2Pred(adaptive_flag);
+          ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
+          bdf2_pt->set_predictor_pt(pred_pt);
+          return bdf2_pt;
         }
       else if((ts_name == "midpoint") || (ts_name == "old-imr"))
         {

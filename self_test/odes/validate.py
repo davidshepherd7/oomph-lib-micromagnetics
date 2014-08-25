@@ -87,9 +87,9 @@ def main():
         "-dt-initial": 1e-6,
         "-tol": 1e-3,
         "-tmax": "4",
-        "-ts": ["midpoint-bdf"],
+        "-ts": ["midpoint-bdf", "bdf2-pred"],
         "-exact": ["sin", "cos", "poly3", "poly2"],
-        "-mp-pred" : ["ebdf3", "rk2", "rk4"],
+        "-mp-pred" : ["ebdf3", "rk4"],
         }
 
     # Run var
