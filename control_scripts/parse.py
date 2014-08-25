@@ -90,6 +90,12 @@ def axis_label_thesisify(label):
                      # ode aimr stuff
                      'mean of "dts"' : r'mean($\Delta_n$)',
                      'max of "error norms"' : r'$||y_n - y(t_n)||_\infty$',
+
+                     # magnetisation stuff
+                     'mean mxs' : r'mean($m_x$)',
+                     'mean mys' : r'mean($m_y$)',
+                     'mean mzs' : r'mean($m_z$)',
+
                      }
 
     # If it matches then change it
@@ -521,6 +527,14 @@ def main():
     # Plot m averages vs time
     if 'm' in args.plots:
         plot_m_averages = par(plot_vs_time,
+                              plot_values=['mean_mxs','mean_mys','mean_mzs','dts'],
+                              labels=args.label,
+                              y_axis_lims=[[-1,1], [-1,1], [-1,1], None])
+        newfigs = multi_plot(all_results, args.split, plot_m_averages)
+        figs.extend(newfigs)
+
+    if 'm-field' in args.plots:
+        plot_m_averages = par(plot_vs_time,
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts',
                                            'h_applied_first_element'],
                               labels=args.label,
@@ -629,8 +643,10 @@ def main():
     if 'damping' in args.plots:
 
         plot_damping_errors = par(plot_vs_time,
-                                  plot_values=['rel_damping_error',
-                                               'abs_damping_error',
+                                  plot_values=[# 'rel_damping_error',
+                                               # 'abs_damping_error',
+                                               'alt_effective_damping',
+                                               'dts',
                                                ],
                                   skip_first_n=1, # first data points are wrong
                                   labels=args.label)
