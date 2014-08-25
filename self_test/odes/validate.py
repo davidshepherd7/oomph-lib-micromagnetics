@@ -21,107 +21,11 @@ from os.path import join as pjoin
 sys.path.insert(1, pjoin(os.path.dirname(__file__), "../../etc"))
 import oomphpy
 import oomphpy.micromagnetics as mm
-
-
-def pass_message(outdirname):
-    print("PASSED", os.path.abspath(outdirname))
-
-
-def fail_message(outdirname, maxerror=None, maxlteerror=None):
-
-    absoutdirname = os.path.abspath(outdirname)
-
-    if maxerror is not None:
-        print("FAILED", absoutdirname, "max error of", maxerror)
-
-    elif maxlteerror is not None:
-        print("FAILED", absoutdirname, "max error in lte estimate",
-              maxlteerror)
-
-    else:
-        print("FAILED", absoutdirname)
-        with open(pjoin(outdirname, "stdout"), 'r') as hstdout:
-            print(hstdout.read())
-
-
-def constant_dt_test(exact, timestepper):
-    maxerrortol = 0.1
-
-    outdir = pjoin("Validation", exact + "_" + timestepper)
-
-    mm.cleandir(outdir)
-
-    arglist = ["ode",
-               "-disable-mm-opt",
-               "-outdir", outdir,
-                "-dt", "0.05",
-                 "-tmax", "4",
-                  "-ts", timestepper,
-                   "-exact", exact]
-
-    # Run the command, put stdout + stderr into a file, put exact command
-    # into another file
-    flag = mm.run_driver(arglist, outdir)
-
-    if flag != 0:
-        fail_message(outdir)
-        return False
-
-    data = mm.parse_trace_file(pjoin(outdir, "trace"))
-    maxerror = max(data['error_norms'])
-    assert all(data['error_norms'] >= 0), exact +" "+ timestepper + str(data['error_norms'])
-
-
-    if maxerror > maxerrortol:
-        fail_message(outdir, maxerror)
-        return False
-
-    else:
-        pass_message(outdir)
-        return True
+import oomphpy.tests as tests
 
 
 def adaptive_midpoint_test(exact, timestepper, predictor):
 
-    tol = 1e-3
-
-    outdir = pjoin("Validation", exact + "_adaptive" + timestepper
-                   + "_" + predictor)
-
-    mm.cleandir(outdir)
-
-    arglist = ["ode",
-               "-disable-mm-opt", # bugs? :(
-               "-outdir", outdir,
-               "-tol", str(tol),
-               "-tmax", "4",
-               "-dt-initial", 1e-6,
-               "-ts", timestepper,
-               "-mp-pred", predictor,
-               "-exact", exact]
-    flag = mm.run_driver(arglist, outdir)
-
-
-    if flag != 0:
-        fail_message(outdir)
-        return False
-
-    data = mm.parse_trace_file(pjoin(outdir, "trace"))
-    maxerror = max(data['error_norms'])
-    assert all(data['error_norms'] >= 0)
-
-    # Bound the error with something proportional to the max value if it
-    # gets large.
-    maxvalue = max(it.chain(data['trace_values'], [1.0]))
-    maxerrortol = 10 * tol * maxvalue
-
-
-    # For second order polynomial we know lte is zero, check we got this
-    # correct
-    ltefail = False
-    if exact == "poly2":
-        maxlteerror = max(map(lambda a,b: a-b, data['LTE_norms'], it.repeat(0)))
-        ltefail = (maxlteerror > 10e-8)
 
     # ??ds still not testing ltes for other odes... probably should
 
@@ -141,26 +45,82 @@ def adaptive_midpoint_test(exact, timestepper, predictor):
 
 def main():
 
-    passes = []
+    # Look for parallel in args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--parallel', action = "store_true")
+    args = parser.parse_args()
 
-    exacts = ["sin", "cos", "poly3", "poly2"]
-    timesteppers = ["rk2", "rk4", "midpoint-bdf", "bdf2", "tr"]
+    # Where it's going to end up
+    base_outdir = os.path.abspath(pjoin(os.path.dirname(__file__), "Validation"))
 
-    for exact, timestepper in it.product(exacts, timesteppers):
-        passes.append(constant_dt_test(exact, timestepper))
+    # constant dt
+    # ============================================================
+
+    argdicts_const_dt = {
+        '-driver': "ode",
+        "-disable-mm-opt" : True,
+        "-dt": "0.05",
+        "-tmax": "4",
+        "-ts": ["rk2", "rk4", "midpoint-bdf", "bdf2", "tr"],
+        "-exact": ["sin", "cos", "poly3", "poly2"],
+        }
+
+    # Run const
+    err_codes_const_dt, outdirs_const_dt = \
+      mm.run_sweep(argdicts_const_dt, pjoin(base_outdir, "const_dt"),
+                   parallel_sweep=args.parallel)
+
+    # Check they all ran without crashing
+    const_ran = all(e == 0 for e in err_codes_const_dt)
+
+    # Parse output and check error norms
+    const_tests = [tests.check_error_norm(data, tol=0.1)
+                   for data in map(mm.parse_run, outdirs_const_dt)]
 
 
-    mp_timesteppers = ["midpoint-bdf"]
-    mp_preds = ["ebdf3", "rk2", "rk4"]
+    # varying dt
+    # ============================================================
 
-    for exact, timestepper, predictor in it.product(exacts, mp_timesteppers, mp_preds):
-        passes.append(adaptive_midpoint_test(exact, timestepper, predictor))
+    argdicts_var_dt = {
+        '-driver': "ode",
+        "-disable-mm-opt" : True,
+        "-dt-initial": 1e-6,
+        "-tol": 1e-3,
+        "-tmax": "4",
+        "-ts": ["midpoint-bdf"],
+        "-exact": ["sin", "cos", "poly3", "poly2"],
+        "-mp-pred" : ["ebdf3", "rk2", "rk4"],
+        }
+
+    # Run var
+    err_codes_var_dt, outdirs_var_dt = \
+      mm.run_sweep(argdicts_var_dt, pjoin(base_outdir, "var_dt"),
+                   parallel_sweep=args.parallel)
+
+    # Check they all ran without crashing
+    var_ran = all(e == 0 for e in err_codes_var_dt)
+
+    # Parse output
+    datasets = list(map(mm.parse_run, outdirs_var_dt))
+
+    # check error norms
+    var_tests = [tests.check_error_norm_relative(data, tol=1e-2)
+                 for data in datasets]
+
+    # For second order polynomial we know lte is zero, check we got these cases
+    # correct.
+    poly2_data = [d for d in datasets if d['exact'] == 'poly2']
+    lte_test = [tests.check_error_norm(d, tol=1e-7) for d in poly2_data]
 
 
-    if not all(passes):
-        return 1
-    else:
+    # return
+    # ============================================================
+
+    if const_ran and all(const_tests) \
+      and var_ran and all(var_tests) and all(lte_test):
         return 0
+    else:
+        return 1
 
 
 if __name__ == "__main__":

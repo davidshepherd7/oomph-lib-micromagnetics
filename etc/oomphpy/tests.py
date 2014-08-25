@@ -9,6 +9,7 @@ import os
 import os.path
 import scipy as sp
 import scipy.optimize
+import itertools as it
 
 from os.path import join as pjoin
 
@@ -35,6 +36,31 @@ def check_error_norm(data, tol=1e-5, identifier=None):
 
     max_err_norm = max(map(abs, data['error_norms']))
     norm_test = max_err_norm < tol
+
+    if not norm_test:
+        mm.badprint("FAILED in", identifier)
+        mm.badprint("with max error norm of", max_err_norm)
+
+    else:
+        mm.okprint("max error norm of", max_err_norm, "ok in", identifier)
+
+    return norm_test
+
+
+def check_error_norm_relative(data, tol=1e-5, identifier=None):
+    """Check that max error norm < tol * maximum_trace_value."""
+
+    if identifier is None:
+        identifier = _default_label(data)
+
+    max_err_norm = max(map(abs, data['error_norms']))
+
+    # Get biggest value from list of list of trace values
+    max_value = max(it.chain(*data['trace_values']))
+
+    # If max < 1 then use 1.0 as multiplier
+    norm_test = max_err_norm < tol * max(max_value, 1.0)
+
 
     if not norm_test:
         mm.badprint("FAILED in", identifier)
