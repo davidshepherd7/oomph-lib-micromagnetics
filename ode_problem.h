@@ -653,7 +653,9 @@ namespace oomph
         (two_norm_diff(h0, h1) < ftol)
         && (two_norm_diff(h1, h2) < ftol)
         && (std::abs(h0[0]) < ftol) // no x component
-        && (std::abs(h0[1]) < ftol); // no y component
+        && (std::abs(h0[1]) < ftol) // no y component
+        && (Magnetic_parameters_pt->gilbert_damping() > 1e-12) // some damping
+        ;
     }
 
     double m_length_error() const
