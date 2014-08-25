@@ -9,6 +9,12 @@ import os.path
 # (yet?). Everything else is in scipy nowadays.
 import numpy
 
+def skew(m):
+    assert len(m) == 3
+    return sp.array([[0     , -m[2],  m[1] ],
+                     [m[2]  , 0,     -m[0] ],
+                     [-m[2] , m[1] ,  0    ]])
+
 # Read in matrices/vectors from oomph formatted output
 # ============================================================
 
