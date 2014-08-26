@@ -482,6 +482,17 @@ namespace oomph
       return (*Boundary_solution_pt)(t, x);
     }
 
+    virtual void actions_after_implicit_timestep_and_error_estimation() override
+    {
+      // Might need to renormalise to keep |M| = 1. This needs to go here
+      // and not in actions_after_newton_ solve so that it doesn't
+      // interfere with the adaptivity or the bdf-imr update.
+      if(renormalise_each_time_step())
+        {
+          renormalise_magnetisation();
+        }
+    }
+
 
     virtual void actions_after_implicit_timestep() override
       {
@@ -631,12 +642,6 @@ namespace oomph
       if(!Inside_segregated_magnetostatics)
         {
           MyProblem::actions_after_newton_solve();
-
-          // If we're using BDF we need to keep M normalised.
-          if(renormalise_each_time_step())
-            {
-              renormalise_magnetisation();
-            }
         }
     }
 
