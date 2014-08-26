@@ -1,7 +1,8 @@
 -tol 0
 -dt 2.5
 -ref 200
--h-app mumag4_field1
+-h-app smoothed_mumag4_field1
 -mag-params mumag4
 -mesh dAquino_sq_mumag4
 -ts midpoint-bdf
+-renormalise 0
