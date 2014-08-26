@@ -401,6 +401,39 @@ def data_print(datasets, to_print, delim="; ", labels=None):
     print()
 
 
+def shift_relaxation_times(data):
+    """Modify times in data such that they are continuous even
+    when using -relax-m 1.
+    """
+
+    ts = data['times']
+    dts = data['dts']
+
+    second_t0_i = None
+    for i, (t, dt) in enumerate(zip(ts[2:], dts[2:]), 2):
+
+        # Look for zeros
+        if abs(t - dt) < 1e-10:
+            second_t0_i = i
+            t_relax_max = ts[i-1]
+            break
+
+    # if we found some t = 0 not in the 0th place in the list
+    if second_t0_i is not None:
+
+        # Make the relaxation t values negative
+        new_ts = sp.array([t - t_relax_max for t in ts[0:second_t0_i]] + list(ts[second_t0_i:]))
+
+        # Check it did what I think it did...
+        assert abs(new_ts[second_t0_i] - dts[second_t0_i]) < 1e-10
+
+        data['times'] = new_ts
+
+    return
+
+
+
+
 def main():
     """
 
@@ -505,6 +538,10 @@ def main():
         key, value = ast.literal_eval(f)
         all_results = [d for d in all_results if ast.literal_eval(d[key]) != value]
         print("filtering with not", f, ".", len(all_results), "results left")
+
+
+    for data in all_results:
+        shift_relaxation_times(data)
 
 
 
