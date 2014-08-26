@@ -515,9 +515,11 @@ using namespace StringConversion;
     /// \short General output function: output to trace file. Maybe output
     /// Jacobian depending on Doc_info.output_jacobian. Maybe output full
     /// solution depending on should_doc_this_step(..) function. Maybe
-    /// output ltes depending on value of Output_ltes. Extend by overloading
-    /// output_solution(...).
-    void doc_solution(const unsigned& t_hist=0);
+    /// output ltes depending on value of Output_ltes. Extend by
+    /// overloading output_solution(...). Optional prefix for special
+    /// outputs (special outputs don't go in pvd file, yet? too messy...)
+    void doc_solution(const unsigned& t_hist=0,
+                      const std::string& prefix = "" );
 
 
     /// Standard output function: loop over all elements in all meshes and

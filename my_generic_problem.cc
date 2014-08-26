@@ -369,7 +369,8 @@ namespace oomph
     this->doc_solution();
   }
 
-  void MyProblem::doc_solution(const unsigned& t_hist)
+  void MyProblem::doc_solution(const unsigned& t_hist,
+                               const std::string& prefix)
   {
     bool doc_this_step = true;
     if(!is_steady())
@@ -392,7 +393,7 @@ namespace oomph
       {
 
         // Solution itself
-        std::ofstream soln_file((dir + "/" + "soln" + num + ".dat").c_str(),
+        std::ofstream soln_file((dir + "/" + prefix + "soln" + num + ".dat").c_str(),
                                 std::ios::out);
         soln_file.precision(Output_precision);
         output_solution(t_hist, soln_file);
@@ -401,7 +402,7 @@ namespace oomph
         // Exact solution if available and requested
         if(doc_exact())
           {
-            std::ofstream exact_file((dir + "/" + "exact" + num + ".dat").c_str(),
+            std::ofstream exact_file((dir + "/" + prefix + "exact" + num + ".dat").c_str(),
                                      std::ios::out);
             exact_file.precision(Output_precision);
             output_exact_solution(t_hist, exact_file);
@@ -409,7 +410,7 @@ namespace oomph
           }
 
         // If not a steady state problem then write time information
-        if(!is_steady())
+        if(!is_steady() && prefix == "")
           {
             // Write the simulation time and filename to the solution pvd
             // file
@@ -434,7 +435,7 @@ namespace oomph
                 exact_pvd_file.precision(Output_precision);
 
                 exact_pvd_file << "<DataSet timestep=\"" << time()
-                         << "\" group=\"\" part=\"0\" file=\"" << "exact"
+                               << "\" group=\"\" part=\"0\" file=\"" <<  "exact"
                          << num << ".vtu"
                          << "\"/>" << std::endl;
 

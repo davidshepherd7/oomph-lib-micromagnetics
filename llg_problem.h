@@ -322,19 +322,30 @@ namespace oomph
     /// Relax magnetisation using strongly damped llg until torque is small
     void relax(HAppFctPt h_app_relax=HApp::zero)
     {
-      double initial_damping = mag_parameters_pt()->Gilbert_damping;
-      double initial_dt = time_pt()->dt();
-      double initial_time = time_pt()->time();
-      HAppFctPt initial_happ = mag_parameters_pt()->Applied_field_fct_pt;
+      // Backup values
+      // ============================================================
 
-      // Set a high damping and relaxation field
+      const double initial_damping = mag_parameters_pt()->Gilbert_damping;
+      const double initial_dt = time_pt()->dt();
+      const double initial_time = time_pt()->time();
+      const HAppFctPt initial_happ = mag_parameters_pt()->Applied_field_fct_pt;
+      const unsigned old_doc_info_number = Doc_info.number();
+
+
+      // Relax magnetisation
+      // ============================================================
+
+      // Set a high damping and the relaxation field
       Magnetic_parameters_pt->Gilbert_damping = 1.0;
       Magnetic_parameters_pt->Applied_field_fct_pt = h_app_relax;
-
 
       // Initialise loop variables
       double dt = std::max(initial_dt/100, 1e-4);
       double relax_tol = 1e-4;
+
+      // Doc the initial condition
+      Doc_info.number() = 0;
+      doc_solution(0, "relax_");
 
       // ??ds big hack here: just relax for 250 time units, enough for
       // mumag4... fix to use torque eventually
@@ -354,9 +365,11 @@ namespace oomph
           dt = smart_time_step(dt, relax_tol);
 
           // Output
-          doc_solution(); //??ds extra label?
+          doc_solution(0, "relax_");
         }
 
+      // Revert everything
+      // ============================================================
 
       // Revert time info
       N_steps_taken = 0;
@@ -370,6 +383,14 @@ namespace oomph
       // Revert the damping and field
       Magnetic_parameters_pt->Gilbert_damping = initial_damping;
       Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
+
+      // Reset the doc solution counter
+      Doc_info.number() = old_doc_info_number;
+
+      // overwrite the "current" soln.dat etc. (ie write out final relaxed
+      // state as initial condition for time integration.
+      Doc_info.number()--;
+      doc_solution();
     }
 
     virtual void actions_before_time_integration() override
