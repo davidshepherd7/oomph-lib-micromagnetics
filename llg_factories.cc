@@ -621,7 +621,7 @@ namespace oomph
           mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
             (5*this_nx, std::ceil(1.25*this_nx), 1, 500, 125, 3, time_stepper_pt);
 
-          mesh_pt->scale_mesh(1/32.3283);
+          mesh_pt->scale_mesh(1/5.6858);
 
           mesh_pt->setup_boundary_element_info();
         }
