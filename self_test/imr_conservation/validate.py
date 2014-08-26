@@ -85,7 +85,7 @@ def main():
          # Problem specification
         '-driver' : 'llg',
         '-ms-method' : 'disabled',
-        '-mesh' : ['sq_square', 'st_square'],
+        '-mesh' : ['sq_square'], # 'st_square'],
         '-initial-m' : 'smoothly_varying_5',
         '-h-app' : 'zero',
         '-damping' : [0.5],
