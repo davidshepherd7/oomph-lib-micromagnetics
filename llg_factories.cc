@@ -1025,6 +1025,14 @@ namespace oomph
         {
           return &HApp::mumag4_field2;
         }
+      else if(field_name == "smoothed_mumag4_field1")
+        {
+          return &HApp::smoothed_mumag4_field1;
+        }
+      else if(field_name == "smoothed_mumag4_field2")
+        {
+          return &HApp::smoothed_mumag4_field2;
+        }
       else if(field_name == "smooth_start_minus_z")
         {
           return &HApp::smooth_start_minus_z;

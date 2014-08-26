@@ -139,6 +139,33 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> field_smoother(const double& t, const Vector<double>& h,
+                                       const double& t0)
+  {
+    double a = 1 - std::exp(-t/t0);
+
+    const unsigned ni = h.size();
+    Vector<double> h_final(ni, 0.0);
+    for(unsigned i=0; i<ni; i++)
+      {
+        h_final[i] = h[i]*a;
+      }
+
+    return h_final;
+  }
+
+  inline Vector<double> smoothed_mumag4_field1(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h = mumag4_field1(t, x);
+    return field_smoother(t, h, 1e-3);
+  }
+
+  inline Vector<double> smoothed_mumag4_field2(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h = mumag4_field2(t, x);
+    return field_smoother(t, h, 1e-3);
+  }
+
   inline Vector<double> non_uniform_z_helper
   (const double& t, const Vector<double> &x, double l)
   {
