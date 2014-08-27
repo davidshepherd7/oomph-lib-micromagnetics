@@ -272,7 +272,8 @@ if(args_pt->should_doc_boundaries != -1)
              mm_args_pt->hlib_bem,
              false,
              mm_args_pt->numerical_int_bem,
-             llg_pt->pin_any_phi_1() || llg_pt->pin_a_boundary_phi_1()
+             llg_pt->pin_any_phi_1() || llg_pt->pin_a_boundary_phi_1(),
+             "cached_bem_matrices/" + mm_args_pt->mesh_name + to_string(mm_args_pt->refinement)
              );
         }
       else

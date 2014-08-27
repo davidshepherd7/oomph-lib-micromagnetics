@@ -23,6 +23,47 @@
 namespace oomph
 {
 
+
+  namespace FileHelpers
+  {
+
+    /// Read in a dense square matrix
+    inline void dense_matrix_read(std::ifstream& matrix_file,
+                                  DenseDoubleMatrix& matrix)
+    {
+      // Make sure we are at start of file
+      matrix_file.seekg(0);
+
+      // count lines = nrows
+      unsigned nlines = 0;
+      {
+        std::string dummy;
+        while ( std::getline(matrix_file, dummy) ) {++nlines;}
+        matrix_file.seekg(0); // rewind
+      }
+
+      // matrix is square of size nlines
+      matrix.resize(nlines, nlines);
+
+      unsigned i=0, j=0;
+
+      // read the numbers line by line then word by word.
+      std::string line_buffer;
+      double entry_buffer;
+      while(std::getline(matrix_file, line_buffer))
+        {
+          std::stringstream line_stream(line_buffer);
+          while(line_stream >> entry_buffer)
+            {
+              matrix(i, j) = entry_buffer;
+              j++;
+            }
+
+          i++;
+        }
+    }
+  }
+
   /// Helper function to construct a bem mesh
   inline void build_bem_mesh_helper
   (const Vector<std::pair<unsigned, const Mesh*> >& bem_boundaries,
@@ -392,6 +433,14 @@ namespace oomph
 
     void maybe_write_h_matrix_data(const std::string& outdir) const;
 
+    void read_bem_matrix_from_file(std::ifstream& matrix_file)
+    {
+      DenseDoubleMatrix* dense_matrix_pt = new DenseDoubleMatrix;
+      Bem_matrix_pt = dense_matrix_pt;
+
+      FileHelpers::dense_matrix_read(matrix_file, *dense_matrix_pt);
+    }
+
 
     // Access functions
     // ============================================================
@@ -503,6 +552,9 @@ namespace oomph
     /// \short Lookup between input value's global equation numbers and
     /// node numbers within mesh.
     AddedMainNumberingLookup Input_lookup;
+
+    /// String storing location of bem matrix file to read/write
+    std::string Bem_matrix_filename;
 
   protected:
 
@@ -624,16 +676,43 @@ namespace oomph
 
       if(!Hierarchical_bem)
         {
-          // Say what we're doing
-          oomph_info << "Building dense BEM matrix, this may take some time"
-                     << std::endl;
-          if(Numerical_int_bem)
-            oomph_info << "Using numerical integration." << std::endl;
-          else
-            oomph_info << "Using analytical integration." << std::endl;
 
-          // Construct the (dense) matrix
-          build_bem_matrix();
+          // If possible read in the bem matrix from a file
+          std::ifstream bem_matrix_file(Bem_matrix_filename.c_str());
+          if(Bem_matrix_filename != "" && bem_matrix_file.good())
+            {
+              oomph_info << "Reading the BEM matrix from file "
+                         << Bem_matrix_filename
+                         << std::endl;
+
+              read_bem_matrix_from_file(bem_matrix_file);
+            }
+          else
+            {
+
+              // Say what we're doing
+              oomph_info << "Building dense BEM matrix, this may take some time"
+                         << std::endl;
+              if(Numerical_int_bem)
+                oomph_info << "Using numerical integration." << std::endl;
+              else
+                oomph_info << "Using analytical integration." << std::endl;
+
+              // Construct the (dense) matrix
+              build_bem_matrix();
+
+              // Write it out if possible
+              if(Bem_matrix_filename != "")
+                {
+                  oomph_info << "Writing BEM matrix to file "
+                             << Bem_matrix_filename
+                             << std::endl;
+
+                  checked_dynamic_cast<DenseDoubleMatrix*>(bem_matrix_pt())
+                    ->output(Bem_matrix_filename);
+                }
+            }
+
         }
       else
         {

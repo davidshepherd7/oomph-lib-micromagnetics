@@ -36,7 +36,8 @@ namespace oomph
      int hierarchical_bem=-1,
      bool disable_corner_angles=false,
      int numerical_int_bem=-1,
-     bool allow_pinned_boundary_values=false);
+     bool allow_pinned_boundary_values=false,
+     const std::string& bem_matrix_filename="");
 
     /// Create a dof to block mapping for llg block preconditioners based
     /// on _name.

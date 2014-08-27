@@ -31,7 +31,8 @@ namespace oomph
      int hierarchical_bem,
      bool disable_corner_angles,
      int numerical_int_bem,
-     bool allow_pinned_boundary_values)
+     bool allow_pinned_boundary_values,
+     const std::string& bem_matrix_filename)
     {
       BoundaryElementHandlerBase* bem_handler_pt = 0;
       if(allow_pinned_boundary_values)
@@ -85,7 +86,6 @@ namespace oomph
               numerical_int_bem = true;
             }
         }
-
 
       // Next assign the parameters
       // ============================================================
@@ -148,9 +148,13 @@ namespace oomph
       // Copy in the list of boundaries to operate on
       bem_handler_pt->Bem_boundaries = bem_boundaries;
 
+      // Set cached matrix filename
+      bem_handler_pt->Bem_matrix_filename = bem_matrix_filename;
+
       // Set debug parameters
       bem_handler_pt->Debug_disable_corner_contributions = disable_corner_angles;
       bem_handler_pt->Numerical_int_bem = numerical_int_bem;
+
 
       // Now build it
       if(input_corner_data_pt == 0)
