@@ -33,7 +33,7 @@ namespace oomph
     const double llg_damp_c = e_pt->llg_damping_coeff();
 
     // Factor to rescale time s.t. it matches with Gilbert form of llg
-    const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
+    const double ll_conversion_factor = 1/(1+llg_damp_c*llg_damp_c);
 
     // Create interpolator
     std::unique_ptr<CachingMMArrayInterpolator>
@@ -142,24 +142,24 @@ namespace oomph
                 if(m_eqn >= 0)  // If it's not a boundary condition
                   {
                     // dmdt
-                    residuals[m_eqn] += ll_conversion_factor *intp_dmdt[i]
-                      * intp_pt->test(l) * W;
+                    residuals[m_eqn] += intp_dmdt[i] * intp_pt->test(l) * W;
 
                     // mxh for non-exchange fields (precession)
                     residuals[m_eqn] += opt_cross(i, intp_m, h_simple)
-                      * intp_pt->test(l) * W;
+                      * intp_pt->test(l) * W * ll_conversion_factor;
 
                     // mxmxh for non-exchange fields (damping)
                     residuals[m_eqn] += llg_damp_c *
                       opt_double_cross(i, intp_m, intp_m, h_simple)
-                      * intp_pt->test(l) * W;
+                      * intp_pt->test(l) * W * ll_conversion_factor;
 
                     // mxex term (precession)
                     residuals[m_eqn] -= opt_cross(i, intp_m, gradmdotgradtest)
-                      * W;
+                      * W * ll_conversion_factor;
 
                     // term 1 of mxmxex (damping)
-                    residuals[m_eqn] += llg_damp_c * gradmdotgradtest[i] * W;
+                    residuals[m_eqn] += llg_damp_c * gradmdotgradtest[i] * W
+                      * ll_conversion_factor;
 
                     // term 2 of mxmxex (damping)
                     double sum = 0;
@@ -172,7 +172,8 @@ namespace oomph
                           + intp_pt->test(l) * intp_m[i]
                           * dot(intp_dmdx[j], intp_dmdx[j], ndim);
                       }
-                    residuals[m_eqn] -= llg_damp_c * sum * W;
+                    residuals[m_eqn] -= llg_damp_c * sum * W
+                      * ll_conversion_factor;
                   }
               }
 

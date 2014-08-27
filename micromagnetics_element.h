@@ -335,7 +335,7 @@ namespace oomph
     }
 
     /// This might go better inside generic get jacobian etc. once I write
-    /// it.
+    /// it for LL form.
     void fill_in_contribution_to_mass_matrix(Vector<double> &residuals,
                                              DenseMatrix<double> &mmatrix)
     {
@@ -349,10 +349,6 @@ namespace oomph
 
       // Get the residuals
       fill_in_contribution_to_residuals(residuals);
-
-      // Factor to rescale time s.t. it matches with Gilbert form of llg
-      const double llg_damp_c = this->llg_damping_coeff();
-      const double ll_conversion_factor = (1+llg_damp_c*llg_damp_c);
 
       const unsigned n_node = this->nnode();
       const unsigned eldim = this->dim();
@@ -390,7 +386,7 @@ namespace oomph
                       if(local_unknown < 0) continue;
 
                       mmatrix(local_eqn, local_unknown) +=
-                        -ll_conversion_factor * psi(l2)*test(l)*W;
+                        -psi(l2)*test(l)*W;
                     }
                 }
             }
