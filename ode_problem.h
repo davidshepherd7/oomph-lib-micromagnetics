@@ -584,9 +584,10 @@ namespace oomph
       Zeeman_energy = -VectorOps::dot(solution(),
                                       Magnetic_parameters_pt->h_app(time(), dummy));
       Crystalline_anisotropy_energy = 0.0; //??ds not implemented
+      Magnetostatic_energy = 0.0;
+      Exchange_energy = 0.0;
 
-      Initial_energy = Exchange_energy + Zeeman_energy
-        + Crystalline_anisotropy_energy + Magnetostatic_energy;
+      Initial_energy = Zeeman_energy + Crystalline_anisotropy_energy;
     }
 
     /// Calculate effective damping from midpoint
