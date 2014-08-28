@@ -569,7 +569,10 @@ namespace oomph
       Crystalline_anisotropy_energy = 0.0; //??ds not implemented
       double energy = Zeeman_energy + Crystalline_anisotropy_energy;
 
-      Alt_eff_damp = effective_damping(energy, prev_energy);
+      if(Magnetic_parameters_pt->gilbert_damping() != 0)
+        {
+          Alt_eff_damp = effective_damping(energy, prev_energy);
+        }
     }
 
     virtual void actions_after_set_initial_condition() override
