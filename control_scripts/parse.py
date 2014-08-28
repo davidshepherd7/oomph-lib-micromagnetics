@@ -560,6 +560,12 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_errors)
         figs.extend(newfigs)
 
+    if 'swerr' in args.plots:
+        plot_errors = par(plot_vs_time,
+                          plot_values=['switching_time_error','dts', 'trace_values'],
+                          labels=args.label)
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
 
     # Plot m averages vs time
     if 'm' in args.plots:
@@ -745,6 +751,26 @@ def main():
               dataset_split_keys=args.scatter_split,
               x_value='dts',
               y_value='error_norms',
+              y_operation=max,
+              x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
+                ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
+                ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
+                ax.legend()
+
+    if 'scatter-swerr-dts' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='dts',
+              y_value='switching_time_error',
               y_operation=max,
               x_operation=sp.mean)
 

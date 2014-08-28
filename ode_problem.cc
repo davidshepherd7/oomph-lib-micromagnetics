@@ -80,6 +80,27 @@ namespace oomph
 
   }
 
+  double LLGODEProblem::get_switching_time_error_norm(const unsigned& t_hist) const
+  {
+#ifdef PARANOID
+    if(!Mallinson_applicable)
+      {
+        std::string err = "Can't calculate switching time";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    using namespace CompareSolutions;
+    double exact_time = switching_time_wrapper(Magnetic_parameters_pt,
+                                               exact_solution(0.0),
+                                               solution());
+
+    double actual_time = ts_pt()->time_pt()->time(t_hist);
+
+    return std::abs(exact_time - actual_time);
+  }
+
   double LLGODEProblem::get_error_norm(const unsigned& t_hist) const
   {
     // Use proper solution if we have it
@@ -91,14 +112,7 @@ namespace oomph
     // Otherwise maybe mallinson
     else if(Mallinson_applicable)
       {
-        using namespace CompareSolutions;
-        double exact_time = switching_time_wrapper(Magnetic_parameters_pt,
-                                                   exact_solution(0.0),
-                                                   solution());
-
-        double actual_time = ts_pt()->time_pt()->time(t_hist);
-
-        return std::abs(exact_time - actual_time);
+        return get_switching_time_error_norm(t_hist);
       }
 
     // Otherwise no solution at all

@@ -682,7 +682,9 @@ namespace oomph
         << Trace_seperator << "magnetostatic_energy"
         << Trace_seperator << "total_energy"
         << Trace_seperator << "effective_damping"
-        << Trace_seperator << "alt_effective_damping";
+        << Trace_seperator << "alt_effective_damping"
+        << Trace_seperator << "switching_time_error"
+        ;
     }
 
     virtual void write_additional_trace_data(const unsigned& t_hist,
@@ -702,6 +704,8 @@ namespace oomph
 
       if(t_hist == 0)
         {
+          double sw_time_error = get_switching_time_error_norm(t_hist);
+
           trace_file
             << Trace_seperator << Exchange_energy
             << Trace_seperator << Zeeman_energy
@@ -709,11 +713,13 @@ namespace oomph
             << Trace_seperator << Magnetostatic_energy
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << Effective_damping_constant
-            << Trace_seperator << Alt_eff_damp;
+            << Trace_seperator << Alt_eff_damp
+            << Trace_seperator << sw_time_error;
         }
       else
         {
           trace_file
+            << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
@@ -726,6 +732,8 @@ namespace oomph
 
 
     virtual double get_error_norm(const unsigned& t_hist=0) const override;
+
+    double get_switching_time_error_norm(const unsigned& t_hist) const;
 
     /// Storage for magnetic parameters object
     MagneticParameters* Magnetic_parameters_pt;
