@@ -382,6 +382,10 @@ def parse_run(results_folder):
     # If there is a "FAILED" file then something didn't work
     d['failed'] = os.path.isfile(pjoin(results_folder, 'FAILED'))
 
+    # If tol != 0 then it was a time adaptive run, tol is a float though so
+    # need to use a tolerance.
+    d['time_adaptive'] = (abs(d['-tol']) > 1e-12)
+
     return d
 
 
