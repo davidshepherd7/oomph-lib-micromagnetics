@@ -710,8 +710,18 @@ namespace oomph
         {
           double total_energy = Exchange_energy + Zeeman_energy
             + Crystalline_anisotropy_energy + Magnetostatic_energy;
-          double sw_time_error = get_switching_time_error_norm(t_hist);
           double energy_change = total_energy - Initial_energy;
+
+          double sw_time_error = 0;
+            if(Mallinson_applicable)
+              {
+                sw_time_error = get_switching_time_error_norm(t_hist);
+              }
+            else
+              {
+                sw_time_error = MyProblem::Dummy_doc_data;
+              }
+
 
           trace_file
             << Trace_seperator << Exchange_energy
