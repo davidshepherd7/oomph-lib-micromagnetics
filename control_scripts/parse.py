@@ -410,10 +410,10 @@ def shift_relaxation_times(data):
     dts = data['dts']
 
     second_t0_i = None
-    for i, (t, dt) in enumerate(zip(ts[2:], dts[2:]), 2):
+    for i, (t, dt) in enumerate(zip(ts[3:], dts[3:]), 3):
 
         # Look for zeros
-        if abs(t - dt) < 1e-10:
+        if abs(t) < 1e-10:
             second_t0_i = i
             t_relax_max = ts[i-1]
             break
@@ -425,7 +425,7 @@ def shift_relaxation_times(data):
         new_ts = sp.array([t - t_relax_max for t in ts[0:second_t0_i]] + list(ts[second_t0_i:]))
 
         # Check it did what I think it did...
-        assert abs(new_ts[second_t0_i] - dts[second_t0_i]) < 1e-10
+        assert abs(new_ts[second_t0_i]) < 1e-10
 
         data['times'] = new_ts
 
