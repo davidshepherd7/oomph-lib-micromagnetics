@@ -151,6 +151,8 @@ def plot_vs_thing(xthing, data, plot_values,
                   operations_on_values=None,
                   labels=None,
                   y_axis_lims=None,
+                  xscale="linear",
+                  yscale="linear",
                   skip_first_n=0):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
@@ -202,6 +204,9 @@ def plot_vs_thing(xthing, data, plot_values,
                                  + " because I couldn't find the data needed.\n")
 
         axes.set_ylabel(make_axis_label(p, op))
+
+        axes.set_xscale(xscale)
+        axes.set_yscale(yscale)
 
     # x label only on last axis
     axesarray[-1].set_xlabel(xthing)
@@ -646,6 +651,14 @@ def main():
     if 'ml-only' in args.plots:
         plot_ml_error_vs_time = par(plot_vs_time,
                                     plot_values=['m_length_error_maxes'],
+                                    labels=args.label)
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        figs.extend(newfigs)
+
+    if 'ml-only-log' in args.plots:
+        plot_ml_error_vs_time = par(plot_vs_time,
+                                    plot_values=['m_length_error_maxes'],
+                                    yscale="log",
                                     labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
