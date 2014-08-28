@@ -111,6 +111,14 @@ namespace oomph
       specify_command_line_flag("-wave-solution-c", &wave_solution_c,
                                 "Constant for wave exact solution, multiplied by pi to get actual c used. Does nothing if not using it. Default 0.25 (i.e. pi/4).");
       wave_solution_c = 0.25;
+
+      specify_command_line_flag("-read-cached-bem-matrix", &cached_bem_matrix_filename,
+                                "Use a bem matrix from a previous run, default: \"\" (don't use any). Be careful with different methods of removing the phi singularity: different pinned nodes = different numbering!");
+      cached_bem_matrix_filename = "";
+
+      specify_command_line_flag("-write-cached-bem-matrix", &cached_bem_matrix_filename_out,
+                                "Write a bem matrix to disk to reuse later, default: \"\" (don't use any). Be careful with different methods of removing the phi singularity: different pinned nodes = different numbering!");
+      cached_bem_matrix_filename_out = "";
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -371,6 +379,9 @@ namespace oomph
     Vector<Mesh*> phi_mesh_pts;
 
     BEMElementFactoryFctPt bem_element_factory_fct_pt;
+
+    std::string cached_bem_matrix_filename;
+    std::string cached_bem_matrix_filename_out;
 
   };
 

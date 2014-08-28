@@ -453,23 +453,49 @@ namespace oomph
 
       if(!Hierarchical_bem)
         {
-          // Say what we're doing
-          oomph_info << "Building dense BEM matrix, this may take some time"
-                     << std::endl;
-          if(Numerical_int_bem)
-            oomph_info << "Using numerical integration." << std::endl;
-          else
-            oomph_info << "Using analytical integration." << std::endl;
 
-          // Construct the (dense) matrix
-          build_bem_matrix();
+          // If possible read in the bem matrix from a file
+          std::ifstream bem_matrix_file(Bem_matrix_filename_in.c_str());
+          if(Bem_matrix_filename_in != "" && bem_matrix_file.good())
+            {
+              oomph_info << "Reading the BEM matrix from file "
+                         << Bem_matrix_filename_in
+                         << std::endl;
+
+              read_bem_matrix_from_file(bem_matrix_file);
+            }
+          else
+            {
+
+              // Say what we're doing
+              oomph_info << "Building dense BEM matrix, this may take some time"
+                         << std::endl;
+              if(Numerical_int_bem)
+                oomph_info << "Using numerical integration." << std::endl;
+              else
+                oomph_info << "Using analytical integration." << std::endl;
+
+              // Construct the (dense) matrix
+              build_bem_matrix();
+
+              // Write it out if possible
+              if(Bem_matrix_filename_out != "")
+                {
+                  oomph_info << "Writing BEM matrix to file "
+                             << Bem_matrix_filename_out
+                             << std::endl;
+
+                  checked_dynamic_cast<DenseDoubleMatrix*>(bem_matrix_pt())
+                    ->output(Bem_matrix_filename_out);
+                }
+            }
+
         }
       else
         {
           oomph_info << "Building hierarchical BEM matrix" << std::endl;
           build_hierarchical_bem_matrix();
         }
-
 
     }
 

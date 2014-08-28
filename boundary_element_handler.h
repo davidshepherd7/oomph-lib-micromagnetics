@@ -554,7 +554,8 @@ namespace oomph
     AddedMainNumberingLookup Input_lookup;
 
     /// String storing location of bem matrix file to read/write
-    std::string Bem_matrix_filename;
+    std::string Bem_matrix_filename_in;
+    std::string Bem_matrix_filename_out;
 
   protected:
 
@@ -678,11 +679,11 @@ namespace oomph
         {
 
           // If possible read in the bem matrix from a file
-          std::ifstream bem_matrix_file(Bem_matrix_filename.c_str());
-          if(Bem_matrix_filename != "" && bem_matrix_file.good())
+          std::ifstream bem_matrix_file(Bem_matrix_filename_in.c_str());
+          if(Bem_matrix_filename_in != "" && bem_matrix_file.good())
             {
               oomph_info << "Reading the BEM matrix from file "
-                         << Bem_matrix_filename
+                         << Bem_matrix_filename_in
                          << std::endl;
 
               read_bem_matrix_from_file(bem_matrix_file);
@@ -702,14 +703,14 @@ namespace oomph
               build_bem_matrix();
 
               // Write it out if possible
-              if(Bem_matrix_filename != "")
+              if(Bem_matrix_filename_out != "")
                 {
                   oomph_info << "Writing BEM matrix to file "
-                             << Bem_matrix_filename
+                             << Bem_matrix_filename_out
                              << std::endl;
 
                   checked_dynamic_cast<DenseDoubleMatrix*>(bem_matrix_pt())
-                    ->output(Bem_matrix_filename);
+                    ->output(Bem_matrix_filename_out);
                 }
             }
 
