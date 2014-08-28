@@ -105,6 +105,11 @@ namespace oomph
         specify_command_line_flag("-solver", &solver_name, "The linear solver to use, default is SuperLU.");
         solver_name = "superlu";
 
+        specify_command_line_flag("-matrix-type", &matrix_type,
+                                  "The type of Jacobian matrix to use, default: \"cr\".");
+        matrix_type = "cr";
+
+
         specify_command_line_flag("-prec", &prec_name, "The preconditioner to use for iterative solves.");
         prec_name = "none";
 
@@ -248,7 +253,8 @@ namespace oomph
           time_stepper_pt = time_stepper_factory("steady");
         }
 
-      solver_pt = Factories::linear_solver_factory(solver_name);
+      solver_pt = Factories::linear_solver_factory(solver_name, matrix_type,
+                                                   krylov_tol);
 
 
       // Create and set preconditioner pointer if our solver is iterative.
@@ -419,6 +425,7 @@ namespace oomph
     std::string ts_name;
     std::string mp_pred_name;
     std::string solver_name;
+    std::string matrix_type;
     std::string prec_name;
     std::string blocking_name;
     std::string mesh_name;

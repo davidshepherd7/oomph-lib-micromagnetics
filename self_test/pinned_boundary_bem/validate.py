@@ -34,7 +34,8 @@ def main():
     # What to run
     argdicts = {
         "-driver" : 'llg',
-        "-solver" : "som-gmres",
+        "-solver" : "gmres",
+        "-matrix-type" : "som",
         "-prec" : "som-main-ilu-0",
         "-mesh" : "sq_cubeoid",
         "-max-steps" : 1,

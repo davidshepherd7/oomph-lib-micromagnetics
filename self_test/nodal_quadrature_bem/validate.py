@@ -44,7 +44,8 @@ def main():
         '-ms-method' : 'implicit',
         '-quadrature' : 'lnodal',
         '-newton-tol' : 1e-12,
-        "-solver" : "som-gmres",
+        "-solver" : "gmres",
+        "-matrix-type" : "som",
         "-prec" : "som-main-exact",
         }
 

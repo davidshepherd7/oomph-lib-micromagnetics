@@ -263,33 +263,34 @@ namespace oomph
     }
 
 
-
-    LinearSolver* linear_solver_factory(const std::string& _solver_name,
-                                        const double& krylov_tol)
+    /// Private (to .cc file) helper function, have to do this to deal with
+    /// oomph-libs templated iterative solvers without a massive list of
+    /// ifs.
+    template<class T>
+    LinearSolver* linear_solver_factory_helper(const std::string& _solver_name,
+                                               const double& krylov_tol)
     {
       const std::string solver_name = to_lower(_solver_name);
 
       LinearSolver* solver_pt;
 
-      if(solver_name == "superlu")
-        { solver_pt = new SuperLUSolver; }
+      if(solver_name == "fdlu")
+        {
+          solver_pt = new FD_LU;
+        }
+      else if(solver_name == "superlu")
+        {
+          solver_pt = new SuperLUSolver;
+        }
       else if(solver_name == "gmres")
         {
-          IterativeLinearSolver* its_pt = new GMRES<CRDoubleMatrix>;
+          IterativeLinearSolver* its_pt = new GMRES<T>;
           its_pt->max_iter() = 200;
           solver_pt = its_pt;
         }
       else if(solver_name == "cg")
         {
-          IterativeLinearSolver* its_pt = new CG<CRDoubleMatrix>;
-          its_pt->max_iter() = 200;
-          solver_pt = its_pt;
-        }
-      else if(solver_name == "fdlu")
-        { solver_pt = new FD_LU; }
-      else if(solver_name == "som-gmres")
-        {
-          IterativeLinearSolver* its_pt = new GMRES<SumOfMatrices>;
+          IterativeLinearSolver* its_pt = new CG<T>;
           its_pt->max_iter() = 200;
           solver_pt = its_pt;
         }
@@ -300,6 +301,7 @@ namespace oomph
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
+
 
       IterativeLinearSolver* its_pt
         = dynamic_cast<IterativeLinearSolver*>(solver_pt);
@@ -312,6 +314,33 @@ namespace oomph
         }
 
       return solver_pt;
+    }
+
+
+    LinearSolver* linear_solver_factory(const std::string& solver_name,
+                                        const std::string& _matrix_type,
+                                        const double& krylov_tol)
+    {
+
+      const std::string matrix_type = to_lower(_matrix_type);
+
+      if(matrix_type == "cr")
+        {
+          return linear_solver_factory_helper<CRDoubleMatrix>(solver_name,
+                                                              krylov_tol);
+        }
+      else if(matrix_type == "som")
+        {
+          return linear_solver_factory_helper<SumOfMatrices>(solver_name,
+                                                             krylov_tol);
+        }
+      else
+        {
+          std::string err("Unrecognised matrix type ");
+          err += matrix_type;
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
     }
 
 

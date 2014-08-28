@@ -62,7 +62,8 @@ def main():
         '-ms-method' : ["decoupled", "disabled"],
         '-doc-interval' : [0],
         '-hlib-bem' : [1],
-        '-solver' : ['som-gmres'],
+        '-solver' : ['som'],
+        "-matrix-type" : "som",
         '-prec' : ['som-main-ilu-0'],
         '-phi1-singularity-method' : 'pin_bulk',
         }

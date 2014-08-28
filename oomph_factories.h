@@ -97,8 +97,10 @@ namespace oomph
     ExplicitTimeStepper* explicit_time_stepper_factory(const std::string& ts_name);
 
 
-    /// Create a new linear solver as specified by the solver name.
+    /// Create a new linear solver as specified by the solver name and
+    /// matrix type.
     LinearSolver* linear_solver_factory(const std::string& _solver_name,
+                                        const std::string& matrix_type="cr",
                                         const double& krylov_tol=-1);
 
     /// Create a new (general-purpose) preconditioner as specified by the

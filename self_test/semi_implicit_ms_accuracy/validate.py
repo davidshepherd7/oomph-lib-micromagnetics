@@ -35,7 +35,8 @@ def main():
     # What to run
     argdicts = {
         "-driver" : 'llg',
-        "-solver" : "som-gmres",
+        "-solver" : "gmres",
+        "-matrix-type" : "som",
         "-prec" : "som-main-exact",
         '-tmax' : 15,
         '-ref' : 1,

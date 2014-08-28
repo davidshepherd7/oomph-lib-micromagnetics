@@ -63,7 +63,8 @@ def main():
         '-ms-method' : ["decoupled-no-extrapolation", "disabled"],
         '-doc-interval' : [0],
         '-hlib-bem' : [0],
-        '-solver' : ['som-gmres'],
+        '-solver' : ['-gmres'],
+        "-matrix-type" : "som",
         '-prec' : ['som-main-exact'],
         }
 

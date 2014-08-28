@@ -101,7 +101,7 @@ wrapped_fpdiff <(ls -l $valdir/ | grep "J_1_1_block_" | wc -l) <(echo "49")
 # new_clean_dir $valdir
 
 # cd $CONTROL_SCRIPTS/driver/
-# ./driver llg -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square -solver som-gmres \
+# ./driver llg -dt 0.001 -tmax 0.0009 -ref 1 -mesh sq_square -solver gmres -matrix-type som \
 #     -prec som-main-blockexact \
 #     -ts midpoint-bdf -h-app minus_z -initial-m z -implicit-ms -output-jac always \
 #     -outdir $valdir 2>&1 > $valdir/stdout

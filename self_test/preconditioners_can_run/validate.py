@@ -38,7 +38,8 @@ def main():
     argdicts_ms = {
         "-driver" : 'llg',
         "-dt" : 0.1,
-        "-solver" : "som-gmres",
+        "-solver" : "gmres",
+        "-matrix-type" : "som",
         "-prec" : "som-main-block",
         "-llg-prec" : llg_precs,
         "-llg-sub-prec" : llg_sub_precs,

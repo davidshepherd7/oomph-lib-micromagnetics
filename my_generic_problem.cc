@@ -59,9 +59,13 @@ namespace oomph
         SumOfMatrices J2;
         DoubleVector residuals;
 
-        // Check if we are using som-gmres, if so we don't want to get
-        // the whole matrix because it will be very slow! Just do outputs
-        // with the main matrix instead (I'm assuming it's a CR matrix).
+        // Check if we are using a SumOfMatrices, if so we don't want to
+        // get the whole matrix because it will be very slow! Just do
+        // outputs with the main matrix instead (I'm assuming it's a CR
+        // matrix). ??ds Due to oomph-lib's stupid implementation of
+        // templated linear solvers it's impossible to tell which
+        // get_jacobian function to call in the general case. So this will
+        // not detect other linear solvers that use SumOfMatrices :(
         if(dynamic_cast<GMRES<SumOfMatrices>* >(linear_solver_pt()) != 0)
           {
             this->get_jacobian(residuals, J2);
@@ -69,6 +73,9 @@ namespace oomph
           }
         else
           {
+            // Need pointer for use in same way as pointer from
+            // SumOfMatricse. Store actual data in J so that variable is
+            // scoped properly.
             this->get_jacobian(residuals, J);
             J_pt = &J;
           }
