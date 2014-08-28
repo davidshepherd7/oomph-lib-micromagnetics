@@ -581,6 +581,9 @@ namespace oomph
       Zeeman_energy = -VectorOps::dot(solution(),
                                       Magnetic_parameters_pt->h_app(time(), dummy));
       Crystalline_anisotropy_energy = 0.0; //??ds not implemented
+
+      Initial_energy = Exchange_energy + Zeeman_energy
+        + Crystalline_anisotropy_energy + Magnetostatic_energy;
     }
 
     /// Calculate effective damping from midpoint
@@ -684,6 +687,7 @@ namespace oomph
         << Trace_seperator << "effective_damping"
         << Trace_seperator << "alt_effective_damping"
         << Trace_seperator << "switching_time_error"
+        << Trace_seperator << "energy_change"
         ;
     }
 
@@ -704,7 +708,10 @@ namespace oomph
 
       if(t_hist == 0)
         {
+          double total_energy = Exchange_energy + Zeeman_energy
+            + Crystalline_anisotropy_energy + Magnetostatic_energy;
           double sw_time_error = get_switching_time_error_norm(t_hist);
+          double energy_change = total_energy - Initial_energy;
 
           trace_file
             << Trace_seperator << Exchange_energy
@@ -714,11 +721,14 @@ namespace oomph
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << Effective_damping_constant
             << Trace_seperator << Alt_eff_damp
-            << Trace_seperator << sw_time_error;
+            << Trace_seperator << sw_time_error
+            << Trace_seperator << energy_change
+            ;
         }
       else
         {
           trace_file
+            << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
             << Trace_seperator << MyProblem::Dummy_doc_data
@@ -746,6 +756,7 @@ namespace oomph
 
   private:
 
+    double Initial_energy;
     double Exchange_energy;
     double Zeeman_energy;
     double Crystalline_anisotropy_energy;
