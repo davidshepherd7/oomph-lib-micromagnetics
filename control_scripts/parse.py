@@ -432,6 +432,8 @@ def shift_relaxation_times(data):
     return
 
 
+def maxabs(l):
+    return max((abs(x) for x in l))
 
 
 def main():
@@ -763,6 +765,20 @@ def main():
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
                 ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
                 ax.legend()
+
+    if 'scatter-denergy-dt' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='dts',
+              y_value='energy_change',
+              y_operation=maxabs,
+              x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
+
 
     if 'scatter-swerr-dts' in args.plots:
         plot_err_scatter = \
