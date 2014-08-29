@@ -61,6 +61,8 @@ namespace oomph
       Abs_damping_error = MyProblem::Dummy_doc_data;
       Rel_damping_error = MyProblem::Dummy_doc_data;
 
+      Initial_energy = MyProblem::Dummy_doc_data;
+
 
       // Bem stuff
       Bem_handler_pt = 0;
@@ -784,6 +786,7 @@ namespace oomph
         << Trace_seperator << "rel_damping_error"
         << Trace_seperator << "h_applied_first_element"
         << Trace_seperator << "m_length_error_maxes"
+        << Trace_seperator << "energy_change"
         ;
 
     }
@@ -804,7 +807,9 @@ namespace oomph
         crystalline_anisotropy_energy = Dummy_doc_data,
         magnetostatic_energy = Dummy_doc_data,
         micromagnetic_energy = Dummy_doc_data,
-        abs_damping_error = Dummy_doc_data, rel_damping_error = Dummy_doc_data;
+        abs_damping_error = Dummy_doc_data, rel_damping_error = Dummy_doc_data,
+        energy_change = Dummy_doc_data
+        ;
       if(t_hist == 0)
         {
           exchange_energy = Exchange_energy;
@@ -814,6 +819,7 @@ namespace oomph
           micromagnetic_energy = this->micromagnetic_energy();
           abs_damping_error = Abs_damping_error;
           rel_damping_error = Rel_damping_error;
+          energy_change = micromagnetic_energy - Initial_energy;
         }
 
       trace_file
@@ -834,6 +840,7 @@ namespace oomph
         << Trace_seperator << rel_damping_error
         << Trace_seperator << h_app
         << Trace_seperator << VectorOps::max(ml_errors)
+        << Trace_seperator << energy_change
         ;
     }
 
@@ -897,6 +904,8 @@ namespace oomph
         magnetostatics_solve();
 
         calculate_energies(false);
+
+        Initial_energy = micromagnetic_energy();
       }
 
     virtual void dump(std::ofstream& dump_file) const override
@@ -1176,6 +1185,9 @@ namespace oomph
 
     /// \short Magnetostatic energy, computed after previous Newton solve.
     double Magnetostatic_energy;
+
+    /// Initial total energy
+    double Initial_energy;
 
     /// \short Mesh for flux elements to impose boundary condition on phi1.
     Mesh* Flux_mesh_pt;
