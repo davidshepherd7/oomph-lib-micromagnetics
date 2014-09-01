@@ -41,6 +41,28 @@ def build_driver(folder):
 def main():
     """Run driver multiple times in parallel with arguments specified by a file
     in etc/parameter_sets.
+
+    Parameter file format is either:
+
+    1) a dict of cli args and lists of their values, e.g.:
+    {
+    '-dt' : 0.1,
+    '-ref' : [1, 2, 3],
+    }
+    will run with `-dt 0.1 -ref 1` , `-dt 0.1 -ref 2` and `-dt 0.1 -ref 3`.
+
+
+    2) A tuple consisting of a dict as above and (any number of) lists
+    of dicts. e.g.
+
+    ({...}, [{'-a' : 1, '-b' : 2}, {'-a' : 4, '-b' : [4, 5, 6]}], ... )
+
+    each list of dicts contains arguments which only make sense when
+    used together. Each of these dicts should be in the same format as
+    the main dict. Each one is merged into the main dict (using .update)
+    and then used similarly to the main dict in 1).
+
+    Note that all of the additional dicts must contain the same args.
     """
 
     # Parse inputs
@@ -104,7 +126,16 @@ def main():
                             '_'.join(parameter_set.split()))
 
         with open(parameter_file, 'r') as pfile:
-            args_dict = ast.literal_eval(pfile.read())
+            args_file = ast.literal_eval(pfile.read())
+
+        print(args_file)
+
+        try:
+            args_dict = args_file[0]
+            extra = list(args_file[1:])
+        except KeyError:
+            args_dict = args_file
+            extra = []
 
 
         # Make sure we're ready to go
@@ -154,7 +185,9 @@ def main():
 
         print("Running parameter sweep with parameter set", parameter_set)
         print("Output is going into", output_root)
-        mm.run_sweep(args_dict, output_root, parallel_sweep=(not args.debug_mode),
+        mm.run_sweep(args_dict, output_root,
+                     extra_argsets=extra,
+                     parallel_sweep=(not args.debug_mode),
                      processes=args.ncores)
 
     return 0

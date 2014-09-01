@@ -721,13 +721,51 @@ def argdict_varying_args(argdict):
     return varying_args
 
 
-def run_sweep(args_dict, base_outdir, parallel_sweep=False, **kwargs):
+def pure_update(dict1, dict2):
+    """Create a new dictionary by merging two given dictionaries.
+    """
+    return dict(it.chain(dict1.items(), dict2.items()))
+
+
+def generate_argdicts(main_args_dict, extra_args_dicts=None):
+
+    if extra_args_dicts is None:
+        extra_args_dicts = [{}]
+
+    # For each extra dict create the merged dict
+    arg_dicts = [pure_update(main_args_dict, extra) for extra in extra_args_dicts]
+
+    list_of_lists = [product_of_argdict(a) for a in arg_dicts]
+
+    # Make a list of all combinations of arguments in each of the dicts
+    return sum(list_of_lists, [])
+
+
+
+def run_sweep(args_dict, base_outdir, extra_argsets=None,
+              parallel_sweep=False, **kwargs):
+    """Run a parameter sweep.
+
+              extra_argsets is a list of argdicts for arguments which
+              have to come in groups.
+    """
 
     # Make a list of arguments that take multiple different values
     varying_args = argdict_varying_args(args_dict)
 
+    extra_varying_args = set()
+    if extra_argsets is not None:
+        for extra_args in extra_argsets:
+            for a in extra_args:
+                extra_varying_args.update(a.keys())
+
+    varying_args = list(set(varying_args + list(extra_varying_args)))
+
     # Generate list of parameter sets
-    parameter_dicts = product_of_argdict(args_dict)
+    if extra_argsets is not None:
+        parameter_dicts = sum((generate_argdicts(args_dict, a) for a in extra_argsets), [])
+    else:
+        parameter_dicts = generate_argdicts(args_dict, None)
 
     # Run on all args. A little hacky because Pool() can't take locally
     # defined fuctions, can't take multiple args in map and doesn't have a
