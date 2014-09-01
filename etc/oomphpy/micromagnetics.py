@@ -739,6 +739,20 @@ def generate_argdicts(main_args_dict, extra_args_dicts=None):
     return sum([product_of_argdict(a) for a in arg_dicts], [])
 
 
+def find_varying_value_keys(parameter_argdicts):
+    """Find out which keys have values that vary between dicts
+
+    All dicts must have the same keys.
+    """
+
+    varying_keys = set()
+    for argdict in parameter_argdicts[1:]:
+        for k, v in argdict.items():
+            if v != parameter_argdicts[0][k]:
+                varying_keys.add(k)
+
+    return list(varying_keys)
+
 
 def run_sweep(args_dict, base_outdir, extra_argsets=None,
               parallel_sweep=False, **kwargs):
@@ -748,22 +762,14 @@ def run_sweep(args_dict, base_outdir, extra_argsets=None,
               have to come in groups.
     """
 
-    # Make a list of arguments that take multiple different values
-    varying_args = argdict_varying_args(args_dict)
-
-    extra_varying_args = set()
-    if extra_argsets is not None:
-        for extra_args in extra_argsets:
-            for a in extra_args:
-                extra_varying_args.update(a.keys())
-
-    varying_args = list(set(it.chain(varying_args, extra_varying_args)))
-
     # Generate list of parameter sets
     if extra_argsets is not None:
         parameter_dicts = sum([generate_argdicts(args_dict, a) for a in extra_argsets], [])
     else:
         parameter_dicts = generate_argdicts(args_dict, None)
+
+    # Find out which arguments have different values in different runs
+    varying_args = find_varying_value_keys(parameter_dicts)
 
     # Run on all args. A little hacky because Pool() can't take locally
     # defined fuctions, can't take multiple args in map and doesn't have a
