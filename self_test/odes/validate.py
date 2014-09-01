@@ -68,7 +68,7 @@ def main():
     # Run const
     err_codes_const_dt, outdirs_const_dt = \
       mm.run_sweep(argdicts_const_dt, pjoin(base_outdir, "const_dt"),
-                   parallel_sweep=args.parallel)
+                   serial_mode=not args.parallel)
 
     # Check they all ran without crashing
     const_ran = all(e == 0 for e in err_codes_const_dt)
@@ -99,7 +99,7 @@ def main():
     # Run var
     err_codes_var_dt, outdirs_var_dt = \
       mm.run_sweep(argdicts_var_dt, pjoin(base_outdir, "var_dt"),
-                   parallel_sweep=args.parallel)
+                   serial_mode=not args.parallel)
 
     # Check they all ran without crashing
     var_ran = all(e == 0 for e in err_codes_var_dt)

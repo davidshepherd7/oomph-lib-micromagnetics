@@ -107,9 +107,9 @@ def main():
     # Run
     if not args.short:
         err_codes_1d, outdirs_1d = mm.run_sweep(argdicts_1d, base_outdir,
-                                                parallel_sweep=args.parallel)
+                                                serial_mode=not args.parallel)
         err_codes_2d, outdirs_2d = mm.run_sweep(argdicts_2d, base_outdir + "_2d",
-                                                parallel_sweep=args.parallel)
+                                                serial_mode=not args.parallel)
     else:
         err_codes_1d = []
         outdirs_1d = []
@@ -118,7 +118,7 @@ def main():
 
     err_codes_non_exact, outdirs_non_exact = mm.run_sweep(argdicts_non_exact,
                                                           base_outdir+"_non_exact",
-                                                          parallel_sweep=args.parallel)
+                                                          serial_mode=not args.parallel)
 
     err_codes = err_codes_1d + err_codes_2d + err_codes_non_exact
     outdirs = outdirs_1d + outdirs_2d + outdirs_non_exact

@@ -45,7 +45,7 @@ def main():
 
     # Run
     err_codes, outdirs = mm.run_sweep(argdicts, base_outdir,
-                                      parallel_sweep=args.parallel)
+                                      serial_mode=not args.parallel)
 
     # Get data
     datasets = list(map(mm.parse_run, outdirs))

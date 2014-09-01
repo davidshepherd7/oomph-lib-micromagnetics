@@ -247,6 +247,24 @@ def convergence_rate(dataset, error_norm_norm=max):
     return rate
 
 
+def parallel_map(function, *args, serial_mode=False, **kwargs):
+    """Run function with args in parallel using all available cores.
+    """
+
+    import multiprocessing
+
+    # For debugging we often need to run in serial (to get useful stack
+    # traces).
+    if serial_mode:
+        results = list(map(function, *args))
+
+    else:
+        # Run in all parameter sets in parallel
+        results = multiprocessing.Pool(**kwargs).starmap(function, unzip(args), 1)
+
+    return results
+
+
 # Parsing functions
 # ============================================================
 def parse_trace_entry(entry):
@@ -418,51 +436,6 @@ def parse_parameter_sweep(root_dirs, skip_failed=False, **kwargs):
     results = parallel_map(parse_run, result_dirs, **kwargs)
 
     return results
-
-
-def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False,
-                             **kwargs):
-    """Run function with all combinations of parameters in parallel using
-    all available cores.
-
-    parameter_lists should be a list of lists of parameters,
-    """
-
-    import multiprocessing
-
-    # Generate a complete set of combinations of parameters
-    parameter_sets = [dict(zip(parameter_dictionary, x))
-                      for x in it.product(*parameter_dictionary.values())]
-
-    # For debugging we often need to run in serial (to get useful stack
-    # traces).
-    if serial_mode:
-        results = map(function, parameter_sets)
-
-    else:
-        # Run in all parameter sets in parallel
-        results = multiprocessing.Pool(**kwargs).map(function, parameter_sets, 1)
-
-    return results
-
-
-def parallel_map(function, *args, serial_mode=False, **kwargs):
-    """Run function with args in parallel using all available cores.
-    """
-
-    import multiprocessing
-
-    # For debugging we often need to run in serial (to get useful stack
-    # traces).
-    if serial_mode:
-        results = list(map(function, *args))
-
-    else:
-        # Run in all parameter sets in parallel
-        results = multiprocessing.Pool(**kwargs).starmap(function, unzip(args), 1)
-
-    return results
-
 
 
 # Driver execution functions
@@ -663,7 +636,6 @@ def failure_message(arglist, outdir):
     print(red_colour(), ' '.join(arglist), "FAILED", end_colour())
 
 
-
 def product_of_argdict(args_dict):
     """Generate a complete set of combinations of parameters."""
 
@@ -707,18 +679,6 @@ def _run(argdict, base_outdir, varying_args, quiet=False):
 
 def _run_mp(args):
     return _run(*args)
-
-def argdict_varying_args(argdict):
-    """Return a list of arguments in argdictthat take multiple different
-    values.
-    """
-
-    varying_args = []
-    for k, v in argdict.items():
-        if _is_iterable(v) and len(v) > 1:
-            varying_args.append(k)
-
-    return varying_args
 
 
 def pure_update(dict1, dict2):
@@ -774,13 +734,8 @@ def run_sweep(args_dict, base_outdir, extra_argsets=None,
     # Run on all args. A little hacky because Pool() can't take locally
     # defined fuctions, can't take multiple args in map and doesn't have a
     # starmap.
-    if parallel_sweep:
-        args = zip(parameter_dicts, it.repeat(base_outdir),
-                   it.repeat(varying_args))
-        out = multiprocessing.Pool(**kwargs).map(_run_mp, args, 1)
-    else:
-        out = map(_run, parameter_dicts, it.repeat(base_outdir),
-                  it.repeat(varying_args))
+    out = parallel_map(_run, parameter_dicts, it.repeat(base_outdir),
+                       it.repeat(varying_args), **kwargs)
 
     # Extract err_codes etc into separate lists and force execution (just
     # in case it's still an iterator)

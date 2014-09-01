@@ -65,9 +65,9 @@ def main():
 
     # Run
     err_codes_ms, _ = mm.run_sweep(argdicts_ms, base_outdir,
-                                   parallel_sweep=args.parallel)
+                                   serial_mode=not args.parallel)
     err_codes, _ = mm.run_sweep(argdicts, base_outdir,
-                                parallel_sweep=args.parallel)
+                                serial_mode=not args.parallel)
 
     # Check things ran ok
     ran = all((e == 0 for e in it.chain(err_codes_ms, err_codes)))

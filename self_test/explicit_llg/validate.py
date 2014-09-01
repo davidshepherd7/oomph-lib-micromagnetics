@@ -27,6 +27,33 @@ import oomphpy.micromagnetics as mm
 
 import fpdiff
 
+# Old implementations of things:
+
+def parallel_parameter_sweep(function, parameter_dictionary, serial_mode=False,
+                             **kwargs):
+    """Run function with all combinations of parameters in parallel using
+    all available cores.
+
+    parameter_lists should be a list of lists of parameters,
+    """
+
+    import multiprocessing
+
+    # Generate a complete set of combinations of parameters
+    parameter_sets = [dict(zip(parameter_dictionary, x))
+                      for x in it.product(*parameter_dictionary.values())]
+
+    # For debugging we often need to run in serial (to get useful stack
+    # traces).
+    if serial_mode:
+        results = map(function, parameter_sets)
+
+    else:
+        # Run in all parameter sets in parallel
+        results = multiprocessing.Pool(**kwargs).map(function, parameter_sets, 1)
+
+    return results
+
 
 def pass_message(outdirname):
     print("PASSED", os.path.abspath(outdirname))
@@ -139,8 +166,8 @@ def main():
         "-ts" : ["rk2", "rk4"],
         "-tmax" : [3],
         }
-    noms_passes = mm.parallel_parameter_sweep(test_error_norms, noms_argdicts,
-                                              serial_mode=True)
+    noms_passes = parallel_parameter_sweep(test_error_norms, noms_argdicts,
+                                           serial_mode=True)
 
     # If requested then run fully implicit version to generate validata for
     # magnetostatics test.
@@ -175,8 +202,8 @@ def main():
         }
 
     # Now run explicit ones and compare
-    ms_passes = mm.parallel_parameter_sweep(test_vs_implicit, ms_argdicts,
-                                                      serial_mode=True)
+    ms_passes = parallel_parameter_sweep(test_vs_implicit, ms_argdicts,
+                                         serial_mode=True)
 
     if all(noms_passes) and all(ms_passes):
         return 0

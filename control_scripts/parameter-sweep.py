@@ -187,7 +187,7 @@ def main():
         print("Output is going into", output_root)
         mm.run_sweep(args_dict, output_root,
                      extra_argsets=extra,
-                     parallel_sweep=(not args.debug_mode),
+                     serial_mode=args.debug_mode,
                      processes=args.ncores)
 
     return 0

@@ -75,7 +75,7 @@ def main():
                                         "restart"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir, args.parallel)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir, serial_mode=not args.parallel)
 
 
     varying_args = []
