@@ -22,6 +22,7 @@ public:
     MagnetostaticsBlockPreconditioner()
     {
       Llg_preconditioner_pt = 0;
+      Drop_P = false;
     }
 
     /// Virtual destructor. Everything is deleted (recursively) by the
@@ -85,7 +86,15 @@ public:
 
         llg_phi_bulk_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
         llg_phi_bulk_prec_pt->set_dof_to_block_map(dof_to_block);
-        llg_phi_bulk_prec_pt->upper_triangular();
+
+        if(Drop_P)
+          {
+            llg_phi_bulk_prec_pt->lower_triangular();
+          }
+        else
+          {
+            llg_phi_bulk_prec_pt->upper_triangular();
+          }
 
         llg_phi_bulk_prec_pt->turn_into_subsidiary_block_preconditioner
           (this, master_to_subs_block_map);
@@ -130,6 +139,8 @@ public:
     {
       BlockTriangularPreconditioner<CRDoubleMatrix>::setup();
     }
+
+    bool Drop_P;
   };
 
 
