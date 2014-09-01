@@ -40,8 +40,7 @@ public:
         }
 
       {
-        // this->upper_triangular();
-        this->lower_triangular(); //??ds why lower
+        this->lower_triangular();
 
         Vector<unsigned> dof_to_block(7);
 
@@ -100,7 +99,7 @@ public:
 
         llg_phi_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
         llg_phi_prec_pt->set_dof_to_block_map(dof_to_block);
-        // llg_phi_prec_pt->lower_triangular(); //??ds should be lower, ordering weird...
+        llg_phi_prec_pt->upper_triangular();
 
         llg_phi_prec_pt->turn_into_subsidiary_block_preconditioner
           (this, master_to_subs_block_map);
@@ -133,7 +132,7 @@ public:
 
         llg_phi_bulk_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
         llg_phi_bulk_prec_pt->set_dof_to_block_map(dof_to_block);
-        // llg_phi_bulk_prec_pt->lower_triangular(); //??ds should be upper, ordering weird...
+        llg_phi_bulk_prec_pt->upper_triangular();
 
         llg_phi_bulk_prec_pt->turn_into_subsidiary_block_preconditioner
           (llg_phi_prec_pt, master_to_subs_block_map);
