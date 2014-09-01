@@ -735,10 +735,8 @@ def generate_argdicts(main_args_dict, extra_args_dicts=None):
     # For each extra dict create the merged dict
     arg_dicts = [pure_update(main_args_dict, extra) for extra in extra_args_dicts]
 
-    list_of_lists = [product_of_argdict(a) for a in arg_dicts]
-
     # Make a list of all combinations of arguments in each of the dicts
-    return sum(list_of_lists, [])
+    return sum([product_of_argdict(a) for a in arg_dicts], [])
 
 
 
@@ -759,11 +757,11 @@ def run_sweep(args_dict, base_outdir, extra_argsets=None,
             for a in extra_args:
                 extra_varying_args.update(a.keys())
 
-    varying_args = list(set(varying_args + list(extra_varying_args)))
+    varying_args = list(set(it.chain(varying_args, extra_varying_args)))
 
     # Generate list of parameter sets
     if extra_argsets is not None:
-        parameter_dicts = sum((generate_argdicts(args_dict, a) for a in extra_argsets), [])
+        parameter_dicts = sum([generate_argdicts(args_dict, a) for a in extra_argsets], [])
     else:
         parameter_dicts = generate_argdicts(args_dict, None)
 

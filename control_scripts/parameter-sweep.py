@@ -135,7 +135,7 @@ def main():
             extra = list(args_file[1:])
         except KeyError:
             args_dict = args_file
-            extra = []
+            extra = None
 
 
         # Make sure we're ready to go
