@@ -755,6 +755,36 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
 
+    if 'scatter-mean-solve-times-nnode' in args.plots:
+        # for d in all_results:
+            # print(sp.mean(d['total_step_time']))
+
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='initial_nnode',
+              y_value='solver_times',
+              y_operation=lambda x:sp.mean(list(it.chain(*x))))
+
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
+
+    if 'scatter-mean-solve-times-dt' in args.plots:
+        # for d in all_results:
+            # print(sp.mean(d['total_step_time']))
+
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='dts',
+              y_value='solver_times',
+              x_operation=sp.mean,
+              y_operation=lambda x:sp.mean(list(it.chain(*x))))
+
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
 
     if 'scatter-its' in args.plots:
         plot_mean_step_times_scatter = \
