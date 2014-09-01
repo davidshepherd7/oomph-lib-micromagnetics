@@ -295,6 +295,33 @@ namespace oomph
 
           ms_prec_pt = _ms_prec_pt;
         }
+
+      else if(ms_prec == "block-drop-p")
+        {
+          // same as "block" except that we drop the P block (rather than
+          // Q) of the bulk-phi+llg block to get it triangular.
+
+          // Make preconditioners
+          MagnetostaticsBlockPreconditioner* _ms_prec_pt = new MagnetostaticsBlockPreconditioner;
+          Preconditioner* llg_prec_pt = llg_preconditioner_factory(llg_prec,
+                                                                   llg_sub_prec);
+
+          // Set up master/subsidiary links
+          Vector<unsigned> micromag_to_llg_block_map(3);
+          micromag_to_llg_block_map[0] = 2; // mx
+          micromag_to_llg_block_map[1] = 3; // my
+          micromag_to_llg_block_map[2] = 4; // mz
+
+          llg_prec_pt->turn_into_subsidiary_block_preconditioner
+            (_ms_prec_pt, micromag_to_llg_block_map);
+          _ms_prec_pt->Llg_preconditioner_pt = llg_prec_pt;
+
+          _ms_prec_pt->Drop_P = true;
+
+          _ms_prec_pt->build();
+
+          ms_prec_pt = _ms_prec_pt;
+        }
       else
         {
           ms_prec_pt = preconditioner_factory(ms_prec);
