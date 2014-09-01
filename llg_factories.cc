@@ -503,6 +503,14 @@ namespace oomph
           mesh_pt = new SimplerCubicMesh<QMicromagElement<3,2> >
             (nx, nx, nx, lx, lx, lx, time_stepper_pt);
         }
+      else if(mesh_name == "st_cube" && nnode1d == 2)
+        {
+          double lx = 1.0;
+          mesh_pt = new SimpleCubicTetMesh<TMicromagElement<3,2> >
+            (nx, nx, nx, lx, lx, lx, time_stepper_pt);
+
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "sq_cube_periodic" && nnode1d == 2)
         {
           double lx = 1.0;
