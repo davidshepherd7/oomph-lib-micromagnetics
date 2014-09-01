@@ -22,7 +22,6 @@ public:
     MagnetostaticsBlockPreconditioner()
     {
       Llg_preconditioner_pt = 0;
-      Drop_Q = true;
     }
 
     /// Virtual destructor. Everything is deleted (recursively) by the
@@ -40,50 +39,83 @@ public:
           Llg_preconditioner_pt = new SuperLUPreconditioner;
         }
 
-      // Outer/top level preconditioner
       {
-        this->lower_triangular();
+        // this->upper_triangular();
+        this->lower_triangular(); //??ds why lower
 
         Vector<unsigned> dof_to_block(7);
 
         // phi
+        dof_to_block[0] = 0; // phi bulk
         dof_to_block[5] = 0; // phi bound
-        dof_to_block[0] = 1; // phi bulk
 
         // m
-        dof_to_block[2] = 1;
-        dof_to_block[3] = 1;
-        dof_to_block[4] = 1;
+        dof_to_block[2] = 0;
+        dof_to_block[3] = 0;
+        dof_to_block[4] = 0;
 
         // phi1
-        dof_to_block[1] = 2; // phi1 bulk
-        dof_to_block[6] = 2; // phi1 bound
+        dof_to_block[1] = 1; // phi1 bulk
+        dof_to_block[6] = 1; // phi1 bound
 
         set_dof_to_block_map(dof_to_block);
       }
-
-
-      // phi boundary block (just -I)
-      // ============================================================
-      set_subsidiary_preconditioner_pt
-        (new SuperLUPreconditioner, 0);
 
 
       // phi1 block
       // ============================================================
       if(exact_phi1)
         {
-          set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 2);
+          set_subsidiary_preconditioner_pt(new SuperLUPreconditioner, 1);
         }
       else
         {
           set_subsidiary_preconditioner_pt
-            (Factories::preconditioner_factory("poisson-amg"), 2);
+            (Factories::preconditioner_factory("poisson-amg"), 1);
         }
 
 
-      // llg + phi bulk block
+      // llg + phi block
       // ============================================================
+      BlockTriangularPreconditioner<CRDoubleMatrix>* llg_phi_prec_pt = 0;
+      {
+        Vector<unsigned> master_to_subs_block_map(5);
+        master_to_subs_block_map[0] = 2; // m first
+        master_to_subs_block_map[1] = 3;
+        master_to_subs_block_map[2] = 4;
+        master_to_subs_block_map[3] = 0; // Then phi
+        master_to_subs_block_map[4] = 5;
+
+
+        Vector<unsigned> dof_to_block(5);
+        // m + phi bulk in block 0
+        dof_to_block[0] = 0;
+        dof_to_block[1] = 0;
+        dof_to_block[2] = 0;
+        dof_to_block[3] = 0;
+
+        // phi boundary values in block 1
+        dof_to_block[4] = 1;
+
+
+        llg_phi_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
+        llg_phi_prec_pt->set_dof_to_block_map(dof_to_block);
+        // llg_phi_prec_pt->lower_triangular(); //??ds should be lower, ordering weird...
+
+        llg_phi_prec_pt->turn_into_subsidiary_block_preconditioner
+          (this, master_to_subs_block_map);
+      }
+      set_subsidiary_preconditioner_pt(llg_phi_prec_pt, 0);
+
+
+      // phi boundary block (just -I)
+      // ----------------------------------------------------------------
+      llg_phi_prec_pt->set_subsidiary_preconditioner_pt
+        (new SuperLUPreconditioner, 1);
+
+
+      // llg + phi bulk block
+      // ----------------------------------------------------------------
       BlockTriangularPreconditioner<CRDoubleMatrix>* llg_phi_bulk_prec_pt = 0;
       {
         Vector<unsigned> master_to_subs_block_map(4);
@@ -101,27 +133,15 @@ public:
 
         llg_phi_bulk_prec_pt = new BlockTriangularPreconditioner<CRDoubleMatrix>;
         llg_phi_bulk_prec_pt->set_dof_to_block_map(dof_to_block);
-        if(Drop_Q)
-          {
-            llg_phi_bulk_prec_pt->upper_triangular();
-          }
-        else
-          {
-            llg_phi_bulk_prec_pt->lower_triangular();
-          }
+        // llg_phi_bulk_prec_pt->lower_triangular(); //??ds should be upper, ordering weird...
 
         llg_phi_bulk_prec_pt->turn_into_subsidiary_block_preconditioner
-          (this, master_to_subs_block_map);
+          (llg_phi_prec_pt, master_to_subs_block_map);
       }
+      llg_phi_prec_pt->set_subsidiary_preconditioner_pt
+        (llg_phi_bulk_prec_pt, 0);
 
-      // Set the llg+phi preconditioner as the (1,1,) preconditioner to use
-      // for the (1,1) block of the main preconditioner
-      this->set_subsidiary_preconditioner_pt
-        (llg_phi_bulk_prec_pt, 1);
-
-
-      // Now set the preconditioners for the diagonal blocks within the
-      // llg+phi block. First the llg block
+      // llg block
       llg_phi_bulk_prec_pt->set_subsidiary_preconditioner_pt(Llg_preconditioner_pt, 0);
 
       // phi bulk block
@@ -142,8 +162,6 @@ public:
     {
       BlockTriangularPreconditioner<CRDoubleMatrix>::setup();
     }
-
-    bool Drop_Q;
   };
 
 
