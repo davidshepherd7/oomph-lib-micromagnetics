@@ -52,6 +52,7 @@ def exchange_length_ms(A, Ms):
     mu0 = 4 * sp.pi * 1e-7
     return sp.sqrt((2*A) / (mu0 * (Ms**2)))
 
+
 # Helper functions
 # ============================================================
 def _is_iterable(item):
@@ -92,6 +93,27 @@ def differences(arr):
     array. First value is None.
     """
     return [None] + [a - b for a, b in zip(arr[1:], arr[:-1])]
+
+
+def pure_update(dict1, dict2):
+    """Create a new dictionary by merging two given dictionaries.
+    """
+    return dict(it.chain(dict1.items(), dict2.items()))
+
+
+def find_varying_value_keys(parameter_argdicts):
+    """Find out which keys have values that vary between dicts
+
+    All dicts must have the same keys.
+    """
+
+    varying_keys = set()
+    for argdict in parameter_argdicts[1:]:
+        for k, v in argdict.items():
+            if v != parameter_argdicts[0][k]:
+                varying_keys.add(k)
+
+    return list(varying_keys)
 
 
 def unzip(l):
@@ -677,16 +699,6 @@ def _run(argdict, base_outdir, varying_args, quiet=False):
     return err, outdir
 
 
-def _run_mp(args):
-    return _run(*args)
-
-
-def pure_update(dict1, dict2):
-    """Create a new dictionary by merging two given dictionaries.
-    """
-    return dict(it.chain(dict1.items(), dict2.items()))
-
-
 def generate_argdicts(main_args_dict, extra_args_dicts=None):
 
     if extra_args_dicts is None:
@@ -699,27 +711,14 @@ def generate_argdicts(main_args_dict, extra_args_dicts=None):
     return sum([product_of_argdict(a) for a in arg_dicts], [])
 
 
-def find_varying_value_keys(parameter_argdicts):
-    """Find out which keys have values that vary between dicts
-
-    All dicts must have the same keys.
-    """
-
-    varying_keys = set()
-    for argdict in parameter_argdicts[1:]:
-        for k, v in argdict.items():
-            if v != parameter_argdicts[0][k]:
-                varying_keys.add(k)
-
-    return list(varying_keys)
+def run_sweep(args_dict, base_outdir, extra_argsets=None, **kwargs):
+    """Run a parameter sweep
 
 
-def run_sweep(args_dict, base_outdir, extra_argsets=None,
-              parallel_sweep=False, **kwargs):
-    """Run a parameter sweep.
+    args_dict is a dictionary of argument lists.
 
-              extra_argsets is a list of argdicts for arguments which
-              have to come in groups.
+    extra_argsets is a list of argdicts for arguments which have to come
+    in groups.
     """
 
     # Generate list of parameter sets
