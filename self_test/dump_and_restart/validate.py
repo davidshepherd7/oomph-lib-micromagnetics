@@ -86,7 +86,7 @@ def main():
 
     # Run again from restart
     restart_err_codes, restart_outdirs = \
-        mm.unzip( mm.parallel_map(restarted_run, mm.product_of_argdict(argdicts),
+        utils.unzip( utils.parallel_map(restarted_run, mm.product_of_argdict(argdicts),
                                 it.repeat(varying_args),
                                 it.repeat(base_restart_outdir),
                                 it.repeat(base_outdir),

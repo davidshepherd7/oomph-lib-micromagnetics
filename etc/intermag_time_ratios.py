@@ -69,7 +69,7 @@ def main():
     # print("Splitting plots based on values of", args.split)
 
 
-    # split_data = mm.split_up_stuff(all_results, args.split)
+    # split_data = utils.split_up_stuff(all_results, args.split)
 
     # Get mean step times
     for data in all_results:

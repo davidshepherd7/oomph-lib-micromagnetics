@@ -12,7 +12,8 @@ import scipy.optimize
 from scipy import sin, cos, exp, sqrt, pi, dot, cross
 
 # my library
-import utils
+import oomphpy
+from oomphpy import utils as utils
 
 
 # Optionally use 128bit arrays everywhere

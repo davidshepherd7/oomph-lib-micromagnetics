@@ -274,7 +274,7 @@ def my_scatter(data, x_value, y_value,
     a = list(it.product(['r', 'g', 'b', 'k', 'c'], ['x', 'o', '+', '^', '*']))
     symbols = it.cycle(map(''.join, a))
 
-    split_data = mm.split_up_stuff(data, dataset_split_keys)
+    split_data = utils.split_up_stuff(data, dataset_split_keys)
 
 
     # Plot each time stepper
@@ -321,7 +321,7 @@ def multi_plot(data, keys_to_split_on, plot_function):
     """
 
     # Divide into separate data sets
-    split_data = mm.split_up_stuff(data, keys_to_split_on)
+    split_data = utils.split_up_stuff(data, keys_to_split_on)
 
     # Storage for figures
     figs = []
@@ -353,7 +353,7 @@ def multi_plot(data, keys_to_split_on, plot_function):
 def multi_print(data, keys_to_split_on, print_function):
 
     # Divide into separate data sets
-    split_data = mm.split_up_stuff(data, keys_to_split_on)
+    split_data = utils.split_up_stuff(data, keys_to_split_on)
 
     for dataset in split_data:
 

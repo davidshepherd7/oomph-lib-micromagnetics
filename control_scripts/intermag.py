@@ -33,6 +33,7 @@ from glob import glob
 # versions in other places)
 sys.path.insert(1, pjoin(os.path.dirname(__file__), "../etc"))
 import oomphpy
+import oomphpy.utils as utils
 import oomphpy.micromagnetics as mm
 
 
@@ -261,7 +262,7 @@ def main():
     argsets = [a for a in argsets if not is_bad_combination(a)]
 
 
-    dts = list(mm.parallel_map(f, argsets, serial_mode=args.serial))
+    dts = list(utils.parallel_map(f, argsets, serial_mode=args.serial))
 
     print(dts)
 
