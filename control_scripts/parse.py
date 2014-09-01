@@ -28,6 +28,7 @@ from shutil import copy as cp
 # versions in other places)
 sys.path.insert(1, pjoin(os.path.dirname(__file__), "../etc"))
 import oomphpy
+import oomphpy.utils as utils
 import oomphpy.micromagnetics as mm
 
 import itertools as it
