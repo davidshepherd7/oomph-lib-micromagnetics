@@ -288,6 +288,13 @@ namespace oomph
           its_pt->max_iter() = 200;
           solver_pt = its_pt;
         }
+      else if(solver_name == "gmres-right-prec")
+        {
+          GMRES<T>* gmres_pt = new GMRES<T>;
+          gmres_pt->max_iter() = 200;
+          gmres_pt->set_preconditioner_RHS();
+          solver_pt = gmres_pt;
+        }
       else if(solver_name == "cg")
         {
           IterativeLinearSolver* its_pt = new CG<T>;
