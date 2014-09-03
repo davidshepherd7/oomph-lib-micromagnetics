@@ -268,7 +268,9 @@ namespace oomph
     /// ifs.
     template<class T>
     LinearSolver* linear_solver_factory_helper(const std::string& _solver_name,
-                                               const double& krylov_tol)
+                                               const double& krylov_tol,
+                                               const unsigned& max_iter,
+                                               const bool& throw_on_convergence_fail)
     {
       const std::string solver_name = to_lower(_solver_name);
 
@@ -284,22 +286,19 @@ namespace oomph
         }
       else if(solver_name == "gmres")
         {
-          IterativeLinearSolver* its_pt = new GMRES<T>;
-          its_pt->max_iter() = 200;
-          solver_pt = its_pt;
+          GMRES<T>* gmres_pt = new GMRES<T>;
+          gmres_pt->set_preconditioner_LHS();
+          solver_pt = gmres_pt;
         }
       else if(solver_name == "gmres-right-prec")
         {
           GMRES<T>* gmres_pt = new GMRES<T>;
-          gmres_pt->max_iter() = 200;
           gmres_pt->set_preconditioner_RHS();
           solver_pt = gmres_pt;
         }
       else if(solver_name == "cg")
         {
-          IterativeLinearSolver* its_pt = new CG<T>;
-          its_pt->max_iter() = 200;
-          solver_pt = its_pt;
+          solver_pt = new CG<T>;
         }
       else
         {
@@ -314,9 +313,18 @@ namespace oomph
         = dynamic_cast<IterativeLinearSolver*>(solver_pt);
       if(its_pt != 0)
         {
-          if(krylov_tol != -1)
+          its_pt->tolerance() = krylov_tol;
+
+          its_pt->max_iter() = max_iter;
+
+          // set error behaviour
+          if(throw_on_convergence_fail)
             {
-              its_pt->tolerance() = krylov_tol;
+              its_pt->enable_error_after_max_iter();
+            }
+          else
+            {
+              its_pt->disable_error_after_max_iter();
             }
         }
 
@@ -326,7 +334,9 @@ namespace oomph
 
     LinearSolver* linear_solver_factory(const std::string& solver_name,
                                         const std::string& _matrix_type,
-                                        const double& krylov_tol)
+                                        const double& krylov_tol,
+                                        const unsigned& max_iter,
+                                        const bool& throw_on_convergence_fail)
     {
 
       const std::string matrix_type = to_lower(_matrix_type);
@@ -334,12 +344,16 @@ namespace oomph
       if(matrix_type == "cr")
         {
           return linear_solver_factory_helper<CRDoubleMatrix>(solver_name,
-                                                              krylov_tol);
+                                                              krylov_tol,
+                                                              max_iter,
+                                                              throw_on_convergence_fail);
         }
       else if(matrix_type == "som")
         {
           return linear_solver_factory_helper<SumOfMatrices>(solver_name,
-                                                             krylov_tol);
+                                                             krylov_tol,
+                                                             max_iter,
+                                                             throw_on_convergence_fail);
         }
       else
         {

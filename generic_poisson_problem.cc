@@ -115,7 +115,8 @@ build(Vector<Mesh*>& bulk_mesh_pts)
   update_dirichlet_conditions();
 
   // Always use CG with amg w/ poisson settings (it's very good).
-  linear_solver_pt() = Factories::linear_solver_factory("cg");
+  linear_solver_pt() = Factories::linear_solver_factory("cg", "cr", 1e-8,
+                                                        200, true);
   checked_dynamic_cast<IterativeLinearSolver*>(linear_solver_pt())
     ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
 

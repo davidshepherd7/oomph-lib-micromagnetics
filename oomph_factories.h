@@ -100,8 +100,10 @@ namespace oomph
     /// Create a new linear solver as specified by the solver name and
     /// matrix type.
     LinearSolver* linear_solver_factory(const std::string& _solver_name,
-                                        const std::string& matrix_type="cr",
-                                        const double& krylov_tol=-1);
+                                        const std::string& matrix_type,
+                                        const double& krylov_tol,
+                                        const unsigned& max_iter,
+                                        const bool& throw_on_convergence_fail);
 
     /// Create a new (general-purpose) preconditioner as specified by the
     /// name.

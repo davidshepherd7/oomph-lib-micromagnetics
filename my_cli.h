@@ -170,8 +170,19 @@ namespace oomph
         specify_command_line_flag("-mp-update-pinned", &mp_update_pinned);
         mp_update_pinned = -1;
 
+
         specify_command_line_flag("-krylov-tol", &krylov_tol);
-        krylov_tol = -1;
+        krylov_tol = 1e-8;
+
+        specify_command_line_flag("-krylov-max-iter", &krylov_max_iter,
+                                  "Maximum iterations for iterative linear solver, default: 200.");
+        krylov_max_iter = 200;
+
+        specify_command_line_flag("-krylov-throw-on-fail", &krylov_throw_on_fail,
+                                  "Throw an error if no convergence, default: false.");
+        krylov_throw_on_fail = 0;
+
+
 
         specify_command_line_flag("-initial-is-exact", &initial_is_exact);
         initial_is_exact = 0;
@@ -253,8 +264,9 @@ namespace oomph
           time_stepper_pt = time_stepper_factory("steady");
         }
 
-      solver_pt = Factories::linear_solver_factory(solver_name, matrix_type,
-                                                   krylov_tol);
+      solver_pt = Factories::linear_solver_factory
+        (solver_name, matrix_type, krylov_tol, krylov_max_iter,
+         krylov_throw_on_fail);
 
 
       // Create and set preconditioner pointer if our solver is iterative.
@@ -403,7 +415,10 @@ namespace oomph
     double newton_max_residual;
     unsigned newton_max_iterations;
     int crash_newton_fail;
+
     double krylov_tol;
+    unsigned krylov_max_iter;
+    int krylov_throw_on_fail;
 
     std::string outdir;
     std::string output_jacobian;

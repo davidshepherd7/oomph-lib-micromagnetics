@@ -272,7 +272,8 @@ namespace oomph
 
         // A good solver
         Phi_seg_solve_parameters.linear_solver_pt
-          = Factories::linear_solver_factory("cg");
+          = Factories::linear_solver_factory("cg", "cr", 1e-8,
+                                             200, true);
         checked_dynamic_cast<IterativeLinearSolver*>(Phi_seg_solve_parameters.linear_solver_pt)
           ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
 
@@ -281,17 +282,20 @@ namespace oomph
         Phi_1_seg_solve_parameters.jacobian_reuse_is_enabled = true;
         Phi_1_seg_solve_parameters.problem_is_nonlinear = false;
         Phi_1_seg_solve_parameters.linear_solver_pt
-          = Factories::linear_solver_factory("cg");
+          = Factories::linear_solver_factory("cg", "cr", 1e-8,
+                                             200, true);
         checked_dynamic_cast<IterativeLinearSolver*>(Phi_1_seg_solve_parameters.linear_solver_pt)
           ->preconditioner_pt() = Factories::preconditioner_factory("poisson-amg");
       }
     else
       {
         Phi_seg_solve_parameters.linear_solver_pt
-          = Factories::linear_solver_factory("superlu");
+          = Factories::linear_solver_factory("superlu", "cr", 1e-8,
+                                             200, true);
 
         Phi_1_seg_solve_parameters.linear_solver_pt
-          = Factories::linear_solver_factory("superlu");
+          = Factories::linear_solver_factory("superlu", "cr", 1e-8,
+                                             200, true);
       }
 
 
