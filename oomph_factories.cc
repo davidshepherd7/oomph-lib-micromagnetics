@@ -284,13 +284,13 @@ namespace oomph
         {
           solver_pt = new SuperLUSolver;
         }
-      else if(solver_name == "gmres")
+      else if(solver_name == "gmres-left-prec")
         {
           GMRES<T>* gmres_pt = new GMRES<T>;
           gmres_pt->set_preconditioner_LHS();
           solver_pt = gmres_pt;
         }
-      else if(solver_name == "gmres-right-prec")
+      else if(solver_name == "gmres")
         {
           GMRES<T>* gmres_pt = new GMRES<T>;
           gmres_pt->set_preconditioner_RHS();
