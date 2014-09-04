@@ -220,7 +220,7 @@ def plot_vs_thing(xthing, data, plot_values,
     axesarray[-1].set_xlabel(xthing)
 
     # Add a single legend
-    axesarray[0].legend()
+    axesarray[0].legend(loc=0)
 
     # Resize y-axes if requested
     if y_axis_lims is not None:
@@ -318,7 +318,7 @@ def my_scatter(data, x_value, y_value,
     # Pick the right axis scales
     ax.axis('auto')
 
-    ax.legend()
+    ax.legend(loc=0)
 
 
 
@@ -852,7 +852,7 @@ def main():
                 xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
                 ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
-                ax.legend()
+                ax.legend(loc=0)
 
     if 'scatter-denergy-dt' in args.plots:
         plot_err_scatter = \
@@ -886,7 +886,7 @@ def main():
                 xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
                 ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
-                ax.legend()
+                ax.legend(loc=0)
 
 
     if 'scatter-err-tols' in args.plots:
@@ -1104,7 +1104,7 @@ def main():
                 if ax.get_legend() is not None: # if legend exists
                     handles, labels = ax.get_legend_handles_labels()
                     labels = [legend_thesisify(l) for l in labels]
-                    ax.legend(handles, labels)
+                    ax.legend(handles, labels, loc=0)
 
 
 
