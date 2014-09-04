@@ -82,6 +82,9 @@ def axis_label_thesisify(label):
                      '-tol' : r'$\epsilon_\Delta$',
                      'trace values' : r'$y_n$',
                      'error norms' : r'$|y(t_n) - y_n|$',
+                     'initial nnode' : r'$N$',
+
+                     'n solver iters' : r'Iterations',
 
                      # newton res stuff
                      'max of "m length error maxes"' : r'max(max$(|\mathbf{m}| - 1)$)',
@@ -131,10 +134,14 @@ def latex_safe(string):
     return string.replace("_", " ")
 
 
-def make_label(p, op=None):
+def make_label(p, op=None, op_name=None):
     """Create a label from field name and operation.
     """
-    if op is not None:
+
+    # Use the most specific name we have
+    if op_name is not None:
+        return op_name + " of " + '"' + p + '"'
+    elif op is not None:
         return op.__name__ + " of " + '"' + p + '"'
     else:
         return p
@@ -243,6 +250,8 @@ def my_scatter(data, x_value, y_value,
                x_operation=None, y_operation=None,
                xscale="log",
                yscale="log",
+               y_operation_name=None,
+               x_operation_name=None,
                **kwargs):
     """Plot a scatter plot at point (x_value, y_value) for each dataset in
     data. Perform operations on data before plotting (by default take
@@ -299,8 +308,8 @@ def my_scatter(data, x_value, y_value,
                 label=name)
 
     # Label
-    ax.set_xlabel(make_axis_label(x_value, x_operation))
-    ax.set_ylabel(make_axis_label(y_value, y_operation))
+    ax.set_xlabel(make_axis_label(x_value, x_operation, x_operation_name))
+    ax.set_ylabel(make_axis_label(y_value, y_operation, y_operation_name))
 
     ax.set_xscale(xscale)
     ax.set_yscale(yscale)
@@ -764,9 +773,11 @@ def main():
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
+              yscale='linear',
               x_value='initial_nnode',
-              y_value='solver_times',
-              y_operation=lambda x:sp.mean(list(it.chain(*x))))
+              y_value='real_solver_times',
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              y_operation_name="mean")
 
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
@@ -779,10 +790,27 @@ def main():
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
+              yscale='linear',
               x_value='dts',
-              y_value='solver_times',
+              y_value='real_solver_times',
               x_operation=sp.mean,
-              y_operation=lambda x:sp.mean(list(it.chain(*x))))
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              y_operation_name="mean")
+
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
+
+    if 'scatter-its-dt' in args.plots:
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              yscale='linear',
+              x_value='dts',
+              y_value='n_solver_iters',
+              x_operation=sp.mean,
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              y_operation_name="mean")
 
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
@@ -792,9 +820,11 @@ def main():
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
+              yscale='linear',
               x_value='initial_nnode',
               y_value='n_solver_iters',
-              y_operation=lambda x:sp.mean(list(it.chain(*x))))
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              y_operation_name="mean")
 
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
