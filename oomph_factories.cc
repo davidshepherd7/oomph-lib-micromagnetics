@@ -471,13 +471,6 @@ namespace oomph
           // Use Euclid (ILU)
           hp_pt->use_Euclid();
 
-          // Use level specified
-          hp_pt->euclid_level() = atoi((split_string(prec_name, '-')[1]).c_str());
-
-
-          // Simple parameters
-          hp_pt->euclid_droptol() = 0.0;
-
           // Use other algorithms
           // hp_pt->enable_euclid_rowscale();
           // hp_pt->enable_euclid_using_BJ() = 0.0;
@@ -487,6 +480,22 @@ namespace oomph
           hp_pt->euclid_print_level() = 0;
 
           prec_pt = hp_pt;
+
+          std::string postfix = split_string(prec_name, '-')[1];
+          if(postfix == "high")
+            {
+              hp_pt->euclid_level() = 3;
+              hp_pt->euclid_droptol() = 1e-5;
+            }
+          else
+            {
+              // Use level specified
+              hp_pt->euclid_level() = atoi(postfix.c_str());
+
+              // Simple parameters
+              hp_pt->euclid_droptol() = 0.0;
+            }
+
 
 #else // If no Hypre can only do ilu 0
           if(prec_name == "ilu-0")
