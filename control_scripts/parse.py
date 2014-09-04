@@ -545,16 +545,21 @@ def main():
 
     # Filter the results based on the arguments given, using literal eval
     # means that floats are compared as floats, strings as strings etc.
-    for f in args.filter:
-        key, value = ast.literal_eval(f)
-        all_results = [d for d in all_results if ast.literal_eval(d[key]) == value]
-        print("filtering with", f, ".", len(all_results), "results left")
+    try:
+        for f in args.filter:
+            key, value = ast.literal_eval(f)
+            all_results = [d for d in all_results if ast.literal_eval(str(d[key])) == value]
+            print("filtering with", f, ".", len(all_results), "results left")
 
 
-    for f in args.not_filter:
-        key, value = ast.literal_eval(f)
-        all_results = [d for d in all_results if ast.literal_eval(d[key]) != value]
-        print("filtering with not", f, ".", len(all_results), "results left")
+        for f in args.not_filter:
+            key, value = ast.literal_eval(f)
+            all_results = [d for d in all_results if ast.literal_eval(str(d[key])) != value]
+            print("filtering with not", f, ".", len(all_results), "results left")
+
+    except ValueError:
+        print("failed on:", f, key, value, all_results[0][key])
+        raise
 
 
     for data in all_results:
