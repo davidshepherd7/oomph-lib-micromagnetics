@@ -543,18 +543,40 @@ def main():
     if args.print_all_data:
         pprint(all_results)
 
+    def literal_eval_hack(input):
+        """A literal eval that can handle being given numbers instead of
+
+        a string containing the text of a number.
+        """
+        try:
+            return ast.literal_eval(input)
+        except ValueError:
+            pass
+
+        try:
+            return ast.literal_eval(str(input))
+        except ValueError:
+            pass
+
+        try:
+            return ast.literal_eval('"' + str(input) + '"')
+        except ValueError:
+            print("failed to eval:", input)
+            raise
+
+
     # Filter the results based on the arguments given, using literal eval
     # means that floats are compared as floats, strings as strings etc.
     try:
         for f in args.filter:
             key, value = ast.literal_eval(f)
-            all_results = [d for d in all_results if ast.literal_eval(str(d[key])) == value]
+            all_results = [d for d in all_results if literal_eval_hack(str(d[key])) == value]
             print("filtering with", f, ".", len(all_results), "results left")
 
 
         for f in args.not_filter:
             key, value = ast.literal_eval(f)
-            all_results = [d for d in all_results if ast.literal_eval(str(d[key])) != value]
+            all_results = [d for d in all_results if literal_eval_hack(str(d[key])) != value]
             print("filtering with not", f, ".", len(all_results), "results left")
 
     except ValueError:
