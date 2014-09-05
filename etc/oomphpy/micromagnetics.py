@@ -349,6 +349,8 @@ def argdict2list(argdict):
             else:
                 pass
 
+    # Sort the arguments so that the ordering is deterministic
+    sorted_processed_kwargs = list(utils.sort_as_pairs(processed_kwargs))
 
     # If mpi_ncores is in the dict then run with mpi and that many cores,
     # otherwise don't use mpi.
@@ -361,7 +363,7 @@ def argdict2list(argdict):
     binary_path = argdict.get('-binary')
 
     # Construct argument list and command
-    arglist = [str(argdict['-driver'])] + processed_kwargs
+    arglist = [str(argdict['-driver'])] + sorted_processed_kwargs
 
     return arglist, binary_path, mpi_command
 

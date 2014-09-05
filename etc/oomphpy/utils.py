@@ -129,6 +129,26 @@ def split_up_stuff(big_dict_list, keys_to_split_on=None):
     return newlist
 
 
+def grouper(iterable, n, fillvalue=None):
+    """Collect data into fixed-length chunks or blocks
+
+    Taken from itertools examples.
+
+    grouper('ABCDEFG', 3, fillvalue='x') --> 'ABC', 'DEF', 'Gxx'
+    """
+
+    args = [iter(iterable)] * n
+    return it.zip_longest(fillvalue=fillvalue, *args)
+
+
+def sort_as_pairs(iterable):
+    """Convert list to list of pairs, sort and convert back"""
+
+    pairs = grouper(iterable, 2)
+    sorted_pairs = sorted(pairs, key=lambda p:p[0])
+    return it.chain(*sorted_pairs) # back to flat iterator
+
+
 # Dictionaries
 # ============================================================
 
