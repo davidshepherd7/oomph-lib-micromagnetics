@@ -63,7 +63,7 @@ def main():
         '-ms-method' : ["decoupled", "disabled"],
         '-doc-interval' : [0],
         '-hlib-bem' : [1],
-        '-solver' : ['som'],
+        '-solver' : ['gmres'],
         "-matrix-type" : "som",
         '-prec' : ['som-main-ilu-0'],
         '-phi1-singularity-method' : 'pin_bulk',
@@ -76,7 +76,7 @@ def main():
                                         "restart"))
 
     # Run
-    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir, args.parallel)
+    err_codes, outdirs = mm.run_sweep(argdicts, base_outdir, serial_mode=not args.parallel)
 
 
     varying_args = []

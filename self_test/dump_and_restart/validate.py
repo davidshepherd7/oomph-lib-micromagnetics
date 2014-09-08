@@ -18,6 +18,7 @@ from os.path import join as pjoin
 # versions in other places)
 sys.path.insert(1, pjoin(os.path.dirname(__file__), "../../etc"))
 import oomphpy
+import oomphpy.utils as utils
 import oomphpy.micromagnetics as mm
 import oomphpy.tests as tests
 
@@ -63,7 +64,7 @@ def main():
         '-ms-method' : ["decoupled-no-extrapolation", "disabled"],
         '-doc-interval' : [0],
         '-hlib-bem' : [0],
-        '-solver' : ['-gmres'],
+        '-solver' : ['gmres'],
         "-matrix-type" : "som",
         '-prec' : ['som-main-exact'],
         }
