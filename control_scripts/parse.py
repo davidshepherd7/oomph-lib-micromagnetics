@@ -843,6 +843,11 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
 
+        # iters axis should start from 0
+        for fig in newfigs:
+            for ax in fig.axes:
+                ax.set_ylim(bottom=0)
+
     if 'scatter-its' in args.plots:
         plot_mean_step_times_scatter = \
           par(my_scatter,
@@ -856,6 +861,11 @@ def main():
 
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
         figs.extend(newfigs)
+
+        # iters axis should start from 0
+        for fig in newfigs:
+            for ax in fig.axes:
+                ax.set_ylim(bottom=0)
 
     if 'scatter-err-dts' in args.plots:
         plot_err_scatter = \
