@@ -285,12 +285,11 @@ namespace oomph
             needs_reset = true;
           }
 
-        Problem::get_dvaluesdt(f);
+        MyProblem::get_dvaluesdt(f);
 
         if(needs_reset)
           {
             Residual_calculator_pt->set_use_gilbert_form();
-            Inside_explicit_timestep = false;
           }
 
         Inside_explicit_timestep = false;
@@ -898,8 +897,6 @@ namespace oomph
 
     virtual void actions_after_set_initial_condition() override
       {
-        MyProblem::actions_after_set_initial_condition();
-
         // Solve for initial field and phi values
         magnetostatics_solve();
 
@@ -911,6 +908,8 @@ namespace oomph
         calculate_energies(false);
 
         Initial_energy = micromagnetic_energy();
+
+        MyProblem::actions_after_set_initial_condition();
       }
 
     virtual void dump(std::ofstream& dump_file) const override

@@ -9,11 +9,14 @@
 namespace oomph
 {
 
+  /// Trapezoid rule time integration scheme
+  // Warning: moving nodes not implemented (I have no test case)
   class TR : public TimeStepper
   {
   public:
-    /// Constructor, storage for two past derivatives, one past value,
-    /// present value and predicted value.
+    /// Constructor, storage for two history derivatives (one for TR and
+    /// one for the predictor step), one history value, present value and
+    /// predicted value.
     TR(bool adaptive=false) : TimeStepper(2+2+1, 1)
     {
       //Set the weight for the zero-th derivative
@@ -26,6 +29,8 @@ namespace oomph
       // Initialise adaptivity stuff
       Predictor_weight.assign(4, 0.0);
       Error_weight = 0.0;
+
+      Shift_f = true;
     }
 
     /// Virtual destructor
@@ -106,45 +111,51 @@ namespace oomph
                           OOMPH_EXCEPTION_LOCATION, OOMPH_CURRENT_FUNCTION);
     }
 
-    void actions_after_timestep(Problem* problem_pt) {}
+    void actions_after_timestep(Problem* problem_pt)
+    {
+      // only ever want this to be true for one step
+      Shift_f = true;
+    }
 
     void actions_before_timestep(Problem* problem_pt)
     {
+#ifdef PARANOID
       if(!Initial_derivative_set)
         {
-          oomph_info << "Solving for derivative at initial time."
-                     << " Warning: if residual is not in the correct form this may fail."
-                     << std::endl;
-
-          // Shift time backwards because we have already shifted it to t_1
-          // when this function is called but we actually want the
-          // derivative at t_0.
-          double backup_time = time_pt()->time();
-          time_pt()->time() -= time_pt()->dt();
-
-          // Get the derivative at initial time and store in derivatives slot
-          // ready for use in timestepping.
-          DoubleVector f0;
-          problem_pt->get_dvaluesdt(f0);
-          problem_pt->set_dofs(this->derivative_index(0), f0);
-
-          // Revert time value
-          time_pt()->time() = backup_time;
-
-          Initial_derivative_set = true;
+          std::string err = "Initial derivative of TR has not been set";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
         }
+#endif
+    }
+
+    void setup_initial_derivative(Problem* problem_pt)
+    {
+      oomph_info << "Solving for derivative at initial time."
+                 << " Warning: if residual is not in the correct form this may fail."
+                 << std::endl;
+
+      // Get the derivative at initial time
+      DoubleVector f0;
+      problem_pt->get_dvaluesdt(f0);
+
+      // store in derivatives slot ready for use in timestepping.
+      problem_pt->set_dofs(this->derivative_index(0), f0);
+
+      Initial_derivative_set = true;
+      Shift_f = false;
     }
 
 
     /// \short This function updates the Data's time history so that
-    /// we can advance to the next timestep. As for BDF schemes,
-    /// we simply push the values backwards...
+    /// we can advance to the next timestep.
     void shift_time_values(Data* const &data_pt)
     {
       //Find number of values stored
       unsigned n_value = data_pt->nvalue();
 
-      // Previous step dt, time has already been shifted so it's in slot 1.
+      // Get previous step dt, time_pt has already been shifted so it's in
+      // slot 1.
       double dtn = time_pt()->dt(1);
 
       //Loop over the values
@@ -153,22 +164,29 @@ namespace oomph
           //Set previous values to the previous value, if not a copy
           if(data_pt->is_a_copy(j) == false)
             {
-              // Calculate time derivative at step n
-              double fnm1 = data_pt->value(derivative_index(0), j);
-              double ynm1 = data_pt->value(1, j);
-              double yn = data_pt->value(0, j);
-              double fn = (2/dtn)*(yn - ynm1) - fnm1;
+              if(Shift_f)
+                {
+                  // Calculate time derivative at step n by rearranging the TR
+                  // formula.
+                  double fnm1 = data_pt->value(derivative_index(0), j);
+                  double ynm1 = data_pt->value(1, j);
+                  double yn = data_pt->value(0, j);
+                  double fn = (2/dtn)*(yn - ynm1) - fnm1;
 
-              data_pt->set_value(derivative_index(0), j, fn);
+                  data_pt->set_value(derivative_index(0), j, fn);
 
-              // Shift time derivative
-              data_pt->set_value(derivative_index(1), j, fnm1);
+                  // Shift time derivative
+                  data_pt->set_value(derivative_index(1), j, fnm1);
+                }
+              else
+                {
+                  std::cout << "didn't shift derivatives" << std::endl;
+                }
+
+              // Shift value
+              data_pt->set_value(1, j,
+                                 data_pt->value(0, j));
             }
-
-          // Shift value
-          data_pt->set_value(1, j,
-                             data_pt->value(0, j));
-
         }
 
     }
@@ -176,43 +194,13 @@ namespace oomph
 
     bool Initial_derivative_set;
 
+    bool Shift_f;
+
     ///\short This function advances the time history of the positions at a
-    ///node. ??ds I don't really understand this part so there's a good
-    ///chance it will break if you try to do problems with moving nodes...
+    ///node.
     void shift_time_positions(Node* const &node_pt)
     {
-      unsigned n_dim = node_pt->ndim();
-      unsigned n_position_type = node_pt->nposition_type();
-
-      // Previous step dt, time has already been shifted so it's in slot 1.
-      double dtn = time_pt()->dt(1);
-
-      //Loop over the position directions
-      for(unsigned i=0;i<n_dim;i++)
-        {
-          //If the position is not a copy
-          if(node_pt->position_is_a_copy(i) == false)
-            {
-              //Loop over the position types
-              for(unsigned k=0;k<n_position_type;k++)
-                {
-                  // Calculate velocity at step n
-                  double dxnm1 = node_pt->x_gen(derivative_index(0), k, i);
-                  double xnm1 = node_pt->x_gen(1, k, i);
-                  double xn = node_pt->x_gen(0, k, i);
-                  double dxn = (2/dtn)*(xn - xnm1) - dxnm1;
-
-                  node_pt->x_gen(derivative_index(0), k, i) = dxn;
-
-                  // Shift velocity
-                  node_pt->x_gen(derivative_index(1), k, i) = dxnm1;
-
-                  // Shift the stored position
-                  node_pt->x_gen(1, k, i) = node_pt->x_gen(0,k,i);
-                }
-            }
-
-        }
+      // do nothing, not implemented for moving nodes
     }
 
 

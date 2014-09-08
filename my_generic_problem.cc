@@ -10,6 +10,8 @@
 
 #include "magnetics_helpers.h"
 
+#include "tr.h"
+
 
 namespace oomph
 {
@@ -238,7 +240,15 @@ namespace oomph
 
   /// Hook to be overloaded with any calculations needed after setting of
   /// initial conditions.
-  void MyProblem::actions_after_set_initial_condition() {}
+  void MyProblem::actions_after_set_initial_condition()
+  {
+    // If using TR calculate initial derivative with these initial conditions
+    TR* tr_pt = dynamic_cast<TR*>(time_stepper_pt());
+    if(tr_pt != 0)
+      {
+        tr_pt->setup_initial_derivative(this);
+      }
+  }
 
   void MyProblem::initial_doc()
   {
