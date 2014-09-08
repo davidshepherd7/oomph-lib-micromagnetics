@@ -85,7 +85,8 @@ def axis_label_thesisify(label):
                      'error norms' : r'$|y(t_n) - y_n|$',
                      'initial nnode' : r'$N$',
 
-                     'n solver iters' : r'Iterations',
+                     'mean of "n solver iters"' : r'mean iterations',
+                     'mean of "real solver times"' : r'mean solve time (s)',
 
                      # newton res stuff
                      'max of "m length error maxes"' : r'max(max$(|\mathbf{m}| - 1)$)',
@@ -117,11 +118,15 @@ def legend_thesisify(label):
                 'tr' : 'TR',
                 'bdf2' : 'BDF2',
                 'bdf1' : 'BDF1',
+                'som-main-block-drop-p ' : r'$\mathcal{P}_2$ ',
+                'som-main-block ' : r'$\mathcal{P}_3$ ',
+                'gauss' : 'Gaussian',
+                'lnodal' : 'nodal',
                 }
 
     for k, v in replaces.items():
-        if k == label:
-            return v
+        if k in label:
+            return label.replace(k, v) # only do first replace found
     else:
         return label
 
@@ -748,6 +753,7 @@ def main():
                               operations_on_values=[identity, sp.mean],
                               labels=args.label)
         newfigs = multi_plot(all_results, args.split, plot_iters_step)
+
         figs.extend(newfigs)
 
 
@@ -800,6 +806,33 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_wall_time_vs_time)
         figs.extend(newfigs)
 
+    if 'scatter-step-time' in args.plots:
+        step_time_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='total_step_time',
+              yscale='linear',
+              x_value='initial_nnode',
+              y_operation=sp.mean)
+
+
+        newfigs = multi_plot(all_results, args.split, step_time_scatter)
+        figs.extend(newfigs)
+
+    if 'scatter-step-time-log' in args.plots:
+        step_time_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='total_step_time',
+              yscale='log',
+              x_value='initial_nnode',
+              y_operation=sp.mean)
+
+
+        newfigs = multi_plot(all_results, args.split, step_time_scatter)
+        figs.extend(newfigs)
 
     if 'step-times' in args.plots:
         # for d in all_results:
@@ -845,6 +878,23 @@ def main():
               x_value='dts',
               y_value='real_solver_times',
               x_operation=sp.mean,
+              y_operation=lambda x:sp.mean(list(it.chain(*x))),
+              y_operation_name="mean")
+
+        newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
+        figs.extend(newfigs)
+
+    if 'scatter-mean-prec-times-nnode' in args.plots:
+        # for d in all_results:
+            # print(sp.mean(d['total_step_time']))
+
+        plot_mean_step_times_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              yscale='linear',
+              x_value='initial_nnode',
+              y_value='preconditioner_setup_times',
               y_operation=lambda x:sp.mean(list(it.chain(*x))),
               y_operation_name="mean")
 
