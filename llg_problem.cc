@@ -345,17 +345,17 @@ namespace oomph
 
 
   /// \short Solve for the magnetostatic field.
-  void LLGProblem::magnetostatics_solve()
+  void LLGProblem::magnetostatics_solve(const unsigned& t_step)
   {
     // Do nothing if no solve is needed
     if(!fembem_ms_flag()) return;
 
-    // Check we're not inside a segregated solve already
+    // paranoid: check we're not inside a segregated solve already
     check_not_segregated(OOMPH_CURRENT_FUNCTION);
 
     Inside_segregated_magnetostatics = true;
 
-    // We really need c++11, this array initialisation is ridiculous!
+    // Lists of indices to pin for the different segregated solves
     Vector<unsigned> non_phi_1_indices, non_phi_indices;
     non_phi_1_indices.push_back(phi_index());
     non_phi_1_indices.push_back(m_index(0));
@@ -366,14 +366,36 @@ namespace oomph
     non_phi_indices.push_back(m_index(0));
     non_phi_indices.push_back(m_index(1));
     non_phi_indices.push_back(m_index(2));
+    // We really need c++11, this array initialisation is ridiculous!
+
 
     oomph_info << std::endl
                << "Decoupled BEM solve" << std::endl
                << "--------------------------" <<std::endl;
 
-
+    // Back up the solver parameters
     SolverParameters previous_solver_parameters;
     get_solver_parameters(previous_solver_parameters);
+
+
+    // Maybe shuffle history dofs to calculate history values of phi
+    // ============================================================]
+    DoubleVector backed_up_dofs;
+    if(t_step > 0)
+      {
+        // Backup current dofs. Don't use
+        // problem.store_current_dof_values() because that could be
+        // overwritten during the solve below!
+        get_dofs(0, backed_up_dofs);
+
+        // Get dofs at previous time step
+        DoubleVector dof_n;
+        get_dofs(1, dof_n);
+
+        // and put them into the "current" values
+        set_dofs(0, dof_n);
+      }
+
 
 
     // solve for phi1
@@ -440,6 +462,12 @@ namespace oomph
     undo_segregated_pinning();
 
     get_solver_parameters(Phi_seg_solve_parameters);
+
+    // restore dofs
+    if(t_step > 0)
+      {
+        set_dofs(0, backed_up_dofs);
+      }
 
 
 

@@ -1295,7 +1295,7 @@ public:
 
 
     /// \short Solve for the magnetostatic field.
-    void magnetostatics_solve();
+    void magnetostatics_solve(const unsigned& t_step=0);
 
     /// Linearly extrapolate phi
     void extrapolate_phi(const double& new_dt, const double& prev_dt);
