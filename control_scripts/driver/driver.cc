@@ -183,6 +183,7 @@ int main(int argc, char *argv[])
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
+  problem_pt->time_step_rescaler_pt()->Maximum_dt = args_pt->max_dt;
   problem_pt->Exact_solution_pt = args_pt->exact_solution_pt();
 
   if(args_pt->crash_newton_fail != -1)
@@ -222,10 +223,10 @@ int main(int argc, char *argv[])
         bool(args_pt->output_predictor_values);
     }
 
-if(args_pt->should_doc_boundaries != -1)
-  {
-    problem_pt->Should_doc_boundaries = bool(args_pt->should_doc_boundaries);
-  }
+  if(args_pt->should_doc_boundaries != -1)
+    {
+      problem_pt->Should_doc_boundaries = bool(args_pt->should_doc_boundaries);
+    }
 
   // Assign doc parameters
   problem_pt->Doc_info.copy_args_string();

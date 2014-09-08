@@ -218,6 +218,11 @@ namespace oomph
         specify_command_line_flag("-disable-mm-opt", &disable_mm_opt,
                                   "Disable optimisation for mass matrix solves, default: -1.");
         disable_mm_opt = -1;
+
+        specify_command_line_flag("-max-dt", &max_dt,
+                                  "Maximum allowed step size for adaptive time step, default: 1e12.");
+        max_dt = 1e12;
+
        }
 
     void parse(int argc, char *argv[])
@@ -398,6 +403,7 @@ namespace oomph
     double dt_initial;
     double tmax;
     double tol;
+    double max_dt;
     int dummy_adaptivity;
     int convergence_test;
 
