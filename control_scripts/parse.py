@@ -235,6 +235,10 @@ def plot_vs_thing(xthing, data, plot_values,
                 sys.stderr.write("Not plotting " + p
                                  + " because I couldn't find the data needed.\n")
 
+                # shift to next symbol + colour anyway for consistency
+                next(symbols)
+                next(colours)
+
         axes.set_ylabel(make_axis_label(p, op))
 
         axes.set_xscale(xscale)
