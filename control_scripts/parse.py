@@ -152,6 +152,15 @@ def make_axis_label(*args, **kwargs):
     return latex_safe(make_label(*args, **kwargs))
 
 
+def make_symbol_iter():
+    symbols = ['x', 'o', '+', '^', '*', 's', ]
+    return it.cycle(symbols)
+
+def make_colour_iter():
+    colours = ['r', 'g', 'b', 'k', 'c', 'm', 'y']
+    return it.cycle(colours)
+
+
 # Plotting functions
 # ============================================================
 
@@ -191,6 +200,9 @@ def plot_vs_thing(xthing, data, plot_values,
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
+        symbols = make_symbol_iter()
+        colours = make_colour_iter()
+
         for d in data:
 
             name = " ".join([str(d[l]) for l in labels])
@@ -207,7 +219,13 @@ def plot_vs_thing(xthing, data, plot_values,
                 xs = d[xthing][skip_first_n:-1]
                 vals = vals[skip_first_n:-1]
 
-                axes.plot(xs, vals, label=name)
+                colour = next(colours)
+
+                axes.plot(xs, vals,
+                          marker=next(symbols), color=colour,
+                          markerfacecolor='none', #
+                          markeredgecolor=colour,
+                          label=name)
             else:
                 sys.stderr.write("Not plotting " + p
                                  + " because I couldn't find the data needed.\n")
@@ -282,8 +300,8 @@ def my_scatter(data, x_value, y_value,
     fig, ax = plt.subplots(subplot_kw=kwargs)
 
 
-    a = list(it.product(['r', 'g', 'b', 'k', 'c'], ['x', 'o', '+', '^', '*']))
-    symbols = it.cycle(map(''.join, a))
+    symbols = make_symbol_iter()
+    colours = make_colour_iter()
 
     split_data = utils.split_up_stuff(data, dataset_split_keys)
 
@@ -303,9 +321,14 @@ def my_scatter(data, x_value, y_value,
         else:
             ys = [d[y_value] for d in fdata]
 
+        colour = next(colours)
+
         # Plot
-        ax.plot(xs, ys, next(symbols),
-                markersize=10,
+        ax.plot(xs, ys,
+                marker=next(symbols), color='none',
+                markerfacecolor='none', #
+                markeredgecolor=colour,
+                markersize=8,
                 label=name)
 
     # Label
