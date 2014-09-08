@@ -224,8 +224,12 @@ def parse_trace_file(filename):
         data['unix_timestamp_diffs'] = utils.differences(data['unix_timestamp'])
 
 
+
     # Calculate the actual solver time (without Jacobian assembly).
-    data['real_solver_times'] = data['solver_times'] - data['jacobian_setup_times']
+    try:
+        data['real_solver_times'] = data['solver_times'] - data['jacobian_setup_times']
+    except KeyError:
+        data['real_solver_times'] = None
 
     return data
 

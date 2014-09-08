@@ -6,3 +6,7 @@
 -mesh dAquino_sq_mumag4
 -ts midpoint-bdf
 -renormalise 0
+-quadrature cell
+-ms-method implicit
+-solver gmres
+-prec none
