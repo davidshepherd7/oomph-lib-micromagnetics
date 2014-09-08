@@ -903,6 +903,11 @@ namespace oomph
         // Solve for initial field and phi values
         magnetostatics_solve();
 
+        // Solve for phi values one time step back in history (this is
+        // needed for the projection to t_{n+1} step when doing decoupled
+        // phi, safest to just always do it since it's fast).
+        magnetostatics_solve(1);
+
         calculate_energies(false);
 
         Initial_energy = micromagnetic_energy();
