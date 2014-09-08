@@ -87,7 +87,6 @@ namespace oomph
                                   "If set then always throw an error on Newton solve fails (normally with adaptive time stepping we try again with a reduced step)");
         crash_newton_fail = -1;
 
-        specify_command_line_flag("-fd-jac", "Use finite differences to calculate the elemental Jacobians");
 
         specify_command_line_flag("-outdir", &outdir, "Directory to write output to, default is results");
         outdir = "results";
@@ -148,8 +147,6 @@ namespace oomph
 
         specify_command_line_flag("-solution-norm-limit", &solution_norm_limit);
         solution_norm_limit = -1.0;
-
-        specify_command_line_flag("-disable-mm-opt");
 
         specify_command_line_flag("-predictor-as-initial-guess",
                                   &predictor_as_initial_guess);
@@ -217,6 +214,10 @@ namespace oomph
                                   &doc_exact,
                                   "Output exact solution if available.");
         doc_exact = -1;
+
+        specify_command_line_flag("-disable-mm-opt", &disable_mm_opt,
+                                  "Disable optimisation for mass matrix solves, default: -1.");
+        disable_mm_opt = -1;
        }
 
     void parse(int argc, char *argv[])
@@ -293,9 +294,7 @@ namespace oomph
       doc_times = doc_times_factory(doc_times_interval, tmax);
 
       // Store boolean flags
-      use_fd_jacobian = command_line_flag_has_been_set("-fd-jac");
-      disable_mass_matrix_solver_optimisations =
-        command_line_flag_has_been_set("-disable-mm-opt");
+
 
       // Build the meshes using whatever function the sub class defines
       build_meshes();
@@ -403,13 +402,12 @@ namespace oomph
     int convergence_test;
 
     int refinement;
-    bool use_fd_jacobian;
     unsigned max_steps;
     double error_norm_limit;
     double solution_norm_limit;
-    bool disable_mass_matrix_solver_optimisations;
     int predictor_as_initial_guess;
     int mp_update_pinned;
+    int disable_mm_opt;
 
     double newton_tol;
     double newton_max_residual;

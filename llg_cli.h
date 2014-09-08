@@ -119,6 +119,14 @@ namespace oomph
       specify_command_line_flag("-write-cached-bem-matrix", &cached_bem_matrix_filename_out,
                                 "Write a bem matrix to disk to reuse later, default: \"\" (don't use any). Be careful with different methods of removing the phi singularity: different pinned nodes = different numbering!");
       cached_bem_matrix_filename_out = "";
+
+      specify_command_line_flag("-fd-jac", &fd_jac,
+                                "Use finite differences to calculate the elemental Jacobians, default: -1");
+      fd_jac = -1;
+
+      specify_command_line_flag("-pin-boundary-m", &pin_boundary_m,
+                                ", default: -1.");
+      pin_boundary_m = -1;
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -174,10 +182,6 @@ namespace oomph
 
       HApp::HAppFctPt h_app_fct_pt = h_app_factory(h_app_name);
       mag_params_pt->Applied_field_fct_pt = h_app_fct_pt;
-
-
-      // Copy flags into bools in this class
-      pin_boundary_m = command_line_flag_has_been_set("-pin-boundary-m");
     }
 
     virtual void assign_specific_parameters(MyProblem* problem_pt) const
@@ -211,10 +215,13 @@ namespace oomph
 
       // Dirichlet boundries, just use same function for b.c. as initial
       // cond.
-      llg_pt->Pin_boundary_m = pin_boundary_m;
-      if(pin_boundary_m)
+      if(pin_boundary_m != -1)
         {
-          llg_pt->Boundary_solution_pt = initial_condition_pt;
+          llg_pt->Pin_boundary_m = bool(pin_boundary_m);
+          if(bool(pin_boundary_m))
+            {
+              llg_pt->Boundary_solution_pt = initial_condition_pt;
+            }
         }
 
       if(to_lower(ms_method) == "implicit")
@@ -250,8 +257,10 @@ namespace oomph
             MagnetostaticFieldFunctions::ms_factory(to_lower(ms_method));
         }
 
-      // ??ds this should maybe be a general one?
-      llg_pt->Use_fd_jacobian = use_fd_jacobian;
+      if(fd_jac != -1)
+        {
+          llg_pt->Use_fd_jacobian = bool(fd_jac);
+        }
 
       // Set exact solution if we have one: only for spherical
       // nano-particles or when ms is disabled.
@@ -368,12 +377,13 @@ namespace oomph
     int disable_magnetostatic_solver_optimistations;
     int relax_m;
     int use_m_mallinson;
+    int fd_jac;
+    int pin_boundary_m;
 
     std::string quadrature_type;
 
     std::string ms_method;
 
-    bool pin_boundary_m;
 
     Vector<Mesh*> phi_1_mesh_pts;
     Vector<Mesh*> phi_mesh_pts;

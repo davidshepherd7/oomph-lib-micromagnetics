@@ -21,7 +21,7 @@ new_clean_dir $LL_CUBEOID_DIR
 cd $CONTROL_SCRIPTS/driver llg -ms-method decoupled-no-extrapolation/
 ./driver ll -ms-method decoupled-no-extrapolation -dt 0.001 -tmax 0.01 -mesh ut_cubeoid -ref 3 \
     -solver superlu -h-app zero -initial-m xz -mag-params 'simple-llg' \
-    -fd-jac -hlib-bem 0 \
+    -fd-jac 1 -hlib-bem 0 \
     -outdir $LL_CUBEOID_DIR> $LL_CUBEOID_DIR/stdout
 
 # Extract + check energies

@@ -77,7 +77,7 @@ ll_dir="$TPWD/Validation/ll"
 new_clean_dir $ll_dir
 cd $CONTROL_SCRIPTS/driver/
 ./driver llg -ms-method disabled -dt 1e-2 -tmax 0.3 -solver superlu -h-app minus_z \
-    -ts imr -initial-m z -mag-params 'simple-llg' -fd-jac \
+    -ts imr -initial-m z -mag-params 'simple-llg' -fd-jac 1 \
     -outdir $ll_dir > $ll_dir/stdout
 
 # Check the errors are small

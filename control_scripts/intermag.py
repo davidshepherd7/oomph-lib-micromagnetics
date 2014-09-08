@@ -223,7 +223,7 @@ def main():
                 '-prec' : 'som-main-ilu-1',
                 '-ts' : ['rk2', 'midpoint-bdf', 'euler'],
                 '-scale' : 2,
-                '-fd-jac' : True,
+                '-fd-jac' : 1,
                 '-damping' : [1.0, 0.1, 0.01],
                 '-check-angles' : 1,
                 }

@@ -36,12 +36,6 @@ def driver_path():
     return os.path.abspath(pjoin(rootdir(), "control_scripts/driver/driver"))
 
 
-def boolean_flags():
-    """A list of flags which are just either enabled or not.
-    """
-    return ['-fd-jac', "-disable-mm-opt", "-pin-boundary-m"]
-
-
 # Terminal codes for colours
 def green_colour(): return '\033[01;32m'
 def red_colour(): return '\033[01;31m'
@@ -332,7 +326,7 @@ def argdict2list(argdict):
     run.
     """
 
-    special_keys = ['-mpi-ncores', '-binary', '-driver'] + boolean_flags()
+    special_keys = ['-mpi-ncores', '-binary', '-driver']
 
     # Convert any keyword args into correct format for command line input.
     processed_kwargs = []
@@ -340,14 +334,8 @@ def argdict2list(argdict):
         if key not in special_keys:
             processed_kwargs.append(str(key))
             processed_kwargs.append(str(value))
-
-        # If it's a bool flag then either add it or don't, depending on the
-        # boolean value
-        elif key in boolean_flags():
-            if value:
-                processed_kwargs.append(str(key))
-            else:
-                pass
+        else:
+            pass
 
     # Sort the arguments so that the ordering is deterministic
     sorted_processed_kwargs = list(utils.sort_as_pairs(processed_kwargs))

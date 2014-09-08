@@ -180,7 +180,7 @@ def main():
             "-mesh": "sq_square",
             "-ms-method" : ["decoupled"],
             "-ts" : "midpoint-bdf",
-            "-fd-jac" : True,
+            "-fd-jac" : 1,
             "-outdir" : "validata",
             }
         selftestrun(implicit_argdict)

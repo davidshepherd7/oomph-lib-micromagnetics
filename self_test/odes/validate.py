@@ -58,7 +58,7 @@ def main():
 
     argdicts_const_dt = {
         '-driver': "ode",
-        "-disable-mm-opt" : True,
+        "-disable-mm-opt" : 1,
         "-dt": "0.05",
         "-tmax": "4",
         "-ts": ["rk2", "rk4", "midpoint-bdf", "bdf2", "tr"],
@@ -83,7 +83,7 @@ def main():
 
     argdicts_var_dt = {
         '-driver': "ode",
-        "-disable-mm-opt" : True,
+        "-disable-mm-opt" : 1,
         "-dt-initial": 1e-6,
         "-tol": 1e-3,
         "-tmax": "4",

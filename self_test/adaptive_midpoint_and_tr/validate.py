@@ -44,7 +44,7 @@ def main():
         "-ts" : ["bdf2", "midpoint-bdf", "tr", "bdf1"],
         "-tmax" : 10,
         "-tol" : 1e-4,
-        "-disable-mm-opt" : True,
+        "-disable-mm-opt" : 1,
         "-always-write-trace" : 1, # Otherwise we get wrong ndts by counting len(dts)
         }
 

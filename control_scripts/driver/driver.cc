@@ -197,11 +197,14 @@ int main(int argc, char *argv[])
       problem_pt->time_step_rescaler_pt() = new DummyTimeStepRescaler;
     }
 
-  // problem_pt->Use_fd_jacobian = args_pt->use_fd_jacobian; //??ds
   problem_pt->Error_norm_limit = args_pt->error_norm_limit;
   problem_pt->Solution_norm_limit = args_pt->solution_norm_limit;
-  problem_pt->Disable_mass_matrix_solver_optimisations =
-    args_pt->disable_mass_matrix_solver_optimisations;
+
+  if(args_pt->disable_mm_opt != -1)
+    {
+      problem_pt->Disable_mass_matrix_solver_optimisations =
+        bool(args_pt->disable_mm_opt);
+    }
 
   if(args_pt->dump != -1)
     {
