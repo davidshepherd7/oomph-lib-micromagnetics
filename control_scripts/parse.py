@@ -17,6 +17,7 @@ import ast
 import glob
 import shutil
 import multiprocessing as mp
+import shlex
 
 # Imports for specific functions
 from functools import partial as par
@@ -1141,7 +1142,7 @@ def main():
         # Write plot command used to output dir
         plot_command_filename = pjoin(args.save_to_dir, "plot_command")
         with open(plot_command_filename, 'w') as plot_command_file:
-            plot_command_file.write(' '.join(sys.argv))
+            plot_command_file.write(' '.join([shlex.quote(a) for a in sys.argv]))
             plot_command_file.write('\n')
 
 
