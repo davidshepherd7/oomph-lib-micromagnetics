@@ -342,7 +342,7 @@ namespace oomph
 
       // Initialise loop variables
       double dt = std::max(initial_dt/100, 1e-4);
-      double relax_tol = 1e-4;
+      double relax_tol = 1e-5;
 
       // Doc the initial condition
       Doc_info.number() = 0;
