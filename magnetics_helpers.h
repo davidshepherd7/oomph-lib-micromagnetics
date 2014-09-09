@@ -101,10 +101,10 @@ namespace HApp
   inline Vector<double> mumag4_initial(const double& t, const Vector<double> &x)
   {
     Vector<double> h(3, 0.0);
-    double t0 = 5;
+    double t0 = 100;
 
     // Strong, decay "slowly" to zero
-    h[0] = std::max(2.5 * (t0 - t)/t0, 0.0);
+    h[0] = std::max(2.5 * (1 - (t/t0)), 0.0);
     h[1] = h[0];
     h[2] = h[0];
 
