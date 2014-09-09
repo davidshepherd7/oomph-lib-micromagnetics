@@ -451,7 +451,7 @@ def data_print(datasets, to_print, delim="; ", labels=None):
 
 def shift_relaxation_times(data):
     """Modify times in data such that they are continuous even
-    when using -relax-m 1.
+    when using relax(..).
     """
 
     ts = data['times']

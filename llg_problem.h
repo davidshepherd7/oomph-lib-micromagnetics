@@ -70,7 +70,7 @@ namespace oomph
       Flux_mesh_factory_pt = 0;
       Phi_1_singularity_method = phi_1_singularity_handling::pin_any;
 
-      Relax_magnetisation = false;
+      H_app_relax = 0;
 
       Decoupled_ms = false;
       Extrapolate_decoupled_ms = false;
@@ -398,9 +398,9 @@ namespace oomph
     {
       MyProblem::actions_before_time_integration();
 
-      if(Relax_magnetisation)
+      if(H_app_relax != 0)
         {
-          relax();
+          relax(H_app_relax);
         }
     }
 
@@ -1160,9 +1160,9 @@ namespace oomph
 
     LLGResidualCalculator* Residual_calculator_pt;
 
-    /// Should the magnetisation be relaxed before we start time
-    /// integration
-    bool Relax_magnetisation;
+    /// Field for magnetisation be relaxed under before we start time
+    /// integration? Do nothing if null.
+    HAppFctPt H_app_relax;
 
     /// Should we write out spatial values of |m| error
     bool Doc_m_length_error;

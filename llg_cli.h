@@ -100,8 +100,8 @@ namespace oomph
                                 "Set to either 'pin_bulk', 'pin', 'pin_boundary', 'normalise' or 'nothing', default 'pin_bulk'.");
       phi1_singularity_method = "pin_bulk";
 
-      specify_command_line_flag("-relax-m", &relax_m,
-                                "Should the magnetisation be relaxed before starting time integration? (-1/0/1, -1 lets the class keep its default, default -1).");
+      specify_command_line_flag("-relax-m-field", &relax_field_name,
+                                "Field to relax magnetisation under before time integration, default 0 = do not relax).");
       relax_m = -1;
 
       specify_command_line_flag("-quadrature", &quadrature_type,
@@ -327,15 +327,10 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 
-      if(relax_m == 0)
+      if(relax_field_name != "")
         {
-          llg_pt->Relax_magnetisation = false;
+          llg_pt->H_app_relax = Factories::h_app_factory(relax_field_name);
         }
-      else if(relax_m == 1)
-        {
-          llg_pt->Relax_magnetisation = true;
-        }
-      // else do nothing
 
 
       if(doc_ml_error != -1)
@@ -354,6 +349,7 @@ namespace oomph
     std::string llg_prec_name;
     std::string llg_sub_prec_name;
     std::string phi1_singularity_method;
+    std::string relax_field_name;
 
     int doc_ml_error;
 
