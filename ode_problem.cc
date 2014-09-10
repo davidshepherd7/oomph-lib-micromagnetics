@@ -8,8 +8,11 @@ namespace oomph
   namespace ODEFactories
   {
 
-    SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name)
+    SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name,
+                                                 const std::string& initial_m_name)
     {
+      using namespace Factories;
+
       if(exact_name == "damped_oscillation")
         {
           return new deriv_functions::DampedOscillation;
@@ -28,11 +31,15 @@ namespace oomph
         }
       else if(exact_name == "ll")
         {
-          return new InitialM::LLODESolution;
+          InitialM::LLODESolution* sol_pt = new InitialM::LLODESolution;
+          sol_pt->initial_m_pt = initial_m_factory(initial_m_name);
+          return sol_pt;
         }
       else if(exact_name == "mallinson")
         {
-          return new InitialM::LLGMallinsonSolution;
+          InitialM::LLGMallinsonSolution* sol_pt = new InitialM::LLGMallinsonSolution;
+          sol_pt->llg_ode_solution.initial_m_pt = initial_m_factory(initial_m_name);
+          return sol_pt;
         }
 
       TimeSpaceToDoubleVectFctPt fpt;

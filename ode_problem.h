@@ -236,7 +236,8 @@ namespace oomph
   namespace ODEFactories
   {
     // Pick an exact solution using a name
-    SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name);
+    SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name,
+                                                 const std::string& initial_m_name);
   }
 
 
@@ -794,8 +795,8 @@ namespace oomph
       specify_command_line_flag("-exact", &exact_name);
       exact_name = "sin";
 
-      // specify_command_line_flag("-initial-m", &initial_m_name);
-      // initial_m_name = "z";
+      specify_command_line_flag("-initial-m", &initial_m_name);
+      initial_m_name = "ode_z";
 
       specify_command_line_flag("-fd-jacobian", &fd_jacobian,
                                 "Finite difference the Jacobian, default: -1.");
@@ -806,7 +807,8 @@ namespace oomph
     {
 
       exact_name = to_lower(exact_name);
-      initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name);
+      initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name,
+                                                                   initial_m_name);
       initial_is_exact = true;
 
       MyCliArgs::run_factories();
@@ -831,6 +833,7 @@ namespace oomph
     }
 
     std::string exact_name;
+    std::string initial_m_name;
 
     int fd_jacobian;
   };

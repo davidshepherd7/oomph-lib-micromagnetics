@@ -283,6 +283,15 @@ namespace InitialM
     return m;
   }
 
+  inline Vector<double> ode_z(const double& t, const Vector<double> &x)
+  {
+    Vector<double> m(5, 0.0);
+    m[4] = 1.0;
+    m[2] = 0.01;
+    normalise(m);
+    return m;
+  }
+
   inline Vector<double> xyz(const double& t, const Vector<double> &x)
   {
     Vector<double> m(5, 0.0);
@@ -422,16 +431,20 @@ namespace InitialM
     virtual ~LLODESolution()
     {
       magnetic_parameters_pt = 0;
+      initial_m_pt = 0;
     }
 
     /// Just the initial condition actually, no exact solution that can fit
     /// this framework.
     Vector<double> operator()(const double& t, const Vector<double>&x) const override
     {
-      Vector<double> m(3, 0.0);
-      m[2] = 1.0;
-      m[0] = 0.01;
-      normalise(m);
+      Vector<double> full_vector = initial_m_pt->operator()(t, x);
+
+      Vector<double> m(3);
+      m[0] = full_vector[2];
+      m[1] = full_vector[3];
+      m[2] = full_vector[4];
+
       return m;
     }
 
@@ -449,6 +462,7 @@ namespace InitialM
     void initialise_from_problem(const Problem* problem_pt) override;
 
     MagneticParameters* magnetic_parameters_pt;
+    InitialMFct* initial_m_pt;
   };
 
   /// solution from Mallinson, uses LLODESolution for LLG derivative
@@ -480,8 +494,6 @@ namespace InitialM
     {
       llg_ode_solution.jacobian(t, x, m, jacobian);
     }
-
-  private:
 
     Vector<double> initial_m;
     const MagneticParameters* mag_params_pt;

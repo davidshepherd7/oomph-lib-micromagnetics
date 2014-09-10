@@ -1113,6 +1113,10 @@ namespace oomph
         {
           fpt = &InitialM::z;
         }
+      else if(m_name == "ode_z")
+        {
+          fpt = &InitialM::ode_z;
+        }
       else if(m_name == "xyz")
         {
           fpt = &InitialM::xyz;
