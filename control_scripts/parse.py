@@ -157,8 +157,14 @@ def make_axis_label(*args, **kwargs):
     return latex_safe(make_label(*args, **kwargs))
 
 
-def make_symbol_iter():
-    symbols = ['x', 'o', '+', '^', '*', 's', ]
+def make_symbol_iter(symbol_type):
+    if symbol_type == "symbols":
+        symbols = ['x', 'o', '+', '^', '*', 's', ]
+    elif symbol_type == "lines":
+        symbols = ['-', '--', '-.', ':']
+    else:
+        raise ValueError
+
     return it.cycle(symbols)
 
 def make_colour_iter():
@@ -176,7 +182,8 @@ def plot_vs_thing(xthing, data, plot_values,
                   y_axis_lims=None,
                   xscale="linear",
                   yscale="linear",
-                  skip_first_n=0):
+                  skip_first_n=0,
+                  plot_points=False):
     """Plot a list of things (plot_values) against time on a single figure
     with linked time axis.
     """
@@ -205,7 +212,12 @@ def plot_vs_thing(xthing, data, plot_values,
 
     for axes, p, op in zip(axesarray, plot_values, operations_on_values):
 
-        symbols = make_symbol_iter()
+        if plot_points:
+            symbols = make_symbol_iter("symbols")
+            lines = it.repeat('-')
+        else:
+            lines = make_symbol_iter("lines")
+            symbols = it.repeat(None)
         colours = make_colour_iter()
 
         for d in data:
@@ -227,7 +239,9 @@ def plot_vs_thing(xthing, data, plot_values,
                 colour = next(colours)
 
                 axes.plot(xs, vals,
-                          marker=next(symbols), color=colour,
+                          linestyle=next(lines),
+                          marker=next(symbols),
+                          color=colour,
                           markerfacecolor='none', #
                           markeredgecolor=colour,
                           label=name)
@@ -237,6 +251,7 @@ def plot_vs_thing(xthing, data, plot_values,
 
                 # shift to next symbol + colour anyway for consistency
                 next(symbols)
+                next(lines)
                 next(colours)
 
         axes.set_ylabel(make_axis_label(p, op))
@@ -309,7 +324,7 @@ def my_scatter(data, x_value, y_value,
     fig, ax = plt.subplots(subplot_kw=kwargs)
 
 
-    symbols = make_symbol_iter()
+    symbols = make_symbol_iter("symbols")
     colours = make_colour_iter()
 
     split_data = utils.split_up_stuff(data, dataset_split_keys)
@@ -544,6 +559,9 @@ def main():
     parser.add_argument('--ncores', '-n', '-j', default=mp.cpu_count(), type=int,
                         help='Number of cores to use')
 
+    parser.add_argument('--points', action='store_true',
+                        help='Plot points on line graphs')
+
     args = parser.parse_args()
 
 
@@ -621,6 +639,13 @@ def main():
         shift_relaxation_times(data)
 
 
+    # Define a plot function including the cli specified options
+    def plot_vs_time_with_cli_args(*pargs, **kwargs):
+        return plot_vs_time(*pargs,
+                            labels=args.label,
+                            plot_points=args.points,
+                            **kwargs)
+
 
 
     # Do actual plots
@@ -632,130 +657,138 @@ def main():
 
     # Plot error norm vs time
     if 'err' in args.plots:
-        plot_errors = par(plot_vs_time, plot_values=['error_norms','dts', 'trace_values'],
-                          labels=args.label)
+        plot_errors = par(plot_vs_time_with_cli_args,
+                          plot_values=['error_norms','dts', 'trace_values'])
+
         newfigs = multi_plot(all_results, args.split, plot_errors)
         figs.extend(newfigs)
 
     if 'swerr' in args.plots:
-        plot_errors = par(plot_vs_time,
-                          plot_values=['switching_time_error','dts', 'trace_values'],
-                          labels=args.label)
+        plot_errors = par(plot_vs_time_with_cli_args,
+                          plot_values=['switching_time_error','dts', 'trace_values'])
+
         newfigs = multi_plot(all_results, args.split, plot_errors)
         figs.extend(newfigs)
 
     # Plot m averages vs time
     if 'm' in args.plots:
-        plot_m_averages = par(plot_vs_time,
+        plot_m_averages = par(plot_vs_time_with_cli_args,
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts'],
-                              labels=args.label,
                               y_axis_lims=[[-1,1], [-1,1], [-1,1], None])
+
         newfigs = multi_plot(all_results, args.split, plot_m_averages)
         figs.extend(newfigs)
 
     if 'm-field' in args.plots:
-        plot_m_averages = par(plot_vs_time,
+        plot_m_averages = par(plot_vs_time_with_cli_args,
                               plot_values=['mean_mxs','mean_mys','mean_mzs','dts',
                                            'h_applied_first_element'],
-                              labels=args.label,
                               y_axis_lims=[[-1,1], [-1,1], [-1,1], None, None])
+
         newfigs = multi_plot(all_results, args.split, plot_m_averages)
         figs.extend(newfigs)
 
 
     # kind of assumes 3 trace values
     if 'tracem' in args.plots:
-        plot_traces = par(plot_vs_time,
+        plot_traces = par(plot_vs_time_with_cli_args,
                           plot_values=['trace_values','trace_values','trace_values', 'dts'],
                           operations_on_values=[lambda x:x[2],
                                                 lambda x:x[3],
                                                 lambda x:x[4],
-                                                None],
-                          labels=args.label)
+                                                None])
+
         newfigs = multi_plot(all_results, args.split, plot_traces)
         figs.extend(newfigs)
 
 
     if 'trace' in args.plots:
-        plot_traces = par(plot_vs_time,
-                          plot_values=['trace_values', 'dts'],
-                          labels=args.label)
+        plot_traces = par(plot_vs_time_with_cli_args,
+                          plot_values=['trace_values', 'dts'])
+
         newfigs = multi_plot(all_results, args.split, plot_traces)
         figs.extend(newfigs)
 
     if 'energy' in args.plots:
-        plot_traces = par(plot_vs_time,
+        plot_traces = par(plot_vs_time_with_cli_args,
                           plot_values=['total_energy',
                                         'exchange_energy',
                                         'zeeman_energy',
                                         'crystalline_anisotropy_energy',
-                                        'magnetostatic_energy'],
-                          labels=args.label)
+                                        'magnetostatic_energy'])
+
         newfigs = multi_plot(all_results, args.split, plot_traces)
         figs.extend(newfigs)
 
     if 'newt' in args.plots:
-        plot_newton_iters = par(plot_vs_time,
-                                plot_values=['n_newton_iters','dts'],
-                                labels=args.label)
+        plot_newton_iters = par(plot_vs_time_with_cli_args,
+                                plot_values=['n_newton_iters','dts'])
+
         newfigs = multi_plot(all_results, args.split, plot_newton_iters)
         figs.extend(newfigs)
 
+    if 'allits' in args.plots:
+        plot_all_iters = par(plot_vs_time_with_cli_args,
+                             plot_values=['n_newton_iters', 'n_solver_iters', 'preconditioner_setup_times', 'dts'],
+                             operations_on_values=[None, sp.mean, sp.mean, None])
+
+        newfigs = multi_plot(all_results, args.split, plot_all_iters)
+        figs.extend(newfigs)
+
     if 'soltimes' in args.plots:
-        plot_sol_time_averages = par(plot_vs_time,
+        plot_sol_time_averages = par(plot_vs_time_with_cli_args,
                                 plot_values=['solver_times','jacobian_setup_times'],
-                                operations_on_values=[sp.mean, sp.mean],
-                                labels=args.label)
+                                operations_on_values=[sp.mean, sp.mean])
+
         newfigs = multi_plot(all_results, args.split, plot_sol_time_averages)
         figs.extend(newfigs)
 
     # Plot |m| error vs time
     if 'ml' in args.plots:
-        plot_ml_error_vs_time = par(plot_vs_time,
-                                    plot_values=['m_length_error_maxes', 'dts'],
-                                    labels=args.label)
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
+                                    plot_values=['m_length_error_maxes', 'dts'])
+
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
         # Plot |m| error vs time
     if 'ml-only' in args.plots:
-        plot_ml_error_vs_time = par(plot_vs_time,
-                                    plot_values=['m_length_error_maxes'],
-                                    labels=args.label)
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
+                                    plot_values=['m_length_error_maxes'])
+
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
     if 'ml-only-log' in args.plots:
-        plot_ml_error_vs_time = par(plot_vs_time,
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
                                     plot_values=['m_length_error_maxes'],
-                                    yscale="log",
-                                    labels=args.label)
+                                    yscale="log")
+
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
     if 'energy-only-log' in args.plots:
-        plot_ml_error_vs_time = par(plot_vs_time,
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
                                     plot_values=['energy_change'],
                                     operations_on_values=[abs],
-                                    yscale="log",
-                                    labels=args.label)
+                                    yscale="log")
+
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
     if 'lte' in args.plots:
-        plot_ml_error_vs_time = par(plot_vs_time,
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
                                     plot_values=['LTE_norms', 'dts'],
-                                    skip_first_n=1,
-                                    labels=args.label)
+                                    skip_first_n=1)
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
         figs.extend(newfigs)
 
 
     # Plot solver iterations vs steps
     if 'its' in args.plots:
-        plot_iters_step = par(plot_vs_time, plot_values=['dts', 'n_solver_iters'],
-                              operations_on_values=[identity, sp.mean],
-                              labels=args.label)
+        plot_iters_step = par(plot_vs_time_with_cli_args, plot_values=['dts', 'n_solver_iters'],
+                              operations_on_values=[identity, sp.mean])
+
         newfigs = multi_plot(all_results, args.split, plot_iters_step)
 
         figs.extend(newfigs)
@@ -779,7 +812,6 @@ def main():
 
         plot_damping_errors = par(my_scatter, x_value='dts', y_value='effective_damping',
                                   dataset_split_keys=args.scatter_split,
-                                  labels=args.label,
                                   y_operation=damping_error_mean)
         newfigs = multi_plot(all_results, args.split, plot_damping_errors)
         figs.extend(newfigs)
@@ -788,14 +820,14 @@ def main():
     # Plot error in effective damping vs step size
     if 'damping' in args.plots:
 
-        plot_damping_errors = par(plot_vs_time,
+        plot_damping_errors = par(plot_vs_time_with_cli_args,
                                   plot_values=[# 'rel_damping_error',
                                                # 'abs_damping_error',
                                                'alt_effective_damping',
                                                'dts',
                                                ],
                                   skip_first_n=1, # first data points are wrong
-                                  labels=args.label)
+                                  )
 
         newfigs = multi_plot(all_results, args.split, plot_damping_errors)
         figs.extend(newfigs)
@@ -803,9 +835,8 @@ def main():
 
     if 'wc-time' in args.plots:
         plot_wall_time_vs_time = \
-          par(plot_vs_time,
-              plot_values=['unix_timestamp_diffs', 'dts'],
-              labels=args.label)
+          par(plot_vs_time_with_cli_args,
+              plot_values=['unix_timestamp_diffs', 'dts'])
 
         newfigs = multi_plot(all_results, args.split, plot_wall_time_vs_time)
         figs.extend(newfigs)
@@ -1155,6 +1186,7 @@ def main():
                         ('total_step_time', sp.mean)],
               labels=args.label)
 
+
         multi_print(all_results, args.split, print_mean_step_times)
 
 
@@ -1165,6 +1197,7 @@ def main():
               to_print=[('-ts', None),
                         ('m_length_error_maxes', max)],
               labels=args.label)
+
 
         multi_print(all_results, args.split, print_mean_step_times)
 
