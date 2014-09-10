@@ -879,14 +879,15 @@ namespace oomph
       LLGODEProblem* llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
       llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
 
-      if((renormalise != -1 && bool(renormalise))
-         || (ts_name == "tr" || ts_name == "bdf2" || ts_name == "bdf1"))
+      // Default: renormalise for some integration schemes
+      if(renormalise == -1)
         {
-          llg_ode_pt->Renormalise_each_time_step = bool(renormalise);
+          llg_ode_pt->Renormalise_each_time_step =
+            (ts_name == "tr" || ts_name == "bdf2" || ts_name == "bdf1");
         }
       else
         {
-          llg_ode_pt->Renormalise_each_time_step = false;
+          llg_ode_pt->Renormalise_each_time_step = bool(renormalise);
         }
 
     }
