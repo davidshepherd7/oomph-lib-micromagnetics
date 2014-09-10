@@ -154,6 +154,7 @@ namespace HApp
     return h_final;
   }
 
+  // these don't seem to make any difference
   inline Vector<double> smoothed_mumag4_field1(const double& t, const Vector<double> &x)
   {
     Vector<double> h = mumag4_field1(t, x);

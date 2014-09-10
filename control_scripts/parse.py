@@ -95,13 +95,13 @@ def axis_label_thesisify(label):
 
                      # ode aimr stuff
                      'mean of "dts"' : r'mean($\Delta_n$)',
-                     'max of "error norms"' : r'$||y_n - y(t_n)||_\infty$',
+                     'max of "error norms"' : r'max $|y(t_n) - y_n|$',
+                     'maxabs of "energy change"' : r'max $|E_0 - E_n|$',
 
                      # magnetisation stuff
                      'mean mxs' : r'mean($m_x$)',
                      'mean mys' : r'mean($m_y$)',
                      'mean mzs' : r'mean($m_z$)',
-
                      }
 
     # If it matches then change it
@@ -122,6 +122,11 @@ def legend_thesisify(label):
                 'som-main-block ' : r'$\mathcal{P}_3$ ',
                 'gauss' : 'Gaussian',
                 'lnodal' : 'nodal',
+
+                # dodgy:
+                '$x$' : '$\Delta_n$',
+                '$x^2$' : '$\Delta_n^2$',
+                '$x^3$' : '$\Delta_n^3$',
                 }
 
     for k, v in replaces.items():
@@ -497,6 +502,15 @@ def shift_relaxation_times(data):
 
 def maxabs(l):
     return max((abs(x) for x in l))
+
+def datasort(data1, data2):
+    """Define an ordering on "data" dictionaries.
+
+    Based on the -ts argument then the -renormalise argument, this
+    should allow consistent colours in plots.
+    """
+
+    return
 
 
 def main():
@@ -992,8 +1006,21 @@ def main():
             for ax in fig.axes:
                 xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
-                ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
                 ax.legend(loc=0)
+
+    if 'scatter-err-dts-noguides' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='dts',
+              y_value='error_norms',
+              y_operation=max,
+              x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
+
 
     if 'scatter-denergy-dt' in args.plots:
         plot_err_scatter = \
@@ -1026,7 +1053,6 @@ def main():
             for ax in fig.axes:
                 xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
-                ax.plot(xs, [x**3 for x in xs], 'b-', label="$x^3$")
                 ax.legend(loc=0)
 
 
