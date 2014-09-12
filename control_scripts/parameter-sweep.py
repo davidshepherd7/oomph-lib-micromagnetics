@@ -24,6 +24,7 @@ import multiprocessing as mp
 from functools import partial as par
 from os.path import join as pjoin
 from glob import glob
+from pprint import pprint
 
 # Make sure *this* versions oomphpy is in the path (before any other
 # versions in other places)
@@ -88,6 +89,9 @@ def main():
     parser.add_argument('--no-build', action='store_true',
                         help="Don't rebuild anything")
 
+    parser.add_argument('--dry-run', action='store_true',
+                        help="Don't actually do anything, just list the parameters to run.")
+
     args = parser.parse_args()
 
 
@@ -136,6 +140,17 @@ def main():
         except KeyError:
             args_dict = args_file
             extra = None
+
+
+        if args.dry_run:
+            if extra is not None:
+                parameter_dicts = sum([mm.generate_argdicts(args_dict, a) for a in extra], [])
+            else:
+                parameter_dicts = mm.generate_argdicts(args_dict)
+
+            pprint(parameter_dicts)
+
+            return 0
 
 
         # Make sure we're ready to go
