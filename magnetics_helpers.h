@@ -111,6 +111,19 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> mumag4_initial_strong(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    double t0 = 100;
+
+    // Strong, decay "slowly" to zero
+    h[0] = std::max(10 * (1 - (t/t0)), 0.0);
+    h[1] = h[0];
+    h[2] = h[0];
+
+    return h;
+  }
+
   inline Vector<double> mumag4_field1(const double& t, const Vector<double> &x)
   {
     double mu0 = 4*Pi*1e-7;

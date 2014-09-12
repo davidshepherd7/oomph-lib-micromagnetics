@@ -1059,6 +1059,10 @@ namespace oomph
         {
           return &HApp::mumag4_initial;
         }
+      else if(field_name == "mumag4_initial_strong")
+        {
+          return &HApp::mumag4_initial_strong;
+        }
       else if(field_name == "mumag4_field1")
         {
           return &HApp::mumag4_field1;
