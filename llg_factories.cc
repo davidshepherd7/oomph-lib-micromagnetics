@@ -667,6 +667,18 @@ namespace oomph
 
           mesh_pt->setup_boundary_element_info();
         }
+      else if(mesh_name == "sq_mumag4_normalised_zref" && nnode1d == 2)
+        {
+          unsigned this_nx = refinement_level;
+
+          mesh_pt = new SimplerCubicMesh<QMicromagElement<3, 2> >
+            (5*this_nx, std::ceil(1.25*this_nx), 2, 500, 125, 3, time_stepper_pt);
+          // two elements thick instead of 1
+
+          mesh_pt->scale_mesh(1/5.6858);
+
+          mesh_pt->setup_boundary_element_info();
+        }
       else if(mesh_name == "sq_mumag4_2d" && nnode1d == 2)
         {
           unsigned this_nx = refinement_level;
