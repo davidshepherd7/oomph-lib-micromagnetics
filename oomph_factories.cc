@@ -300,6 +300,10 @@ namespace oomph
         {
           solver_pt = new CG<T>;
         }
+      else if(solver_name == "bicgstab")
+        {
+          solver_pt = new BiCGStab<T>;
+        }
       else
         {
           std::string err("Unrecognised solver name ");
