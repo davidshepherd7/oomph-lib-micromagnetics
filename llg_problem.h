@@ -377,16 +377,18 @@ namespace oomph
       time_pt()->time() = initial_time;
       initialise_dt(initial_dt);
 
-      // Set initial condition to be the relaxed values all the way back in
-      // time.
-      set_up_impulsive_initial_condition();
-
       // Revert the damping and field
       Magnetic_parameters_pt->Gilbert_damping = initial_damping;
       Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
 
       // Reset the doc solution counter
       Doc_info.number() = old_doc_info_number;
+
+
+      // (Re)-set initial condition to be the relaxed values all the way
+      // back in time. This must go after reverting other things so that
+      // intial energy etc. are correct
+      set_up_impulsive_initial_condition();
 
       // overwrite the "current" soln.dat etc. (ie write out final relaxed
       // state as initial condition for time integration.
