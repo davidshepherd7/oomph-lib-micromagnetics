@@ -533,6 +533,24 @@ namespace oomph
           prec_pt = ii_prec_pt;
         }
 
+      else if(prec_name == "gmres-ilu1")
+        {
+          // Underlying bicg solver with ilu1 preconditioner
+          IterativeLinearSolver* its_pt =
+            dynamic_cast<IterativeLinearSolver*>
+            (linear_solver_factory("gmres", "cr", 1e-8, 400, false));
+          its_pt->preconditioner_pt() = preconditioner_factory("ilu-1");
+
+          // disable output of timing values: it's misleading
+          its_pt->disable_doc_time();
+
+          // Create the wrapper
+          GeneralInnerIterationPreconditioner* ii_prec_pt
+            = new GeneralInnerIterationPreconditioner;
+          ii_prec_pt->solver_pt() = its_pt;
+          prec_pt = ii_prec_pt;
+        }
+
       else
         {
           unrecognised_name(prec_name, OOMPH_CURRENT_FUNCTION);
