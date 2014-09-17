@@ -342,7 +342,7 @@ namespace oomph
     }
 
     /// Exact solution
-    Vector<double> exact_solution(const double& t)
+    Vector<double> exact_solution(const double& t) const
     {
 #ifdef PARANOID
       if(Exact_solution_pt == 0)

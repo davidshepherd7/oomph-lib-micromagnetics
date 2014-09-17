@@ -858,7 +858,7 @@ using namespace StringConversion;
     InitialConditionFct* Exact_solution_pt;
 
     /// Get exact solution
-    Vector<double> exact_solution(const double& t, Vector<double>& x) const
+    Vector<double> exact_solution(const double& t, const Vector<double>& x) const
     {
 #ifdef PARANOID
       if(Exact_solution_pt == 0)
