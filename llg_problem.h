@@ -788,6 +788,7 @@ namespace oomph
         << Trace_seperator << "h_applied_first_element"
         << Trace_seperator << "m_length_error_maxes"
         << Trace_seperator << "energy_change"
+        << Trace_seperator << "aux_error_norms"
         ;
 
     }
@@ -811,6 +812,8 @@ namespace oomph
         abs_damping_error = Dummy_doc_data, rel_damping_error = Dummy_doc_data,
         energy_change = Dummy_doc_data
         ;
+      Vector<double> aux_error_norms(0);
+
       if(t_hist == 0)
         {
           exchange_energy = Exchange_energy;
@@ -821,6 +824,12 @@ namespace oomph
           abs_damping_error = Abs_damping_error;
           rel_damping_error = Rel_damping_error;
           energy_change = micromagnetic_energy - Initial_energy;
+        }
+
+      if(dynamic_cast<InitialM::LLGWaveSolution*>(Exact_solution_pt) != 0)
+        {
+          aux_error_norms.push_back(ErrorNorms::wave_phase_error_norm(*this));
+          aux_error_norms.push_back(ErrorNorms::wave_mz_error_norm(*this));
         }
 
       trace_file
@@ -842,6 +851,7 @@ namespace oomph
         << Trace_seperator << h_app
         << Trace_seperator << VectorOps::max(ml_errors)
         << Trace_seperator << energy_change
+        << Trace_seperator << aux_error_norms
         ;
     }
 

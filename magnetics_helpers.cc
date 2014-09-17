@@ -1159,4 +1159,93 @@ namespace oomph
     }
 
   }
+
+
+  namespace ErrorNorms
+  {
+
+  double wave_phase_error_norm(const LLGProblem& problem)
+  {
+
+    InitialM::LLGWaveSolution* wave_sol_pt
+      = checked_dynamic_cast<InitialM::LLGWaveSolution*>(problem.Exact_solution_pt);
+
+    // Find the node at x=0
+    const unsigned n_node = problem.mesh_pt()->nnode();
+    int zero_node = -1;
+    for(unsigned nd=0; nd<n_node; nd++)
+      {
+        Node* nd_pt = problem.mesh_pt()->node_pt(nd);
+        Vector<double> x = nd_pt->position();
+        if(two_norm(x) < 1e-12)
+          {
+            zero_node = nd;
+            break;
+          }
+      }
+#ifdef PARANOID
+    if(zero_node == -1)
+      {
+        std::string err = "Couldn't find node at zero.";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+#endif
+
+    const double time = problem.time_pt()->time(0);
+
+    Vector<double> exact = problem.exact_solution(time,
+                                                  Vector<double>(problem.dim(), 0.0));
+
+    double mx = exact[problem.m_index(2)];
+    double my = exact[problem.m_index(2)];
+
+    // const double solution_phase_a = std::acos(wave_sol_pt->d(time)*mx
+    //                                           /std::sin(wave_sol_pt->C));
+    // const double solution_phase_b = std::asin(wave_sol_pt->d(time)*my
+    //                                           /std::sin(wave_sol_pt->C));
+
+    const double solution_phase = std::atan2(my, mx);
+
+    const double exact_phase = wave_sol_pt->g(time);
+
+    return std::abs(exact_phase - solution_phase);
+  }
+
+    double wave_mz_error_norm(const LLGProblem& problem)
+    {
+#ifdef PARANOID
+
+      if(dynamic_cast<InitialM::LLGWaveSolution*>(problem.Exact_solution_pt) == 0)
+        {
+          std::string err = "Non-wave exact solution";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+#endif
+
+      // only implemented for error at current time:
+      const unsigned t_hist = 0;
+
+
+      // Get real m_z value
+      const double time = problem.time_pt()->time(t_hist);
+      const double mz_exact = problem.exact_solution(time,
+                                                     Vector<double>(problem.dim(), 0.0)
+                                                     )[problem.m_index(2)];
+
+      // Get all m_z error values
+      const unsigned n_node = problem.mesh_pt()->nnode();
+      Vector<double> mzs(n_node, 0);
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          Node* nd_pt = problem.mesh_pt()->node_pt(nd);
+          mzs[nd] = std::abs(nd_pt->value(t_hist, problem.m_index(2)) - mz_exact);
+        }
+
+      const double mz_error = *std::max_element(mzs.begin(), mzs.end());
+
+      return mz_error;
+    }
+  }
 }

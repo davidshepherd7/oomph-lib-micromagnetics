@@ -720,6 +720,15 @@ namespace MManipulation
 
   }
 
+  namespace ErrorNorms
+  {
+    /// Error norm for wave solution based on phase at x=0
+    double wave_phase_error_norm(const LLGProblem& problem);
+
+    /// m_z error norm for wave solution
+    double wave_mz_error_norm(const LLGProblem& problem);
+  }
+
 }
 
 
