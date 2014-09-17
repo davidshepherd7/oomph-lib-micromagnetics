@@ -413,7 +413,11 @@ namespace InitialM
   {
   public:
     /// Constructor
-    LLGWaveSolution(const double& c) {C = c;}
+    LLGWaveSolution(const double& c)
+    {
+      C = c;
+      k = 2 * Pi;
+    }
 
     /// Virtual destructor
     virtual ~LLGWaveSolution() {}
@@ -427,11 +431,36 @@ namespace InitialM
                           OOMPH_EXCEPTION_LOCATION);
     }
 
-  private:
+    double b(const double& t) const
+    {
+      // Rescale time because this is a solution to the LL equation
+      double t_scaled = t / (1 + damping*damping);
+      return dim*k*k*damping*t_scaled;
+    }
+
+    double d(const double& t) const
+    {
+      using namespace std;
+      using namespace MathematicalConstants;
+
+      double a = this->C*Pi;
+      return sqrt(sin(a)*sin(a)  +  exp(2*b(t))*cos(a)*cos(a));
+    }
+
+    double g(const double& t) const
+    {
+      using namespace std;
+      using namespace MathematicalConstants;
+
+      double a = this->C*Pi;
+      return (1/damping) * log((d(t)  +  exp(b(t))*cos(a))
+                               /(1  +  cos(a)));
+    }
 
     unsigned dim;
     double damping;
     double C;
+    double k;
   };
 
 

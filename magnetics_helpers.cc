@@ -29,14 +29,7 @@ namespace oomph
                               OOMPH_EXCEPTION_LOCATION);
         }
 #endif
-
-      // solution parameters
       double a = this->C*Pi;
-      double k = 2 * Pi;
-
-      // Rescale time because this is a solution to the LL equation
-      double t_scaled = t / (1 + damping*damping);
-
 
       double sum_x = 0.0;
       for(unsigned j=0; j<dim; j++) {sum_x += x[j];}
@@ -44,16 +37,18 @@ namespace oomph
       Vector<double> m(5, 0.0);
       if(damping == 0.0)
         {
+          // Rescale time because this is a solution to the LL equation
+          double t_scaled = t / (1 + damping*damping);
+
           m[2] = sin(a) * cos(k*sum_x + dim*k*k*cos(a)*t_scaled);
           m[3] = sin(a) * sin(k*sum_x + dim*k*k*cos(a)*t_scaled);
           m[4] = cos(a);
         }
       else
         {
-          double b = dim*k*k*damping*t_scaled;
-          double d = sqrt(sin(a)*sin(a)  +  exp(2*b)*cos(a)*cos(a));
-          double g = (1/damping) * log((d  +  exp(b)*cos(a))
-                                       /(1  +  cos(a)));
+          double b = this->b(t);
+          double d = this->d(t);
+          double g = this->g(t);
 
           m[2] = (1/d) * sin(a) * cos(k*sum_x + g);
           m[3] = (1/d) * sin(a) * sin(k*sum_x + g);
