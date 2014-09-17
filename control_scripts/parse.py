@@ -1167,6 +1167,7 @@ def main():
               dataset_split_keys=args.scatter_split,
               x_value='initial_nnode',
               y_value='n_newton_iters',
+              yscale='linear',
               y_operation=sp.mean)
 
         newfigs = multi_plot(all_results, args.split, plot_mean_step_times_scatter)
