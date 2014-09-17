@@ -288,6 +288,14 @@ def parse_run(results_folder):
     # need to use a tolerance.
     d['time_adaptive'] = (abs(d['-tol']) > 1e-12)
 
+    def integrate_time_field(d, field):
+        # Get values at middle of intervals
+        values = d[field]
+        midpoints = [(en + enp1)/2 for en, enp1 in zip(values[:-1], values[1:])]
+        return sp.dot(midpoints, d['dts'][:-1])
+
+    d['error_norm_integral'] = integrate_time_field(d, 'error_norms')
+
     return d
 
 

@@ -677,6 +677,23 @@ def main():
         newfigs = multi_plot(all_results, args.split, plot_errors)
         figs.extend(newfigs)
 
+
+    if 'aux_err0' in args.plots:
+        plot_errors = par(plot_vs_time_with_cli_args,
+                          plot_values=['aux_error_norms','dts', 'trace_values'],
+                          operations_on_values=[lambda x:x[0], None, None])
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
+
+    if 'aux_err1' in args.plots:
+        plot_errors = par(plot_vs_time_with_cli_args,
+                          plot_values=['aux_error_norms','dts', 'trace_values'],
+                          operations_on_values=[lambda x:x[1], None, None])
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
+
     if 'swerr' in args.plots:
         plot_errors = par(plot_vs_time_with_cli_args,
                           plot_values=['switching_time_error','dts', 'trace_values'])
@@ -868,6 +885,42 @@ def main():
 
         newfigs = multi_plot(all_results, args.split, step_time_scatter)
         figs.extend(newfigs)
+
+
+    if 'scatter-aux_err0-integrals' in args.plots:
+
+        def temp(ys):
+            err0s = [y[0] for y in ys]
+
+            print(err0s)
+
+            return sum(err0s)
+
+        plot_errors = par(my_scatter,
+                          labels=args.label,
+                          dataset_split_keys=args.scatter_split,
+                          yscale='linear',
+                          x_value='dts',
+                          y_value='aux_error_norms',
+                          x_operation=sp.mean,
+                          y_operation=temp)
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
+
+
+    if 'scatter-error-integral' in args.plots:
+        plot_errors = par(my_scatter,
+                          labels=args.label,
+                          dataset_split_keys=args.scatter_split,
+                          yscale='linear',
+                          x_value='dts',
+                          y_value='error_norm_integral',
+                          x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+        figs.extend(newfigs)
+
 
     if 'scatter-step-time-log' in args.plots:
         step_time_scatter = \
