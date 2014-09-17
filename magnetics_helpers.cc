@@ -1172,19 +1172,20 @@ namespace oomph
 
     // Find the node at x=0
     const unsigned n_node = problem.mesh_pt()->nnode();
-    int zero_node = -1;
+    bool success = false;
+    Node* nd_pt;
     for(unsigned nd=0; nd<n_node; nd++)
       {
-        Node* nd_pt = problem.mesh_pt()->node_pt(nd);
-        Vector<double> x = nd_pt->position();
-        if(two_norm(x) < 1e-12)
+        nd_pt = problem.mesh_pt()->node_pt(nd);
+
+        if(two_norm(nd_pt->position()) < 1e-12)
           {
-            zero_node = nd;
+            success = true;
             break;
           }
       }
 #ifdef PARANOID
-    if(zero_node == -1)
+    if(!success)
       {
         std::string err = "Couldn't find node at zero.";
         throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
@@ -1197,19 +1198,21 @@ namespace oomph
     Vector<double> exact = problem.exact_solution(time,
                                                   Vector<double>(problem.dim(), 0.0));
 
-    double mx = exact[problem.m_index(2)];
-    double my = exact[problem.m_index(2)];
+    double mx = nd_pt->value(problem.m_index(0));
+    double my = nd_pt->value(problem.m_index(1));
 
     // const double solution_phase_a = std::acos(wave_sol_pt->d(time)*mx
     //                                           /std::sin(wave_sol_pt->C));
     // const double solution_phase_b = std::asin(wave_sol_pt->d(time)*my
     //                                           /std::sin(wave_sol_pt->C));
 
-    const double solution_phase = std::atan2(my, mx);
+    double solution_phase = std::atan2(my, mx);
+    if(solution_phase < 0) solution_phase += 2*Pi;
 
-    const double exact_phase = wave_sol_pt->g(time);
+    const double exact_phase = std::fmod(wave_sol_pt->g(time), 2*Pi);
 
-    return std::abs(exact_phase - solution_phase);
+    return std::min(std::abs(exact_phase - solution_phase),
+                    std::abs(std::abs(exact_phase - solution_phase) - 2*Pi));
   }
 
     double wave_mz_error_norm(const LLGProblem& problem)
@@ -1224,7 +1227,7 @@ namespace oomph
         }
 #endif
 
-      // only implemented for error at current time:
+      // only implemented for error at current time step:
       const unsigned t_hist = 0;
 
 
