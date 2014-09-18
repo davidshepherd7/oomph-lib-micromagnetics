@@ -572,16 +572,17 @@ namespace oomph
                                                   ele_pt()->nnode_1d(),
                                                   ele_pt()->element_geometry());
 
-        // ??ds assumed that all elements integrated over have the same
-        // geometry and nnodes!
+        // I've assumed that all elements integrated over have the same
+        // geometry and nnodes. This should always be true for
+        // micromagnetics unless we start doing surface anisotropy.
       }
 
     // Calculate and store new values
-    Exchange_energy = MManipulation::exchange_energy(*this);
-    Zeeman_energy = MManipulation::zeeman_energy(*this);
+    Exchange_energy = MManipulation::exchange_energy(*this, quadrature_pt);
+    Zeeman_energy = MManipulation::zeeman_energy(*this, quadrature_pt);
     Crystalline_anisotropy_energy =
-      MManipulation::crystalline_anisotropy_energy(*this);
-    Magnetostatic_energy = MManipulation::magnetostatic_energy(*this);
+      MManipulation::crystalline_anisotropy_energy(*this, quadrature_pt);
+    Magnetostatic_energy = MManipulation::magnetostatic_energy(*this, quadrature_pt);
 
     // Store energy for damping calculations
     Previous_energies.push_front(micromagnetic_energy());

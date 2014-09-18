@@ -127,6 +127,11 @@ namespace oomph
       specify_command_line_flag("-pin-boundary-m", &pin_boundary_m,
                                 ", default: -1.");
       pin_boundary_m = -1;
+
+      specify_command_line_flag("-gauss-quadrature-energy", &gauss_quadrature_energy,
+                                "Force the use of Gaussian quadrature for energy calculations?, default: -1 = use problem's default.");
+      gauss_quadrature_energy      = -1;
+
     }
 
     bool is_decoupled(const std::string& ms_method) const
@@ -338,6 +343,11 @@ namespace oomph
           llg_pt->Doc_m_length_error = bool(doc_ml_error);
         }
 
+      if(gauss_quadrature_energy != -1)
+        {
+          llg_pt->Force_gaussian_quadrature_in_energy = bool(gauss_quadrature_energy);
+        }
+
     }
 
     MagneticParameters* mag_params_pt;
@@ -375,6 +385,7 @@ namespace oomph
     int use_m_mallinson;
     int fd_jac;
     int pin_boundary_m;
+    int gauss_quadrature_energy;
 
     std::string quadrature_type;
 
