@@ -1099,6 +1099,10 @@ namespace oomph
         {
           return &HApp::smooth_start_z;
         }
+      else if(field_name == "linear_z")
+        {
+          return &HApp::linear_z;
+        }
       else
         {
           throw OomphLibError("Unrecognised field name " + field_name,

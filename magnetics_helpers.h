@@ -256,6 +256,15 @@ namespace HApp
       }
     return h;
   }
+
+
+  inline Vector<double> linear_z(const double& t,
+                                 const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    h[2] = 1.1 * std::max(1.0 - x[0], 0.0);
+    return h;
+  }
 }
 
 namespace InitialM
