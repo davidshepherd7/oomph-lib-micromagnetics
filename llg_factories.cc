@@ -1083,6 +1083,10 @@ namespace oomph
         {
           return &HApp::mumag4_initial_exponential;
         }
+      else if(field_name == "mumag4_initial_proper_relax")
+        {
+          return &HApp::mumag4_initial_proper_relax;
+        }
       else if(field_name == "mumag4_field1")
         {
           return &HApp::mumag4_field1;

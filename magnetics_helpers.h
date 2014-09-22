@@ -150,6 +150,13 @@ namespace HApp
     return h;
   }
 
+
+  inline Vector<double> mumag4_initial_proper_relax(const double& t, const Vector<double> &x)
+  {
+    // fixed in time, reduction is handled by relaxation code
+    return Vector<double>(3, 10);
+  }
+
   inline Vector<double> mumag4_field1(const double& t, const Vector<double> &x)
   {
     double mu0 = 4*Pi*1e-7;

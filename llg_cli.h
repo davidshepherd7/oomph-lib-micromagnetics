@@ -108,6 +108,10 @@ namespace oomph
                                 "Amount of time to allow m to relax for if -relax-m-field is set, default: 300.");
       relax_m_time = 300;
 
+      specify_command_line_flag("-do-proper-relax", &do_proper_relax,
+                          "Relax m in the usual way (small incremental field reductions), default: -1.");
+      do_proper_relax = -1;
+
 
       specify_command_line_flag("-quadrature", &quadrature_type,
                                 "gauss, nodal, rnodal; default is gauss.");
@@ -342,6 +346,10 @@ namespace oomph
           llg_pt->H_app_relax = Factories::h_app_factory(relax_field_name);
         }
       llg_pt->Relax_m_time = relax_m_time;
+      if(do_proper_relax != -1)
+        {
+          llg_pt->Do_proper_relax = bool(do_proper_relax);
+        }
 
 
       if(doc_ml_error != -1)
@@ -382,6 +390,7 @@ namespace oomph
     double h_app_debug_coeff;
     double wave_solution_c;
     double relax_m_time;
+    int do_proper_relax;
 
     int numerical_int_bem;
     int hlib_bem;

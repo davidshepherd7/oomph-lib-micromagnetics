@@ -396,14 +396,139 @@ namespace oomph
       doc_solution();
     }
 
+
+
+    /// ??ds
+    void proper_relax(HAppFctPt h_app_max,
+                      const double& torque_tol,
+                      const double& h_app_step)
+    {
+      // Backup values
+      // ============================================================
+
+      const double initial_damping = mag_parameters_pt()->Gilbert_damping;
+      const double initial_dt = time_pt()->dt();
+      const double initial_time = time_pt()->time();
+      const HAppFctPt initial_happ = mag_parameters_pt()->Applied_field_fct_pt;
+      const unsigned old_doc_info_number = Doc_info.number();
+      const double old_happ_debug_coeff = Magnetic_parameters_pt->Applied_field_debug_coeff;
+
+
+      // Set relaxation parameters
+      // ============================================================
+
+      // Set a high damping and the relaxation field
+      Magnetic_parameters_pt->Gilbert_damping = 1.0;
+      Magnetic_parameters_pt->Applied_field_fct_pt = h_app_max;
+      Magnetic_parameters_pt->Applied_field_debug_coeff = 1.0;
+
+      // Doc the initial condition
+      Doc_info.number() = 0;
+      doc_solution(0, "relax_");
+
+      // Step down applied field and relax each time
+      double happ_coff = 1.0;
+      while(happ_coff >= 0)
+        {
+          double dt = std::max(initial_dt/100, 1e-4);
+          const double relax_tol = 1e-5;
+          unsigned i = 0;
+
+          Magnetic_parameters_pt->Applied_field_debug_coeff = happ_coff;
+
+          while(this->max_torque() > torque_tol || i < 5)
+            {
+              // Output some basic info
+              oomph_info
+                << std::endl
+                << std::endl
+                << "Relaxation step " << N_steps_taken
+                << ", time = " << time()
+                << ", dt = " << dt << std::endl
+                << "=============================================" << std::endl
+                << std::endl;
+
+              // Do the time step
+              dt = smart_time_step(dt, relax_tol);
+
+              // Output
+              doc_solution(0, "relax_");
+            }
+
+          happ_coff -= h_app_step;
+          i++;
+        }
+
+      // Revert everything
+      // ============================================================
+
+      // Revert time info
+      N_steps_taken = 0;
+      time_pt()->time() = initial_time;
+      initialise_dt(initial_dt);
+
+      // Revert the damping and field
+      Magnetic_parameters_pt->Gilbert_damping = initial_damping;
+      Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
+      Magnetic_parameters_pt->Magnetostatic_debug_coeff = old_happ_debug_coeff;
+
+      // Reset the doc solution counter
+      Doc_info.number() = old_doc_info_number;
+
+
+      // (Re)-set initial condition to be the relaxed values all the way
+      // back in time. This must go after reverting other things so that
+      // intial energy etc. are correct
+      set_up_impulsive_initial_condition();
+
+      // overwrite the "current" soln.dat etc. (ie write out final relaxed
+      // state as initial condition for time integration.
+      Doc_info.number()--;
+      doc_solution();
+    }
+
+    double max_torque() const
+    {
+      const double dtn = time_pt()->dt(0);
+      double max_torque = 0.0;
+      const unsigned n_node = mesh_pt()->nnode();
+
+      // Loop over nodes + find maximum dm/dt (according to d'Aquino2005
+      // this is the torque..)
+      for(unsigned nd=0; nd<n_node; nd++)
+        {
+          Node* nd_pt = mesh_pt()->node_pt(nd);
+
+          double torque = 0.0;
+          for(unsigned j=0; j<3; j++)
+            {
+              torque += (nd_pt->value(0, m_index(j))
+                         - nd_pt->value(1, m_index(j))) /dtn;
+            }
+
+          max_torque = std::max(torque, max_torque);
+        }
+
+      return max_torque;
+    }
+
+
     virtual void actions_before_time_integration() override
     {
       MyProblem::actions_before_time_integration();
 
       if(H_app_relax != 0)
         {
-          relax(H_app_relax, Relax_m_time);
+          if(Do_proper_relax)
+            {
+              proper_relax(H_app_relax, 1e-5, 1e-2);
+            }
+          else
+            {
+              relax(H_app_relax, Relax_m_time);
+            }
         }
+
     }
 
 
@@ -1176,6 +1301,7 @@ namespace oomph
     /// integration? Do nothing if null.
     HAppFctPt H_app_relax;
     double Relax_m_time;
+    bool Do_proper_relax;
 
     /// Should we write out spatial values of |m| error
     bool Doc_m_length_error;
