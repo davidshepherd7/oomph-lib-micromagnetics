@@ -102,6 +102,17 @@ def axis_label_thesisify(label):
                      'mean mxs' : r'mean($m_x$)',
                      'mean mys' : r'mean($m_y$)',
                      'mean mzs' : r'mean($m_z$)',
+
+                     'get2 of "trace values"' : r'$m_x(\mathbf{x} = \mathbf{0})$',
+                     'get3 of "trace values"' : r'$m_y(\mathbf{x} = \mathbf{0})$',
+                     'get4 of "trace values"' : r'$m_z(\mathbf{x} = \mathbf{0})$',
+
+                     # integrals of error norms
+                     'aux err1 integral' : r'$\int \, \mathcal{E}_{m_z} \, \mathrm{d}t$',
+                     'aux err0 integral' : r'$\int \, \mathcal{E}_{p} \, \mathrm{d}t$',
+                     'error norm integral' : r'$\int \, \mathcal{E}_{\mathbf{m}} \, \mathrm{d}t$',
+                     'first of "error norms"' : r'$\mathcal{E}_{\mathbf{m}, 1}$',
+                     'fakemean of "dts"' : r'$\Delta_n$',
                      }
 
     # If it matches then change it
@@ -113,6 +124,12 @@ def axis_label_thesisify(label):
     return label
 
 def legend_thesisify(label):
+    """Replace legends with nice versions for thesis.
+
+    This is an awful hack, if e.g. tr is inside another word the whole
+    thing will get replaced... If e.g. tr is inside a replacement the
+    result is non-determinisitc, depends on order of dict...  :(
+    """
 
     replaces = {'imr' : 'IMR',
                 'tr' : 'TR',
@@ -127,11 +144,15 @@ def legend_thesisify(label):
                 '$x$' : '$\Delta_n$',
                 '$x^2$' : '$\Delta_n^2$',
                 '$x^3$' : '$\Delta_n^3$',
+
+                # meshes
+                'sq_square' : 'square',
+                'st_square' : 'triangular',
                 }
 
     for k, v in replaces.items():
         if k in label:
-            return label.replace(k, v) # only do first replace found
+            label = label.replace(k, v)
     else:
         return label
 
@@ -183,6 +204,7 @@ def make_colour_iter():
 
 def plot_vs_thing(xthing, data, plot_values,
                   operations_on_values=None,
+                  operation_on_x=None,
                   labels=None,
                   y_axis_lims=None,
                   xscale="linear",
@@ -231,14 +253,22 @@ def plot_vs_thing(xthing, data, plot_values,
 
             initial_vals = d.get(p)
             if initial_vals is not None:
+
+                # Do things to y-values (e.g. mean, max, ...)
                 if op is not None:
                     vals = list(map(op, d[p]))
 
                 else:
                     vals = d[p]
 
+                # Do things to x-values (e.g. convert units)
+                if operation_on_x is not None:
+                    xs = list(map(operation_on_x, d[xthing]))
+                else:
+                    xs = d[xthing]
+
                 # Skip first few steps if requested
-                xs = d[xthing][skip_first_n:-1]
+                xs = xs[skip_first_n:-1]
                 vals = vals[skip_first_n:-1]
 
                 colour = next(colours)
@@ -722,14 +752,25 @@ def main():
 
     # kind of assumes 3 trace values
     if 'tracem' in args.plots:
+
+        # Named functions so we can replace with good values for thesis version
+        def get2(y):
+            return y[2]
+        def get3(y):
+            return y[3]
+        def get4(y):
+            return y[4]
+
         plot_traces = par(plot_vs_time_with_cli_args,
                           plot_values=['trace_values','trace_values','trace_values', 'dts'],
-                          operations_on_values=[lambda x:x[2],
-                                                lambda x:x[3],
-                                                lambda x:x[4],
-                                                None])
+                          operations_on_values=[get2, get3, get4, None])
 
         newfigs = multi_plot(all_results, args.split, plot_traces)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                ax.set_xlim(-0.1, None)
+
         figs.extend(newfigs)
 
 
@@ -805,6 +846,39 @@ def main():
                                     yscale="log")
 
         newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+        figs.extend(newfigs)
+
+    if 'mumag4-energy-only-log' in args.plots:
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
+                                    plot_values=['energy_change'],
+                                    operations_on_values=[abs],
+                                    yscale="log")
+
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                ax.set_xlim(0, None)
+
+        figs.extend(newfigs)
+
+    if 'mumag4-comparison-plot' in args.plots:
+
+        def to_nanoseconds(t):
+            return t * (5.653e-3)
+
+        plot_ml_error_vs_time = par(plot_vs_time_with_cli_args,
+                                    plot_values=['mean_mys'],
+                                    operation_on_x=to_nanoseconds)
+
+        newfigs = multi_plot(all_results, args.split, plot_ml_error_vs_time)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                ax.set_xlim(0, 1.0)
+                ax.set_ylim(-0.5, 0.5)
+
+
         figs.extend(newfigs)
 
     if 'lte' in args.plots:
@@ -888,37 +962,70 @@ def main():
 
 
     if 'scatter-aux_err0-integrals' in args.plots:
-
-        def temp(ys):
-            err0s = [y[0] for y in ys]
-
-            print(err0s)
-
-            return sum(err0s)
-
         plot_errors = par(my_scatter,
                           labels=args.label,
                           dataset_split_keys=args.scatter_split,
-                          yscale='linear',
                           x_value='dts',
-                          y_value='aux_error_norms',
+                          y_value='aux_err0_integral',
                           x_operation=sp.mean,
-                          y_operation=temp)
+                          x_operation_name="fakemean")
 
         newfigs = multi_plot(all_results, args.split, plot_errors)
+
+
         figs.extend(newfigs)
 
+    if 'scatter-aux_err1-integrals' in args.plots:
+        plot_errors = par(my_scatter,
+                          labels=args.label,
+                          dataset_split_keys=args.scatter_split,
+                          x_value='dts',
+                          y_value='aux_err1_integral',
+                          x_operation=sp.mean,
+                          x_operation_name="fakemean")
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
+                ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
+                ax.legend(loc=0)
+
+        figs.extend(newfigs)
 
     if 'scatter-error-integral' in args.plots:
         plot_errors = par(my_scatter,
                           labels=args.label,
                           dataset_split_keys=args.scatter_split,
-                          yscale='linear',
                           x_value='dts',
                           y_value='error_norm_integral',
-                          x_operation=sp.mean)
+                          x_operation=sp.mean,
+                          x_operation_name="fakemean")
 
         newfigs = multi_plot(all_results, args.split, plot_errors)
+
+        figs.extend(newfigs)
+
+    if 'scatter-error-period' in args.plots:
+
+        def thingy(values):
+            phase_err = sp.array([m[0] - 2*sp.pi for m in values])
+            inds, zero_crossings = mm.find_zero_crossings(phase_err)
+
+            return len(phase_err)*4*sp.pi + phase_err[-1] + 2*sp.pi
+
+        plot_errors = par(my_scatter,
+                          labels=args.label,
+                          dataset_split_keys=args.scatter_split,
+                          x_value='dts',
+                          y_value='aux_error_norms',
+                          y_operation=thingy,
+                          x_operation=sp.mean,
+                          x_operation_name="fakemean")
+
+        newfigs = multi_plot(all_results, args.split, plot_errors)
+
         figs.extend(newfigs)
 
 
@@ -1053,13 +1160,15 @@ def main():
               x_operation=sp.mean)
 
         newfigs = multi_plot(all_results, args.split, plot_err_scatter)
-        figs.extend(newfigs)
 
         for fig in newfigs:
             for ax in fig.axes:
                 xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
                 ax.plot(xs, [x**2 for x in xs], 'k-', label="$x^2$")
                 ax.legend(loc=0)
+
+        figs.extend(newfigs)
+
 
     if 'scatter-err-dts-noguides' in args.plots:
         plot_err_scatter = \
@@ -1122,15 +1231,26 @@ def main():
         figs.extend(newfigs)
 
     if 'scatter-first-err' in args.plots:
+
         plot_err_scatter = \
           par(my_scatter,
               labels=args.label,
               dataset_split_keys=args.scatter_split,
-              x_value='-dt',
+              x_value='dts',
               y_value='error_norms',
-              y_operation=lambda y:y[1])
+              y_operation=lambda y:y[1],
+              y_operation_name="first",
+              x_operation=sp.mean,
+              x_operation_name="fakemean")
 
         newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+
+        for fig in newfigs:
+            for ax in fig.axes:
+                xs = sp.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 5)
+                ax.plot(xs, [100*x**2 for x in xs], 'k-', label="$100x^2$")
+                ax.legend(loc=0)
+
         figs.extend(newfigs)
 
     if 'scatter-ml-newtres' in args.plots:
@@ -1148,6 +1268,28 @@ def main():
               labels=args.label,
               dataset_split_keys=args.scatter_split,
               y_value='m_length_error_maxes',
+              y_operation=max,
+              x_value='newton_residuals',
+              x_operation=mean_min)
+
+        newfigs = multi_plot(all_results, args.split, fplot)
+        figs.extend(newfigs)
+
+    if 'scatter-energy-change-newtres' in args.plots:
+
+        def mean_min(dataset):
+            mins = []
+            for residuals in dataset:
+                if len(residuals) > 0:
+                    mins.append(min(residuals))
+
+            return sp.mean(mins)
+
+        fplot = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              y_value='energy_change',
               y_operation=max,
               x_value='newton_residuals',
               x_operation=mean_min)

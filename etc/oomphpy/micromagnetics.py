@@ -142,6 +142,24 @@ def split_to_comparable_groups(dicts, key_to_compare_over, key_filter=None):
     return comparable_groups
 
 
+def find_zero_crossings(array):
+    def mysign(a):
+        if a > 0.0:
+            return +1
+        else:
+            return -1
+
+    zero_crossings = []
+    indices = []
+    for i, _ in enumerate(array[1:]):
+        if mysign(array[i]) != mysign(array[i-1]):
+            zero_crossings.append(array[i])
+            indices.append(i)
+
+    return indices, zero_crossings
+
+
+
 # Parsing functions
 # ============================================================
 def parse_trace_entry(entry):
