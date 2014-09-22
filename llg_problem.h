@@ -350,7 +350,7 @@ namespace oomph
 
       // ??ds big hack here: just relax for 250 time units, enough for
       // mumag4... fix to use torque eventually
-      while(time() < 250)
+      while(time() < 1000)
         {
           // Output some basic info
           oomph_info
