@@ -1172,20 +1172,19 @@ namespace oomph
 
     // Find the node at x=0
     const unsigned n_node = problem.mesh_pt()->nnode();
-    bool success = false;
-    Node* nd_pt;
+    Node* nd_pt = 0;
     for(unsigned nd=0; nd<n_node; nd++)
       {
-        nd_pt = problem.mesh_pt()->node_pt(nd);
+       Node* temp_nd_pt = problem.mesh_pt()->node_pt(nd);
 
-        if(two_norm(nd_pt->position()) < 1e-12)
+        if(two_norm(temp_nd_pt->position()) < 1e-12)
           {
-            success = true;
+            nd_pt = temp_nd_pt;
             break;
           }
       }
 #ifdef PARANOID
-    if(!success)
+    if(nd_pt == 0)
       {
         std::string err = "Couldn't find node at zero.";
         throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
