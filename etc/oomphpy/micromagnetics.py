@@ -294,7 +294,18 @@ def parse_run(results_folder):
         midpoints = [(en + enp1)/2 for en, enp1 in zip(values[:-1], values[1:])]
         return sp.dot(midpoints, d['dts'][:-1])
 
-    d['error_norm_integral'] = integrate_time_field(d, 'error_norms')
+    try:
+        d['error_norm_integral'] = integrate_time_field(d, 'error_norms')
+
+        d['aux_err0'] = [e[0] for e in d['aux_error_norms']]
+        d['aux_err0_integral'] = integrate_time_field(d, 'aux_err0')
+
+        d['aux_err1'] =[e[1] for e in d['aux_error_norms']]
+        d['aux_err1_integral'] = integrate_time_field(d, 'aux_err1')
+
+    # Be backwards compatible, and work for problems with no aux errors
+    except (IndexError, KeyError):
+        pass
 
     return d
 
