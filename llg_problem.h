@@ -321,7 +321,7 @@ namespace oomph
     }
 
     /// Relax magnetisation using strongly damped llg until torque is small
-    void relax(HAppFctPt h_app_relax=HApp::zero)
+    void relax(HAppFctPt h_app_relax, const double& relax_time)
     {
       // Backup values
       // ============================================================
@@ -350,7 +350,7 @@ namespace oomph
 
       // ??ds big hack here: just relax for 250 time units, enough for
       // mumag4... fix to use torque eventually
-      while(time() < 1000)
+      while(time() < relax_time)
         {
           // Output some basic info
           oomph_info
@@ -402,7 +402,7 @@ namespace oomph
 
       if(H_app_relax != 0)
         {
-          relax(H_app_relax);
+          relax(H_app_relax, Relax_m_time);
         }
     }
 
@@ -1175,6 +1175,7 @@ namespace oomph
     /// Field for magnetisation be relaxed under before we start time
     /// integration? Do nothing if null.
     HAppFctPt H_app_relax;
+    double Relax_m_time;
 
     /// Should we write out spatial values of |m| error
     bool Doc_m_length_error;

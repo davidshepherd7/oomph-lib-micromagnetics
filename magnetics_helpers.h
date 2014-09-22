@@ -137,6 +137,19 @@ namespace HApp
     return h;
   }
 
+  inline Vector<double> mumag4_initial_exponential(const double& t, const Vector<double> &x)
+  {
+    Vector<double> h(3, 0.0);
+    double t0 = 50;
+
+    // Strong, decay to zero, last bit needs to be slower so use exponential
+    h[0] = std::max(50 *std::exp(-t/t0), 0.0);
+    h[1] = h[0];
+    h[2] = h[0];
+
+    return h;
+  }
+
   inline Vector<double> mumag4_field1(const double& t, const Vector<double> &x)
   {
     double mu0 = 4*Pi*1e-7;

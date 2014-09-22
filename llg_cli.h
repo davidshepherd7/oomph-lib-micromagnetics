@@ -104,6 +104,11 @@ namespace oomph
                                 "Field to relax magnetisation under before time integration, default 0 = do not relax).");
       relax_m = -1;
 
+      specify_command_line_flag("-relax-m-time", &relax_m_time,
+                                "Amount of time to allow m to relax for if -relax-m-field is set, default: 300.");
+      relax_m_time = 300;
+
+
       specify_command_line_flag("-quadrature", &quadrature_type,
                                 "gauss, nodal, rnodal; default is gauss.");
       quadrature_type = "gauss";
@@ -336,6 +341,7 @@ namespace oomph
         {
           llg_pt->H_app_relax = Factories::h_app_factory(relax_field_name);
         }
+      llg_pt->Relax_m_time = relax_m_time;
 
 
       if(doc_ml_error != -1)
@@ -375,6 +381,7 @@ namespace oomph
     double ms_debug_coeff;
     double h_app_debug_coeff;
     double wave_solution_c;
+    double relax_m_time;
 
     int numerical_int_bem;
     int hlib_bem;
