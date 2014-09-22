@@ -437,7 +437,7 @@ namespace oomph
 
           Magnetic_parameters_pt->Applied_field_debug_coeff = happ_coff;
 
-          while(maxtorque > torque_tol || i < 5)
+          while(std::abs(maxtorque) > torque_tol || i < 5)
             {
               // Output some basic info
               oomph_info
@@ -457,10 +457,12 @@ namespace oomph
 
               // Output
               doc_solution(0, "relax_");
+
+              maxtorque = this->max_torque();
+              i++;
             }
 
           happ_coff -= h_app_step;
-          i++;
         }
 
       // Revert everything
