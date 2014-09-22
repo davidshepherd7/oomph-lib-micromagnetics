@@ -433,10 +433,11 @@ namespace oomph
           double dt = std::max(initial_dt/100, 1e-4);
           const double relax_tol = 1e-5;
           unsigned i = 0;
+          double maxtorque = this->max_torque();
 
           Magnetic_parameters_pt->Applied_field_debug_coeff = happ_coff;
 
-          while(this->max_torque() > torque_tol || i < 5)
+          while(maxtorque > torque_tol || i < 5)
             {
               // Output some basic info
               oomph_info
@@ -444,7 +445,10 @@ namespace oomph
                 << std::endl
                 << "Relaxation step " << N_steps_taken
                 << ", time = " << time()
-                << ", dt = " << dt << std::endl
+                << ", dt = " << dt
+                << ", maxtorque = " << maxtorque
+                << ", i = " << i
+                << std::endl
                 << "=============================================" << std::endl
                 << std::endl;
 
