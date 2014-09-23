@@ -478,7 +478,7 @@ namespace oomph
       // Revert the damping and field
       Magnetic_parameters_pt->Gilbert_damping = initial_damping;
       Magnetic_parameters_pt->Applied_field_fct_pt = initial_happ;
-      Magnetic_parameters_pt->Magnetostatic_debug_coeff = old_happ_debug_coeff;
+      Magnetic_parameters_pt->Applied_field_debug_coeff = old_happ_debug_coeff;
 
       // Reset the doc solution counter
       Doc_info.number() = old_doc_info_number;
