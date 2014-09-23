@@ -426,16 +426,19 @@ namespace oomph
       Doc_info.number() = 0;
       doc_solution(0, "relax_");
 
-      // Step down applied field and relax each time
-      double happ_coff = 1.0;
-      while(happ_coff >= 0)
+      // Step down applied field and relax each time. Use integer
+      // arithmetic to avoid floating point issues (using floating point
+      // steps will result the final step being slightly below zero, which
+      // ruins everything).
+      const int nsteps = 100;
+      for(int step=nsteps; step >= 0; step--)
         {
           double dt = std::max(initial_dt/100, 1e-4);
           const double relax_tol = 1e-5;
           unsigned i = 0;
           double maxtorque = this->max_torque();
 
-          Magnetic_parameters_pt->Applied_field_debug_coeff = happ_coff;
+          Magnetic_parameters_pt->Applied_field_debug_coeff = double(step)/double(nsteps);
 
           while(std::abs(maxtorque) > torque_tol || i < 5)
             {
@@ -448,6 +451,7 @@ namespace oomph
                 << ", dt = " << dt
                 << ", maxtorque = " << maxtorque
                 << ", i = " << i
+                << ", field coeff = " << Magnetic_parameters_pt->Applied_field_debug_coeff
                 << std::endl
                 << "=============================================" << std::endl
                 << std::endl;
@@ -461,8 +465,6 @@ namespace oomph
               maxtorque = this->max_torque();
               i++;
             }
-
-          happ_coff -= h_app_step;
         }
 
       // Revert everything
