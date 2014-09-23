@@ -609,4 +609,27 @@ namespace oomph
       }
   }
 
+  double LLGProblem::max_torque() const
+  {
+    const double dtn = time_pt()->dt(0);
+    double max_torque = 0.0;
+    const unsigned n_node = mesh_pt()->nnode();
+
+    // Loop over nodes + find maximum dm/dt (according to d'Aquino2005
+    // this is the torque..)
+    for(unsigned nd=0; nd<n_node; nd++)
+      {
+        Node* nd_pt = mesh_pt()->node_pt(nd);
+
+        double torque = 0.0;
+        for(unsigned j=0; j<3; j++)
+          {
+            torque += (nd_pt->value(0, m_index(j))
+                       - nd_pt->value(1, m_index(j))) /dtn;
+          }
+        max_torque = std::max(std::abs(torque), std::abs(max_torque));
+      }
+
+    return max_torque;
+  }
 }
