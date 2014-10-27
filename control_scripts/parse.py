@@ -79,7 +79,7 @@ def axis_label_thesisify(label):
                      'lnodal' : 'nodal quadrature',
                      'gauss' : 'Gaussian quadrature',
                      'dts' : r'$\Delta_n$',
-                     'm length error maxes' : r'max$(|\mathbf{m}| - 1)$',
+                     'm length error maxes' : r'$\mathcal{E}_{|\mathbf{m}|}$',
                      '-tol' : r'$\epsilon_\Delta$',
                      'trace values' : r'$y_n$',
                      'error norms' : r'$|y(t_n) - y_n|$',
@@ -89,7 +89,7 @@ def axis_label_thesisify(label):
                      'mean of "real solver times"' : r'mean solve time (s)',
 
                      # newton res stuff
-                     'max of "m length error maxes"' : r'max(max$(|\mathbf{m}| - 1)$)',
+                     'max of "m length error maxes"' : r'$\max (\mathcal{E}_{|\mathbf{m}|})$',
                      'max min of "newton residuals"' : r'max$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
                      'mean min of "newton residuals"' : r'mean$(||\mathbf{r}_{\mathrm{final}}||_\infty)$',
 
