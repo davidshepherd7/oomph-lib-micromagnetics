@@ -1072,7 +1072,7 @@ namespace oomph
     Cached<double> Phi;
     Cached<double> Phi1;
 
-    Cached<Vector<double>> Dmdt;
+    Cached<Vector<double> > Dmdt;
 
     Cached<Vector<double> > Dmdx[3];
     Cached<Vector<double> > Dphidx;
