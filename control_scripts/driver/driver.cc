@@ -183,19 +183,13 @@ int main(int argc, char *argv[])
   problem_pt->newton_solver_tolerance() = args_pt->newton_tol;
   problem_pt->max_residuals() = args_pt->newton_max_residual;
   problem_pt->max_newton_iterations() = args_pt->newton_max_iterations;
-  problem_pt->time_step_rescaler_pt()->Maximum_dt = args_pt->max_dt;
+  problem_pt->maximum_dt() = args_pt->max_dt;
   problem_pt->Exact_solution_pt = args_pt->exact_solution_pt();
 
   if(args_pt->crash_newton_fail != -1)
     {
       problem_pt->time_adaptive_newton_crash_on_solve_fail()
         = args_pt->crash_newton_fail;
-    }
-
-  if(args_pt->dummy_adaptivity == 1)
-    {
-      delete problem_pt->time_step_rescaler_pt();
-      problem_pt->time_step_rescaler_pt() = new DummyTimeStepRescaler;
     }
 
   problem_pt->Error_norm_limit = args_pt->error_norm_limit;

@@ -161,9 +161,6 @@ namespace oomph
         specify_command_line_flag("-impulsive-restart", &impulsive_restart);
         impulsive_restart = -1;
 
-        specify_command_line_flag("-dummy-adaptivity", &dummy_adaptivity);
-        dummy_adaptivity = -1;
-
         specify_command_line_flag("-mp-update-pinned", &mp_update_pinned);
         mp_update_pinned = -1;
 
@@ -404,7 +401,6 @@ namespace oomph
     double tmax;
     double tol;
     double max_dt;
-    int dummy_adaptivity;
     int convergence_test;
 
     int refinement;
