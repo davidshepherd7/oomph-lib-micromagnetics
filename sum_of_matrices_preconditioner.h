@@ -78,8 +78,7 @@ namespace oomph
     void setup(SumOfMatrices* sum_matrix_pt,
                const OomphCommunicator* comm_pt = 0)
     {
-      underlying_prec_pt()->setup(sum_matrix_pt->main_matrix_pt(),
-                                  comm_pt);
+      underlying_prec_pt()->setup(sum_matrix_pt->main_matrix_pt());
     }
     void setup() {underlying_prec_pt()->setup();}
 

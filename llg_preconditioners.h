@@ -187,7 +187,7 @@ public:
 #endif
 
       // Call setup for the real preconditioner
-      Real_preconditioner_pt->setup(matrix_pt(), comm_pt());
+      Real_preconditioner_pt->setup(matrix_pt());
     }
 
     void preconditioner_solve(const DoubleVector& r, DoubleVector& z)
@@ -374,7 +374,7 @@ public:
 
       // Setup first block's preconditioner
       // ============================================================
-      Prec1_pt->setup(Jaa_pt, comm_pt());
+      Prec1_pt->setup(Jaa_pt);
 
 
       // Setup second block's preconditioner
@@ -384,7 +384,7 @@ public:
       cr_matrix_add(*Jaa_pt, Jab, Jab);
 
       // Construct preconditioner for application of inverse
-      Prec2_pt->setup(&Jab, comm_pt());
+      Prec2_pt->setup(&Jab);
     }
 
 

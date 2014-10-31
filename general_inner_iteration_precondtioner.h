@@ -69,7 +69,7 @@ public:
     // Awful hack #1 from InnerIterationPreconditioner: manually set up the
     // preconditioner because when resolve is enabled the preconditioner is
     // NEVER set up, not even the first time solve is called!
-    Solver_pt->preconditioner_pt()->setup(Cached_matrix_pt, comm_pt());
+    Solver_pt->preconditioner_pt()->setup(Cached_matrix_pt);
 
 
     // Enable resolve, i.e. store the matrix pointer and the preconditioner
