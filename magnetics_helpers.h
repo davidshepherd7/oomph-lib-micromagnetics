@@ -520,7 +520,7 @@ namespace InitialM
 
     /// Just the initial condition actually, no exact solution that can fit
     /// this framework.
-    Vector<double> operator()(const double& t, const Vector<double>&x) const override
+    Vector<double> operator()(const double& t, const Vector<double>&x) const
     {
       Vector<double> full_vector = initial_m_pt->operator()(t, x);
 
@@ -534,16 +534,16 @@ namespace InitialM
 
     /// Derivative function.
     Vector<double> derivative(const double& t, const Vector<double>& x,
-                              const Vector<double>& m) const override;
+                              const Vector<double>& m) const;
 
     void jacobian(const double& t, const Vector<double>& x,
                   const Vector<double>& m,
-                  DenseMatrix<double>& jacobian) const override;
+                  DenseMatrix<double>& jacobian) const;
 
-    bool have_jacobian() const override {return true;}
+    bool have_jacobian() const {return true;}
 
     /// Get parameters from problem
-    void initialise_from_problem(const Problem* problem_pt) override;
+    void initialise_from_problem(const Problem* problem_pt);
 
     MagneticParameters* magnetic_parameters_pt;
     InitialMFct* initial_m_pt;
@@ -574,7 +574,7 @@ namespace InitialM
 
     void jacobian(const double& t, const Vector<double>& x,
                   const Vector<double>& m,
-                  DenseMatrix<double>& jacobian) const override
+                  DenseMatrix<double>& jacobian) const
     {
       llg_ode_solution.jacobian(t, x, m, jacobian);
     }

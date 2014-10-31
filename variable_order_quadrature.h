@@ -133,21 +133,21 @@ namespace oomph
     /// Get the knots for the one dimensional case (these are the only ones stored)
     virtual double knot_1d(const unsigned &i, const unsigned &order) const = 0;
 
-    /// Dummy function to override the virtual one from Integral class
+    /// Dummy function to the virtual one from Integral class
     virtual unsigned nweight() const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
                           OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
     }
 
-    /// Dummy function to override the virtual one from Integral class
+    /// Dummy function to the virtual one from Integral class
     virtual double weight(const unsigned &i) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",
                           OOMPH_CURRENT_FUNCTION, OOMPH_EXCEPTION_LOCATION);
     }
 
-    /// Dummy function to override the virtual one from Integral class
+    /// Dummy function to the virtual one from Integral class
     virtual double knot(const unsigned &i,const unsigned &j) const
     {
       throw OomphLibError("Must specify an order for use with variable order integration",

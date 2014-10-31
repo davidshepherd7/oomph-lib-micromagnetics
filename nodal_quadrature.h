@@ -257,7 +257,7 @@ namespace oomph
     }
 
     /// Should the elemental jacobian be 1 for this quadrature?
-    virtual bool unit_jacobian() const override
+    virtual bool unit_jacobian() const
     {
       return true;
     }

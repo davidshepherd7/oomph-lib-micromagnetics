@@ -273,7 +273,7 @@ namespace oomph
     }
 
     /// Get residuals
-    void fill_in_contribution_to_residuals(Vector<double>& residuals) override
+    void fill_in_contribution_to_residuals(Vector<double>& residuals)
     {
       // Get pointer to one-and-only internal data object
       Data* dat_pt = internal_data_pt(0);
@@ -301,7 +301,7 @@ namespace oomph
     }
 
     void fill_in_contribution_to_jacobian(Vector<double>& residuals,
-                                          DenseMatrix<double>& jacobian) override
+                                          DenseMatrix<double>& jacobian)
     {
       // Get residuals
       fill_in_contribution_to_residuals(residuals);
@@ -332,7 +332,7 @@ namespace oomph
     }
 
     void fill_in_contribution_to_mass_matrix(Vector<double>& residuals,
-                                             DenseMatrix<double>& mm) override
+                                             DenseMatrix<double>& mm)
     {
       fill_in_contribution_to_residuals(residuals);
       for(unsigned j=0, nj=nvalue(); j<nj; j++)
@@ -393,7 +393,7 @@ namespace oomph
 
     virtual ~ODEProblem() {}
 
-    virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts)
     {
       // Call the underlying build
       MyProblem::build(bulk_mesh_pts);
@@ -408,7 +408,7 @@ namespace oomph
       oomph_info << "Number of equations: " << ndof() << std::endl;
     }
 
-    void set_initial_condition(const InitialConditionFct& ic) override
+    void set_initial_condition(const InitialConditionFct& ic)
     {
       // Loop over current & previous timesteps
       const unsigned nprev_values = time_stepper_pt()->nprev_values();
@@ -432,18 +432,18 @@ namespace oomph
       actions_after_set_initial_condition();
     }
 
-    virtual void write_additional_trace_headers(std::ofstream& trace_file) const override
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
     {
       trace_file << Trace_seperator << "exact";
     }
 
     virtual void write_additional_trace_data(const unsigned& t_hist,
-                                             std::ofstream& trace_file) const override
+                                             std::ofstream& trace_file) const
     {
       trace_file << Trace_seperator << exact_solution(time_pt()->time(t_hist));
     }
 
-    virtual double get_error_norm(const unsigned& t_hist=0) const override
+    virtual double get_error_norm(const unsigned& t_hist=0) const
     {
       Vector<double> val = trace_values(t_hist);
       Vector<double> exact = exact_solution(time_pt()->time(t_hist));
@@ -459,14 +459,14 @@ namespace oomph
     }
 
     /// Error norm: use abs(error in data).
-    double global_temporal_error_norm() override
+    double global_temporal_error_norm()
     {
       Data* dat_pt=mesh_pt()->element_pt(0)->internal_data_pt(0);
 
       return std::abs(ts_pt()->temporal_error_in_value(dat_pt, 0));
     }
 
-    Vector<double> trace_values(const unsigned& t_hist=0) const override
+    Vector<double> trace_values(const unsigned& t_hist=0) const
     {
       return solution(t_hist);
     }
@@ -489,7 +489,7 @@ namespace oomph
 
     // Output solution
     void output_solution(const unsigned& t, std::ostream& outstream,
-                         const unsigned& npoints=2) const override
+                         const unsigned& npoints=2) const
     {
       std::cout << solution(t) << std::endl;
       outstream << solution(t) << std::endl;
@@ -550,7 +550,7 @@ namespace oomph
         }
     }
 
-    virtual void actions_after_newton_solve() override
+    virtual void actions_after_newton_solve()
     {
       ODEProblem::actions_after_newton_solve();
 
@@ -576,7 +576,7 @@ namespace oomph
         }
     }
 
-    virtual void actions_after_set_initial_condition() override
+    virtual void actions_after_set_initial_condition()
     {
       ODEProblem::actions_after_set_initial_condition();
 
@@ -611,7 +611,7 @@ namespace oomph
       return -(energy - prev_energy)/(dt*dmdtnorm*dmdtnorm);
     }
 
-    virtual void actions_after_explicit_timestep() override
+    virtual void actions_after_explicit_timestep()
     {
       ODEProblem::actions_after_explicit_timestep();
 
@@ -622,7 +622,7 @@ namespace oomph
         }
     }
 
-    virtual void actions_before_time_integration() override
+    virtual void actions_before_time_integration()
     {
       // Check that initial condition is unit length
 #ifdef PARANOID
@@ -637,7 +637,7 @@ namespace oomph
 
 
 
-    virtual void build(Vector<Mesh*>& bulk_mesh_pts) override
+    virtual void build(Vector<Mesh*>& bulk_mesh_pts)
     {
       ODEProblem::build(bulk_mesh_pts);
 
@@ -674,7 +674,7 @@ namespace oomph
       return std::abs(1 - VectorOps::two_norm(solution()));
     }
 
-    virtual void write_additional_trace_headers(std::ofstream& trace_file) const override
+    virtual void write_additional_trace_headers(std::ofstream& trace_file) const
     {
       trace_file
         << Trace_seperator << "m_length_error_means"
@@ -697,7 +697,7 @@ namespace oomph
     }
 
     virtual void write_additional_trace_data(const unsigned& t_hist,
-                                             std::ofstream& trace_file) const override
+                                             std::ofstream& trace_file) const
     {
 
       Vector<double> m = solution();
@@ -756,7 +756,7 @@ namespace oomph
     }
 
 
-    virtual double get_error_norm(const unsigned& t_hist=0) const override;
+    virtual double get_error_norm(const unsigned& t_hist=0) const;
 
     double get_switching_time_error_norm(const unsigned& t_hist) const;
 
@@ -822,7 +822,7 @@ namespace oomph
         add_element_pt(new ODEElement(time_stepper_pt, exact_solution_pt()));
     }
 
-    virtual void assign_specific_parameters(MyProblem* problem_pt) const override
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const
     {
       ODEProblem* ode_pt = checked_dynamic_cast<ODEProblem*>(problem_pt);
       if(fd_jacobian != -1)
@@ -850,7 +850,7 @@ namespace oomph
 
     virtual ~LLGODECliArgs() {}
 
-    virtual void set_flags() override
+    virtual void set_flags()
     {
       ODECliArgs::set_flags();
 
@@ -864,7 +864,7 @@ namespace oomph
       renormalise = -1;
     }
 
-    virtual void run_factories() override
+    virtual void run_factories()
     {
       ODECliArgs::run_factories();
 
@@ -874,7 +874,7 @@ namespace oomph
       mag_parameters_pt->Applied_field_fct_pt = Factories::h_app_factory(h_app_name);
     }
 
-    virtual void assign_specific_parameters(MyProblem* problem_pt) const override
+    virtual void assign_specific_parameters(MyProblem* problem_pt) const
     {
       ODECliArgs::assign_specific_parameters(problem_pt);
 

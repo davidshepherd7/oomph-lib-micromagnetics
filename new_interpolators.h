@@ -257,7 +257,7 @@ namespace oomph
   {
   public:
 
-    virtual void check_interpolator_applicable() const override
+    virtual void check_interpolator_applicable() const
     {
       using namespace InterpolatorHelpers;
 
@@ -276,12 +276,12 @@ namespace oomph
     }
 
 
-    double interpolate_time() const override
+    double interpolate_time() const
     {
       return Ts_pt->time();
     }
 
-    double interpolate_x(const unsigned& j) const override
+    double interpolate_x(const unsigned& j) const
     {
       double x = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -291,7 +291,7 @@ namespace oomph
       return x;
     }
 
-    double interpolate_dxdt(const unsigned& j) const override
+    double interpolate_dxdt(const unsigned& j) const
     {
       double dxdt = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -305,7 +305,7 @@ namespace oomph
       return dxdt;
     }
 
-    double interpolate_value(const unsigned& j) const override
+    double interpolate_value(const unsigned& j) const
     {
       double value = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -315,7 +315,7 @@ namespace oomph
       return value;
     }
 
-    double interpolate_dvaluedt(const unsigned& j) const override
+    double interpolate_dvaluedt(const unsigned& j) const
     {
       double dvaluedt = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -330,7 +330,7 @@ namespace oomph
     }
 
     double interpolate_dvaluedx(const unsigned &i_val,
-                                const unsigned& i_direc) const override
+                                const unsigned& i_direc) const
     {
       double dvaluedx = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -353,14 +353,14 @@ namespace oomph
 
     unsigned Nprev_value_current_value;
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       InterpolatorBase::build(s);
 
       Nprev_value_current_value = Ts_pt->nprev_values_for_value_at_evaluation_time();
     }
 
-    virtual void check_interpolator_applicable() const override
+    virtual void check_interpolator_applicable() const
     {
       using namespace InterpolatorHelpers;
 
@@ -375,7 +375,7 @@ namespace oomph
     }
 
 
-    double interpolate_time() const override
+    double interpolate_time() const
     {
       double time = 0.0;
       for(unsigned i_tm=0; i_tm<Nprev_value_current_value; i_tm++)
@@ -386,7 +386,7 @@ namespace oomph
       return time;
     }
 
-    double interpolate_x(const unsigned& j) const override
+    double interpolate_x(const unsigned& j) const
     {
       double x = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -401,7 +401,7 @@ namespace oomph
       return x;
     }
 
-    double interpolate_dxdt(const unsigned& j) const override
+    double interpolate_dxdt(const unsigned& j) const
     {
       double dxdt = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -416,7 +416,7 @@ namespace oomph
       return dxdt;
     }
 
-    double interpolate_value(const unsigned& j) const override
+    double interpolate_value(const unsigned& j) const
     {
       double value = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -431,7 +431,7 @@ namespace oomph
       return value;
     }
 
-    double interpolate_dvaluedt(const unsigned& j) const override
+    double interpolate_dvaluedt(const unsigned& j) const
     {
       double dvaluedt = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -447,7 +447,7 @@ namespace oomph
     }
 
     double interpolate_dvaluedx(const unsigned &i_val,
-                                const unsigned& i_direc) const override
+                                const unsigned& i_direc) const
     {
       double dvaluedx = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -471,7 +471,7 @@ namespace oomph
 
     unsigned Time_index;
 
-    virtual void check_interpolator_applicable() const override
+    virtual void check_interpolator_applicable() const
     {
       using namespace InterpolatorHelpers;
 
@@ -490,12 +490,12 @@ namespace oomph
     }
 
 
-    double interpolate_time() const override
+    double interpolate_time() const
     {
       return Ts_pt->time_pt()->time(Time_index);
     }
 
-    double interpolate_x(const unsigned& j) const override
+    double interpolate_x(const unsigned& j) const
     {
       double x = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -505,14 +505,14 @@ namespace oomph
       return x;
     }
 
-    double interpolate_dxdt(const unsigned& j) const override
+    double interpolate_dxdt(const unsigned& j) const
     {
       std::string err = "Can't calculate history time derivatives.";
       throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
                           OOMPH_EXCEPTION_LOCATION);
     }
 
-    double interpolate_value(const unsigned& j) const override
+    double interpolate_value(const unsigned& j) const
     {
       double value = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -522,7 +522,7 @@ namespace oomph
       return value;
     }
 
-    double interpolate_dvaluedt(const unsigned& j) const override
+    double interpolate_dvaluedt(const unsigned& j) const
     {
       std::string err = "Can't calculate history time derivatives.";
       throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
@@ -530,7 +530,7 @@ namespace oomph
     }
 
     double interpolate_dvaluedx(const unsigned &i_val,
-                                const unsigned& i_direc) const override
+                                const unsigned& i_direc) const
     {
       double dvaluedx = 0;
       for(unsigned i_nd=0; i_nd<Nnode; i_nd++)
@@ -604,7 +604,7 @@ namespace oomph
   {
   public:
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       CachingInterpolatorBase::build(s);
 
@@ -654,7 +654,7 @@ namespace oomph
   {
   public:
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       CachingInterpolatorBase::build(s);
 
@@ -713,7 +713,7 @@ namespace oomph
     /// Destructor
     virtual ~CachingArrayInterpolator() {}
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       CachingArrayInterpolatorBase::build(s);
 
@@ -786,7 +786,7 @@ namespace oomph
     /// Destructor
     virtual ~CachingMMArrayInterpolator() {}
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       CachingArrayInterpolatorBase::build(s);
 
@@ -938,7 +938,7 @@ namespace oomph
     /// Destructor
     virtual ~CachingMMInterpolator() {}
 
-    virtual void build(const Vector<double>& s) override
+    virtual void build(const Vector<double>& s)
     {
       CachingVectorInterpolatorBase::build(s);
 
