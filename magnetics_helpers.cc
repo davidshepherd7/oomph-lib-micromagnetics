@@ -963,7 +963,7 @@ namespace oomph
 
       // Create a mesh of Q elements to easily generate the nodes to use in
       // our real mesh.
-      std::unique_ptr<Mesh> sq_mesh_pt
+      std::auto_ptr<Mesh> sq_mesh_pt
         (llg_mesh_factory("sq_square", refinement_level,
                           time_stepper_pt, 1.0, 0.0, nnode1d));
 
@@ -1067,7 +1067,7 @@ namespace oomph
 
       // Create a mesh of Q elements to easily generate the nodes to use in
       // our real mesh.
-      std::unique_ptr<Mesh> sq_mesh_pt
+      std::auto_ptr<Mesh> sq_mesh_pt
         (llg_mesh_factory("sq_square", refinement_level,
                           time_stepper_pt, 1.0, 0.0, nnode1d));
 

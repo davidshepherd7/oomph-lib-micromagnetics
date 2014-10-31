@@ -253,7 +253,7 @@ namespace oomph
 
     // Create interpolator ??ds might need some changes to handle face
     // element derivatives..
-    std::unique_ptr<CachingMMArrayInterpolator>
+    std::auto_ptr<CachingMMArrayInterpolator>
       intp_pt(Factories::mm_array_interpolator_factory(this));
 
     //Loop over the integration points

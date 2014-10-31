@@ -36,7 +36,7 @@ namespace oomph
     const double ll_conversion_factor = 1/(1+llg_damp_c*llg_damp_c);
 
     // Create interpolator
-    std::unique_ptr<CachingMMArrayInterpolator>
+    std::auto_ptr<CachingMMArrayInterpolator>
       intp_pt(Factories::mm_array_interpolator_factory(e_pt));
 
 
@@ -311,7 +311,7 @@ namespace oomph
       e_pt->node_pt(0)->time_stepper_pt()->weight(1,0);
 
     // Create interpolator
-    std::unique_ptr<CachingMMArrayInterpolator>
+    std::auto_ptr<CachingMMArrayInterpolator>
       intp_pt(Factories::mm_array_interpolator_factory(e_pt));
 
     // Allocate vectors outside intergration loop

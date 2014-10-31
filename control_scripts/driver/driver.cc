@@ -165,8 +165,8 @@ int main(int argc, char *argv[])
 
   // Create problem class and argument parser
   oomph_info << "Making " << problem_name << " problem." << std::endl;
-  std::unique_ptr<MyProblem> problem_pt(problem_factory(problem_name));
-  std::unique_ptr<MyCliArgs> args_pt(args_factory(problem_name));
+  std::auto_ptr<MyProblem> problem_pt(problem_factory(problem_name));
+  std::auto_ptr<MyCliArgs> args_pt(args_factory(problem_name));
   args_pt->parse(argc, argv);
 
   oomph_info << "With the following arguments:" << std::endl;

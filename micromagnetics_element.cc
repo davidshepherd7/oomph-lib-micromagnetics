@@ -35,7 +35,7 @@ namespace oomph
     // accidentally calculate inaccurate time derivatives (e.g. IMR, TR
     // don't give accurate derivative approxmations outside residual
     // calcuations).
-    std::unique_ptr<CachingMMInterpolator> intp_pt
+    std::auto_ptr<CachingMMInterpolator> intp_pt
       (Factories::mm_interpolator_factory(this, 0));
 
     // Loop over knots and sum to calculate integral
@@ -76,7 +76,7 @@ namespace oomph
   (const Vector<double> &s, Vector<double> &h_magnetostatic) const
   {
     // Construct an interpolator and call the underlying function.
-    std::unique_ptr<CachingMMArrayInterpolator>
+    std::auto_ptr<CachingMMArrayInterpolator>
       intp_pt(Factories::mm_array_interpolator_factory(this));
     intp_pt->build(s);
 
@@ -197,7 +197,7 @@ namespace oomph
 
     // Create interpolator to use. Always need to specify a time step so
     // that it works correctly with e.g. midpoint.
-    std::unique_ptr<CachingMMArrayInterpolator>
+    std::auto_ptr<CachingMMArrayInterpolator>
       intp_pt(Factories::mm_array_interpolator_factory(this, t));
 
     // Loop over plot points
@@ -369,7 +369,7 @@ namespace oomph
 
     // Create interpolator to use: specify 0th time step so that it works
     // correctly with e.g. midpoint.
-    std::unique_ptr<CachingMMInterpolator>
+    std::auto_ptr<CachingMMInterpolator>
       intp_pt(Factories::mm_interpolator_factory(this, 0));
 
     //Loop over the integration points

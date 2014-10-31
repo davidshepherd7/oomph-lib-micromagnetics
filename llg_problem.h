@@ -795,7 +795,7 @@ namespace oomph
       const unsigned n_ele = mesh_pt()->nelement();
 
       Vector<Integral*> backup_q_pt(n_ele);
-      std::unique_ptr<Integral> gauss_pt
+      std::auto_ptr<Integral> gauss_pt
         (Factories::gauss_integration_factory
          (ele_pt()->dim(), ele_pt()->nnode_1d(), ele_pt()->element_geometry()));
 

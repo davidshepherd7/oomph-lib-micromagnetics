@@ -51,7 +51,7 @@ namespace oomph
       // template by) the dimension/shape of the elements. Have to store in
       // pointer to use factory, use smart ptr so that it is deleted
       // automatically.
-      std::unique_ptr<Integral> int_pt
+      std::auto_ptr<Integral> int_pt
         (Factories::gauss_integration_factory(ele_pt()->dim(),
                                               ele_pt()->nnode_1d(),
                                               ele_pt()->element_geometry()));
