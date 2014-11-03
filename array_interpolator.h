@@ -5,6 +5,9 @@
 #include "../../src/generic/elements.h"
 #include "../../src/generic/shape.h"
 
+#include "new_interpolators.h"
+#include "interpolator.h"
+
 namespace oomph
 {
   using namespace InterpolatorHelpers;
@@ -72,7 +75,7 @@ namespace oomph
       Dtestdx(Nnode, Dim),
 
     // Negative time to signify that it has not been calculated yet
-      Intp_time(NotYetCalculatedValue),
+      Intp_time(not_yet_calculated_value()),
 
     // Time index to interpolate values at (0 = present)
       Time_index(time_index)
@@ -116,19 +119,19 @@ namespace oomph
     void initialise_storage()
       {
         // ??ds we could avoid this initialisation and the use of a
-        // NotYetCalculatedValue by storing pointers to the values and
+        // not_yet_calculated_value() by storing pointers to the values and
         // pointers to the storage separately, then when the value is
         // calculated the pointer to the value is set to point to the
         // storage. In this way storage is statically allocated but not
         // initialised (for speed), and we still get the benefits of
         // memoisation.
-        for(unsigned i=0; i<3; i++) X[i] = NotYetCalculatedValue;
-        for(unsigned i=0; i<3; i++) Dxdt[i] = NotYetCalculatedValue;
-        for(unsigned i=0; i<VAL; i++) Values[i] = NotYetCalculatedValue;
-        for(unsigned i=0; i<VAL; i++) Dvaluesdt[i] = NotYetCalculatedValue;
+        for(unsigned i=0; i<3; i++) X[i] = not_yet_calculated_value();
+        for(unsigned i=0; i<3; i++) Dxdt[i] = not_yet_calculated_value();
+        for(unsigned i=0; i<VAL; i++) Values[i] = not_yet_calculated_value();
+        for(unsigned i=0; i<VAL; i++) Dvaluesdt[i] = not_yet_calculated_value();
         for(unsigned i=0; i<VAL; i++)
           {
-            for(unsigned j=0; j<3; j++) Dvaluesdx[i][j] = NotYetCalculatedValue;
+            for(unsigned j=0; j<3; j++) Dvaluesdx[i][j] = not_yet_calculated_value();
           }
       }
 

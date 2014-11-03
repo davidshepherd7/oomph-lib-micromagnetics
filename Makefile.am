@@ -66,6 +66,7 @@ headers = array_interpolator.h \
 	nodal_quadrature.h \
 	cayley_integrators.h \
 	bdf2_with_predictor.h \
+	interpolator.h \
 	general_inner_iteration_precondtioner.h
 
 

@@ -13,7 +13,6 @@
 #include "../../src/generic/refineable_line_element.h"
 #include "../../src/generic/oomph_utilities.h"
 #include "../../src/generic/oomph_definitions.h"
-#include "../../src/generic/interpolator.h"
 
 // This is only used for casting for an error check, get rid of it? Put in
 // .cc?
@@ -27,10 +26,17 @@
 #include "./template_free_poisson.h"
 
 #include "./energy_functions.h"
-#include "./array_interpolator.h"
 #include "micromag_types.h"
 #include "./residual_calculator.h"
 #include "magnetostatics_calculator.h"
+
+
+#include "array_interpolator.h"
+#include "interpolator.h"
+#include "new_interpolators.h"
+
+
+
 
 namespace oomph
 {
@@ -948,7 +954,7 @@ namespace oomph
     MMInterpolator(const FiniteElement* const this_element,
                    const Vector<double> &s)
       : GeneralInterpolator(this_element, s),
-        Div_m(InterpolatorHelpers::NotYetCalculatedValue)
+        Div_m(InterpolatorHelpers::not_yet_calculated_value())
     {}
 
     /// Set different timestepper constructor
@@ -956,7 +962,7 @@ namespace oomph
                    const Vector<double> &s,
                    const TimeStepper* ts_pt)
       : GeneralInterpolator(this_element, s, ts_pt),
-        Div_m(InterpolatorHelpers::NotYetCalculatedValue)
+        Div_m(InterpolatorHelpers::not_yet_calculated_value())
     {}
 
 
@@ -1029,7 +1035,7 @@ namespace oomph
     MMArrayInterpolator(const FiniteElement* const this_element,
                         const unsigned& time_index=0)
       : GeneralArrayInterpolator<5>(this_element, time_index),
-        Dmdt(0), M(0), Div_m(InterpolatorHelpers::NotYetCalculatedValue),
+        Dmdt(0), M(0), Div_m(InterpolatorHelpers::not_yet_calculated_value()),
         This_element(checked_dynamic_cast<const MicromagEquations*>(this_element))
     {}
 
@@ -1040,7 +1046,7 @@ namespace oomph
       // Initialise this class' storage
       Dmdt = 0;
       M = 0;
-      Div_m = InterpolatorHelpers::NotYetCalculatedValue;
+      Div_m = InterpolatorHelpers::not_yet_calculated_value();
 
       // Call the base version to initialise the rest
       GeneralArrayInterpolator<5>::build(s);
@@ -1092,6 +1098,316 @@ namespace oomph
       return Div_m;
     }
   };
+
+
+  /// A micromagnetics specific caching interpolator. "Knows about"
+  /// magnetisation and phi values, so we can have functions such as m()
+  /// which gives the interpolated magnetisation.
+  class CachingMMArrayInterpolator : public CachingArrayInterpolatorBase
+  {
+
+  public:
+    /// Default constructor
+    CachingMMArrayInterpolator() {}
+
+    /// Destructor
+    virtual ~CachingMMArrayInterpolator() {}
+
+    virtual void build(const Vector<double>& s)
+    {
+      CachingArrayInterpolatorBase::build(s);
+
+      // Clear storage
+      M.reset();
+      Phi.reset();
+      Phi1.reset();
+      Dmdt.reset();
+      Dphidx.reset();
+      Dphi1dx.reset();
+      for(unsigned i=0; i<3; i++) {Dmdx[i].reset();}
+      Div_m.reset();
+    }
+
+    const double* m()
+    {
+      if(!M.is_initialised())
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              M.set()[j] = Intp_pt->interpolate_value(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return M.get();
+    }
+
+    double phi()
+    {
+      if(!Phi.is_initialised())
+        {
+          Phi.set() = Intp_pt->interpolate_value(ele_pt()->phi_index_micromag());
+        }
+
+      return Phi.get();
+    }
+
+    double phi1()
+    {
+      if(!Phi1.is_initialised())
+        {
+          Phi1.set() = Intp_pt->interpolate_value(ele_pt()->phi_1_index_micromag());
+        }
+
+      return Phi1.get();
+    }
+
+    const double* dmdt()
+    {
+      if(!Dmdt.is_initialised())
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              Dmdt.set()[j] = Intp_pt->interpolate_dvaluedt(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return Dmdt.get();
+    }
+
+    const double* dmdx(const unsigned &i_val)
+    {
+      if(!Dmdx[i_val].is_initialised())
+        {
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dmdx[i_val].set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->m_index_micromag(i_val), j);
+            }
+        }
+
+      return Dmdx[i_val].get();
+    }
+
+    const double* dphidx()
+    {
+      if(!Dphidx.is_initialised())
+        {
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphidx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_index_micromag(), j);
+            }
+        }
+
+      return Dphidx.get();
+    }
+
+    const double* dphi1dx()
+    {
+      if(!Dphi1dx.is_initialised())
+        {
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphi1dx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_1_index_micromag(), j);
+            }
+        }
+
+      return Dphi1dx.get();
+    }
+
+    double div_m()
+    {
+      if(!Div_m.is_initialised())
+        {
+          double div_m = 0;
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              div_m += this->dmdx(j)[j];
+            }
+          Div_m.set() = div_m;
+        }
+      return Div_m.get();
+    }
+
+    const MicromagEquations* ele_pt() const
+    {
+      return dynamic_cast<const MicromagEquations*>(Intp_pt->This_element);
+    }
+
+  protected:
+
+    /// Storage arrays
+    CachedArray<3> M;
+    Cached<double> Phi;
+    Cached<double> Phi1;
+
+    CachedArray<3> Dmdt;
+
+    CachedArray<3> Dmdx[3];
+    CachedArray<3> Dphidx;
+    CachedArray<3> Dphi1dx;
+
+    Cached<double> Div_m;
+  };
+
+
+
+
+
+  class CachingMMInterpolator : public CachingVectorInterpolatorBase
+  {
+
+  public:
+    /// Default constructor
+    CachingMMInterpolator() {}
+
+    /// Destructor
+    virtual ~CachingMMInterpolator() {}
+
+    virtual void build(const Vector<double>& s)
+    {
+      CachingVectorInterpolatorBase::build(s);
+
+      // Clear storage
+      M.reset();
+      Phi.reset();
+      Phi1.reset();
+      Dmdt.reset();
+      Dphidx.reset();
+      Dphi1dx.reset();
+      for(unsigned i=0; i<3; i++) {Dmdx[i].reset();}
+      Div_m.reset();
+    }
+
+    const Vector<double>& m()
+    {
+      if(!M.is_initialised())
+        {
+          M.set().assign(3, 0.0);
+          for(unsigned j=0; j<3; j++)
+            {
+              M.set()[j] = Intp_pt->interpolate_value(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return M.get();
+    }
+
+    double phi()
+    {
+      if(!Phi.is_initialised())
+        {
+          Phi.set() = Intp_pt->interpolate_value(ele_pt()->phi_index_micromag());
+        }
+
+      return Phi.get();
+    }
+
+    double phi1()
+    {
+      if(!Phi1.is_initialised())
+        {
+          Phi1.set() = Intp_pt->interpolate_value(ele_pt()->phi_1_index_micromag());
+        }
+
+      return Phi1.get();
+    }
+
+    const Vector<double>& dmdt()
+    {
+      if(!Dmdt.is_initialised())
+        {
+          Dmdt.set().assign(3, 0.0);
+          for(unsigned j=0; j<3; j++)
+            {
+              Dmdt.set()[j] = Intp_pt->interpolate_dvaluedt(ele_pt()->m_index_micromag(j));
+            }
+        }
+
+      return Dmdt.get();
+    }
+
+    const Vector<double>& dmdx(const unsigned &i_val)
+    {
+      if(!Dmdx[i_val].is_initialised())
+        {
+          Dmdx[i_val].set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dmdx[i_val].set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->m_index_micromag(i_val), j);
+            }
+        }
+
+      return Dmdx[i_val].get();
+    }
+
+    const Vector<double>& dphidx()
+    {
+      if(!Dphidx.is_initialised())
+        {
+          Dphidx.set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphidx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_index_micromag(), j);
+            }
+        }
+
+      return Dphidx.get();
+    }
+
+    const Vector<double>& dphi1dx()
+    {
+      if(!Dphi1dx.is_initialised())
+        {
+          Dphi1dx.set().assign(3, 0.0);
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              Dphi1dx.set()[j] = Intp_pt->
+                interpolate_dvaluedx(ele_pt()->phi_1_index_micromag(), j);
+            }
+        }
+
+      return Dphi1dx.get();
+    }
+
+    double div_m()
+    {
+      if(!Div_m.is_initialised())
+        {
+          double div_m = 0;
+          for(unsigned j=0; j<Intp_pt->Dim; j++)
+            {
+              div_m += this->dmdx(j)[j];
+            }
+          Div_m.set() = div_m;
+        }
+      return Div_m.get();
+    }
+
+    const MicromagEquations* ele_pt() const
+    {
+      return dynamic_cast<const MicromagEquations*>(Intp_pt->This_element);
+    }
+
+  protected:
+
+    /// Storage arrays
+    Cached<Vector<double> > M;
+    Cached<double> Phi;
+    Cached<double> Phi1;
+
+    Cached<Vector<double> > Dmdt;
+
+    Cached<Vector<double> > Dmdx[3];
+    Cached<Vector<double> > Dphidx;
+    Cached<Vector<double> > Dphi1dx;
+
+    Cached<double> Div_m;
+  };
+
 
 
   // =================================================================
