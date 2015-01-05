@@ -134,7 +134,7 @@ namespace oomph
       /// Constructor
       DampedOscillation()
       {
-        Beta = 0.5;
+        Beta = 0.1;
         Omega = 2;
       }
 
