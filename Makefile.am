@@ -61,7 +61,6 @@ headers = array_interpolator.h \
 	micromag_types.h \
 	magnetostatics_calculator.h \
 	llg_preconditioners.h \
-	tr.h \
 	simpler_cubic_mesh.h \
 	nodal_quadrature.h \
 	cayley_integrators.h \

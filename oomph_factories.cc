@@ -8,6 +8,7 @@
 
 // mesh factories
 #include "../../src/generic/mesh.h"
+#include "magnetics_helpers.h"
 
 // solver factories
 #include "../../src/generic/linear_solver.h"
@@ -20,9 +21,9 @@
 
 // timestepper factories
 #include "../../src/generic/timesteppers.h"
-#include "../../src/generic/midpoint_method.h"
+#include "../../src/generic/implicit_midpoint_rule.h"
 #include "../../src/generic/explicit_timesteppers.h"
-#include "tr.h"
+#include "../../src/generic/trapezoid_rule.h"
 #include "cayley_integrators.h"
 #include "bdf2_with_predictor.h"
 
@@ -111,14 +112,14 @@ namespace oomph
         }
       else if((ts_name == "midpoint") || (ts_name == "old-imr"))
         {
-          MidpointMethod* mp_pt = new MidpointMethod(adaptive_flag);
+          IMR* mp_pt = new IMR(adaptive_flag);
           ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
           mp_pt->set_predictor_pt(pred_pt);
           return mp_pt;
         }
       else if((ts_name == "midpoint-bdf") || (ts_name == "imr"))
         {
-          MidpointMethodByBDF* mp_pt = new MidpointMethodByBDF(adaptive_flag);
+          IMRByBDF* mp_pt = new IMRByBDF(adaptive_flag);
           ExplicitTimeStepper* pred_pt = explicit_time_stepper_factory(mp_pred_name);
           mp_pt->set_predictor_pt(pred_pt);
           if(mp_update_pinned != -1)

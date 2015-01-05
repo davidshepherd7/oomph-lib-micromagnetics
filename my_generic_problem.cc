@@ -10,7 +10,7 @@
 
 #include "magnetics_helpers.h"
 
-#include "tr.h"
+#include "../../src/generic/trapezoid_rule.h"
 
 
 namespace oomph
@@ -216,7 +216,7 @@ namespace oomph
         // certainly gone wrong!
         expl_solver_pt->max_iter() = 100;
         expl_solver_pt->enable_error_after_max_iter();
-        mass_matrix_solver_pt() = expl_solver_pt;
+        mass_matrix_solver_for_explicit_timestepper_pt() = expl_solver_pt;
 
         // expl_solver_pt->enable_doc_convergence_history();
 

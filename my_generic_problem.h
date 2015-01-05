@@ -57,7 +57,7 @@ using namespace StringConversion;
     SolverParameters()
     {
       linear_solver_pt = 0;
-      mass_matrix_solver_pt = 0;
+      mass_matrix_solver_for_explicit_timestepper_pt = 0;
     }
 
     LinearSolver* linear_solver_pt;
@@ -75,7 +75,7 @@ using namespace StringConversion;
     bool problem_is_nonlinear;
 
     // Explicit solver
-    LinearSolver* mass_matrix_solver_pt;
+    LinearSolver* mass_matrix_solver_for_explicit_timestepper_pt;
     bool mass_matrix_reuse_is_enabled;
     bool mass_matrix_has_been_computed;
     bool discontinuous_element_formulation;
@@ -198,7 +198,7 @@ using namespace StringConversion;
       sp.problem_is_nonlinear = Problem_is_nonlinear;
 
       // Explicit solver
-      sp.mass_matrix_solver_pt = mass_matrix_solver_pt();
+      sp.mass_matrix_solver_for_explicit_timestepper_pt = mass_matrix_solver_for_explicit_timestepper_pt();
       sp.mass_matrix_reuse_is_enabled = mass_matrix_reuse_is_enabled();
       sp.mass_matrix_has_been_computed = Mass_matrix_has_been_computed;
       sp.discontinuous_element_formulation = Discontinuous_element_formulation;
@@ -221,7 +221,7 @@ using namespace StringConversion;
       Problem_is_nonlinear = sp.problem_is_nonlinear;
 
       // Explicit solver
-      mass_matrix_solver_pt() = sp.mass_matrix_solver_pt;
+      mass_matrix_solver_for_explicit_timestepper_pt() = sp.mass_matrix_solver_for_explicit_timestepper_pt;
       Mass_matrix_reuse_is_enabled = sp.mass_matrix_reuse_is_enabled;
       Mass_matrix_has_been_computed = sp.mass_matrix_has_been_computed;
       Discontinuous_element_formulation = sp.discontinuous_element_formulation;
@@ -264,14 +264,14 @@ using namespace StringConversion;
     virtual void actions_after_explicit_stage()
     {
       Jacobian_setup_times.push_back
-        (this->mass_matrix_solver_pt()->jacobian_setup_time());
+        (this->mass_matrix_solver_for_explicit_timestepper_pt()->jacobian_setup_time());
       Solver_times.push_back
-        (this->mass_matrix_solver_pt()->linear_solver_solution_time());
+        (this->mass_matrix_solver_for_explicit_timestepper_pt()->linear_solver_solution_time());
 
       // No non-linear residuals to store
 
       const IterativeLinearSolver* its_pt
-        = dynamic_cast<const IterativeLinearSolver*>(this->mass_matrix_solver_pt());
+        = dynamic_cast<const IterativeLinearSolver*>(this->mass_matrix_solver_for_explicit_timestepper_pt());
       if(its_pt != 0)
         {
           Solver_iterations.push_back(its_pt->iterations());

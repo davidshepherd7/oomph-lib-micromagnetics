@@ -16,7 +16,7 @@
 
 // This is only used for casting for an error check, get rid of it? Put in
 // .cc?
-#include "../../src/generic/midpoint_method.h"
+#include "../../src/generic/implicit_midpoint_rule.h"
 
 // My vector helpers
 #include "./vector_helpers.h"
@@ -691,7 +691,7 @@ namespace oomph
           throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
                               OOMPH_EXCEPTION_LOCATION);
         }
-      if(dynamic_cast<const MidpointMethod*>(ts_pt) != 0)
+      if(dynamic_cast<const IMR*>(ts_pt) != 0)
         {
           std::string error_msg = "Probably shouldn't be using midpoint method for time derivatives of things (unless you know what you're doing?)";
           throw OomphLibError(error_msg, OOMPH_CURRENT_FUNCTION,
