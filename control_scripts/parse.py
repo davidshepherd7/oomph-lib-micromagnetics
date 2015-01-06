@@ -228,7 +228,7 @@ def plot_vs_thing(xthing, data, plot_values,
 
     # Is dt or tol more interesting for labels? Use dt if all tols are zero
     # (i.e. non-adaptive)
-    if all([d['-tol'] == 0 or d['-dummy-adaptivity'] == 1 for d in data]):
+    if all([d['-tol'] == 0 for d in data]):
         dt_label = '-dt'
     else:
         dt_label = '-tol'
