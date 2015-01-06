@@ -95,7 +95,7 @@ def axis_label_thesisify(label):
 
                      # ode aimr stuff
                      'mean of "dts"' : r'mean($\Delta_n$)',
-                     'max of "error norms"' : r'max $|y(t_n) - y_n|$',
+                     'max of "error norms"' : r'$\max_n |y(t_n) - y_n|$',
                      'maxabs of "energy change"' : r'max $|E_0 - E_n|$',
 
                      # magnetisation stuff
