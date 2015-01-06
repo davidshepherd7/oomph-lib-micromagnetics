@@ -384,8 +384,8 @@ def my_scatter(data, x_value, y_value,
 
         # Plot
         ax.plot(xs, ys,
-                marker=next(symbols), color='none',
-                markerfacecolor='none', #
+                marker=next(symbols), alpha=0,
+                markerfacecolor='none',
                 markeredgecolor=colour,
                 markersize=8,
                 label=name)
