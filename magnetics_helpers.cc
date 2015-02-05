@@ -283,8 +283,8 @@ namespace oomph
       //   {
       //     deriv += bdf.weight(1,t) * previous_energies[t];
       //   }
-#warning "Not working now"
-      return -1;
+      throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                          OOMPH_EXCEPTION_LOCATION);
     }
 
     Vector<Vector<double> > nodal_magnetisations(const unsigned& t_hist,
