@@ -306,28 +306,6 @@ namespace oomph
       renormalisation_handler_pt->renormalise(this);
     }
 
-    /// Definitely renormalise magnetisation to 1
-    void force_renormalise_magnetisation()
-    {
-      oomph_info << "Renormalising nodal magnetisations." << std::endl;
-
-      // Loop over meshes and renormalise m at each node
-      for(unsigned nd=0; nd<mesh_pt()->nnode(); nd++)
-        {
-          Node* nd_pt = mesh_pt()->node_pt(nd);
-
-          // Get m vector
-          Vector<double> m_values(3,0.0);
-          for(unsigned j=0; j<3; j++) m_values[j] = nd_pt->value(m_index(j));
-
-          // Normalise
-          VectorOps::normalise(m_values);
-
-          // Write m vector
-          for(unsigned j=0; j<3; j++) nd_pt->set_value(m_index(j),m_values[j]);
-        }
-    }
-
     /// Relax magnetisation using strongly damped llg until torque is small
     void relax(HAppFctPt h_app_relax, const double& relax_time)
     {
