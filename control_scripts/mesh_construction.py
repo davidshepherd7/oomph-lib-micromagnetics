@@ -186,6 +186,12 @@ def main():
     triangle_poly_files = ['square.poly', 'circle.poly']
     tetgen_poly_files = ['cubeoid.poly', 'cylinder25_40.poly']
 
+    # Generate the input for the cylinder meshes
+    subp.check_call(['./generate_tetgen_cylinder_input/generate_tetgen_cylinder_input.py',
+                     '-l', '25',
+                     '-n', '40'],
+                    cwd = args.mesh_dir)
+
     for poly_file in triangle_poly_files:
         generate_triangle_meshes(os.path.join(args.mesh_dir, poly_file))
 
