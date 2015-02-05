@@ -23,6 +23,7 @@ sources = micromagnetics_element.cc \
 	magnetics_helpers.cc \
 	magnetostatics_calculator.cc \
 	vector_helpers.cc \
+	renormalisation_handler.cc \
 	cayley_integrators.cc
 
 # Include files which shouldn't be compiled
@@ -66,6 +67,7 @@ headers = array_interpolator.h \
 	cayley_integrators.h \
 	bdf2_with_predictor.h \
 	interpolator.h \
+	renormalisation_handler.h \
 	general_inner_iteration_precondtioner.h
 
 

@@ -16,6 +16,7 @@
 #include "micromagnetics_flux_element.h"
 #include "generic_poisson_problem.h"
 #include "micromag_types.h"
+#include "renormalisation_handler.h"
 
 namespace oomph
 {
@@ -51,6 +52,8 @@ namespace oomph
 
       // Storage for residual calculator
       Residual_calculator_pt = 0;
+
+      renormalisation_handler_pt = 0;
 
       // Initialise storage for energies etc.
       Exchange_energy = MyProblem::Dummy_doc_data;
@@ -91,7 +94,6 @@ namespace oomph
       // Debugging switches
       Pin_boundary_m = false;
       Use_fd_jacobian = false;
-      Renormalise_each_time_step = false;
       Compare_with_gauss_quadrature = false;
     }
 
@@ -298,8 +300,14 @@ namespace oomph
     /// Function that does the real work of the constructors.
     void build(Vector<Mesh*>& bulk_mesh_pts);
 
-    /// Renormalise magnetisation to 1 (needed with BDF2)
+    /// Call the renormalisation handler to do whatever it does
     void renormalise_magnetisation()
+    {
+      renormalisation_handler_pt->renormalise(this);
+    }
+
+    /// Definitely renormalise magnetisation to 1
+    void force_renormalise_magnetisation()
     {
       oomph_info << "Renormalising nodal magnetisations." << std::endl;
 
@@ -599,10 +607,7 @@ namespace oomph
       // Might need to renormalise to keep |M| = 1. This needs to go here
       // and not in actions_after_newton_ solve so that it doesn't
       // interfere with the adaptivity or the bdf-imr update.
-      if(renormalise_each_time_step())
-        {
-          renormalise_magnetisation();
-        }
+      renormalise_magnetisation();
     }
 
 
@@ -708,10 +713,7 @@ namespace oomph
       MyProblem::actions_after_explicit_timestep();
 
       // We need to keep M normalised...
-      if(renormalise_each_time_step())
-        {
-          renormalise_magnetisation();
-        }
+      renormalise_magnetisation();
 
       // check neighbouring magnetisation angles if requested
       maybe_check_angles();
@@ -1196,12 +1198,6 @@ namespace oomph
       return Analytic_ms_fct_pt != 0;
     }
 
-
-    bool renormalise_each_time_step() const
-    {
-      return Renormalise_each_time_step;
-    }
-
     /// \short Calculate energies and store them for easy reference
     /// (e.g. for output).
     void calculate_energies(bool calculate_effective_damping=true);
@@ -1268,9 +1264,6 @@ namespace oomph
 
     bool Check_angles;
 
-    /// Normalise magnetisation problem after each step?
-    bool Renormalise_each_time_step;
-
     /// Compare residual with calculations by gauss quadrature?
     bool Compare_with_gauss_quadrature;
 
@@ -1323,6 +1316,8 @@ public:
 
     /// \short Pointer to class for handling BEM
     BoundaryElementHandlerBase* Bem_handler_pt;
+
+    RenormalisationHandler* renormalisation_handler_pt;
 
     /// \short Pointer to function for creating the flux mesh (can't be
     /// hard coded becuase it depends on the element type, which depends on

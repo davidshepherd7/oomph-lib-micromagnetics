@@ -28,6 +28,13 @@ namespace oomph
                             OOMPH_EXCEPTION_LOCATION);
       }
 
+    if(renormalisation_handler_pt == 0)
+      {
+        std::string err = "Renormalisation_handler_pt is null!";
+        throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                            OOMPH_EXCEPTION_LOCATION);
+      }
+
     if(Analytic_ms_fct_pt != 0 && !Disable_ms)
       {
         std::string err = "Other ms must be disabled to use analytical ms.";

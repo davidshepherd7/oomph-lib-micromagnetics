@@ -15,11 +15,15 @@ namespace oomph
   {
   public:
     /// Constructor: Initialise pointers to null.
-    LLGArgs() : mag_params_pt(0) {}
+    LLGArgs() : mag_params_pt(0)
+    {
+      renormalisation_handler_pt = 0;
+    }
 
     virtual ~LLGArgs()
     {
       delete mag_params_pt; mag_params_pt = 0;
+      delete renormalisation_handler_pt; renormalisation_handler_pt = 0;
     }
 
     virtual void set_flags()
@@ -35,8 +39,9 @@ namespace oomph
       specify_command_line_flag("-mag-params", &mag_params_name);
       mag_params_name = "simple-llg";
 
-      specify_command_line_flag("-renormalise", &renormalise);
-      renormalise = -1;
+      specify_command_line_flag("-renormalise", &renormalise_name,
+                                "Choose the method to use for renormalisation of m.");
+      renormalise_name = "default";
 
       specify_command_line_flag("-compare-residuals-with-gauss", &compare_residuals_with_gauss,
                                 "Compare residual calculations with those given by high order Gauss? default: -1.");
@@ -109,7 +114,7 @@ namespace oomph
       relax_m_time = 300;
 
       specify_command_line_flag("-do-proper-relax", &do_proper_relax,
-                          "Relax m in the usual way (small incremental field reductions), default: -1.");
+                                "Relax m in the usual way (small incremental field reductions), default: -1.");
       do_proper_relax = -1;
 
 
@@ -196,6 +201,24 @@ namespace oomph
 
       HApp::HAppFctPt h_app_fct_pt = h_app_factory(h_app_name);
       mag_params_pt->Applied_field_fct_pt = h_app_fct_pt;
+
+      // Construct a renormalisation handler
+      if(renormalise_name == "default")
+        {
+          if(ts_name == "bdf1" || ts_name == "bdf2" || ts_name == "tr")
+            {
+              renormalisation_handler_pt = renormalisation_handler_factory("always");
+            }
+          else
+            {
+              renormalisation_handler_pt = renormalisation_handler_factory("never");
+            }
+        }
+      else
+        {
+          renormalisation_handler_pt = renormalisation_handler_factory(renormalise_name);
+        }
+
     }
 
     virtual void assign_specific_parameters(MyProblem* problem_pt) const
@@ -205,16 +228,8 @@ namespace oomph
       // Set parameters
       llg_pt->set_mag_parameters_pt(mag_params_pt);
 
-
-      if(renormalise == -1)
-        {
-          llg_pt->Renormalise_each_time_step =
-            (ts_name == "bdf1" || ts_name == "bdf2" || ts_name == "tr");
-        }
-      else
-        {
-          llg_pt->Renormalise_each_time_step = renormalise;
-        }
+      // Set the renormalisation handler
+      llg_pt->renormalisation_handler_pt = renormalisation_handler_pt;
 
       if(compare_residuals_with_gauss != -1)
         {
@@ -378,9 +393,9 @@ namespace oomph
     int doc_ml_error;
 
 
-    /// Flag to control renormalisation of |m| after each step. -1 =
-    /// default for timestepper, 0 = off, 1 = on.
-    int renormalise;
+    /// Flag to control renormalisation of |m| after each step.
+    std::string renormalise_name;
+    RenormalisationHandler* renormalisation_handler_pt;
 
     int compare_residuals_with_gauss;
 

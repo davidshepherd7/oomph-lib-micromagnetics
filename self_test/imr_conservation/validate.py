@@ -53,7 +53,7 @@ def main():
         # conservation properties anyway (should conserve).
 
         '-newton-tol' : 1e-12,
-        '-renormalise' : [0],
+        '-renormalise' : "never",
         '-quadrature' : ['lnodal'],
         }
 
@@ -75,7 +75,7 @@ def main():
                          # rescaling is working
         '-dt' : [0.1],
         '-newton-tol' : 1e-12,
-        '-renormalise' : [0],
+        '-renormalise' : "never",
         '-quadrature' : ['lnodal'],
         }
 
@@ -96,7 +96,7 @@ def main():
         '-ref' : [2],
         '-dt' : [0.1],
         '-newton-tol' : 1e-12,
-        '-renormalise' : [0],
+        '-renormalise' : "never",
         '-quadrature' : ['lnodal'],
         }
 

@@ -55,7 +55,7 @@ def main():
         '-ts' : ["imr", "tr", "bdf2"],
         '-ref' : [2, 3, 4, 5, 6, 7, 8],
         '-newton-tol' : 1e-12,
-        '-renormalise' : [0],
+        '-renormalise' : "never",
         '-quadrature' : ['lnodal', 'gauss'],
         }
 
