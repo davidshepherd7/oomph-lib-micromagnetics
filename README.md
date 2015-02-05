@@ -14,3 +14,8 @@ To use you will need a full install of oomph-lib (see https://github.com/davidsh
 The main binary of interest is `control_scripts/driver/driver`. Run with --help to see a list of command line flags.
 
 There are also a number of useful scripts in `control_scripts`. In particular `mesh_construction.py` can be used to create various unstructured meshes (requires `tetgen` and `triangle`).
+
+
+Note that the tetgen version for which the self tests are written is:
+`Version 1.4.3 (January 19, 2011)`. Newer versions have completely changed
+the way they generate meshes and so cannot (currently) be used by oomph-lib.
