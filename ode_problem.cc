@@ -9,9 +9,17 @@ namespace oomph
   {
 
     SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name,
-                                                 const std::string& initial_m_name)
+                                                 const std::string& initial_m_name,
+                                                 double sc_beta)
     {
       using namespace Factories;
+
+      if(sc_beta != 0.0 && exact_name != "ll")
+        {
+          std::string err = "Self correcting term only implemented for LL eqn.";
+          throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
 
       if(exact_name == "damped_oscillation")
         {
@@ -33,6 +41,7 @@ namespace oomph
         {
           InitialM::LLODESolution* sol_pt = new InitialM::LLODESolution;
           sol_pt->initial_m_pt = initial_m_factory(initial_m_name);
+          sol_pt->sc_beta = sc_beta;
           return sol_pt;
         }
       else if(exact_name == "mallinson")

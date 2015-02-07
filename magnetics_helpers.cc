@@ -90,6 +90,13 @@ namespace oomph
           deriv[j] = -(1/(1 + damping*damping))*(mxh[j] + damping*mxmxh[j]);
         }
 
+      // Add self correcting term
+      const double coeff = this->sc_beta * (1 - VectorOps::dot(m, m));
+      for(unsigned i=0; i<3; i++)
+        {
+          deriv[i] += coeff * m[i];
+        }
+
       return deriv;
     }
 
@@ -97,6 +104,12 @@ namespace oomph
                                  const Vector<double>& m,
                                  DenseMatrix<double>& jacobian) const
     {
+      if(sc_beta != 0.0)
+        {
+          throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
+                              OOMPH_EXCEPTION_LOCATION);
+        }
+
       Vector<double> h = magnetic_parameters_pt->h_app(t, x);
       double damping = magnetic_parameters_pt->damping();
 

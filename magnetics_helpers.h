@@ -511,12 +511,16 @@ namespace InitialM
   class LLODESolution : public SolutionFunctorBase
   {
   public:
-    /// Virtual destructor
-    virtual ~LLODESolution()
+    LLODESolution()
     {
       magnetic_parameters_pt = 0;
       initial_m_pt = 0;
+      sc_beta = 0.0;
     }
+
+    /// Virtual destructor
+    virtual ~LLODESolution() {}
+
 
     /// Just the initial condition actually, no exact solution that can fit
     /// this framework.
@@ -540,14 +544,18 @@ namespace InitialM
                   const Vector<double>& m,
                   DenseMatrix<double>& jacobian) const;
 
-    bool have_jacobian() const {return true;}
+    bool have_jacobian() const {return sc_beta == 0.0;}
 
     /// Get parameters from problem
     void initialise_from_problem(const Problem* problem_pt);
 
     MagneticParameters* magnetic_parameters_pt;
     InitialMFct* initial_m_pt;
+
+    // Self correcting term parameter
+    double sc_beta;
   };
+
 
   /// solution from Mallinson, uses LLODESolution for LLG derivative
   /// + Jacobian

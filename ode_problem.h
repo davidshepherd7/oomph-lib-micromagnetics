@@ -237,7 +237,8 @@ namespace oomph
   {
     // Pick an exact solution using a name
     SolutionFunctorBase* exact_solutions_factory(const std::string& exact_name,
-                                                 const std::string& initial_m_name);
+                                                 const std::string& initial_m_name,
+                                                 double sc_beta=0.0);
   }
 
 
@@ -801,6 +802,9 @@ namespace oomph
       specify_command_line_flag("-fd-jacobian", &fd_jacobian,
                                 "Finite difference the Jacobian, default: -1.");
       fd_jacobian = -1;
+
+      specify_command_line_flag("-sc-beta", &sc_beta, "Self correcting parameter (only for LL equation)");
+      sc_beta = 0.0;
     }
 
     virtual void run_factories()
@@ -808,7 +812,9 @@ namespace oomph
 
       exact_name = to_lower(exact_name);
       initial_condition_pt = ODEFactories::exact_solutions_factory(exact_name,
-                                                                   initial_m_name);
+                                                                   initial_m_name,
+                                                                   sc_beta);
+
       initial_is_exact = true;
 
       MyCliArgs::run_factories();
@@ -836,6 +842,8 @@ namespace oomph
     std::string initial_m_name;
 
     int fd_jacobian;
+
+    double sc_beta;
   };
 
 
