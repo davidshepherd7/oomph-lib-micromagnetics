@@ -112,7 +112,7 @@ namespace oomph
       DenseDoubleMatrix skew_m = skew(m);
 
       DenseDoubleMatrix skew_m_skew_h;
-      skew_h.multiply(skew_m, skew_m_skew_h);
+      skew_m.multiply(skew_h, skew_m_skew_h);
 
       // Combine to get the jacobian
       for(unsigned i=0; i<3; i++)
