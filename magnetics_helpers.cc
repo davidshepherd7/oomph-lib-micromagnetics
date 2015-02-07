@@ -91,7 +91,7 @@ namespace oomph
         }
 
       // Add self correcting term
-      const double coeff = this->sc_beta * (1 - VectorOps::dot(m, m));
+      const double coeff = sc_beta * (1 - VectorOps::dot(m, m));
       for(unsigned i=0; i<3; i++)
         {
           deriv[i] += coeff * m[i];
@@ -104,12 +104,6 @@ namespace oomph
                                  const Vector<double>& m,
                                  DenseMatrix<double>& jacobian) const
     {
-      if(sc_beta != 0.0)
-        {
-          throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
-                              OOMPH_EXCEPTION_LOCATION);
-        }
-
       Vector<double> h = magnetic_parameters_pt->h_app(t, x);
       double damping = magnetic_parameters_pt->damping();
 
@@ -129,6 +123,22 @@ namespace oomph
                 * ( - skew_h(i, j)
                     - damping*skew_mxh(i, j)
                     - damping*skew_m_skew_h(i, j));
+            }
+        }
+
+      // Add self correcting term's first contribution (identity matrix term)
+      const double coeff = sc_beta * (1 - VectorOps::dot(m, m));
+      for(unsigned i=0; i<3; i++)
+        {
+          jacobian(i, i) += coeff;
+        }
+
+      // And the second (tensor product term)
+      for(unsigned i=0; i<3; i++)
+        {
+          for(unsigned j=0; j<3; j++)
+            {
+              jacobian(i, j) -= 2 * sc_beta * m[i] * m[j];
             }
         }
     }

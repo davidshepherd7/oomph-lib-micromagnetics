@@ -544,7 +544,7 @@ namespace InitialM
                   const Vector<double>& m,
                   DenseMatrix<double>& jacobian) const;
 
-    bool have_jacobian() const {return sc_beta == 0.0;}
+    bool have_jacobian() const {return true;}
 
     /// Get parameters from problem
     void initialise_from_problem(const Problem* problem_pt);
