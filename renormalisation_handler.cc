@@ -26,4 +26,16 @@ namespace oomph {
       }
   }
 
+  void RenormaliseAfterTolerance::renormalise(LLGProblem* problem_pt)
+  {
+    Vector<Vector<double> > ms = MManipulation::nodal_magnetisations(0, *problem_pt);
+    Vector<double> ml_errors = MManipulation::nodal_m_length_errors(ms);
+    double worst_error = VectorOps::max(ml_errors);
+
+    if(std::abs(worst_error) > tol)
+      {
+        handler_pt->renormalise(problem_pt);
+      }
+  }
+
 }

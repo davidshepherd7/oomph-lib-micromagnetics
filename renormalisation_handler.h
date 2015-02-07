@@ -37,11 +37,19 @@ namespace oomph
   {
   public:
 
-    void renormalise(LLGProblem* problem_pt)
+    RenormaliseAfterTolerance()
     {
-      throw OomphLibError("Not implemented (yet?).", OOMPH_CURRENT_FUNCTION,
-                          OOMPH_EXCEPTION_LOCATION);
+      // ??ds hard code it for now
+      handler_pt = new AlwaysRenormalise();
+      tol = 1e-2; // This is the default value from magpar (see
+                  // magpar-0.9/src/llg/checkiterationllg.c line 179).
     }
+
+    RenormalisationHandler* handler_pt;
+    double tol;
+
+    void renormalise(LLGProblem* problem_pt);
+
   };
 
 
@@ -66,6 +74,14 @@ namespace oomph
     else if(name == "never")
       {
         return new NeverRenormalise();
+      }
+    else if(name == "after-tol")
+      {
+        return new RenormaliseAfterTolerance();
+      }
+    else if(name == "onto-sphere")
+      {
+        return new RenomaliseOntoSphere();
       }
     else
       {
