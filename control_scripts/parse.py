@@ -1445,6 +1445,19 @@ def main():
         multi_print(all_results, args.split, print_max_max)
 
 
+    if 'mean-newt' in args.print_data:
+
+        def mean_of_nonzeros(xs):
+            return sp.mean([x for x in xs if x != 0])
+
+        print_mean_newt = \
+          par(data_print,
+              to_print=[('n_newton_iters', mean_of_nonzeros),],
+              labels=args.label)
+
+        multi_print(all_results, args.split, print_mean_newt)
+
+
 
     # End of prints/plots
     # ============================================================
