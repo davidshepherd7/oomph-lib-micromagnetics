@@ -478,22 +478,32 @@ def data_print(datasets, to_print, delim="; ", labels=None):
         labels = []
 
     # Also print labels
-    to_print = to_print + [(l, None) for l in labels]
+    to_print = [(l, None) for l in labels] + to_print
+
+    # Extract data to print
+    lines = []
+    for d in datasets:
+        linel = []
+        for a, op in to_print:
+            if op is None:
+                linel.append(d[a])
+            else:
+                linel.append(op(d[a]))
+
+        lines.append(linel)
+
+    # Sort it
+    lines.sort()
 
     # Print headers for each column
     for a, op in to_print:
         print(make_label(a, op), end=delim)
-
     print()
 
-    # Print the values for each dataset
-    for d in datasets:
-        for a, op in to_print:
-            if op is None:
-                print(d[a], end=delim)
-            else:
-                print(op(d[a]), end=delim)
-
+    # Print the values
+    for line in lines:
+        for col in line:
+            print(col, end=delim)
         print()
 
     print()
