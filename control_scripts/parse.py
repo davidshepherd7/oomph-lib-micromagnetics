@@ -543,15 +543,6 @@ def shift_relaxation_times(data):
 def maxabs(l):
     return max((abs(x) for x in l))
 
-def datasort(data1, data2):
-    """Define an ordering on "data" dictionaries.
-
-    Based on the -ts argument then the -renormalise argument, this
-    should allow consistent colours in plots.
-    """
-
-    return
-
 
 def main():
     """
