@@ -14,7 +14,7 @@ namespace oomph
     {
       using namespace Factories;
 
-      if(sc_beta != 0.0 && exact_name != "ll")
+      if(sc_beta != 0.0 && !(exact_name == "ll" || exact_name == "mallinson"))
         {
           std::string err = "Self correcting term only implemented for LL eqn.";
           throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
@@ -48,6 +48,7 @@ namespace oomph
         {
           InitialM::LLGMallinsonSolution* sol_pt = new InitialM::LLGMallinsonSolution;
           sol_pt->llg_ode_solution.initial_m_pt = initial_m_factory(initial_m_name);
+	  sol_pt->llg_ode_solution.sc_beta = sc_beta;
           return sol_pt;
         }
 
