@@ -528,12 +528,27 @@ namespace oomph
       Mallinson_applicable = false;
       Magnetic_parameters_pt = 0;
 
-      Renormalise_each_time_step = false;
+      // Default to effectively infinity => never renormalise
+      M_length_error_tol = 1e200;
     }
 
     virtual ~LLGODEProblem()
     {
       delete Magnetic_parameters_pt; Magnetic_parameters_pt = 0;
+    }
+
+    bool should_renormalise()
+    {
+#ifdef PARANOID
+      if(M_length_error_tol < 0.0)
+	{
+	  std::string err = "Error tol is negative";
+	  throw OomphLibError(err, OOMPH_CURRENT_FUNCTION,
+			      OOMPH_EXCEPTION_LOCATION);
+	}
+#endif
+
+      return m_length_error() > M_length_error_tol;
     }
 
     void renormalise_magnetisation()
@@ -555,11 +570,11 @@ namespace oomph
     {
       ODEProblem::actions_after_newton_solve();
 
-      // If we're using BDF we need to keep M normalised.
-      if(Renormalise_each_time_step)
-        {
-          renormalise_magnetisation();
-        }
+      // Renormalise if needed
+      if(should_renormalise())
+	{
+	  renormalise_magnetisation();
+	}
 
       // Update energies etc.
       Vector<double> dummy;
@@ -617,10 +632,10 @@ namespace oomph
       ODEProblem::actions_after_explicit_timestep();
 
       // We need to keep M normalised...
-      if(Renormalise_each_time_step)
-        {
-          renormalise_magnetisation();
-        }
+      if(should_renormalise())
+	{
+	  renormalise_magnetisation();
+	}
     }
 
     virtual void actions_before_time_integration()
@@ -767,8 +782,7 @@ namespace oomph
     /// Can we use mallinson solution?
     bool Mallinson_applicable;
 
-    /// Should we renormalise?
-    bool Renormalise_each_time_step;
+    double M_length_error_tol;
 
   private:
 
@@ -868,9 +882,9 @@ namespace oomph
       specify_command_line_flag("-h-app", &h_app_name);
       h_app_name =  "minus_z";
 
-      specify_command_line_flag("-renormalise", &renormalise);
-      renormalise = -1;
-    }
+      specify_command_line_flag("-renorm-tol", &renorm_tol);
+      renorm_tol = 1e200; // By default never renormalise
+	}
 
     virtual void run_factories()
     {
@@ -889,17 +903,7 @@ namespace oomph
       // Assign magnetic parameters pointer
       LLGODEProblem* llg_ode_pt = checked_dynamic_cast<LLGODEProblem*>(problem_pt);
       llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
-
-      // Default: renormalise for some integration schemes
-      if(renormalise == -1)
-        {
-          llg_ode_pt->Renormalise_each_time_step =
-            (ts_name == "tr" || ts_name == "bdf2" || ts_name == "bdf1");
-        }
-      else
-        {
-          llg_ode_pt->Renormalise_each_time_step = bool(renormalise);
-        }
+      llg_ode_pt->M_length_error_tol = renorm_tol;
 
     }
 
@@ -907,7 +911,7 @@ namespace oomph
     std::string h_app_name;
     MagneticParameters* mag_parameters_pt;
 
-    int renormalise;
+    double renorm_tol;
   };
 
 
