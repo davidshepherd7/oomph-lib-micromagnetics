@@ -530,6 +530,8 @@ namespace oomph
 
       // Default to effectively infinity => never renormalise
       M_length_error_tol = 1e200;
+
+      Renormalise_history = false;
     }
 
     virtual ~LLGODEProblem()
@@ -554,16 +556,24 @@ namespace oomph
     void renormalise_magnetisation()
     {
       oomph_info << "Renormalising nodal magnetisations." << std::endl;
+      unsigned tn=1;
+      if(Renormalise_history)
+	{
+	  tn = time_stepper_pt()->nprev_values();
+	}
 
-      Vector<double> values(3, 0.0);
-      mesh_pt()->element_pt(0)->internal_data_pt(0)->value(values);
-      VectorOps::normalise(values);
+      for(unsigned ti=0; ti<tn; ti++)
+	{
+	  Vector<double> values(3, 0.0);
+	  mesh_pt()->element_pt(0)->internal_data_pt(0)->value(ti, values);
+	  VectorOps::normalise(values);
 
-      for(unsigned j=0; j<3; j++)
-        {
-          mesh_pt()->element_pt(0)->internal_data_pt(0)
-            ->set_value(j, values[j]);
-        }
+	  for(unsigned j=0; j<3; j++)
+	    {
+	      mesh_pt()->element_pt(0)->internal_data_pt(0)
+		->set_value(ti, j, values[j]);
+	    }
+	}
     }
 
     virtual void actions_after_newton_solve()
@@ -582,14 +592,14 @@ namespace oomph
       double prev_energy = Zeeman_energy + Crystalline_anisotropy_energy;
 
       Zeeman_energy = -VectorOps::dot(solution(),
-                                      Magnetic_parameters_pt->h_app(time(), dummy));
+				      Magnetic_parameters_pt->h_app(time(), dummy));
       Crystalline_anisotropy_energy = 0.0; //??ds not implemented
       double energy = Zeeman_energy + Crystalline_anisotropy_energy;
 
       if(Magnetic_parameters_pt->gilbert_damping() != 0)
-        {
-          Alt_eff_damp = effective_damping(energy, prev_energy);
-        }
+	{
+	  Alt_eff_damp = effective_damping(energy, prev_energy);
+	}
     }
 
     virtual void actions_after_set_initial_condition()
@@ -599,7 +609,7 @@ namespace oomph
       // Get energies
       Vector<double> dummy;
       Zeeman_energy = -VectorOps::dot(solution(),
-                                      Magnetic_parameters_pt->h_app(time(), dummy));
+				      Magnetic_parameters_pt->h_app(time(), dummy));
       Crystalline_anisotropy_energy = 0.0; //??ds not implemented
       Magnetostatic_energy = 0.0;
       Exchange_energy = 0.0;
@@ -619,9 +629,9 @@ namespace oomph
 
       Vector<double> dmdt(3, 0.0);
       for(unsigned i=0; i<3; i++)
-        {
-          dmdt[i] = (dat_pt->value(0, i) - dat_pt->value(1, i))/dt;
-        }
+	{
+	  dmdt[i] = (dat_pt->value(0, i) - dat_pt->value(1, i))/dt;
+	}
       const double dmdtnorm = two_norm(dmdt);
 
       return -(energy - prev_energy)/(dt*dmdtnorm*dmdtnorm);
@@ -784,6 +794,10 @@ namespace oomph
 
     double M_length_error_tol;
 
+    /// When we renormalise m, should we also renormalise any history
+    /// values?
+    bool Renormalise_history;
+
   private:
 
     double Initial_energy;
@@ -884,7 +898,11 @@ namespace oomph
 
       specify_command_line_flag("-renorm-tol", &renorm_tol);
       renorm_tol = 1e200; // By default never renormalise
-	}
+
+      specify_command_line_flag("-also-renorm-history", &also_renorm_history,
+				"Should we also renormalise the history values, default: -1.");
+      also_renorm_history = -1;
+    }
 
     virtual void run_factories()
     {
@@ -905,6 +923,10 @@ namespace oomph
       llg_ode_pt->Magnetic_parameters_pt = mag_parameters_pt;
       llg_ode_pt->M_length_error_tol = renorm_tol;
 
+      if(also_renorm_history != -1)
+	{
+	  llg_ode_pt->Renormalise_history = bool(also_renorm_history);
+	}
     }
 
     double damping;
@@ -912,6 +934,7 @@ namespace oomph
     MagneticParameters* mag_parameters_pt;
 
     double renorm_tol;
+    int also_renorm_history;
   };
 
 
