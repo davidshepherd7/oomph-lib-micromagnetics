@@ -472,6 +472,12 @@ def multi_print(data, keys_to_split_on, print_function):
     return
 
 
+def max_error_over_mean_dt(data, error="switching_time_error"):
+    dts = data['dts']
+    errors = data[error]
+    return max(errors)/sp.mean(sp.dot(dts,dts))
+
+
 def data_print(datasets, to_print, delim="; ", labels=None):
 
     if labels is None:
@@ -1219,6 +1225,20 @@ def main():
                 ax.legend(loc=0)
 
 
+    if 'scatter-swerr-dts-noguides' in args.plots:
+        plot_err_scatter = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='dts',
+              y_value='switching_time_error',
+              y_operation=max,
+              x_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_err_scatter)
+        figs.extend(newfigs)
+
+
     if 'scatter-err-tols' in args.plots:
         plot_err_scatter = \
           par(my_scatter,
@@ -1395,6 +1415,18 @@ def main():
         max_ref_results = [d for d in all_results if d['-ref'] == max_ref]
         newfigs = multi_plot(max_ref_results, args.split, fplot)
 
+    if 'scatter-newt-beta' in args.plots:
+        plot_f = \
+          par(my_scatter,
+              labels=args.label,
+              dataset_split_keys=args.scatter_split,
+              x_value='-sc-beta',
+              y_value='n_newton_iters',
+              yscale="linear",
+              y_operation=sp.mean)
+
+        newfigs = multi_plot(all_results, args.split, plot_f)
+        figs.extend(newfigs)
 
 
     # Printing
@@ -1448,6 +1480,22 @@ def main():
 
         multi_print(all_results, args.split, print_mean_newt)
 
+
+    if 'mean-dt' in args.print_data:
+        print_mean_newt = \
+          par(data_print,
+              to_print=[('dts', sp.mean),],
+              labels=args.label)
+        multi_print(all_results, args.split, print_mean_newt)
+
+
+    if 'err_over_dt' in args.print_data:
+        for data in all_results:
+            data['max_error_over_mean_dt'] = max_error_over_mean_dt(data)
+
+        multi_print(all_results, args.split,
+                    par(data_print, to_print=[('max_error_over_mean_dt', sp.mean)],
+                        labels=args.label))
 
 
     # End of prints/plots
