@@ -279,6 +279,8 @@ def parse_run(results_folder):
     and put all data into a dict with keys taken from file data.
     """
 
+    print("Parsing", results_folder)
+
     # If info file doesn't exist then it probably hasn't run yet...
     try:
         d = parse_info_file(pjoin(results_folder, "info"))
@@ -349,7 +351,6 @@ def parse_parameter_sweep(root_dirs, skip_failed=False, **kwargs):
             fail_skip = skip_failed and run_failed(dirname)
 
             if has_info and not fail_skip:
-                print("Parsing", dirname)
                 result_dirs.append(dirname)
             elif fail_skip:
                 print("Skipping", dirname, "because it failed")
