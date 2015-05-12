@@ -52,6 +52,26 @@ namespace oomph
     }
 
 
+    inline Vector<double> tanh(const double& time, const Vector<double>& x)
+    {
+      double a = 10;
+      double t_step = 1;
+      Vector<double> values(1);
+      values[0] = std::tanh(a * (time - t_step));
+      return values;
+    }
+    inline Vector<double> dtanh(const double& t, const Vector<double>& x,
+                                const Vector<double>& u)
+    {
+      double a = 10;
+      double t_step = 1;
+      Vector<double> deriv(1, 0.0);
+      double th = std::tanh(a * (t - t_step));
+      deriv[0] = a * (-th * th  + 1);
+      return deriv;
+    }
+
+
     inline Vector<double> exp(const double& time, const Vector<double>& x)
     {
       Vector<double> values(1);

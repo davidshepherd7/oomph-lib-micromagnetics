@@ -85,6 +85,11 @@ namespace oomph
           fpt = &deriv_functions::poly2;
           dfpt = &deriv_functions::dpoly2;
         }
+      else if(exact_name == "tanh")
+        {
+          fpt = &deriv_functions::tanh;
+          dfpt = &deriv_functions::dtanh;
+        }
       else
         {
           throw OomphLibError("Unrecognised exact solution " + exact_name,
